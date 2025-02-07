@@ -3,6 +3,9 @@ import { vueApp } from '@/app.ts'
 import Dashboard from '@/views/DashboardPage.vue'
 import ProfilePage from '@/views/ProfilePage.vue'
 import SupportPage from '@/views/SupportPage.vue'
+import AccomplishmentReportPage from '@/views/AccomplishmentReportPage.vue'
+import CreateAccomplishmentReportForm from '@/components/accomplishment-report-page/CreateAccomplishmentReportForm.vue'
+import ViewAccomplishmentReportForm from '@/components/accomplishment-report-page/ViewAccomplishmentReport.vue'
 import AboutUsPage from '@/views/AboutUsPage.vue'
 import AnnouncementsPage from '@/views/AnnouncementsPage.vue'
 import { AuthRole, AuthType } from '@/typings/auth.types.ts'
@@ -22,10 +25,10 @@ const routes = [
     component: Dashboard,
     meta: <RouteMeta>{
       group: RouteGroup.HOME,
-      label: 'Dashboard',
+      label: 'Home',
       isSidebarMenu: true,
       authType: AuthType.AUTHENTICATED,
-      roles: [AuthRole.STANDARD_USER, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+      roles: [AuthRole.STANDARD_USER, AuthRole.EMPLOYEE, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
     },
   },
   {
@@ -34,10 +37,10 @@ const routes = [
     component: ProfilePage,
     meta: <RouteMeta>{
       group: RouteGroup.HOME,
-      label: 'Profile',
+      label: 'My Profile',
       isSidebarMenu: true,
       authType: AuthType.AUTHENTICATED,
-      roles: [AuthRole.STANDARD_USER, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+      roles: [AuthRole.STANDARD_USER, AuthRole.EMPLOYEE, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
     },
   },
   {
@@ -46,10 +49,42 @@ const routes = [
     component: AnnouncementsPage,
     meta: <RouteMeta>{
       group: RouteGroup.HOME,
-      label: 'Announcements',
+      label: 'Request',
       isSidebarMenu: true,
       authType: AuthType.AUTHENTICATED,
-      roles: [AuthRole.STANDARD_USER, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+      roles: [AuthRole.STANDARD_USER, AuthRole.EMPLOYEE, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+    },
+  },
+
+  {
+    path: '/commitments',
+    name: 'commitments',
+    component: AccomplishmentReportPage,
+    meta: <RouteMeta>{
+      group: RouteGroup.HOME,
+      label: 'Commitments',
+      isSidebarMenu: true,
+      authType: AuthType.AUTHENTICATED,
+      roles: [AuthRole.STANDARD_USER, AuthRole.EMPLOYEE, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+    },
+  },
+
+  {
+    path: '/Accomplishment-report',
+    name: 'create-accomplishment-report',
+    component: CreateAccomplishmentReportForm,
+    meta: <RouteMeta>{
+      authType: AuthType.AUTHENTICATED,
+      roles: [AuthRole.STANDARD_USER, AuthRole.EMPLOYEE, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+    },
+  },
+  {
+    path: '/View-Accomplishment-report',
+    name: 'view-accomplishment-report',
+    component: ViewAccomplishmentReportForm,
+    meta: <RouteMeta>{
+      authType: AuthType.AUTHENTICATED,
+      roles: [AuthRole.STANDARD_USER, AuthRole.EMPLOYEE, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
     },
   },
   {
@@ -61,7 +96,7 @@ const routes = [
       label: 'Support',
       isSidebarMenu: true,
       authType: AuthType.AUTHENTICATED,
-      roles: [AuthRole.STANDARD_USER, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+      roles: [AuthRole.STANDARD_USER, AuthRole.EMPLOYEE, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
     },
   },
   {
@@ -73,7 +108,7 @@ const routes = [
       label: 'About Us',
       isSidebarMenu: true,
       authType: AuthType.AUTHENTICATED,
-      roles: [AuthRole.STANDARD_USER, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+      roles: [AuthRole.STANDARD_USER, AuthRole.EMPLOYEE, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
     },
   },
   {
