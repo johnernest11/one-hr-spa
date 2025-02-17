@@ -6,15 +6,12 @@ import Badge from 'primevue/badge'
 import Menu from 'primevue/menu'
 import Tag from 'primevue/tag'
 import type { MenuItem } from 'primevue/menuitem'
-import { useGlobalUiStore } from '@/stores/ui.store.ts'
-import AppLogo from '@/components/layout/AppLogo.vue'
 import { useAuthStore } from '@/stores/auth.store.ts'
 import { useRouter } from 'vue-router'
 import { computed, ref } from 'vue'
 import { snakeCaseToTitleCase } from '@/utils/helpers.ts'
 import InputText from 'primevue/inputtext'
 
-const uiStore = useGlobalUiStore()
 const authStore = useAuthStore()
 const router = useRouter()
 
@@ -58,20 +55,9 @@ const handleLogout = async () => {
 <template>
   <Toolbar class="min-h-[4rem] bg-surface-100 px-6 py-6 shadow-none !ring-0 dark:bg-surface-950">
     <template #start>
-      <AppLogo v-if="uiStore.sidebarMinimized" icon-only class="mr-4"></AppLogo>
-      <Button
-        icon="pi pi-th-large"
-        severity="secondary"
-        text
-        rounded
-        aria-label="Menu"
-        v-tooltip.bottom="`${uiStore.sidebarMinimized ? 'Show Sidebar' : 'Hide Sidebar'}`"
-        class="mr-4 hover:text-primary-500 dark:!text-surface-200"
-        @click="uiStore.toggleSidebar()"
-      />
       <span class="relative mr-4">
         <i class="pi pi-search absolute left-3 top-2/4 -mt-2 text-surface-400 dark:text-surface-600" />
-        <InputText placeholder="Search" class="pl-10" />
+        <InputText placeholder="Search" class="!border-0 pl-10" />
       </span>
     </template>
 
@@ -107,10 +93,6 @@ const handleLogout = async () => {
           aria-haspopup="true"
           aria-controls="avatar-menu"
         />
-        <!--
-          @note `avatarMenu.focusedOptionIndex = -1` removes the auto focus for the first item of the Menu component
-          @see https://github.com/primefaces/primevue/issues/4481
-        -->
         <Menu
           ref="avatarMenu"
           id="avatar-menu"

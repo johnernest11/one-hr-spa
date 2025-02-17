@@ -1,43 +1,36 @@
 <script setup lang="ts">
-import { UserResponse } from '@/typings/models.types.ts'
+import { PersonnelAccomplishmentReportResponse } from '@/typings/models.types.ts'
 import Dialog from 'primevue/dialog'
-import { useRouter } from 'vue-router'
 import { ref } from 'vue'
-import { nextTick } from 'vue'
-import ViewAR from '@/components/accomplishment-report-page/ViewAccomplishmentReport.vue'
-import { useUsersStore } from '@/stores/users.store.ts' // Import the user store
+import ViewAccomplishmentReport from '@/components/accomplishment-report-page/ViewAccomplishmentReport.vue'
 
-const props = defineProps<{ user: UserResponse; roleFilter: number | string | null }>()
+const props = defineProps<{ accomplishmentReport: PersonnelAccomplishmentReportResponse; roleFilter: number | string | null }>()
 
-const showOdsuDetailsDialog = ref(false)
-// const toggleOdsuDetailsDialog = () => (showOdsuDetailsDialog.value = !showOdsuDetailsDialog.value);
-const userStore = useUsersStore() // Initialize the user store
-const router = useRouter()
+/** Update User Dialog */
+const showAccomplishmentDetailsDialog = ref(false)
 
-const navigateToDetails = () => {
-  nextTick(() => {
-    // Use nextTick here
-    userStore.selectedUser = props.user
-    router.push({ name: 'view-accomplishment-report' })
-  })
-}
+const navigateToDetails = () => (showAccomplishmentDetailsDialog.value = !showAccomplishmentDetailsDialog.value)
 </script>
 
 <template>
   <button
-    @click="navigateToDetails"
-    class="relative mt-2 flex min-h-10 flex-col items-center rounded-lg bg-surface-100 px-2 py-2 shadow-md dark:bg-surface-800"
+    @click="navigateToDetails()"
+    class="border-none text-lg font-semibold text-primary-900 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
   >
-    <span class="text-sm font-medium text-primary-600">View/Edit Report</span>
+    <span class="text-sm font-medium text-primary-600"><i class="pi pi-eye"></i></span>
     <Dialog
-      v-model:visible="showOdsuDetailsDialog"
-      header="Odsu Details"
+      v-model:visible="showAccomplishmentDetailsDialog"
       :draggable="false"
       modal
-      maximizable
-      class="mx-2 w-full sm:mx-0"
+      :style="{ width: '90vw', maxWidth: '1500px' }"
+      :maximizable="true"
+      class="large-dialog"
     >
-      <ViewAR :user="props.user" :current-role-filter="props.roleFilter" @user-updated="navigateToDetails" />
+      <ViewAccomplishmentReport
+        :accomplishmentReport="props.accomplishmentReport"
+        :current-role-filter="props.roleFilter"
+        @user-updated="navigateToDetails"
+      />
     </Dialog>
   </button>
 </template>

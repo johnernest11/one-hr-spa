@@ -72,6 +72,20 @@ export type UserProfileResponse = {
   full_name: string
   profile_picture_url: string | null
   address: AddressResponse
+  personnel_accomplishment_report?: PersonnelAccomplishmentReportResponse[]
+} & ApiResponseData
+
+export type PersonnelAccomplishmentReportResponse = {
+  period: string
+  supervisor_notes: string
+  rows: PersonnelAccomplishmentReportDetialsResponse[]
+} & ApiResponseData
+
+export type PersonnelAccomplishmentReportDetialsResponse = {
+  week_num: string
+  dates_in_week: string
+  specific_activity: string | null
+  highlights: string | null
 } & ApiResponseData
 
 /** Role (HTTP Responses) */

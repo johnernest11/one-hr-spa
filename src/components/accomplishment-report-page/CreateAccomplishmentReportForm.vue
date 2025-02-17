@@ -1,47 +1,110 @@
 <script setup lang="ts">
-import { computed, onBeforeMount, reactive, ref } from 'vue'
-import { UserPayload, useUsersStore } from '@/stores/users.store.ts'
-import useVuelidate from '@vuelidate/core'
-import { email, helpers, maxLength, minLength, required, sameAs } from '@vuelidate/validators'
-import { digitCountRule, mobilePhoneRule, passwordRule, uniqueUserIdentifierRule } from '@/utils/custom-validations.ts'
+// import { onBeforeMount, reactive, ref } from 'vue'
+import { ref, reactive, onBeforeMount, watch } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import { parseApiResponseError } from '@/utils/error-handle.ts'
-// import WbAutoComplete, { WbAutoCompleteOption, WbAutoCompleteOptionTrueValue } from '@/components/webkit/WbAutoComplete.vue'
-// import { storeToRefs } from 'pinia'
+import useVuelidate from '@vuelidate/core'
+import { helpers, maxLength, required } from '@vuelidate/validators'
 import WbInputText from '@/components/webkit/WbInputText.vue'
 import Textarea from 'primevue/textarea'
-// import { useWbAutoCompleteHandleTrueValue } from '@/composables/wb-ui-components.ts'
 import Button from 'primevue/button'
 import Divider from 'primevue/divider'
 import Card from 'primevue/card'
 import Message from 'primevue/message'
 import Dropdown from 'primevue/dropdown'
 import { useRolesStore } from '@/stores/roles.store.ts'
-// import { AuthRole } from '@/typings/auth.types.ts'
+import {
+  PersonnelAccomplishmentReportPayload,
+  PersonnelAccomplishmentReportDetailsPayload,
+  useAccomplishmentReportStore,
+} from '@/stores/personnelAccomplishmentReport.store'
 
-/** Props */
-const props = withDefaults(defineProps<{ currentRoleFilter: number | string | null }>(), {
-  currentRoleFilter: null,
+/** Payload for the Personnel Accomplishment Report */
+const payload = reactive<Partial<PersonnelAccomplishmentReportPayload>>({
+  period: null,
+  supervisor_notes: '',
 })
 
-/** Payload */
-const payload = reactive<Partial<UserPayload>>({
-  email: '',
-  mobile_number: null,
-  first_name: '',
-  last_name: '',
-  middle_name: null,
-  ext_name: null,
-  birthday: null,
-  sex: null,
-  home_address: null,
-  city_id: null,
-  province_id: null,
-  region_id: null,
-  postal_code: null,
-  barangay_id: null,
-  roles: [],
+/** Payload details for each accomplishment entry */
+const payloadDetails = reactive<Partial<PersonnelAccomplishmentReportDetailsPayload>>({
+  week_num: '',
+  dates_in_week: '',
+  specific_activity: null,
+  highlights: null,
 })
+
+/** Options for selecting the week number */
+const weekOptions = ref([
+  { label: 'Week 1', value: 'Week 1' },
+  { label: 'Week 2', value: 'Week 2' },
+  { label: 'Week 3', value: 'Week 3' },
+  { label: 'Week 4', value: 'Week 4' },
+  { label: 'Week 5', value: 'Week 5' },
+])
+
+/** Computed property for the selected week, syncing with payloadDetails */
+// const selectedWeek = computed({
+//   get: () => payloadDetails.week_num,
+//   set: (value) => {
+//     payloadDetails.week_num = value
+//   },
+// })
+
+/** Controls the visibility */
+const AccomplishmentBtn = ref(false)
+const AddAccomplishmentFieldBtn = ref(false)
+const showTextArea1 = ref(false)
+const showTextArea2 = ref(false)
+
+/** Array to store the accomplishment entries */
+const accomplishments = ref([
+  {
+    week_num: payloadDetails.week_num,
+    dates_in_week: payloadDetails.dates_in_week,
+    specific_activity: payloadDetails.specific_activity,
+    highlights: payloadDetails.highlights,
+  },
+])
+
+/** Watcher to update the week number of all existing accomplishments when the selectedWeek changes */
+watch(
+  () => payloadDetails.week_num,
+  (newWeekNum) => {
+    accomplishments.value = accomplishments.value.map((item) => ({
+      ...item,
+      week_num: newWeekNum,
+    }))
+  }
+)
+
+/** Function to add a new accomplishment entry */
+const addAccomplishment = (newFields = {}) => {
+  const defaultAccomplishment = {
+    week_num: '',
+    dates_in_week: '',
+    specific_activity: null,
+    highlights: null,
+  }
+
+  const newAccomplishment = { ...defaultAccomplishment, ...newFields }
+  accomplishments.value.push(newAccomplishment)
+}
+
+/** Function to remove an accomplishment entry */
+const removeAccomplishment = (index: number) => {
+  if (index >= 0 && index < accomplishments.value.length) {
+    accomplishments.value.splice(index, 1)
+  }
+}
+
+/** Function to handle changes in the selected week */
+const handleWeekChange = () => {
+  showTextArea1.value = accomplishments.value.some((item) => item.week_num !== '') // Check if ANY week is selected
+  showTextArea2.value = accomplishments.value.some((item) => item.week_num !== '') // Check if ANY week is selected
+
+  AccomplishmentBtn.value = accomplishments.value.some((item) => item.week_num !== '') // Check if ANY week is selected
+  AddAccomplishmentFieldBtn.value = accomplishments.value.some((item) => item.week_num !== '') // Check if ANY week is selected
+}
 
 /** Roles Options */
 const rolesStore = useRolesStore()
@@ -52,7 +115,6 @@ onBeforeMount(async () => {
   await rolesStore.fetchRoles()
   rolesOptionsIsLoading.value = false
 })
-
 /** Validation */
 const globalStringMaxLength = import.meta.env.VITE_GLOBAL_STRING_MAX_LENGTH
 const globalStringMaxLengthRule = helpers.withMessage(
@@ -61,165 +123,123 @@ const globalStringMaxLengthRule = helpers.withMessage(
 )
 const formRules = {
   $lazy: true,
-  email: {
-    required: helpers.withMessage('The email address is required', required),
-    email: helpers.withMessage('Email format is invalid', email),
-    unique: helpers.withAsync(helpers.withMessage('This email is already taken', uniqueUserIdentifierRule('email'))),
-  },
-  mobile_number: {
-    mobile_number: helpers.withMessage('Must be a valid PH mobile number', mobilePhoneRule()),
-    unique: helpers.withAsync(
-      helpers.withMessage('This mobile number is already taken', uniqueUserIdentifierRule('mobile_number'))
-    ),
-  },
-  first_name: {
-    required: helpers.withMessage('First name is required', required),
+  period: {
+    required: helpers.withMessage('Period of Accomplishment is required', required),
     maxLength: helpers.withMessage('', globalStringMaxLengthRule),
-  },
-  last_name: {
-    required: helpers.withMessage('Last name is required', required),
-    maxLength: globalStringMaxLengthRule,
-  },
-  middle_name: {
-    maxLength: globalStringMaxLengthRule,
-  },
-  ext_name: {
-    maxLength: globalStringMaxLengthRule,
-  },
-  home_address: {
-    maxLength: globalStringMaxLengthRule,
-  },
-  postal_code: {
-    digitCount: helpers.withMessage('Enter your 4-digit zip code', digitCountRule(4)),
-  },
-  roles: {
-    required: helpers.withMessage('A user must have a role selected', required),
-  },
-  password: {
-    required: helpers.withMessage('Please enter their password', required),
-    minLength: helpers.withMessage('Must be at least 8 characters long', minLength(8)),
-    maxLength: helpers.withMessage('Must be a maximum of 50 characters', maxLength(50)),
-    password: helpers.withMessage('Must include at least one number, and one uppercase and lowercase letter', passwordRule()),
-  },
-  password_confirmation: {
-    required: helpers.withMessage('Please confirm their password', required),
-    sameAsPassword: helpers.withMessage('Must match the password field', sameAs(computed(() => payload.password))),
   },
 }
 
 /** Handle Form Submission */
-const validator = useVuelidate<Partial<UserPayload>>(formRules, payload)
+const validator = useVuelidate<Partial<PersonnelAccomplishmentReportPayload>>(formRules, payload)
 const formIsSubmitting = ref(false)
 const showErrorAlert = ref(false)
 const errorMessage = ref<string | null>(null)
 const errorDetails = ref<string[]>([])
-const userStore = useUsersStore()
+const accomplishmentReportStore = useAccomplishmentReportStore()
 const toast = useToast()
 
 /** Emits */
 const emit = defineEmits<{
-  (e: 'user-created', value: boolean): void
+  (e: 'ar-created', value: boolean): void
 }>()
 
-/** Form Submission */
 const handleFormSubmission = async () => {
   const valid = await validator.value.$validate()
   if (!valid) {
-    document.getElementsByClassName('create-user-creds-section')[0]?.scrollIntoView({ behavior: 'smooth' })
+    document.getElementsByClassName('create-ar-creds-section')[0]?.scrollIntoView({ behavior: 'smooth' })
     toast.add({
       severity: 'error',
-      summary: 'Create User',
+      summary: 'Create Accomplishment Report',
       detail: 'Please see the validation messages',
       life: 5000,
     })
     return
   }
-
   formIsSubmitting.value = true
-  const response = await userStore.createUser(payload, props.currentRoleFilter)
-  // Handle the API error
-  if (!response.success) {
-    const result = parseApiResponseError(response)
-    if (!result) return (formIsSubmitting.value = false)
+  let allSuccess = true
 
+  try {
+    const periodData = {
+      period: payload.period,
+      supervisor_notes: payload.supervisor_notes,
+    }
+    //  Crucial Change: Collect all accomplishments into an array of objects
+    // Crucial Change: Collect all accomplishments, filtering out empty entries
+    const rows = accomplishments.value
+      .filter(
+        (accomplishment) =>
+          accomplishment.week_num && // Check if week_num is not empty
+          accomplishment.dates_in_week && // Check if dates_in_week is not empty
+          accomplishment.specific_activity && // Check if specific_activity is not empty
+          accomplishment.highlights // Check if highlights is not empty
+      )
+      .map((accomplishment) => ({
+        week_num: accomplishment.week_num,
+        dates_in_week: accomplishment.dates_in_week,
+        specific_activity: accomplishment.specific_activity,
+        highlights: accomplishment.highlights,
+      }))
+
+    if (rows.length === 0) {
+      // Check if all entries are empty
+      toast.add({
+        severity: 'error',
+        summary: 'Create Accomplishment Report',
+        detail: 'Please fill out at least one accomplishment entry.',
+        life: 5000,
+      })
+      return
+    }
+
+    const fullPayload = { ...periodData, rows } // Combine period data and rows
+
+    const periodResponse = await accomplishmentReportStore.createAccomplishment(
+      fullPayload as PersonnelAccomplishmentReportPayload
+    )
+
+    if (!periodResponse.success) {
+      const result = parseApiResponseError(periodResponse)
+      if (!result) {
+        formIsSubmitting.value = false
+        return
+      }
+      showErrorAlert.value = true
+      errorMessage.value = result.message
+      errorDetails.value = result.errors
+      allSuccess = false
+    } else {
+      console.log('Accomplishment Report created successfully:', periodResponse.data) // Example
+    }
+  } catch (error) {
+    console.error('An unexpected error occurred during form submission:', error)
     showErrorAlert.value = true
-    errorMessage.value = result.message
-    errorDetails.value = result.errors
-
+    errorMessage.value = 'An unexpected error occurred. Please try again later.'
+    allSuccess = false
+  } finally {
     formIsSubmitting.value = false
-    return document.getElementsByClassName('create-user-creds-section')[0]?.scrollIntoView({ behavior: 'smooth' })
   }
 
-  formIsSubmitting.value = false
-  toast.add({
-    severity: 'success',
-    summary: 'Create User',
-    detail: "You've successfully created a user",
-    life: 5000,
-  })
+  if (allSuccess) {
+    toast.add({
+      severity: 'success',
+      summary: 'Success',
+      detail: 'Accomplishment Report submitted successfully',
+      life: 5000,
+    })
+    emit('ar-created', true)
 
-  emit('user-created', true)
-}
-const weekOptions = ref([
-  { label: 'Week 1', value: 1 },
-  { label: 'Week 2', value: 2 },
-  { label: 'Week 3', value: 3 },
-  { label: 'Week 4', value: 4 },
-  { label: 'Week 5', value: 5 },
-  // ... your week options
-])
-
-const selectedWeek = ref(null)
-const AccomplishmentBtn = ref(false) // Initially hide the buttons
-const AddAccomplishmentFieldBtn = ref(false) // Initially hide the buttons
-// const showDateInput = ref(false);
-const showTextArea1 = ref(false)
-const showTextArea2 = ref(false)
-
-const accomplishments = ref([
-  {
-    week: null,
-    dates: '',
-    activity: '',
-    highlights: '',
-  },
-])
-const addAccomplishment = () => {
-  accomplishments.value.push({
-    week: null,
-    dates: '',
-    activity: '',
-    highlights: '',
-  })
-}
-
-const removeAccomplishment = (index: number) => {
-  if (index >= 0 && index < accomplishments.value.length) {
-    accomplishments.value.splice(index, 1)
+    setTimeout(() => {
+      window.location.reload()
+    }, 1000)
   } else {
-    console.error('Invalid index for removing accomplishment:', index)
-    // Optionally, handle the error more gracefully, e.g., display a message to the user.
-  }
-}
-
-const handleWeekChange = (index: number) => {
-  if (index >= 0 && index < accomplishments.value.length) {
-    // Important bounds check!
-    showTextArea1.value = selectedWeek.value !== null
-    showTextArea2.value = selectedWeek.value !== null
-    AccomplishmentBtn.value = selectedWeek.value !== null
-    AddAccomplishmentFieldBtn.value = selectedWeek.value !== null
-
-    console.log('Selected Week for index ' + index + ':', accomplishments.value[index].week)
-  } else {
-    console.error('Invalid index:', index) // Handle out-of-bounds index
+    document.getElementsByClassName('create-ar-creds-section')[0]?.scrollIntoView({ behavior: 'smooth' })
   }
 }
 </script>
 
 <template>
   <form autocomplete="off" @submit.prevent>
-    <div class="flex w-full flex-col gap-4 pb-4">
+    <div class="flex w-full flex-col gap-4 pb-4 pl-4 pt-8">
       <Card class="h-full">
         <template #content>
           <div class="flex w-full">
@@ -239,18 +259,19 @@ const handleWeekChange = (index: number) => {
           <br />
           <h2 class="mb-2 text-lg font-semibold text-gray-600 dark:text-white">Timeline</h2>
           <div class="flex flex-col md:flex-row">
-            <div class="mb-4 ml-6 flex w-full flex-col items-start justify-center gap-2 py-2 md:w-4/12">
+            <div class="mb-4 ml-6 flex w-full flex-col items-start justify-center gap-2 py-2 md:w-2/6">
               <div class="flex w-full flex-col">
                 <label for="password" class="mb-0 text-sm text-gray-600"
                   >Period of Accomplishment <span class="text-red-500">*</span></label
                 >
                 <WbInputText
-                  v-model="payload.first_name"
+                  v-model="payload.period"
                   label=""
                   placeholder="Period of Accomplishment"
-                  :invalid="validator.first_name.$invalid"
-                  :invalid-text="validator.first_name.$errors?.$message"
-                  @blur="validator.first_name.$touch"
+                  :invalid="validator.period.$invalid"
+                  :invalid-text="validator.period.$errors[0]?.$message"
+                  @blur="validator.period.$touch"
+                  @focusin="validator.period.$dirty = false"
                   class="w-full"
                 >
                 </WbInputText>
@@ -277,16 +298,18 @@ const handleWeekChange = (index: number) => {
             <div class="ml-12 w-1/2 text-center font-semibold text-gray-500">SPECIFIC ACTIVITY</div>
             <div class="w-1/2 text-center font-semibold text-gray-500">HIGHLIGHTS OF ACCOMPLISHMENT</div>
           </div>
-          <div v-for="(_, index) in accomplishments" :key="index" class="mb-4 flex flex-col md:flex-row">
+          <p class="create-ar-creds-section text-xs font-medium uppercase"></p>
+          <div v-for="(accomplishment, index) in accomplishments" :key="index" class="mb-4 flex flex-col md:flex-row">
             <div class="mb-4 ml-6 flex w-full flex-col items-start justify-center gap-2 py-2 pt-8 md:w-2/12">
               <div class="flex w-full flex-col">
                 <label for="password" class="mb-0 text-sm text-gray-600">Week <span class="text-red-500">*</span></label>
                 <Dropdown
-                  v-model="selectedWeek"
+                  :id="'week-' + index"
+                  v-model="accomplishment.week_num"
                   :options="weekOptions"
                   optionLabel="label"
                   optionValue="value"
-                  @change="handleWeekChange(index)"
+                  @change="handleWeekChange()"
                   class="mb-4 w-full md:w-11/12"
                   placeholder="Choose a Week"
                 >
@@ -295,12 +318,9 @@ const handleWeekChange = (index: number) => {
                   >Date/s or Converage <span class="text-red-500">*</span></label
                 >
                 <WbInputText
-                  v-model="payload.first_name"
+                  v-model="accomplishment.dates_in_week"
                   label=""
                   placeholder="e.g. 16 - 17 January 2025"
-                  :invalid="validator.first_name.$invalid"
-                  :invalid-text="validator.first_name.$errors?.$message"
-                  @blur="validator.first_name.$touch"
                   class="md:w-12/12 w-full"
                 >
                 </WbInputText>
@@ -309,31 +329,13 @@ const handleWeekChange = (index: number) => {
             <Divider layout="vertical"></Divider>
             <div v-if="showTextArea1" class="flex w-full flex-col items-start justify-center gap-3 py-2 md:w-5/12">
               <div class="flex w-full flex-col gap-2">
-                <Textarea
-                  v-model="payload.mobile_number"
-                  rows="10"
-                  class="w-full"
-                  :invalid="validator.mobile_number.$invalid"
-                  :invalid-text="validator.mobile_number.$errors[0]?.$message"
-                  @blur="validator.mobile_number.$touch"
-                  @focusin="validator.mobile_number.$dirty = false"
-                >
-                </Textarea>
+                <Textarea v-model="accomplishment.specific_activity" rows="10" class="w-full"> </Textarea>
               </div>
             </div>
             <Divider layout="vertical"></Divider>
             <div v-if="showTextArea2" class="flex w-full flex-col items-start justify-center gap-3 py-2 md:w-5/12">
               <div class="flex w-full flex-col gap-2">
-                <Textarea
-                  v-model="payload.mobile_number"
-                  rows="10"
-                  class="w-full"
-                  :invalid="validator.mobile_number.$invalid"
-                  :invalid-text="validator.mobile_number.$errors[0]?.$message"
-                  @blur="validator.mobile_number.$touch"
-                  @focusin="validator.mobile_number.$dirty = false"
-                >
-                </Textarea>
+                <Textarea v-model="accomplishment.highlights" rows="10" class="w-full"> </Textarea>
               </div>
             </div>
 
@@ -358,8 +360,8 @@ const handleWeekChange = (index: number) => {
           </div>
           <div v-if="AccomplishmentBtn" class="mt-2 flex justify-end gap-2">
             <Button
-              @click="handleFormSubmission"
               label="Cancel"
+              @click="$router.push({ name: 'commitments' })"
               :loading="formIsSubmitting"
               :disabled="formIsSubmitting"
               class="dark:text-secondary-100 lg:text-secondary-400 dark:lg:text-secondary-400 border border-gray-300 text-xs text-gray-500 dark:border-surface-700"
@@ -374,7 +376,7 @@ const handleWeekChange = (index: number) => {
               label="Save as Draft"
               :loading="formIsSubmitting"
               :disabled="formIsSubmitting"
-              class="border border-blue-400 text-xs font-semibold text-surface-0 dark:text-primary-100 lg:text-primary-400 dark:lg:text-primary-400"
+              class="dark:text-secondary-100 lg:text-secondary-400 dark:lg:text-secondary-400 border border-blue-500 text-xs text-primary-600 dark:border-surface-700"
               text
             >
               <template #icon>
@@ -382,11 +384,10 @@ const handleWeekChange = (index: number) => {
               </template>
             </Button>
             <Button
-              @click="handleFormSubmission"
               label="Save Accomplishment"
               :loading="formIsSubmitting"
               :disabled="formIsSubmitting"
-              class="border border-blue-400 text-xs font-semibold text-surface-0 dark:text-primary-100 lg:text-primary-400 dark:lg:text-primary-400"
+              class="dark:text-secondary-100 lg:text-secondary-400 dark:lg:text-secondary-400 border border-blue-500 text-xs text-primary-600 dark:border-surface-700"
               text
             >
               <template #icon>

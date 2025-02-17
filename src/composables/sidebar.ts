@@ -11,6 +11,8 @@ export const useSidebarNavLinks = () => {
     label: string
     icon: string
     name: string | undefined
+    children?: NavLink[]
+    expanded?: boolean
   }
 
   type NavItem = {
@@ -24,7 +26,12 @@ export const useSidebarNavLinks = () => {
     navLinks.value = []
     router.getRoutes().forEach((route) => {
       if (route.meta.isSidebarMenu) {
-        const navLink: NavLink = { name: route.name?.toString(), label: route.meta.label, icon: '' }
+        const navLink: NavLink = {
+          name: route.name?.toString(),
+          label: route.meta.label,
+          icon: '',
+          children: [],
+        }
         const navLinkGroup = route.meta.group?.valueOf()
 
         // Filter routes that need to be authenticated
@@ -38,19 +45,16 @@ export const useSidebarNavLinks = () => {
 
         switch (route.name) {
           case 'dashboard':
-            navLink.icon = 'pi pi-desktop'
+            navLink.icon = 'pi pi-home'
+            break
+          case 'announcements':
+            navLink.icon = 'pi pi-bookmark'
             break
           case 'profile':
             navLink.icon = 'pi pi-id-card'
             break
-          case 'announcements':
-            navLink.icon = 'pi pi-megaphone'
-            break
-          case 'user-management':
-            navLink.icon = 'pi pi-users'
-            break
           case 'commitments':
-            navLink.icon = 'pi pi-users'
+            navLink.icon = 'pi pi-clock'
             break
           case 'settings':
             navLink.icon = 'pi pi-cog'
@@ -61,11 +65,49 @@ export const useSidebarNavLinks = () => {
           case 'about-us':
             navLink.icon = 'pi pi-heart'
             break
+          case 'user-management':
+            navLink.icon = 'pi pi-users'
+            break
           default:
             navLink.icon = 'fa-solid fa-circle-question'
             break
         }
 
+        // Handle parent routes and their children
+        if (route.children && route.children.length > 0) {
+          route.children.forEach((childRoute) => {
+            if (childRoute.meta && childRoute.meta.isSidebarMenu) {
+              // Check if child is in menu
+              const childNavLink: NavLink = {
+                name: childRoute.name?.toString(),
+                label: childRoute.meta.label,
+                icon: '', //assign icon if necessary
+                expanded: false,
+                // children: []  No need for children on child links in this example
+              }
+
+              // Authentication and Role checks for children
+              if (childRoute.meta.auth === AuthType.AUTHENTICATED && !authStore.isAuthenticated) return
+              if (childRoute.meta.auth === AuthType.UNAUTHENTICATED && authStore.isAuthenticated) return
+              if (childRoute.meta.roles && authStore.isAuthenticated && !authStore.authHasRequiredRole(childRoute.meta.roles))
+                return
+
+              switch (childRoute.name) {
+                case 'list-accomplishment-report':
+                  childNavLink.icon = 'pi pi-list' // Example icon
+                  break
+                case 'create-accomplishment-report':
+                  childNavLink.icon = 'pi pi-plus' // Example icon
+                  break
+                // ... other child route icon assignments
+              }
+
+              navLink.children?.push(childNavLink)
+            }
+          })
+        }
+
+        // Grouping logic (modified to handle children)
         if (navLinkGroup) {
           const foundGroup = navLinks.value.find((n) => n.group === navLinkGroup)
           if (!foundGroup) {
