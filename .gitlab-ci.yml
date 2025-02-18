@@ -26,7 +26,8 @@ deploy_dev:
   only:
     - develop
   image:
-    name: registry.gitlab.com/gitlab-org/cloud-deploy/aws-base:latest
+    name:amazon/aws-cli:latest
+    #name: registry.gitlab.com/gitlab-org/cloud-deploy/aws-base:latest
   script:
     - aws --version
     - aws s3 rm s3://hr-cares-s3 --recursive
