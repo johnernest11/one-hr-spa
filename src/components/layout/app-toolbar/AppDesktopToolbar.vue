@@ -69,7 +69,7 @@ const handleLogout = async () => {
           v-tooltip.top="'Filter Accomplishments'"
           severity="info"
           size="large"
-          class="mr-2 border-none text-lg font-semibold text-surface-0 dark:text-primary-100 lg:text-black dark:lg:text-primary-400"
+          class="mr-2 border-none text-lg font-semibold text-surface-0 dark:text-primary-100 lg:text-surface-900 dark:lg:text-primary-400"
           text
           @click="$router.push({ name: 'sign-up' })"
         />
@@ -78,7 +78,7 @@ const handleLogout = async () => {
           v-tooltip.top="'Notification'"
           severity="info"
           size="large"
-          class="mr-4 border-none text-lg font-semibold text-surface-0 dark:text-primary-100 lg:text-black dark:lg:text-primary-900"
+          class="mr-4 border-none text-lg font-semibold text-surface-0 dark:text-primary-100 lg:text-surface-900 dark:lg:text-primary-900"
           text
           @click="$router.push({ name: 'sign-up' })"
         />

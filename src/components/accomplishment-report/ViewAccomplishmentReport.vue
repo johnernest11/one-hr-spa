@@ -10,21 +10,21 @@ import Divider from 'primevue/divider'
 import Textarea from 'primevue/textarea'
 import { useConfirm } from 'primevue/useconfirm'
 import Card from 'primevue/card'
-import { useAccomplishmentReportStore } from '@/stores/personnelAccomplishmentReport.store'
-import { PersonnelAccomplishmentReportPayload } from '@/stores/personnelAccomplishmentReport.store'
+import { useAccomplishmentReportStore } from '@/stores/personnel-accomplishment-report.store'
+import { PersonnelAccomplishmentReportPayload } from '@/stores/personnel-accomplishment-report.store'
 
 /** Emits */
 const emit = defineEmits<{
-  (e: 'user-updated', value: boolean): void
+  (e: 'accomplishment-report-updated', value: boolean): void
 }>()
 
 /** Props */
-type UserDetailsFormProps = {
+type AccomplishmentReportDetailsFormProps = {
   currentRoleFilter: number | string | null
   accomplishmentReport: PersonnelAccomplishmentReportResponse
 }
 
-const props = withDefaults(defineProps<UserDetailsFormProps>(), {
+const props = withDefaults(defineProps<AccomplishmentReportDetailsFormProps>(), {
   currentRoleFilter: null,
   accomplishmentReport: undefined,
 })
@@ -74,7 +74,7 @@ const handleUpdated = async () => {
   IsBeingUpdated.value = true
 
   const response = await accomplishmentReportStore.updateAccomplishment(payload, props.accomplishmentReport.id)
-  console.log(response)
+
   if (!response.success) {
     const result = parseApiResponseError(response)
     if (!result) return (formIsSubmitting.value = false)
@@ -88,8 +88,8 @@ const handleUpdated = async () => {
 
   toast.add({
     severity: 'success',
-    summary: 'Accomplishment Report Detials update',
-    // detail: `${props.accomplishmentReport.id || 'The user '} was successfully update`,
+    summary: 'Accomplishment Report Details update',
+    detail: `${props.accomplishmentReport.id || 'The Accomplishment Report '} was successfully update`,
     life: 3000,
   })
 
@@ -99,7 +99,7 @@ const handleUpdated = async () => {
     }, 2000)
   }
 
-  emit('user-updated', true)
+  emit('accomplishment-report-updated', true)
 }
 
 const shouldReloadPageAfterUpdate = (): boolean => {
@@ -111,7 +111,7 @@ const requireConfirmationUpdate = (event: Event) => {
   confirmUpdate.require({
     group: 'global',
     target: event.currentTarget as HTMLElement,
-    message: " Are you sure you want to update || 'this user'}? You cannot undo this.",
+    message: ' Are you sure you want to update this Accomplishment Report? You cannot undo this.',
     header: 'Update Details',
     acceptLabel: 'Confirm Update',
     rejectLabel: 'Cancel',
@@ -138,30 +138,28 @@ const requireConfirmationUpdate = (event: Event) => {
                 @click="$router.go(-1)"
                 size="small"
               />
-              <h2 class="mb-2 ml-4 text-3xl font-semibold text-blue-900 dark:text-white">
-                <i class="pi pi-angle-double-down" style="font-size: 1.5rem"></i>Viewing Accomplishment
+              <h2 class="mb-2 ml-4 text-3xl font-semibold text-primary-900 dark:text-primary-100">
+                <i class="pi pi-angle-double-down text-xl"></i>Viewing Accomplishment
               </h2>
             </div>
-            <p class="mb-2 ml-20 text-xl font-semibold text-blue-900 dark:text-white">Viewings Accomplishments</p>
+            <p class="mb-2 ml-20 text-xl font-semibold text-primary-900 dark:text-primary-100">Viewings Accomplishments</p>
             <br />
-            <h2 class="mb-2 text-lg font-semibold text-gray-600 dark:text-white">Timeline</h2>
+            <h2 class="mb-2 text-lg font-semibold text-surface-600 dark:text-primary-100">Timeline</h2>
             <div class="flex flex-col md:flex-row">
-              <div class="mb-4 ml-6 flex w-full flex-col items-start justify-center gap-2 py-2 md:w-4/12">
+              <div class="mb-4 ml-6 flex w-14 flex-none flex-col items-start justify-center gap-2 py-2 md:w-4/12">
                 <div class="flex w-full flex-col">
-                  <label for="password" class="mb-0 text-sm text-gray-600">
-                    Period of Accomplishment <span class="text-red-500">*</span>
+                  <label for="password" class="mb-0 text-sm text-surface-600">
+                    Period of Accomplishment <span class="text-error-500">*</span>
                   </label>
                   <WbInputText v-model="payload.period" label="" placeholder="Period of Accomplishment" class="w-full">
                   </WbInputText>
                 </div>
               </div>
 
-              <div class="mt-2 flex w-full justify-end gap-2 md:ml-auto md:w-auto md:items-center md:justify-start">
+              <div class="mt-2 flex w-64 flex-initial justify-end gap-2 md:ml-auto md:w-auto md:items-center md:justify-start">
                 <Button
                   label="Export to MS Word"
-                  :loading="formIsSubmitting"
-                  :disabled="formIsSubmitting"
-                  class="border border-blue-400 px-4 py-2 text-sm font-semibold text-surface-0 dark:text-primary-100 lg:text-primary-400 dark:lg:text-primary-400"
+                  class="border border-primary-400 px-4 py-2 text-sm font-semibold text-surface-0 dark:text-primary-100 lg:text-primary-400 dark:lg:text-primary-400"
                   text
                 >
                   <template #icon>
@@ -172,7 +170,7 @@ const requireConfirmationUpdate = (event: Event) => {
                   label="Mark as Done"
                   :loading="formIsSubmitting"
                   :disabled="formIsSubmitting"
-                  class="border border-blue-400 px-4 py-2 text-sm font-semibold text-surface-0 dark:text-primary-100 lg:text-primary-400 dark:lg:text-primary-400"
+                  class="border border-primary-400 px-4 py-2 text-sm font-semibold text-surface-0 dark:text-primary-100 lg:text-primary-400 dark:lg:text-primary-400"
                   text
                 >
                   <template #icon>
@@ -195,20 +193,20 @@ const requireConfirmationUpdate = (event: Event) => {
               </Message>
             </transition>
             <!-- End Alert Message -->
-            <h1 class="mb-2 text-lg font-semibold text-gray-600 dark:text-white">Accomplishment</h1>
+            <h1 class="mb-2 text-lg font-semibold text-surface-600 dark:text-primary-100">Accomplishment</h1>
             <span> <i class="pi pi-ban mr-2"></i>Double click the area you wish to edit</span>
-            <div class="flex justify-center border-b-2 bg-gray-100 py-2" style="min-width: 50rem">
-              <div class="ml-12 w-1/6 text-left font-semibold text-gray-500">Week # (Date/s)</div>
-              <div class="ml-12 w-1/2 text-center font-semibold text-gray-500">SPECIFIC ACTIVITY</div>
-              <div class="w-1/2 text-center font-semibold text-gray-500">HIGHLIGHTS OF ACCOMPLISHMENT</div>
+            <div class="grid grid-cols-3 justify-center gap-4 border-b-2 bg-surface-100 py-2">
+              <div class="ml-24 text-start font-semibold text-surface-500">Week # (Date/s)</div>
+              <div class="text-start font-semibold text-surface-500">SPECIFIC ACTIVITY</div>
+              <div class="mr-12 text-center font-semibold text-surface-500">HIGHLIGHTS OF ACCOMPLISHMENT</div>
             </div>
             <p class="create-user-creds-section text-xs font-medium uppercase"></p>
             <div v-for="(row, index) in payload.rows" :key="index" class="mb-4 flex flex-col md:flex-row">
-              <div class="mb-4 ml-6 flex w-full flex-col items-start justify-center gap-2 py-2 pt-8 md:w-2/12">
+              <div class="mb-4 ml-6 flex w-full flex-col items-start justify-center gap-2 py-8 md:w-64">
                 <div class="flex w-full flex-col">
-                  <label for="week" class="mb-0 text-sm text-gray-600">Week <span class="text-red-500">*</span></label>
-                  <label for="dates" class="mb-0 text-sm text-gray-600"
-                    >Date/s or Coverage <span class="text-red-500">*</span></label
+                  <label for="week" class="mb-0 text-sm text-surface-600">Week <span class="text-error-500">*</span></label>
+                  <label for="dates" class="mb-0 text-sm text-surface-600"
+                    >Date/s or Coverage <span class="text-error-500">*</span></label
                   >
                   <WbInputText
                     v-model="row.week_num"
@@ -216,6 +214,16 @@ const requireConfirmationUpdate = (event: Event) => {
                     placeholder="e.g. 16 - 17 January 2025"
                     class="md:w-12/12 w-full"
                   />
+                  <label for="dates" class="mb-0 text-sm text-surface-600"
+                    >Date/s or Coverage <span class="text-error-500">*</span></label
+                  >
+                  <WbInputText
+                    v-model="row.dates_in_week"
+                    label=""
+                    placeholder="e.g. 16 - 17 January 2025, , 3, 4 & 5 January 2025"
+                    class="md:w-12/12 w-full"
+                  >
+                  </WbInputText>
                 </div>
               </div>
               <Divider layout="vertical"></Divider>
@@ -231,15 +239,13 @@ const requireConfirmationUpdate = (event: Event) => {
                 </div>
               </div>
             </div>
-            <div class="flex w-full flex-col gap-4 pb-4">
-              <hr />
-            </div>
+            <Divider layout="horizontal"></Divider>
             <div class="mt-2 flex justify-end gap-2">
               <Button
                 label="Save as Draft"
                 :loading="formIsSubmitting"
                 :disabled="formIsSubmitting"
-                class="border border-blue-400 text-xs font-semibold text-surface-0 dark:text-primary-100 lg:text-primary-400 dark:lg:text-primary-400"
+                class="border border-primary-400 text-xs font-semibold text-surface-0 dark:text-primary-100 lg:text-primary-400 dark:lg:text-primary-400"
                 text
               >
                 <template #icon>
@@ -251,7 +257,7 @@ const requireConfirmationUpdate = (event: Event) => {
                 label="Save Accomplishment"
                 :loading="formIsSubmitting"
                 :disabled="formIsSubmitting"
-                class="border border-blue-400 text-xs font-semibold text-surface-0 dark:text-primary-100 lg:text-primary-400 dark:lg:text-primary-400"
+                class="border border-primary-400 text-xs font-semibold text-surface-0 dark:text-primary-100 lg:text-primary-400 dark:lg:text-primary-400"
                 text
               >
                 <template #icon>

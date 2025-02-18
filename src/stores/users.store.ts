@@ -36,8 +36,6 @@ export const useUsersStore = defineStore('users', () => {
   /** States */
   const users = ref<UserResponse[]>([])
 
-  const selectedUser = ref<UserResponse | null>(null) // Add selectedUser, initialized to null
-
   /** Actions */
   const fetchUsers = async (roleFilter: string | number | null = null, limit: number = 15, page: number | null = null) => {
     let uri = `/users?limit=${limit}&sort=desc&`
@@ -125,7 +123,6 @@ export const useUsersStore = defineStore('users', () => {
 
   return {
     users,
-    selectedUser,
     fetchUsers,
     searchUsers,
     createUser,

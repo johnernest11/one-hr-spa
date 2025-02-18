@@ -2,7 +2,7 @@
 import { PersonnelAccomplishmentReportResponse } from '@/typings/models.types.ts'
 import Dialog from 'primevue/dialog'
 import { ref } from 'vue'
-import ViewAccomplishmentReport from '@/components/accomplishment-report-page/ViewAccomplishmentReport.vue'
+import ViewAccomplishmentReport from '@/components/accomplishment-report/ViewAccomplishmentReport.vue'
 
 const props = defineProps<{ accomplishmentReport: PersonnelAccomplishmentReportResponse; roleFilter: number | string | null }>()
 
@@ -15,7 +15,7 @@ const navigateToDetails = () => (showAccomplishmentDetailsDialog.value = !showAc
 <template>
   <button
     @click="navigateToDetails()"
-    class="border-none text-lg font-semibold text-primary-900 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
+    class="border-none text-lg font-semibold text-primary-700 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
   >
     <span class="text-sm font-medium text-primary-600"><i class="pi pi-eye"></i></span>
     <Dialog

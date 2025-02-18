@@ -7,10 +7,10 @@ import WbBreadcrumbs from '@/components/layout/AppBreadcrumbs.vue'
 <template>
   <nav class="flex w-full flex-col">
     <!-- Start Mobile Toolbar -->
-    <Toolbar class="!rounded-0 !bg-primary-500 bg-gradient-to-b from-[#ffffff] to-[#2196F3] px-4 shadow-none !ring-0 lg:hidden">
+    <Toolbar class="!rounded-0 bg-gradient-primary !bg-primary-500 px-4 shadow-none !ring-0 lg:hidden">
       <template #start>
         <!-- <AppLogo color="light" /> -->
-        <img src="@/assets/image/DSWD_LOGO.png" width="100" class="mx-auto my-1" />
+        <img src="@/assets/image/dswd-logo.png" width="100" class="mx-auto my-1" />
       </template>
       <template #end>
         <AppMobileSidebar />

@@ -121,9 +121,6 @@ const formRules = {
   },
   mobile_number: {
     mobile_number: helpers.withMessage('Must be a valid PH mobile number', mobilePhoneRule()),
-    // unique: helpers.withAsync(
-    //   helpers.withMessage('This username is already taken', uniqueUserIdentifierRules('username'))
-    // ),
   },
   first_name: {
     required: helpers.withMessage('First name is required', required),

@@ -79,7 +79,7 @@ onMounted(() => {
     <AppDesktopSidebar
       v-if="!route.meta.hideNavigation"
       :class="`${
-        !uiStore.sidebarMinimized ? 'w-[20%]' : 'w-[0%] -translate-x-96 transform'
+        !uiStore.sidebarMinimized ? 'w-[18%]' : 'w-[0%] -translate-x-96 transform'
       } hidden overflow-hidden pl-4 transition-all duration-200 lg:flex`"
     ></AppDesktopSidebar>
     <!-- End Sidebar -->

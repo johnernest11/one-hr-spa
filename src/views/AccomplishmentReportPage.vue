@@ -9,8 +9,8 @@ import InputGroup from 'primevue/inputgroup'
 import Paginator, { PageState } from 'primevue/paginator'
 import { ApiResponsePagination } from '@/typings/http-resources.types.ts'
 import { PersonnelAccomplishmentReportResponse } from '@/typings/models.types.ts'
-import { useAccomplishmentReportStore } from '@/stores/personnelAccomplishmentReport.store'
-import ARViewBtn from '@/components/accomplishment-report-page/ARViewBtn.vue'
+import { useAccomplishmentReportStore } from '@/stores/personnel-accomplishment-report.store'
+import ARViewBtn from '@/components/accomplishment-report/ARViewBtn.vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -71,7 +71,7 @@ watch(
   }
 )
 
-const handleSearchUser = async () => {
+const handleSearchAccomplishmentReport = async () => {
   // We do regular fetch if the query is null / empty
   accomplishmentReportIsLoading.value = true
   if (!searchQuery.value) {
@@ -99,17 +99,45 @@ const navigateToCreate = () => {
     .then(() => console.log('Navigation successful')) // Debugging
     .catch((err) => console.error('Navigation failed:', err)) // Debugging
 }
+
+const formatDate = (dateString: string | null | undefined): string => {
+  if (!dateString) return ''
+
+  try {
+    const date = new Date(dateString)
+
+    if (isNaN(date.getTime())) {
+      console.error('Invalid date string:', dateString)
+      return 'Invalid Date'
+    }
+
+    const options: Intl.DateTimeFormatOptions = {
+      day: '2-digit', // Ensure two-digit day
+      month: 'short',
+      year: 'numeric',
+    }
+
+    const formattedDate = date.toLocaleDateString(undefined, options)
+
+    return formattedDate.replace(/^(\w+)\s(\d+),\s(\d+)$/, '$2 $1 $3') //Regex for month dd, yyyy
+  } catch (error) {
+    console.error('Error formatting date:', error)
+    return 'Invalid Date'
+  }
+}
 </script>
 
 <template>
-  <div class="mx-auto flex h-[100%] w-full flex-col pl-4 pt-8">
+  <div class="mx-auto flex h-full w-full flex-col pl-4 pt-8">
     <Card class="h-full">
       <template #content>
         <!-- Start Filter Create & Search Accomplishment Report Button -->
         <div
           class="my-6 flex w-full flex-col items-center justify-between gap-4 rounded-lg bg-surface-0 px-6 py-6 dark:bg-surface-800 md:my-4 md:flex-row md:px-4 md:py-4"
         >
-          <h1 class="mb-2 mr-4 whitespace-nowrap text-xl font-semibold text-gray-800 dark:text-white md:text-xl lg:text-4xl">
+          <h1
+            class="mb-2 mr-4 whitespace-nowrap text-xl font-semibold text-primary-800 dark:text-primary-100 md:text-xl lg:text-4xl"
+          >
             Accomplishment Reports
           </h1>
           <div class="flex w-full items-center justify-end gap-4">
@@ -119,7 +147,7 @@ const navigateToCreate = () => {
                 v-tooltip.top="'Filter Accomplishments'"
                 severity="info"
                 size="large"
-                class="mr-2 border border-blue-400 text-lg font-semibold text-primary-400 dark:text-primary-100 sm:text-primary-400 md:text-primary-400 lg:text-primary-400 dark:lg:text-primary-400"
+                class="mr-2 border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100 sm:text-primary-400 md:text-primary-400 lg:text-primary-400 dark:lg:text-primary-400"
                 text
                 @click="$router.push({ name: 'sign-up' })"
               />
@@ -129,7 +157,7 @@ const navigateToCreate = () => {
                 v-tooltip.top="'Create Accomplishments'"
                 severity="info"
                 size="large"
-                class="border border-blue-400 text-lg font-semibold text-primary-400 dark:text-primary-100 sm:text-primary-400 md:text-primary-400 lg:text-primary-400 dark:lg:text-primary-400"
+                class="border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100 sm:text-primary-400 md:text-primary-400 lg:text-primary-400 dark:lg:text-primary-400"
                 text
                 @click="navigateToCreate"
               />
@@ -142,11 +170,11 @@ const navigateToCreate = () => {
                   placeholder="Search via Period or Accomplishment"
                   class="w-full"
                   :disabled="accomplishmentReportIsLoading"
-                  @keyup.enter="handleSearchUser"
+                  @keyup.enter="handleSearchAccomplishmentReport"
                 />
                 <Button
                   icon="pi pi-search"
-                  @click="handleSearchUser"
+                  @click="handleSearchAccomplishmentReport"
                   :loading="accomplishmentReportIsLoading"
                   :disabled="accomplishmentReportIsLoading"
                 />
@@ -161,49 +189,49 @@ const navigateToCreate = () => {
           <!-- Show Table if tableData has items -->
           <div
             v-if="accomplishmentReportStore.accomplishmentReport && accomplishmentReportStore.accomplishmentReport.length > 0"
-            class="mx-auto flex h-[100%] w-full flex-col"
+            class="mx-auto flex h-full w-full flex-col"
           >
             <DataTable :value="accomplishmentReportStore.accomplishmentReport" class="mt-6" dataKey="id">
               <Column
-                field="org_name"
+                field="period"
                 header="Accomplishment Period"
-                headerClass="w-[500px] bg-gray-100 border-gray-300 opacity-70 font-bold py-2"
+                headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
               >
                 <template #body="props">
                   <p class="font-semibold uppercase text-surface-600">{{ props.data.period }}</p>
                 </template>
               </Column>
               <Column
-                field="org_address"
+                field="edited_at"
                 header="Last Edited"
-                headerClass=" w-[400px] bg-gray-100 border-gray-300 opacity-70 font-bold py-2"
+                headerClass=" w-80 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
               >
                 <template #body="props">
-                  <p class="uppercase text-surface-600">{{ props.data.updated_at }}</p>
+                  <p class="uppercase text-surface-600">{{ formatDate(props.data.updated_at) }}</p>
                 </template>
               </Column>
               <Column
-                field="position_nature_of_work"
+                field="status"
                 header="Status"
-                headerClass="w-[400px] bg-gray-100 border-gray-300 opacity-70 font-bold py-2"
+                headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
               >
                 <template #body="props">
-                  <span>{{ props.data.status }}</span>
+                  <span>{{ props.data.status.toUpperCase() }}</span>
                 </template>
               </Column>
-              <Column field="action" header="Actions" headerClass="bg-gray-100 opacity-70 font-bold py-2">
+              <Column field="action" header="Actions" headerClass="w-64 bg-surface-100 opacity-70 font-bold py-2">
                 <template #body="props">
                   <div class="flex gap-4 whitespace-nowrap md:w-auto">
                     <ARViewBtn
                       :accomplishmentReport="props.data"
                       :role-filter="roleFilter"
-                      class="transition-all hover:scale-105 hover:cursor-pointer hover:shadow-xl"
+                      class="border-none text-lg font-semibold text-primary-700 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
                     />
                     <Button
                       icon="pi pi-file-word"
                       v-tooltip.top="'Export to MS Word'"
                       severity="info"
-                      class="border-none text-lg font-semibold text-primary-900 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
+                      class="border-none text-lg font-semibold text-primary-600 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
                       text
                       @click="navigateToDetails(props.data)"
                     />
@@ -229,31 +257,39 @@ const navigateToCreate = () => {
           <!-- End Data Table -->
 
           <!-- Show "No Accomplishment Report" message if tableData is empty -->
-          <div v-if="!accomplishmentReportIsLoading && !pagination?.total" class="mx-auto flex h-[100%] w-full flex-col">
+          <div v-if="!accomplishmentReportIsLoading && !pagination?.total" class="mx-auto flex h-full w-full flex-col">
             <Card class="w-full p-0 shadow-none">
               <template #content>
                 <div class="flex flex-col items-center sm:flex-col md:flex-col">
-                  <div><img src="@/assets/image/AR.png" width="500" class="mx-auto my-1" /></div>
+                  <div><img src="@/assets/image/AR.png" class="mx-auto w-96 pt-12" /></div>
                   <h2
-                    class="mb-2 mt-4 flex w-full justify-center text-xl font-semibold text-gray-800 dark:text-white sm:text-2xl"
+                    class="mb-2 mt-4 flex w-full justify-center text-xl font-semibold text-surface-800 dark:text-primary-100 sm:text-2xl"
                   >
                     You have no accomplishments
                   </h2>
-                  <h1 class="mb-4 text-base text-gray-600 dark:text-gray-400 sm:text-lg">
+                  <h1 class="mb-4 text-base text-surface-600 dark:text-surface-400 sm:text-lg">
                     Accomplishment Reports created by you shall appear here.
                   </h1>
                   <div class="mt-4 flex w-full justify-center">
-                    <Button
-                      label="New Accomplishment Report"
-                      severity="primary"
-                      outlined
-                      @click="$router.push({ name: 'create-accomplishment-report' })"
-                      class="border border-blue-400 text-lg font-semibold text-primary-400 dark:text-primary-100 sm:text-primary-400 md:text-primary-400 lg:text-primary-400 dark:lg:text-primary-400"
+                    <RouterLink
+                      :to="{ name: 'create-accomplishment-report' }"
+                      class="dark:text-secondary-100 border border-surface-400 text-xs text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
+                      custom
+                      v-slot="{ href, navigate }"
                     >
-                      <template #icon>
-                        <i class="pi pi-plus mr-2" />
-                      </template>
-                    </Button>
+                      <Button
+                        :href="href"
+                        label="New Accomplishment Report"
+                        severity="primary"
+                        outlined
+                        @click="navigate"
+                        class="border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100 sm:text-primary-400 md:text-primary-400 lg:text-primary-400 dark:lg:text-primary-400"
+                      >
+                        <template #icon>
+                          <i class="pi pi-plus mr-2" />
+                        </template>
+                      </Button>
+                    </RouterLink>
                   </div>
                 </div>
               </template>

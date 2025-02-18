@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { useApiCall } from '@/composables/network'
 import { useAuthStore } from '@/stores/auth.store.ts'
-import { PersonnelAccomplishmentReportResponse, UserResponse } from '@/typings/models.types.ts'
+import { PersonnelAccomplishmentReportResponse } from '@/typings/models.types.ts'
 import { ApiResponseBody } from '@/typings/http-resources.types.ts'
 import { ref } from 'vue'
 
@@ -27,51 +27,48 @@ export type PersonnelAccomplishmentReportDetailsPayload = {
 
 export const useAccomplishmentReportStore = defineStore('personnel-accomplishment-report', () => {
   const auth = useAuthStore()
-  const users = ref<UserResponse[]>([])
+  const accomplishment = ref<PersonnelAccomplishmentReportResponse[]>([])
   /** States */
   const accomplishmentReport = ref<PersonnelAccomplishmentReportResponse[]>([])
 
   const fetchAccomplishment = async (limit: number = 10, page: number | null = null) => {
-    let uri = `/accomplishment-report?limit=${limit}&sort=asc&`
+    let uri = `/accomplishment-reports?limit=${limit}&sort=asc&`
     if (page) uri += `page=${page}`
 
     const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
     const responseBody: ApiResponseBody = data.value
 
     if (responseBody.success) {
-      const accomplishmentList = Array.isArray(responseBody.data)
+      const accomplishmentReportsList = Array.isArray(responseBody.data)
         ? (responseBody.data as PersonnelAccomplishmentReportResponse[])
-        : responseBody.data
-          ? [responseBody.data as PersonnelAccomplishmentReportResponse]
-          : []
-
-      accomplishmentReport.value = [...accomplishmentList]
+        : []
+      accomplishmentReport.value = [...accomplishmentReportsList]
     }
 
     return responseBody
   }
 
   const createAccomplishment = async (accomplishmentReport: Partial<PersonnelAccomplishmentReportPayload>) => {
-    const { data } = await useApiCall('/accomplishment-report/', auth.authenticationToken).post(accomplishmentReport).json()
+    const { data } = await useApiCall('/accomplishment-reports/', auth.authenticationToken).post(accomplishmentReport).json()
     const responseBody: ApiResponseBody = data.value
 
     if (responseBody.success) {
-      users.value.unshift(responseBody.data as UserResponse)
+      accomplishment.value.unshift(responseBody.data as PersonnelAccomplishmentReportResponse)
     }
 
     return responseBody
   }
 
   const searchAccomplishment = async (query: string | null) => {
-    let uri = '/accomplishment-report/search?'
+    let uri = '/accomplishment-reports/search?'
     if (query) uri += `query=${query}`
 
     const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
     const responseBody: ApiResponseBody = data.value
 
     if (responseBody.success) {
-      const usersList = responseBody.data as PersonnelAccomplishmentReportResponse[]
-      accomplishmentReport.value = [...usersList]
+      const accomplishmentReportsList = responseBody.data as PersonnelAccomplishmentReportResponse[]
+      accomplishmentReport.value = [...accomplishmentReportsList]
     }
 
     return responseBody
@@ -81,13 +78,13 @@ export const useAccomplishmentReportStore = defineStore('personnel-accomplishmen
     accomplishmentReport: Partial<PersonnelAccomplishmentReportPayload>,
     id: string | number
   ) => {
-    const { data } = await useApiCall(`/accomplishment-report/${id}`, auth.authenticationToken).put(accomplishmentReport).json()
+    const { data } = await useApiCall(`/accomplishment-reports/${id}`, auth.authenticationToken).put(accomplishmentReport).json()
     const responseBody: ApiResponseBody = data.value
 
     if (responseBody.success) {
-      const index = users.value.findIndex((accomplishmentReport) => accomplishmentReport?.id === id)
+      const index = accomplishment.value.findIndex((accomplishmentReport) => accomplishmentReport?.id === id)
       if (index === -1) return responseBody
-      users.value[index] = responseBody.data as UserResponse
+      accomplishment.value[index] = responseBody.data as PersonnelAccomplishmentReportResponse
     }
 
     return responseBody

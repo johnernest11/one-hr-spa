@@ -4,8 +4,8 @@ import Dashboard from '@/views/DashboardPage.vue'
 import ProfilePage from '@/views/ProfilePage.vue'
 import SupportPage from '@/views/SupportPage.vue'
 import AccomplishmentReportPage from '@/views/AccomplishmentReportPage.vue'
-import CreateAccomplishmentReportForm from '@/components/accomplishment-report-page/CreateAccomplishmentReportForm.vue'
-import ViewAccomplishmentReport from '@/components/accomplishment-report-page/ViewAccomplishmentReport.vue'
+import CreateAccomplishmentReportForm from '@/components/accomplishment-report/CreateAccomplishmentReportForm.vue'
+import ViewAccomplishmentReport from '@/components/accomplishment-report/ViewAccomplishmentReport.vue'
 import AboutUsPage from '@/views/AboutUsPage.vue'
 import AnnouncementsPage from '@/views/AnnouncementsPage.vue'
 import { AuthRole, AuthType } from '@/typings/auth.types.ts'
@@ -69,7 +69,7 @@ const routes = [
     },
   },
   {
-    path: '/accomplishment-reports',
+    path: '/accomplishments/create',
     name: 'create-accomplishment-report',
     component: CreateAccomplishmentReportForm,
     meta: <RouteMeta>{
@@ -78,7 +78,7 @@ const routes = [
     },
   },
   {
-    path: '/update-accomplishment-reports/:id/',
+    path: '/update-accomplishment-reports/:id/editor',
     name: 'update-accomplishment-report',
     component: ViewAccomplishmentReport,
     meta: <RouteMeta>{
@@ -293,7 +293,7 @@ router.beforeEach(async (to, from) => {
   if (to.meta.authType === AuthType.AUTHENTICATED) {
     const roles = authStore.authRoles
     if (to.meta.roles && !to.meta.roles.some((r: string) => roles.includes(r))) {
-      return { name: 'MAIN' }
+      return { name: 'main' }
     }
   }
 

@@ -1,15 +1,9 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
 import { useSidebarNavLinks } from '@/composables/sidebar.ts'
-// import { useAuthStore } from '@/stores/auth.store.ts'
-// import { computed } from 'vue'
-// import Avatar from 'primevue/avatar'
 
-// const authStore = useAuthStore()
 const { navLinks } = useSidebarNavLinks()
-// const fullName = computed(() => {
-//   return authStore.authenticatedUser.user_profile?.full_name || ''
-// })
+const appName = import.meta.env.VITE_APP_NAME
 </script>
 
 <template>
@@ -17,10 +11,10 @@ const { navLinks } = useSidebarNavLinks()
     class="flex h-screen flex-col overflow-y-auto bg-gradient-to-b from-[#ffffff] to-[#2196F3] px-2 pt-4 dark:border-surface-700 dark:bg-surface-900"
   >
     <div class="flex justify-center px-12 py-6 dark:border-surface-900">
-      <img src="@/assets/image/DSWD_LOGO.png" width="500" class="mx-auto my-1" />
+      <img src="@/assets/image/dswd-logo.png" width="500" class="mx-auto my-1" />
     </div>
     <div class="flex justify-center px-12 text-2xl font-semibold dark:border-surface-900">
-      <h1>HR CARES</h1>
+      <h1>{{ appName }}</h1>
     </div>
     <aside class="flex flex-grow flex-col overflow-y-auto px-5 pt-4 dark:border-surface-700 dark:bg-surface-900">
       <nav class="-mx-3 space-y-6">
@@ -46,21 +40,6 @@ const { navLinks } = useSidebarNavLinks()
         </div>
       </nav>
     </aside>
-    <div class="mb-8 flex justify-center px-12 text-2xl font-semibold dark:border-surface-900">
-      <!-- <Avatar
-        :image="authStore.authenticatedUser.user_profile?.profile_picture_url ?? undefined"
-        :label="`${
-            !authStore.authenticatedUser.user_profile?.profile_picture_url ? authStore.avatarDisplayNamePlaceholder : ''
-        }`"
-        class="mr-2.5 overflow-hidden"
-        shape="square"
-        size="large"
-      /> -->
-      <!-- <span class="inline-flex flex-col justify-start">
-        <span class="mx-1 text-sm">{{ fullName }}</span>
-        <span class="mx-1 mt-2 flex flex-wrap gap-1">
-        </span>
-      </span> -->
-    </div>
+    <div class="mb-8 flex justify-center px-12 text-2xl font-semibold dark:border-surface-900"></div>
   </div>
 </template>

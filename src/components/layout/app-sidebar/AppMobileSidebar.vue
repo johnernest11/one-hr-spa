@@ -30,7 +30,7 @@ const handleLogout = async () => {
     <Sidebar
       v-model:visible="visible"
       position="right"
-      class="w-full bg-gradient-to-b from-[#ffffff] to-[#2196F3] md:w-[20rem] lg:w-[30rem]"
+      class="md:w-280 lg:w-280 w-full bg-gradient-to-b from-white to-primary-400"
       @click="visible = false"
     >
       <template #closeicon>
