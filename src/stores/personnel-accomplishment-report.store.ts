@@ -9,6 +9,7 @@ import { ref } from 'vue'
 export type PersonnelAccomplishmentReportPayload = {
   period: string | null
   supervisor_notes: string
+  status: string
   rows: {
     week_num: string // Consider a more specific type if possible (e.g., number, string)
     dates_in_week: string // Consider a more specific type (e.g., Date[], string[])
@@ -55,29 +56,6 @@ export const useAccomplishmentReportStore = defineStore('personnel-accomplishmen
       return { success: false, error }
     }
   }
-
-  // const fetchAccomplishmentIds = async (id: string): Promise<number[]> => {
-  //   let uri = `/accomplishment-reports/${id}`; // Add fields=id to only retrieve IDs
-  //   if (page) uri += `page=${page}`;
-
-  //   const { data } = await useApiCall(uri, auth.authenticationToken).get().json();
-  //   const responseBody: ApiResponseBody = data.value;
-
-  //   if (responseBody.success) {
-  //     const accomplishmentReportsList = Array.isArray(responseBody.data)
-  //       ? (responseBody.data as { id: number }[]) // Type the data to expect an 'id' property
-  //       : [];
-
-  //     // Extract only the IDs
-  //     const accomplishmentIds = accomplishmentReportsList.map(report => report.id);
-
-  //     return accomplishmentIds;
-  //   } else {
-  //     // Handle the error appropriately.  Returning an empty array or throwing an error are common choices.
-  //     console.error("Error fetching accomplishment reports:", responseBody.message);
-  //     return []; // Or throw an error: throw new Error(responseBody.message);
-  //   }
-  // };
 
   const createAccomplishment = async (accomplishmentReport: Partial<PersonnelAccomplishmentReportPayload>) => {
     const { data } = await useApiCall('/accomplishment-reports/', auth.authenticationToken).post(accomplishmentReport).json()

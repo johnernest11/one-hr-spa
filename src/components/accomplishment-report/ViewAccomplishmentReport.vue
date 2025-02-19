@@ -7,7 +7,6 @@ import Button from 'primevue/button'
 import WbInputText from '@/components/webkit/WbInputText.vue'
 import Message from 'primevue/message'
 import Divider from 'primevue/divider'
-import Textarea from 'primevue/textarea'
 import { useConfirm } from 'primevue/useconfirm'
 import Card from 'primevue/card'
 import { useAccomplishmentReportStore } from '@/stores/personnel-accomplishment-report.store'
@@ -32,6 +31,7 @@ const props = withDefaults(defineProps<AccomplishmentReportDetailsFormProps>(), 
 const payload = reactive<PersonnelAccomplishmentReportPayload>({
   period: null,
   supervisor_notes: '',
+  status: '',
   rows: [],
 })
 
@@ -55,11 +55,22 @@ watch(
       // Reset payload if accomplishmentReport becomes undefined
       payload.period = null
       payload.supervisor_notes = ''
+      payload.status = ''
       payload.rows = []
     }
   },
   { immediate: true }
 )
+const isEditingSpecificActivity = ref(false)
+const isEditingHighlights = ref(false)
+
+const editSpecificActivity = () => {
+  isEditingSpecificActivity.value = true
+}
+
+const editHighlights = () => {
+  isEditingHighlights.value = true
+}
 
 const formIsSubmitting = ref(false)
 const showErrorAlert = ref(false)
@@ -229,32 +240,55 @@ const requireConfirmationUpdate = (event: Event) => {
               <Divider layout="vertical"></Divider>
               <div class="flex w-full flex-col items-start justify-center gap-3 py-2 md:w-5/12">
                 <div class="flex w-full flex-col gap-2">
-                  <Textarea v-model="row.specific_activity" rows="10" class="w-full"></Textarea>
+                  <textarea
+                    :readonly="!isEditingSpecificActivity"
+                    v-model="row.specific_activity"
+                    class="w-full border-b-2 border-gray-300 outline-none focus:outline-none focus:ring-primary-500"
+                    placeholder="Enter your Specific Activity..."
+                    rows="10"
+                    @dblclick="editSpecificActivity"
+                  ></textarea>
                 </div>
               </div>
               <Divider layout="vertical"></Divider>
               <div class="flex w-full flex-col items-start justify-center gap-3 py-2 md:w-5/12">
                 <div class="flex w-full flex-col gap-2">
-                  <Textarea v-model="row.highlights" rows="10" class="w-full"></Textarea>
+                  <textarea
+                    :readonly="!isEditingHighlights"
+                    v-model="row.highlights"
+                    class="w-full border-b-2 border-gray-300 outline-none focus:outline-none focus:ring-primary-500"
+                    placeholder="Enter your Highlights..."
+                    rows="10"
+                    @dblclick="editHighlights"
+                  ></textarea>
                 </div>
               </div>
             </div>
             <Divider layout="horizontal"></Divider>
             <div class="mt-2 flex justify-end gap-2">
-              <Button
-                label="Save as Draft"
-                :loading="formIsSubmitting"
-                :disabled="formIsSubmitting"
-                class="border border-primary-400 text-xs font-semibold text-surface-0 dark:text-primary-100 lg:text-primary-400 dark:lg:text-primary-400"
-                text
+              <RouterLink
+                :to="{ path: '/commitments/accomplishment-report' }"
+                class="dark:text-secondary-100 border border-surface-400 text-xs text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
+                custom
+                v-slot="{ href, navigate }"
               >
-                <template #icon>
-                  <i class="pi pi-file mr-2"></i>
-                </template>
-              </Button>
+                <Button
+                  :href="href"
+                  label="Cancel"
+                  @click="navigate"
+                  :loading="formIsSubmitting"
+                  :disabled="formIsSubmitting"
+                  class="dark:text-secondary-100 border border-surface-400 text-xs text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
+                  text
+                >
+                  <template #icon>
+                    <i class="pi pi-ban mr-2"></i>
+                  </template>
+                </Button>
+              </RouterLink>
               <Button
                 @click="requireConfirmationUpdate($event)"
-                label="Save Accomplishment"
+                label="Save Draft"
                 :loading="formIsSubmitting"
                 :disabled="formIsSubmitting"
                 class="border border-primary-400 text-xs font-semibold text-surface-0 dark:text-primary-100 lg:text-primary-400 dark:lg:text-primary-400"
