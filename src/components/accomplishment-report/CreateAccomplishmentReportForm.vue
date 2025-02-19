@@ -119,22 +119,6 @@ const formRules = {
     required: helpers.withMessage('Period of Accomplishment is required', required),
     maxLength: helpers.withMessage('', globalStringMaxLengthRule),
   },
-  accomplishment: {
-    array: true, // Important: Indicate that this field is an array
-    // Define rules for each element in the array
-    dates_in_week: {
-      required: helpers.withMessage('Dates in Week are required', required),
-      maxLength: helpers.withMessage('', globalStringMaxLengthRule),
-    },
-    // specific_activity: {
-    //   required: helpers.withMessage('Specific Activity is required', required),
-    //   maxLength: helpers.withMessage('', globalStringMaxLengthRule),
-    // },
-    // highlights: {
-    //   required: helpers.withMessage('Highlight is required', required),
-    //   maxLength: helpers.withMessage('', globalStringMaxLengthRule),
-    // },
-  },
 }
 
 /** Handle Form Submission */
