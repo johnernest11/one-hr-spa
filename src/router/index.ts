@@ -3,13 +3,16 @@ import { vueApp } from '@/app.ts'
 import Dashboard from '@/views/DashboardPage.vue'
 import ProfilePage from '@/views/ProfilePage.vue'
 import SupportPage from '@/views/SupportPage.vue'
+import AccomplishmentReportPage from '@/views/AccomplishmentReportPage.vue'
+import CreateAccomplishmentReportForm from '@/components/accomplishment-report/CreateAccomplishmentReportForm.vue'
+import ViewAccomplishmentReport from '@/components/accomplishment-report/ViewAccomplishmentReport.vue'
 import AboutUsPage from '@/views/AboutUsPage.vue'
 import AnnouncementsPage from '@/views/AnnouncementsPage.vue'
 import { AuthRole, AuthType } from '@/typings/auth.types.ts'
 import { useAuthStore } from '@/stores/auth.store.ts'
 
 const enum RouteGroup {
-  HOME = 'Home',
+  MAIN = 'Main',
   ADMIN_TOOLS = 'Admin Tools',
   MISC = 'Misc',
   AUTH = 'Auth',
@@ -21,11 +24,24 @@ const routes = [
     name: 'dashboard',
     component: Dashboard,
     meta: <RouteMeta>{
-      group: RouteGroup.HOME,
-      label: 'Dashboard',
+      group: RouteGroup.MAIN,
+      label: 'Home',
       isSidebarMenu: true,
       authType: AuthType.AUTHENTICATED,
-      roles: [AuthRole.STANDARD_USER, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+      roles: [AuthRole.STANDARD_USER, AuthRole.EMPLOYEE, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+    },
+  },
+
+  {
+    path: '/announcements',
+    name: 'announcements',
+    component: AnnouncementsPage,
+    meta: <RouteMeta>{
+      group: RouteGroup.MAIN,
+      label: 'Request',
+      isSidebarMenu: true,
+      authType: AuthType.AUTHENTICATED,
+      roles: [AuthRole.STANDARD_USER, AuthRole.EMPLOYEE, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
     },
   },
   {
@@ -33,23 +49,41 @@ const routes = [
     name: 'profile',
     component: ProfilePage,
     meta: <RouteMeta>{
-      group: RouteGroup.HOME,
-      label: 'Profile',
+      group: RouteGroup.MAIN,
+      label: 'My Profile',
       isSidebarMenu: true,
       authType: AuthType.AUTHENTICATED,
-      roles: [AuthRole.STANDARD_USER, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+      roles: [AuthRole.STANDARD_USER, AuthRole.EMPLOYEE, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
     },
   },
   {
-    path: '/announcements',
-    name: 'announcements',
-    component: AnnouncementsPage,
+    path: '/commitments',
+    name: 'commitments',
+    component: AccomplishmentReportPage,
     meta: <RouteMeta>{
-      group: RouteGroup.HOME,
-      label: 'Announcements',
+      group: RouteGroup.MAIN,
+      label: 'Commitments',
       isSidebarMenu: true,
       authType: AuthType.AUTHENTICATED,
-      roles: [AuthRole.STANDARD_USER, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+      roles: [AuthRole.STANDARD_USER, AuthRole.EMPLOYEE, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+    },
+  },
+  {
+    path: '/accomplishments/create',
+    name: 'create-accomplishment-report',
+    component: CreateAccomplishmentReportForm,
+    meta: <RouteMeta>{
+      authType: AuthType.AUTHENTICATED,
+      roles: [AuthRole.STANDARD_USER, AuthRole.EMPLOYEE, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+    },
+  },
+  {
+    path: '/update-accomplishment-reports/:id/editor',
+    name: 'update-accomplishment-report',
+    component: ViewAccomplishmentReport,
+    meta: <RouteMeta>{
+      authType: AuthType.AUTHENTICATED,
+      roles: [AuthRole.STANDARD_USER, AuthRole.EMPLOYEE, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
     },
   },
   {
@@ -259,7 +293,7 @@ router.beforeEach(async (to, from) => {
   if (to.meta.authType === AuthType.AUTHENTICATED) {
     const roles = authStore.authRoles
     if (to.meta.roles && !to.meta.roles.some((r: string) => roles.includes(r))) {
-      return { name: 'home' }
+      return { name: 'main' }
     }
   }
 

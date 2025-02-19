@@ -27,7 +27,12 @@ const handleLogout = async () => {
 
 <template>
   <div class="card flex justify-center">
-    <Sidebar v-model:visible="visible" position="right" class="w-full md:w-[20rem] lg:w-[30rem]" @click="visible = false">
+    <Sidebar
+      v-model:visible="visible"
+      position="right"
+      class="md:w-280 lg:w-280 w-full bg-gradient-to-b from-white to-primary-400"
+      @click="visible = false"
+    >
       <template #closeicon>
         <FontAwesomeIcon icon="fa fa-xmark" class="h-4 w-4" />
       </template>

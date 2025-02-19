@@ -60,6 +60,7 @@ export type UserResponse = {
   user_profile?: UserProfileResponse
 } & ApiResponseData
 
+/** User (HTTP Responses) */
 export type UserProfileResponse = {
   first_name: string
   last_name: string
@@ -72,6 +73,20 @@ export type UserProfileResponse = {
   full_name: string
   profile_picture_url: string | null
   address: AddressResponse
+  personnel_accomplishment_report?: Array<PersonnelAccomplishmentReportResponse> | null | undefined
+} & ApiResponseData
+
+export type PersonnelAccomplishmentReportResponse = {
+  period: string
+  supervisor_notes: string
+  rows: Array<PersonnelAccomplishmentReportDetialsResponse> | null | undefined
+} & ApiResponseData
+
+export type PersonnelAccomplishmentReportDetialsResponse = {
+  week_num: string
+  dates_in_week: string
+  specific_activity: string | null
+  highlights: string | null
 } & ApiResponseData
 
 /** Role (HTTP Responses) */
