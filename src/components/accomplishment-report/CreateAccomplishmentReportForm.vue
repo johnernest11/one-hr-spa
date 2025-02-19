@@ -9,7 +9,7 @@ import Textarea from 'primevue/textarea'
 import Button from 'primevue/button'
 import Divider from 'primevue/divider'
 import Card from 'primevue/card'
-// import Message from 'primevue/message'
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import Dropdown from 'primevue/dropdown'
 import { useRolesStore } from '@/stores/roles.store.ts'
 import {
@@ -79,6 +79,7 @@ const addAccomplishment = (newFields = {}) => {
 
   const newAccomplishment = { ...defaultAccomplishment, ...newFields }
   accomplishments.value.push(newAccomplishment)
+  validator.value.accomplishment.$touch()
 }
 
 /** Function to remove an accomplishment entry */
@@ -118,26 +119,21 @@ const formRules = {
     required: helpers.withMessage('Period of Accomplishment is required', required),
     maxLength: helpers.withMessage('', globalStringMaxLengthRule),
   },
-  rows: {
+  accomplishment: {
     array: true, // Important: Indicate that this field is an array
     // Define rules for each element in the array
-
-    week_num: {
-      required: helpers.withMessage('Week Number is required', required),
-      maxLength: helpers.withMessage('', globalStringMaxLengthRule),
-    },
     dates_in_week: {
       required: helpers.withMessage('Dates in Week are required', required),
       maxLength: helpers.withMessage('', globalStringMaxLengthRule),
     },
-    specific_activity: {
-      required: helpers.withMessage('Specific Activity is required', required),
-      maxLength: helpers.withMessage('', globalStringMaxLengthRule),
-    },
-    highlights: {
-      required: helpers.withMessage('Highlight is required', required),
-      maxLength: helpers.withMessage('', globalStringMaxLengthRule),
-    },
+    // specific_activity: {
+    //   required: helpers.withMessage('Specific Activity is required', required),
+    //   maxLength: helpers.withMessage('', globalStringMaxLengthRule),
+    // },
+    // highlights: {
+    //   required: helpers.withMessage('Highlight is required', required),
+    //   maxLength: helpers.withMessage('', globalStringMaxLengthRule),
+    // },
   },
 }
 
@@ -187,18 +183,6 @@ const handleFormSubmission = async () => {
         specific_activity: accomplishment.specific_activity,
         highlights: accomplishment.highlights,
       }))
-
-    if (rows.length === 0) {
-      toast.add({
-        severity: 'error',
-        summary: 'Create Accomplishment Report',
-        detail: 'Please fill out at least one accomplishment entry.',
-        life: 5000,
-      })
-      formIsSubmitting.value = false // Set formIsSubmitting to false here
-      return
-    }
-
     const fullPayload = { ...periodData, rows }
 
     const periodResponse = await accomplishmentReportStore.createAccomplishment(
@@ -253,7 +237,7 @@ const handleFormSubmission = async () => {
               class="mb-2 ml-4 md:mb-0 md:ml-0"
             />
             <h2 class="mb-2 ml-4 text-3xl font-semibold text-primary-800 dark:text-primary-100 md:ml-4">
-              <i class="fas fa-check-double"></i>New Accomplishment Report
+              <font-awesome-icon :icon="['fas', 'check-double']" /> New Accomplishment Report
             </h2>
           </div>
           <br />
@@ -319,29 +303,13 @@ const handleFormSubmission = async () => {
             <Divider layout="vertical" class="hidden md:block"></Divider>
             <div v-if="showTextAreaActivity" class="flex w-full flex-col items-start justify-center gap-3 py-2 md:w-5/12">
               <div class="flex w-full flex-col gap-2">
-                <Textarea
-                  v-model="accomplishment.specific_activity"
-                  :invalid="validator.rows.specific_activity.$invalid"
-                  :invalid-text="validator.rows.specific_activity.$errors[0]?.$message"
-                  @blur="validator.rows.specific_activity.$touch"
-                  @focusin="validator.rows.specific_activity.$dirty = false"
-                  rows="5"
-                  class="w-full"
-                ></Textarea>
+                <Textarea v-model="accomplishment.specific_activity" rows="5" class="w-full"></Textarea>
               </div>
             </div>
             <Divider layout="vertical" class="hidden md:block"></Divider>
             <div v-if="showTextAreaHighlights" class="flex w-full flex-col items-start justify-center gap-3 py-2 md:w-5/12">
               <div class="flex w-full flex-col gap-2">
-                <Textarea
-                  v-model="accomplishment.highlights"
-                  :invalid="validator.rows.highlights.$invalid"
-                  :invalid-text="validator.rows.highlights.$errors[0]?.$message"
-                  @blur="validator.rows.highlights.$touch"
-                  @focusin="validator.rows.highlights.$dirty = false"
-                  rows="5"
-                  class="w-full"
-                ></Textarea>
+                <Textarea v-model="accomplishment.highlights" rows="5" class="w-full"></Textarea>
               </div>
             </div>
 
