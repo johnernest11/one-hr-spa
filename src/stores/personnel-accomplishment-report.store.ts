@@ -47,6 +47,37 @@ export const useAccomplishmentReportStore = defineStore('personnel-accomplishmen
 
     return responseBody
   }
+  const fetchAccomplishmentIds = async (id: string) => {
+    try {
+      const response = await useApiCall(`/accomplishment-reports/${id}`)
+      return { success: true, data: response.data }
+    } catch (error) {
+      return { success: false, error }
+    }
+  }
+
+  // const fetchAccomplishmentIds = async (id: string): Promise<number[]> => {
+  //   let uri = `/accomplishment-reports/${id}`; // Add fields=id to only retrieve IDs
+  //   if (page) uri += `page=${page}`;
+
+  //   const { data } = await useApiCall(uri, auth.authenticationToken).get().json();
+  //   const responseBody: ApiResponseBody = data.value;
+
+  //   if (responseBody.success) {
+  //     const accomplishmentReportsList = Array.isArray(responseBody.data)
+  //       ? (responseBody.data as { id: number }[]) // Type the data to expect an 'id' property
+  //       : [];
+
+  //     // Extract only the IDs
+  //     const accomplishmentIds = accomplishmentReportsList.map(report => report.id);
+
+  //     return accomplishmentIds;
+  //   } else {
+  //     // Handle the error appropriately.  Returning an empty array or throwing an error are common choices.
+  //     console.error("Error fetching accomplishment reports:", responseBody.message);
+  //     return []; // Or throw an error: throw new Error(responseBody.message);
+  //   }
+  // };
 
   const createAccomplishment = async (accomplishmentReport: Partial<PersonnelAccomplishmentReportPayload>) => {
     const { data } = await useApiCall('/accomplishment-reports/', auth.authenticationToken).post(accomplishmentReport).json()
@@ -94,6 +125,7 @@ export const useAccomplishmentReportStore = defineStore('personnel-accomplishmen
     accomplishmentReport,
     createAccomplishment,
     fetchAccomplishment,
+    fetchAccomplishmentIds,
     updateAccomplishment,
     searchAccomplishment,
   }
