@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue'
+import { reactive, ref, watch, onMounted } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import { PersonnelAccomplishmentReportResponse } from '@/typings/models.types.ts'
 import { parseApiResponseError } from '@/utils/error-handle.ts'
@@ -11,22 +11,11 @@ import { useConfirm } from 'primevue/useconfirm'
 import Card from 'primevue/card'
 import { useAccomplishmentReportStore } from '@/stores/personnel-accomplishment-report.store'
 import { PersonnelAccomplishmentReportPayload } from '@/stores/personnel-accomplishment-report.store'
+import { useRoute } from 'vue-router'
 
-/** Emits */
-const emit = defineEmits<{
-  (e: 'accomplishment-report-updated', value: boolean): void
-}>()
-
-/** Props */
-type AccomplishmentReportDetailsFormProps = {
-  currentRoleFilter: number | string | null
-  accomplishmentReport: PersonnelAccomplishmentReportResponse
-}
-
-const props = withDefaults(defineProps<AccomplishmentReportDetailsFormProps>(), {
-  currentRoleFilter: null,
-  accomplishmentReport: undefined,
-})
+const route = useRoute()
+const accomplishmentReportStore = useAccomplishmentReportStore()
+const isLoading = ref(true)
 
 const payload = reactive<PersonnelAccomplishmentReportPayload>({
   period: null,
@@ -35,7 +24,52 @@ const payload = reactive<PersonnelAccomplishmentReportPayload>({
   rows: [],
 })
 
-// Use onMounted to initialize payload AFTER props are received
+/** Emits */
+const emit = defineEmits<{
+  (e: 'accomplishment-report-updated', value: boolean): void
+}>()
+
+/** Props */
+type AccomplishmentReportDetailsFormProps = {
+  accomplishmentReport?: PersonnelAccomplishmentReportResponse
+}
+
+const props = defineProps<AccomplishmentReportDetailsFormProps>()
+
+onMounted(async () => {
+  const id = route.params.id as string
+  const roleFilter = route.params.roleFilter as string
+  if (id) {
+    const response = await accomplishmentReportStore.fetchAccomplishmentById(roleFilter, id)
+    if (response && response.success) {
+      updatePayloadFromReport(response.data as PersonnelAccomplishmentReportResponse)
+    }
+  }
+  isLoading.value = false
+})
+
+const updatePayloadFromReport = (report: PersonnelAccomplishmentReportResponse | null) => {
+  if (report) {
+    payload.period = report.period ?? null
+    payload.supervisor_notes = report.supervisor_notes ?? ''
+    payload.status = report.status ?? '' // Make sure status is in the payload!
+    payload.rows =
+      report.rows?.map((row) => ({
+        id: row.id ?? '',
+        week_num: row.week_num ?? '',
+        dates_in_week: row.dates_in_week ?? '',
+        specific_activity: row.specific_activity ?? null,
+        highlights: row.highlights ?? null,
+      })) ?? []
+  } else {
+    // Important: Reset payload if report is null
+    payload.period = null
+    payload.supervisor_notes = ''
+    payload.status = ''
+    payload.rows = []
+  }
+}
+// Use watch to initialize payload AFTER props are received
 watch(
   () => props.accomplishmentReport,
   (newValue) => {
@@ -61,6 +95,7 @@ watch(
   },
   { immediate: true }
 )
+
 const isEditingSpecificActivity = ref(false)
 const isEditingHighlights = ref(false)
 
@@ -76,15 +111,15 @@ const formIsSubmitting = ref(false)
 const showErrorAlert = ref(false)
 const errorMessage = ref<string | null>(null)
 const errorDetails = ref<string[]>([])
-const accomplishmentReportStore = useAccomplishmentReportStore()
 const toast = useToast()
 
 /** Handle Accomplishment Report Update */
 const IsBeingUpdated = ref(false)
 const handleUpdated = async () => {
   IsBeingUpdated.value = true
+  const id = route.params.id as string
 
-  const response = await accomplishmentReportStore.updateAccomplishment(payload, props.accomplishmentReport.id)
+  const response = await accomplishmentReportStore.updateAccomplishment(payload, id)
 
   if (!response.success) {
     const result = parseApiResponseError(response)
@@ -100,7 +135,7 @@ const handleUpdated = async () => {
   toast.add({
     severity: 'success',
     summary: 'Accomplishment Report Details update',
-    detail: `${props.accomplishmentReport.id || 'The Accomplishment Report '} was successfully update`,
+    detail: `${id || 'The Accomplishment Report '} was successfully update`,
     life: 3000,
   })
 
@@ -134,7 +169,7 @@ const requireConfirmationUpdate = (event: Event) => {
 </script>
 
 <template>
-  <div v-if="props.accomplishmentReport">
+  <div v-if="payload">
     <form autocomplete="off" @submit.prevent>
       <div class="flex w-full flex-col gap-4 pb-4">
         <Card class="h-full">
@@ -153,7 +188,7 @@ const requireConfirmationUpdate = (event: Event) => {
                 <i class="pi pi-angle-double-down text-xl"></i>Viewing Accomplishment
               </h2>
             </div>
-            <p class="mb-2 ml-20 text-xl font-semibold text-primary-900 dark:text-primary-100">Viewings Accomplishments</p>
+            <p class="mb-2 ml-20 text-xl font-semibold text-primary-900 dark:text-primary-100">Viewing Accomplishments</p>
             <br />
             <h2 class="mb-2 text-lg font-semibold text-surface-600 dark:text-primary-100">Timeline</h2>
             <div class="flex flex-col md:flex-row">
@@ -266,12 +301,7 @@ const requireConfirmationUpdate = (event: Event) => {
             </div>
             <Divider layout="horizontal"></Divider>
             <div class="mt-2 flex justify-end gap-2">
-              <RouterLink
-                :to="{ path: 'accomplishment-reports' }"
-                class="dark:text-secondary-100 border border-surface-400 text-xs text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
-                custom
-                v-slot="{ href, navigate }"
-              >
+              <RouterLink :to="{ path: 'accomplishment-reports' }" custom v-slot="{ href, navigate }">
                 <Button
                   :href="href"
                   label="Cancel"

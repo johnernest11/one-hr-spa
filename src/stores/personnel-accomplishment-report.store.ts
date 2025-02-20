@@ -30,7 +30,9 @@ export const useAccomplishmentReportStore = defineStore('personnel-accomplishmen
   const auth = useAuthStore()
   const accomplishment = ref<PersonnelAccomplishmentReportResponse[]>([])
   /** States */
-  const accomplishmentReport = ref<PersonnelAccomplishmentReportResponse[]>([])
+  const accomplishmentReportArray = ref<PersonnelAccomplishmentReportResponse[]>([])
+
+  const selectedAccomplishmentReport = ref<PersonnelAccomplishmentReportResponse | null>(null)
 
   const fetchAccomplishment = async (limit: number = 10, page: number | null = null) => {
     let uri = `/accomplishment-reports?limit=${limit}&sort=asc&`
@@ -43,18 +45,22 @@ export const useAccomplishmentReportStore = defineStore('personnel-accomplishmen
       const accomplishmentReportsList = Array.isArray(responseBody.data)
         ? (responseBody.data as PersonnelAccomplishmentReportResponse[])
         : []
-      accomplishmentReport.value = [...accomplishmentReportsList]
+      accomplishmentReportArray.value = [...accomplishmentReportsList]
     }
 
     return responseBody
   }
-  const fetchAccomplishmentIds = async (id: string) => {
-    try {
-      const response = await useApiCall(`/accomplishment-reports/${id}`)
-      return { success: true, data: response.data }
-    } catch (error) {
-      return { success: false, error }
+
+  const fetchAccomplishmentById = async (roleFilter: string | number | null = null, id: string) => {
+    const url = roleFilter ? `/accomplishment-reports/${roleFilter}/${id}` : `/accomplishment-reports/${id}`
+
+    const { data } = await useApiCall(url, auth.authenticationToken).get().json()
+    const responseBody: ApiResponseBody = data.value
+
+    if (responseBody.success) {
+      selectedAccomplishmentReport.value = responseBody.data as PersonnelAccomplishmentReportResponse
     }
+    return responseBody
   }
 
   const createAccomplishment = async (accomplishmentReport: Partial<PersonnelAccomplishmentReportPayload>) => {
@@ -77,7 +83,7 @@ export const useAccomplishmentReportStore = defineStore('personnel-accomplishmen
 
     if (responseBody.success) {
       const accomplishmentReportsList = responseBody.data as PersonnelAccomplishmentReportResponse[]
-      accomplishmentReport.value = [...accomplishmentReportsList]
+      accomplishmentReportArray.value = [...accomplishmentReportsList]
     }
 
     return responseBody
@@ -100,10 +106,10 @@ export const useAccomplishmentReportStore = defineStore('personnel-accomplishmen
   }
 
   return {
-    accomplishmentReport,
+    accomplishmentReportArray,
     createAccomplishment,
     fetchAccomplishment,
-    fetchAccomplishmentIds,
+    fetchAccomplishmentById,
     updateAccomplishment,
     searchAccomplishment,
   }

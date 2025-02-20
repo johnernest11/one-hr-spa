@@ -21,9 +21,10 @@ const navigateToDetails = (accomplishmentReport: PersonnelAccomplishmentReportRe
     return
   }
   router.push({
-    name: 'accomplishment-report-view',
+    name: 'accomplishment-reports/update',
     params: {
       id: accomplishmentReport.id,
+      roleFilter: roleFilter.value,
     },
   })
 }
@@ -184,10 +185,13 @@ const formatDate = (dateString: string | null | undefined): string => {
         <div>
           <!-- Show Table if tableData has items -->
           <div
-            v-if="accomplishmentReportStore.accomplishmentReport && accomplishmentReportStore.accomplishmentReport.length > 0"
+            v-if="
+              accomplishmentReportStore.accomplishmentReportArray &&
+              accomplishmentReportStore.accomplishmentReportArray.length > 0
+            "
             class="mx-auto flex h-full w-full flex-col"
           >
-            <DataTable :value="accomplishmentReportStore.accomplishmentReport" class="mt-6" dataKey="id">
+            <DataTable :value="accomplishmentReportStore.accomplishmentReportArray" class="mt-6" dataKey="id">
               <Column
                 field="period"
                 header="Accomplishment Period"

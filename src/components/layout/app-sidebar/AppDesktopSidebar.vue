@@ -3,13 +3,13 @@ import { RouterLink } from 'vue-router'
 import { useSidebarNavLinks } from '@/composables/sidebar.ts'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 
-const { navLinks, toggleExpanded } = useSidebarNavLinks() // Get the toggle
+const { navLinks, toggleExpanded } = useSidebarNavLinks()
 const appName = import.meta.env.VITE_APP_NAME
 </script>
 
 <template>
   <div
-    class="flex h-screen flex-col overflow-y-auto bg-gradient-to-b from-[#ffffff] to-[#2196F3] px-2 pt-4 dark:border-surface-700 dark:bg-surface-900"
+    class="sticky top-0 h-screen w-64 flex-col overflow-y-auto bg-gradient-to-b from-[#ffffff] to-[#2196F3] px-2 pt-4 dark:border-surface-700 dark:bg-surface-900"
   >
     <div class="flex justify-center px-12 py-6 dark:border-surface-900">
       <img src="@/assets/image/dswd-logo.png" width="500" class="mx-auto my-1" />
