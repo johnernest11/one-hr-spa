@@ -58,7 +58,7 @@ const appName = import.meta.env.VITE_APP_NAME
                 v-for="child in link.children"
                 :key="child.label"
                 :to="{ name: child.name }"
-                :class="`flex items-center rounded-lg px-2 py-2 transition-colors duration-300 hover:bg-primary-100 
+                :class="`mt-4 flex items-center rounded-lg px-2 py-2 transition-colors duration-300 hover:bg-primary-100 
               hover:text-primary-900 dark:text-surface-200 dark:hover:bg-primary-400/70 ${
                 $route.name === child.name
                   ? ' rounded-xl  bg-[#2196F3]/20 text-primary-900 dark:!bg-primary-400/70 dark:!text-surface-200'

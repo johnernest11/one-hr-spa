@@ -243,7 +243,7 @@ const requireConfirmationUpdate = (event: Event) => {
                   <textarea
                     :readonly="!isEditingSpecificActivity"
                     v-model="row.specific_activity"
-                    class="w-full border-b-2 border-gray-300 outline-none focus:outline-none focus:ring-primary-500"
+                    class="w-full border-b-2 border-surface-300 outline-none focus:outline-none focus:ring-primary-500"
                     placeholder="Enter your Specific Activity..."
                     rows="10"
                     @dblclick="editSpecificActivity"
@@ -256,7 +256,7 @@ const requireConfirmationUpdate = (event: Event) => {
                   <textarea
                     :readonly="!isEditingHighlights"
                     v-model="row.highlights"
-                    class="w-full border-b-2 border-gray-300 outline-none focus:outline-none focus:ring-primary-500"
+                    class="w-full border-b-2 border-surface-300 outline-none focus:outline-none focus:ring-primary-500"
                     placeholder="Enter your Highlights..."
                     rows="10"
                     @dblclick="editHighlights"
@@ -267,7 +267,7 @@ const requireConfirmationUpdate = (event: Event) => {
             <Divider layout="horizontal"></Divider>
             <div class="mt-2 flex justify-end gap-2">
               <RouterLink
-                :to="{ path: '/commitments/accomplishment-report' }"
+                :to="{ path: 'accomplishment-reports' }"
                 class="dark:text-secondary-100 border border-surface-400 text-xs text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
                 custom
                 v-slot="{ href, navigate }"

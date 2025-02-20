@@ -44,7 +44,7 @@ onBeforeMount(async () => {
 /** Pagination */
 const pagination = ref<ApiResponsePagination | null>(null)
 const handlePaginationPageChange = async (event: PageState) => {
-  const pageSelected = event.page + 1 // The page state object starts at 0
+  const pageSelected = event.page + 1
 
   accomplishmentReportIsLoading.value = true
   const response = await accomplishmentReportStore.fetchAccomplishment(paginationLimit, pageSelected)
@@ -62,7 +62,7 @@ watch(
   () => roleFilter.value,
   async () => {
     accomplishmentReportIsLoading.value = true
-    searchQuery.value = null // We clear the search query
+    searchQuery.value = null
     const response = await accomplishmentReportStore.fetchAccomplishment(paginationLimit)
     if (response.success && response.pagination) {
       pagination.value = response.pagination
@@ -93,11 +93,7 @@ const handleSearchAccomplishmentReport = async () => {
 }
 /** End of Search and Filters */
 const navigateToCreate = () => {
-  console.log('Navigating to create-accomplishment-report') // Debugging
-  router
-    .push({ name: 'create-accomplishment-report' })
-    .then(() => console.log('Navigation successful')) // Debugging
-    .catch((err) => console.error('Navigation failed:', err)) // Debugging
+  router.push({ name: 'accomplishment-reports/store' })
 }
 
 const formatDate = (dateString: string | null | undefined): string => {
@@ -112,7 +108,7 @@ const formatDate = (dateString: string | null | undefined): string => {
     }
 
     const options: Intl.DateTimeFormatOptions = {
-      day: '2-digit', // Ensure two-digit day
+      day: '2-digit',
       month: 'short',
       year: 'numeric',
     }

@@ -66,8 +66,8 @@ const routes = [
     },
     children: [
       {
-        path: 'accomplishment-report',
-        name: 'view-accomplishment-report',
+        path: '/accomplishment-reports/',
+        name: 'accomplishment-reports/index',
         component: AccomplishmentReportPage,
         meta: <RouteMeta>{
           label: 'ARs',
@@ -77,8 +77,8 @@ const routes = [
         },
       },
       {
-        path: 'create',
-        name: 'create-accomplishment-report',
+        path: '/accomplishment-reports/store',
+        name: 'accomplishment-reports/store',
         component: CreateAccomplishmentReportForm,
         meta: <RouteMeta>{
           isSidebarMenu: false,
@@ -87,8 +87,8 @@ const routes = [
         },
       },
       {
-        path: ':id',
-        name: 'update-accomplishment-report',
+        path: '/accomplishment-reports/:id',
+        name: 'accomplishment-reports/update',
         component: ViewAccomplishmentReport,
         meta: <RouteMeta>{
           isSidebarMenu: false,
@@ -98,8 +98,8 @@ const routes = [
       },
 
       {
-        path: 'ipc/ccef',
-        name: 'view-ipc-ccef',
+        path: '/ipcipc-ccef/',
+        name: 'view-ipc-ccef/index',
         component: ViewAccomplishmentReport,
         meta: <RouteMeta>{
           label: 'IPC/CCEF',

@@ -135,7 +135,7 @@ const emit = defineEmits<{
   (e: 'ar-created', value: boolean): void
 }>()
 
-const handleSaveSubmissionif = async (status: 'done' | 'draft') => {
+const handleSaveSubmissionif = async (status: string) => {
   const valid = await validator.value.$validate()
   if (!valid) {
     document.querySelector('.create-ar-creds-section')?.scrollIntoView({ behavior: 'smooth' })
@@ -290,7 +290,7 @@ const handleSaveSubmissionif = async (status: 'done' | 'draft') => {
               <div class="flex w-full flex-col gap-2">
                 <textarea
                   v-model="accomplishment.specific_activity"
-                  class="w-full border-b-2 border-gray-300 outline-none focus:outline-none focus:ring-primary-500"
+                  class="w-full border-b-2 border-surface-300 outline-none focus:outline-none focus:ring-primary-500"
                   placeholder="Enter your Specific Activity..."
                   rows="10"
                 />
@@ -301,7 +301,7 @@ const handleSaveSubmissionif = async (status: 'done' | 'draft') => {
               <div class="flex w-full flex-col gap-2">
                 <textarea
                   v-model="accomplishment.highlights"
-                  class="w-full border-b-2 border-gray-300 outline-none focus:outline-none focus:ring-primary-500"
+                  class="w-full border-b-2 border-surface-300 outline-none focus:outline-none focus:ring-primary-500"
                   placeholder="Enter your Highlights of Accomplishment..."
                   rows="10"
                 />
@@ -332,17 +332,11 @@ const handleSaveSubmissionif = async (status: 'done' | 'draft') => {
               text
             />
           </div>
+          <!-- Other content -->
           <div v-if="accomplishmentBtn" class="mt-2 flex justify-end gap-2">
-            <RouterLink
-              :to="{ path: '/commitments/accomplishment-report' }"
-              class="dark:text-secondary-100 border border-surface-400 text-xs text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
-              custom
-              v-slot="{ href, navigate }"
-            >
+            <RouterLink :to="{ name: 'accomplishment-reports/index' }">
               <Button
-                :href="href"
                 label="Cancel"
-                @click="navigate"
                 :loading="formIsSubmitting"
                 :disabled="formIsSubmitting"
                 class="dark:text-secondary-100 border border-surface-400 text-xs text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
@@ -378,7 +372,6 @@ const handleSaveSubmissionif = async (status: 'done' | 'draft') => {
               </template>
             </Button>
           </div>
-
           <!-- End Action Buttons -->
         </template>
       </Card>

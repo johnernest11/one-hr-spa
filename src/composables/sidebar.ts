@@ -91,10 +91,10 @@ export const useSidebarNavLinks = () => {
               if (childRoute.meta.roles && authStore.isAuthenticated && !authStore.authHasRequiredRole(childRoute.meta.roles))
                 continue
               switch (childRoute.name) {
-                case 'view-accomplishment-report':
+                case 'accomplishment-reports/index':
                   childNavLink.icon = 'fas fa-check-double'
                   break
-                case 'view-ipc-ccef':
+                case 'view-ipc-ccef/index':
                   childNavLink.icon = 'fas fa-check-double' // Example icon
                   break
                 // ... other child route icon assignments
