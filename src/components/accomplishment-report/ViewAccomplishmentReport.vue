@@ -38,9 +38,8 @@ const props = defineProps<AccomplishmentReportDetailsFormProps>()
 
 onMounted(async () => {
   const id = route.params.id as string
-  const roleFilter = route.params.roleFilter as string
   if (id) {
-    const response = await accomplishmentReportStore.fetchAccomplishmentById(roleFilter, id)
+    const response = await accomplishmentReportStore.fetchAccomplishmentById(id)
     if (response && response.success) {
       updatePayloadFromReport(response.data as PersonnelAccomplishmentReportResponse)
     }

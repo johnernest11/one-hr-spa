@@ -10,7 +10,6 @@ import Paginator, { PageState } from 'primevue/paginator'
 import { ApiResponsePagination } from '@/typings/http-resources.types.ts'
 import { PersonnelAccomplishmentReportResponse } from '@/typings/models.types.ts'
 import { useAccomplishmentReportStore } from '@/stores/personnel-accomplishment-report.store'
-import ARViewBtn from '@/components/accomplishment-report/ARViewBtn.vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -21,10 +20,9 @@ const navigateToDetails = (accomplishmentReport: PersonnelAccomplishmentReportRe
     return
   }
   router.push({
-    name: 'accomplishment-reports/update',
+    name: 'accomplishment-reports/editor',
     params: {
       id: accomplishmentReport.id,
-      roleFilter: roleFilter.value,
     },
   })
 }
@@ -222,18 +220,20 @@ const formatDate = (dateString: string | null | undefined): string => {
               <Column field="action" header="Actions" headerClass="w-64 bg-surface-100 opacity-70 font-bold py-2">
                 <template #body="props">
                   <div class="flex gap-4 whitespace-nowrap md:w-auto">
-                    <ARViewBtn
-                      :accomplishmentReport="props.data"
-                      :role-filter="roleFilter"
-                      class="border-none text-lg font-semibold text-primary-700 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
-                    />
                     <Button
-                      icon="pi pi-file-word"
+                      icon="pi pi-eye"
                       v-tooltip.top="'Export to MS Word'"
                       severity="info"
                       class="border-none text-lg font-semibold text-primary-600 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
                       text
                       @click="navigateToDetails(props.data)"
+                    />
+                    <Button
+                      icon="pi pi-file-word"
+                      v-tooltip.top="'Export to MS Word'"
+                      severity="info"
+                      class="border-none text-lg font-semibold text-primary-700 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
+                      text
                     />
                   </div>
                 </template>

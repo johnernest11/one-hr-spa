@@ -51,8 +51,8 @@ export const useAccomplishmentReportStore = defineStore('personnel-accomplishmen
     return responseBody
   }
 
-  const fetchAccomplishmentById = async (roleFilter: string | number | null = null, id: string) => {
-    const url = roleFilter ? `/accomplishment-reports/${roleFilter}/${id}` : `/accomplishment-reports/${id}`
+  const fetchAccomplishmentById = async (id: string) => {
+    const url = `/accomplishment-reports/${id}`
 
     const { data } = await useApiCall(url, auth.authenticationToken).get().json()
     const responseBody: ApiResponseBody = data.value

@@ -216,7 +216,6 @@ const handleSaveSubmissionif = async (status: string) => {
               severity="secondary"
               aria-label="Bookmark"
               rounded
-              v-tooltip.top="'Filter Accomplishments'"
               @click="$router.go(-1)"
               size="small"
               class="mb-2 ml-4 md:mb-0 md:ml-0"
