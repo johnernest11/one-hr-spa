@@ -11,9 +11,7 @@ import { ApiResponsePagination } from '@/typings/http-resources.types.ts'
 import { PersonnelAccomplishmentReportResponse } from '@/typings/models.types.ts'
 import { useAccomplishmentReportStore } from '@/stores/personnel-accomplishment-report.store'
 import { useRouter } from 'vue-router'
-
 const router = useRouter()
-
 const navigateToDetails = (accomplishmentReport: PersonnelAccomplishmentReportResponse) => {
   if (!accomplishmentReport || !accomplishmentReport.id) {
     console.error('Cannot navigate to details: accomplishmentRepor or ID is undefined', accomplishmentReport)
@@ -28,9 +26,36 @@ const navigateToDetails = (accomplishmentReport: PersonnelAccomplishmentReportRe
 }
 
 const accomplishmentReportStore = useAccomplishmentReportStore()
+const exportToFile = async (accomplishmentReport: PersonnelAccomplishmentReportResponse) => {
+  const reportResponse = await accomplishmentReportStore.generateAccomplishmentReport(String(accomplishmentReport.id))
+  // Check if reportResponse is a URL or an object
+  let fileName = 'report.docx' // Default filename
+  let fileUrl = ''
+  if (typeof reportResponse === 'string') {
+    // If it's a string, assume it's the URL and set the fileUrl directly
+    fileUrl = reportResponse
+  } else if (
+    typeof reportResponse === 'object' &&
+    reportResponse !== null &&
+    'fileName' in reportResponse &&
+    'fileContent' in reportResponse
+  ) {
+    // If it's an object, access fileName and also set the URL if applicable
+    const reportData = reportResponse as { fileContent: string; fileName: string }
+    fileName = reportData.fileName
+    fileUrl = reportData.fileContent // Use fileContent instead of url
+  }
+  // Create link and initiate download
+  const link = document.createElement('a')
+  link.href = fileUrl // Set the href to the file URL
+  link.download = fileName // Set the download filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
+
 const accomplishmentReportIsLoading = ref(false)
 const paginationLimit = 5
-
 onBeforeMount(async () => {
   accomplishmentReportIsLoading.value = true
   const response = await accomplishmentReportStore.fetchAccomplishment(paginationLimit)
@@ -39,19 +64,15 @@ onBeforeMount(async () => {
   }
   accomplishmentReportIsLoading.value = false
 })
-
 /** Pagination */
 const pagination = ref<ApiResponsePagination | null>(null)
 const handlePaginationPageChange = async (event: PageState) => {
   const pageSelected = event.page + 1
-
   accomplishmentReportIsLoading.value = true
   const response = await accomplishmentReportStore.fetchAccomplishment(paginationLimit, pageSelected)
-
   if (response.success && response.pagination) {
     pagination.value = response.pagination
   }
-
   accomplishmentReportIsLoading.value = false
 }
 /** Search and Filters */
@@ -69,7 +90,6 @@ watch(
     accomplishmentReportIsLoading.value = false
   }
 )
-
 const handleSearchAccomplishmentReport = async () => {
   // We do regular fetch if the query is null / empty
   accomplishmentReportIsLoading.value = true
@@ -80,40 +100,32 @@ const handleSearchAccomplishmentReport = async () => {
     }
     return (accomplishmentReportIsLoading.value = false)
   }
-
   // Handle the search if the search query
   const response = await accomplishmentReportStore.searchAccomplishment(searchQuery.value)
   if (response.success && response.pagination) {
     pagination.value = response.pagination
     searchQuery.value = null
   }
-
   accomplishmentReportIsLoading.value = false
 }
 /** End of Search and Filters */
 const navigateToCreate = () => {
   router.push({ name: 'accomplishment-reports/store' })
 }
-
 const formatDate = (dateString: string | null | undefined): string => {
   if (!dateString) return ''
-
   try {
     const date = new Date(dateString)
-
     if (isNaN(date.getTime())) {
       console.error('Invalid date string:', dateString)
       return 'Invalid Date'
     }
-
     const options: Intl.DateTimeFormatOptions = {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
     }
-
     const formattedDate = date.toLocaleDateString(undefined, options)
-
     return formattedDate.replace(/^(\w+)\s(\d+),\s(\d+)$/, '$2 $1 $3') //Regex for month dd, yyyy
   } catch (error) {
     console.error('Error formatting date:', error)
@@ -121,7 +133,6 @@ const formatDate = (dateString: string | null | undefined): string => {
   }
 }
 </script>
-
 <template>
   <div class="mx-auto flex h-full w-full flex-col pl-4 pt-8">
     <Card class="h-full">
@@ -146,7 +157,6 @@ const formatDate = (dateString: string | null | undefined): string => {
                 text
                 @click="$router.push({ name: 'sign-up' })"
               />
-
               <Button
                 icon="pi pi-plus"
                 v-tooltip.top="'Create Accomplishments'"
@@ -157,7 +167,6 @@ const formatDate = (dateString: string | null | undefined): string => {
                 @click="navigateToCreate"
               />
             </div>
-
             <div class="flex w-full md:w-auto lg:w-1/2">
               <InputGroup v-model="searchQuery" class="w-full">
                 <InputText
@@ -178,7 +187,6 @@ const formatDate = (dateString: string | null | undefined): string => {
           </div>
         </div>
         <!-- End Filter Create & Search Accomplishment Report Button -->
-
         <!-- Start Data Table (Conditional Rendering) -->
         <div>
           <!-- Show Table if tableData has items -->
@@ -234,6 +242,7 @@ const formatDate = (dateString: string | null | undefined): string => {
                       severity="info"
                       class="border-none text-lg font-semibold text-primary-700 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
                       text
+                      @click="exportToFile(props.data)"
                     />
                   </div>
                 </template>
@@ -253,9 +262,7 @@ const formatDate = (dateString: string | null | undefined): string => {
             </div>
             <!-- End Pagination -->
           </div>
-
           <!-- End Data Table -->
-
           <!-- Show "No Accomplishment Report" message if tableData is empty -->
           <div v-if="!accomplishmentReportIsLoading && !pagination?.total" class="mx-auto flex h-full w-full flex-col">
             <Card class="w-full p-0 shadow-none">
