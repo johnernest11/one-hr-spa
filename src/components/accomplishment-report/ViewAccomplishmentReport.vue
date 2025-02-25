@@ -7,14 +7,17 @@ import Button from 'primevue/button'
 import WbInputText from '@/components/webkit/WbInputText.vue'
 import Message from 'primevue/message'
 import Divider from 'primevue/divider'
+import Dropdown from 'primevue/dropdown'
 import { useConfirm } from 'primevue/useconfirm'
 import Card from 'primevue/card'
 import { useAccomplishmentReportStore } from '@/stores/personnel-accomplishment-report.store'
 import { PersonnelAccomplishmentReportPayload } from '@/stores/personnel-accomplishment-report.store'
 import { useRoute } from 'vue-router'
+
 const route = useRoute()
 const accomplishmentReportStore = useAccomplishmentReportStore()
 const isLoading = ref(true)
+
 const payload = reactive<PersonnelAccomplishmentReportPayload>({
   period: null,
   supervisor_notes: '',
@@ -22,17 +25,29 @@ const payload = reactive<PersonnelAccomplishmentReportPayload>({
   rows: [],
 })
 
+/** Options for selecting the week number */
+const weekOptions = ref([
+  { label: 'Week 1', value: 'Week 1' },
+  { label: 'Week 2', value: 'Week 2' },
+  { label: 'Week 3', value: 'Week 3' },
+  { label: 'Week 4', value: 'Week 4' },
+  { label: 'Week 5', value: 'Week 5' },
+])
 //  Make sure accomplishmentReport is reactive so it updates
-const accomplishmentReportExport = ref<PersonnelAccomplishmentReportResponse | null>(null)
+const accomplishmentReportExportFile = ref<PersonnelAccomplishmentReportResponse | null>(null)
 
 const exportToFile = async () => {
-  if (!accomplishmentReportExport.value || !accomplishmentReportExport.value.id) {
+  if (!accomplishmentReportExportFile.value || !accomplishmentReportExportFile.value.id) {
     console.error('No accomplishment report or ID available for export.')
     return // Or show a user-friendly message
   }
-  const reportResponse = await accomplishmentReportStore.generateAccomplishmentReport(String(accomplishmentReportExport.value.id))
+  const reportResponse = await accomplishmentReportStore.generateAccomplishmentReport(
+    String(accomplishmentReportExportFile.value.id)
+  )
+
   let fileName = 'report.docx'
   let fileUrl = ''
+
   if (typeof reportResponse === 'string') {
     fileUrl = reportResponse
   } else if (
@@ -48,6 +63,7 @@ const exportToFile = async () => {
     console.error('Invalid report response format:', reportResponse)
     return
   }
+
   const link = document.createElement('a')
   link.href = fileUrl
   link.download = fileName
@@ -55,26 +71,31 @@ const exportToFile = async () => {
   link.click()
   document.body.removeChild(link)
 }
+
 /** Emits */
 const emit = defineEmits<{
   (e: 'accomplishment-report-updated', value: boolean): void
 }>()
+
 /** Props */
 type AccomplishmentReportDetailsFormProps = {
   accomplishmentReport?: PersonnelAccomplishmentReportResponse
 }
+
 const props = defineProps<AccomplishmentReportDetailsFormProps>()
+
 onMounted(async () => {
   const id = route.params.id as string
   if (id) {
     const response = await accomplishmentReportStore.fetchAccomplishmentById(id)
     if (response && response.success) {
-      accomplishmentReportExport.value = response.data as PersonnelAccomplishmentReportResponse // Directly update the ref
+      accomplishmentReportExportFile.value = response.data as PersonnelAccomplishmentReportResponse // Directly update the ref
       updatePayloadFromReport(response.data as PersonnelAccomplishmentReportResponse)
     }
   }
   isLoading.value = false
 })
+
 const updatePayloadFromReport = (report: PersonnelAccomplishmentReportResponse | null) => {
   if (report) {
     payload.period = report.period ?? null
@@ -122,50 +143,62 @@ watch(
   },
   { immediate: true }
 )
+
 const isEditingSpecificActivity = ref(false)
 const isEditingHighlights = ref(false)
+
 const editSpecificActivity = () => {
   isEditingSpecificActivity.value = true
 }
+
 const editHighlights = () => {
   isEditingHighlights.value = true
 }
+
 const formIsSubmitting = ref(false)
 const showErrorAlert = ref(false)
 const errorMessage = ref<string | null>(null)
 const errorDetails = ref<string[]>([])
 const toast = useToast()
+
 /** Handle Accomplishment Report Update */
 const IsBeingUpdated = ref(false)
+const shouldReloadPageAfterUpdate = (): boolean => {
+  return true
+}
 const handleUpdated = async () => {
   IsBeingUpdated.value = true
   const id = route.params.id as string
+
   const response = await accomplishmentReportStore.updateAccomplishment(payload, id)
+
   if (!response.success) {
     const result = parseApiResponseError(response)
     if (!result) return (formIsSubmitting.value = false)
+
     showErrorAlert.value = true
     errorMessage.value = result.message
     errorDetails.value = result.errors
     IsBeingUpdated.value = false
     return document.getElementsByClassName('update-ar-creds-section')[0]?.scrollIntoView({ behavior: 'smooth' })
   }
+
   toast.add({
     severity: 'success',
     summary: 'Accomplishment Report Details update',
     detail: `${id || 'The Accomplishment Report '} was successfully update`,
     life: 3000,
   })
+
   if (shouldReloadPageAfterUpdate()) {
     setTimeout(() => {
       window.location.reload()
     }, 2000)
   }
+
   emit('accomplishment-report-updated', true)
 }
-const shouldReloadPageAfterUpdate = (): boolean => {
-  return true
-}
+
 const confirmUpdate = useConfirm()
 const requireConfirmationUpdate = (event: Event) => {
   confirmUpdate.require({
@@ -180,7 +213,55 @@ const requireConfirmationUpdate = (event: Event) => {
     },
   })
 }
+
+const handleMarkDone = async () => {
+  IsBeingUpdated.value = true
+  const id = route.params.id as string
+  payload.status = 'done'
+  const response = await accomplishmentReportStore.updateAccomplishment(payload, id)
+
+  if (!response.success) {
+    const result = parseApiResponseError(response)
+    if (!result) return (formIsSubmitting.value = false)
+
+    showErrorAlert.value = true
+    errorMessage.value = result.message
+    errorDetails.value = result.errors
+    IsBeingUpdated.value = false
+    return document.getElementsByClassName('update-ar-creds-section')[0]?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  toast.add({
+    severity: 'success',
+    summary: 'Accomplishment Report Details update',
+    detail: `${id || 'The Accomplishment Report '} was successfully update`,
+    life: 3000,
+  })
+
+  if (shouldReloadPageAfterUpdate()) {
+    setTimeout(() => {
+      window.location.reload()
+    }, 2000)
+  }
+
+  emit('accomplishment-report-updated', true)
+}
+
+const btnMarkDone = (event: Event) => {
+  confirmUpdate.require({
+    group: 'global',
+    target: event.currentTarget as HTMLElement,
+    message: ' Are you sure you want to Mark as Done this Accomplishment Report? You cannot undo this.',
+    header: 'Mark as Done Details',
+    acceptLabel: 'Confirm Done',
+    rejectLabel: 'Cancel',
+    accept: () => {
+      handleMarkDone()
+    },
+  })
+}
 </script>
+
 <template>
   <div v-if="payload">
     <form autocomplete="off" @submit.prevent>
@@ -210,10 +291,17 @@ const requireConfirmationUpdate = (event: Event) => {
                   <label for="password" class="mb-0 text-sm text-surface-600">
                     Period of Accomplishment <span class="text-error-500">*</span>
                   </label>
-                  <WbInputText v-model="payload.period" label="" placeholder="Period of Accomplishment" class="w-full">
+                  <WbInputText
+                    v-model="payload.period"
+                    label=""
+                    placeholder="Period of Accomplishment"
+                    :disabled="payload && payload.status === 'done'"
+                    class="w-full"
+                  >
                   </WbInputText>
                 </div>
               </div>
+
               <div class="mt-2 flex w-64 flex-initial justify-end gap-2 md:ml-auto md:w-auto md:items-center md:justify-start">
                 <Button
                   label="Export to MS Word"
@@ -228,9 +316,10 @@ const requireConfirmationUpdate = (event: Event) => {
                 <Button
                   label="Mark as Done"
                   :loading="formIsSubmitting"
-                  :disabled="formIsSubmitting"
+                  :disabled="payload && payload.status === 'done'"
                   class="border border-primary-400 px-4 py-2 text-sm font-semibold text-surface-0 dark:text-primary-100 lg:text-primary-400 dark:lg:text-primary-400"
                   text
+                  @click="btnMarkDone($event)"
                 >
                   <template #icon>
                     <i class="pi pi-save mr-2"></i>
@@ -267,18 +356,25 @@ const requireConfirmationUpdate = (event: Event) => {
                   <label for="dates" class="mb-0 text-sm text-surface-600"
                     >Date/s or Coverage <span class="text-error-500">*</span></label
                   >
-                  <WbInputText
+                  <Dropdown
+                    :id="'week-' + index"
                     v-model="row.week_num"
-                    label=""
-                    placeholder="e.g. 16 - 17 January 2025"
-                    class="md:w-12/12 w-full"
-                  />
+                    v-tooltip.top="'Choose a Week'"
+                    :disabled="payload && payload.status === 'done'"
+                    :options="weekOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                    class="mb-4 w-full"
+                    placeholder="Choose a week"
+                  >
+                  </Dropdown>
                   <label for="dates" class="mb-0 text-sm text-surface-600"
                     >Date/s or Coverage <span class="text-error-500">*</span></label
                   >
                   <WbInputText
                     v-model="row.dates_in_week"
                     label=""
+                    :disabled="payload && payload.status === 'done'"
                     placeholder="e.g. 16 - 17 January 2025, , 3, 4 & 5 January 2025"
                     class="md:w-12/12 w-full"
                   >
@@ -291,6 +387,7 @@ const requireConfirmationUpdate = (event: Event) => {
                   <textarea
                     :readonly="!isEditingSpecificActivity"
                     v-model="row.specific_activity"
+                    :disabled="payload && payload.status === 'done'"
                     class="w-full border-b-2 border-surface-300 outline-none focus:outline-none focus:ring-primary-500"
                     placeholder="Enter your Specific Activity..."
                     rows="10"
@@ -304,6 +401,7 @@ const requireConfirmationUpdate = (event: Event) => {
                   <textarea
                     :readonly="!isEditingHighlights"
                     v-model="row.highlights"
+                    :disabled="payload && payload.status === 'done'"
                     class="w-full border-b-2 border-surface-300 outline-none focus:outline-none focus:ring-primary-500"
                     placeholder="Enter your Highlights..."
                     rows="10"
@@ -314,7 +412,7 @@ const requireConfirmationUpdate = (event: Event) => {
             </div>
             <Divider layout="horizontal"></Divider>
             <div class="mt-2 flex justify-end gap-2">
-              <RouterLink :to="{ path: 'accomplishment-reports' }" custom v-slot="{ href, navigate }">
+              <RouterLink :to="{ name: 'accomplishment-reports' }" custom v-slot="{ href, navigate }">
                 <Button
                   :href="href"
                   label="Cancel"
@@ -333,7 +431,7 @@ const requireConfirmationUpdate = (event: Event) => {
                 @click="requireConfirmationUpdate($event)"
                 label="Save Draft"
                 :loading="formIsSubmitting"
-                :disabled="formIsSubmitting"
+                :disabled="payload && payload.status === 'done'"
                 class="border border-primary-400 text-xs font-semibold text-surface-0 dark:text-primary-100 lg:text-primary-400 dark:lg:text-primary-400"
                 text
               >

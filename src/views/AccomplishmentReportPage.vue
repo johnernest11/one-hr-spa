@@ -278,12 +278,7 @@ const formatDate = (dateString: string | null | undefined): string => {
                     Accomplishment Reports created by you shall appear here.
                   </h1>
                   <div class="mt-4 flex w-full justify-center">
-                    <RouterLink
-                      :to="{ name: 'create-accomplishment-report' }"
-                      class="dark:text-secondary-100 border border-surface-400 text-xs text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
-                      custom
-                      v-slot="{ href, navigate }"
-                    >
+                    <RouterLink :to="{ name: 'create-accomplishment-report' }" custom v-slot="{ href, navigate }">
                       <Button
                         :href="href"
                         label="New Accomplishment Report"
