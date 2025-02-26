@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
 import { useSidebarNavLinks } from '@/composables/sidebar.ts'
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 
-const { navLinks } = useSidebarNavLinks()
+const { navLinks, toggleExpanded } = useSidebarNavLinks() // Get the toggle
 const appName = import.meta.env.VITE_APP_NAME
 </script>
 
@@ -22,21 +23,53 @@ const appName = import.meta.env.VITE_APP_NAME
           <label class="px-3 text-xs font-bold uppercase text-surface-600 dark:text-surface-400">
             {{ item.group }}
           </label>
-          <RouterLink
-            as="div"
-            v-for="link in item.links"
-            :key="link.label"
-            :to="{ name: link.name }"
-            :class="`flex transform items-center rounded-lg px-2 py-2 transition-colors duration-300 hover:bg-primary-100 
+          <div v-for="link in item.links" :key="link.label">
+            <!-- Parent Link (with toggle) -->
+            <div
+              v-if="link.children && link.children.length > 0"
+              class="flex items-center justify-between rounded-lg px-2 py-2 transition-colors duration-300 hover:bg-primary-100 hover:text-primary-900 dark:text-surface-200 dark:hover:bg-primary-400/70"
+              @click="toggleExpanded(link)"
+            >
+              <div class="flex items-center">
+                <i :class="link.icon"></i>
+                <span class="mx-2 text-sm font-medium">{{ link.label }}</span>
+              </div>
+              <!-- Toggle Icon (e.g., an arrow) -->
+              <i :class="link.expanded"></i>
+            </div>
+            <!-- Regular Link (no children) -->
+            <RouterLink
+              v-else
+              :to="{ name: link.name }"
+              :class="`flex items-center rounded-lg px-2 py-2 transition-colors duration-300 hover:bg-primary-100 
               hover:text-primary-900 dark:text-surface-200 dark:hover:bg-primary-400/70 ${
                 $route.name === link.name
                   ? ' rounded-xl  bg-[#2196F3]/20 text-primary-900 dark:!bg-primary-400/70 dark:!text-surface-200'
                   : ''
               }`"
-          >
-            <i :class="link.icon"></i>
-            <span class="mx-2 text-sm font-medium">{{ link.label }}</span>
-          </RouterLink>
+            >
+              <i :class="link.icon"></i>
+              <span class="mx-2 text-sm font-medium">{{ link.label }}</span>
+            </RouterLink>
+
+            <!-- Child Links (conditionally rendered) -->
+            <div v-if="link.children && link.expanded" class="ml-4 space-y-2">
+              <RouterLink
+                v-for="child in link.children"
+                :key="child.label"
+                :to="{ name: child.name }"
+                :class="`mt-4 flex items-center rounded-lg px-2 py-2 transition-colors duration-300 hover:bg-primary-100 
+              hover:text-primary-900 dark:text-surface-200 dark:hover:bg-primary-400/70 ${
+                $route.name === child.name
+                  ? ' rounded-xl  bg-[#2196F3]/20 text-primary-900 dark:!bg-primary-400/70 dark:!text-surface-200'
+                  : ''
+              }`"
+              >
+                <FontAwesomeIcon :icon="[child.icon.split(' ')[0], child.icon.split(' ')[1]]" />
+                <span class="mx-2 text-sm font-medium">{{ child.label }}</span>
+              </RouterLink>
+            </div>
+          </div>
         </div>
       </nav>
     </aside>

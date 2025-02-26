@@ -9,6 +9,7 @@ import { ref } from 'vue'
 export type PersonnelAccomplishmentReportPayload = {
   period: string | null
   supervisor_notes: string
+  status: string
   rows: {
     week_num: string // Consider a more specific type if possible (e.g., number, string)
     dates_in_week: string // Consider a more specific type (e.g., Date[], string[])
@@ -46,6 +47,14 @@ export const useAccomplishmentReportStore = defineStore('personnel-accomplishmen
     }
 
     return responseBody
+  }
+  const fetchAccomplishmentIds = async (id: string) => {
+    try {
+      const response = await useApiCall(`/accomplishment-reports/${id}`)
+      return { success: true, data: response.data }
+    } catch (error) {
+      return { success: false, error }
+    }
   }
 
   const createAccomplishment = async (accomplishmentReport: Partial<PersonnelAccomplishmentReportPayload>) => {
@@ -94,6 +103,7 @@ export const useAccomplishmentReportStore = defineStore('personnel-accomplishmen
     accomplishmentReport,
     createAccomplishment,
     fetchAccomplishment,
+    fetchAccomplishmentIds,
     updateAccomplishment,
     searchAccomplishment,
   }

@@ -5,7 +5,6 @@ import { parseApiResponseError } from '@/utils/error-handle.ts'
 import useVuelidate from '@vuelidate/core'
 import { helpers, maxLength, required } from '@vuelidate/validators'
 import WbInputText from '@/components/webkit/WbInputText.vue'
-import Textarea from 'primevue/textarea'
 import Button from 'primevue/button'
 import Divider from 'primevue/divider'
 import Card from 'primevue/card'
@@ -22,6 +21,7 @@ import {
 const payload = reactive<Partial<PersonnelAccomplishmentReportPayload>>({
   period: null,
   supervisor_notes: '',
+  status: '',
 })
 
 /** Payload details for each accomplishment entry */
@@ -135,7 +135,7 @@ const emit = defineEmits<{
   (e: 'ar-created', value: boolean): void
 }>()
 
-const handleFormSubmission = async () => {
+const handleSaveSubmissionif = async (status: string) => {
   const valid = await validator.value.$validate()
   if (!valid) {
     document.querySelector('.create-ar-creds-section')?.scrollIntoView({ behavior: 'smooth' })
@@ -154,6 +154,7 @@ const handleFormSubmission = async () => {
     const periodData = {
       period: payload.period,
       supervisor_notes: payload.supervisor_notes,
+      status: status,
     }
 
     const rows = accomplishments.value
@@ -287,13 +288,23 @@ const handleFormSubmission = async () => {
             <Divider layout="vertical" class="hidden md:block"></Divider>
             <div v-if="showTextAreaActivity" class="flex w-full flex-col items-start justify-center gap-3 py-2 md:w-5/12">
               <div class="flex w-full flex-col gap-2">
-                <Textarea v-model="accomplishment.specific_activity" rows="5" class="w-full"></Textarea>
+                <textarea
+                  v-model="accomplishment.specific_activity"
+                  class="w-full border-b-2 border-surface-300 outline-none focus:outline-none focus:ring-primary-500"
+                  placeholder="Enter your Specific Activity..."
+                  rows="10"
+                />
               </div>
             </div>
             <Divider layout="vertical" class="hidden md:block"></Divider>
             <div v-if="showTextAreaHighlights" class="flex w-full flex-col items-start justify-center gap-3 py-2 md:w-5/12">
               <div class="flex w-full flex-col gap-2">
-                <Textarea v-model="accomplishment.highlights" rows="5" class="w-full"></Textarea>
+                <textarea
+                  v-model="accomplishment.highlights"
+                  class="w-full border-b-2 border-surface-300 outline-none focus:outline-none focus:ring-primary-500"
+                  placeholder="Enter your Highlights of Accomplishment..."
+                  rows="10"
+                />
               </div>
             </div>
 
@@ -307,7 +318,10 @@ const handleFormSubmission = async () => {
                 class="mt-2"
               />
             </div>
+            <Divider layout="horizontal" class="mt-4 md:hidden" v-if="index < accomplishments.length - 1" />
           </div>
+
+          <Divider layout="horizontal" class="hidden md:block"></Divider>
           <div class="flex w-full flex-col gap-4 pb-4">
             <hr />
             <Button
@@ -318,17 +332,11 @@ const handleFormSubmission = async () => {
               text
             />
           </div>
+          <!-- Other content -->
           <div v-if="accomplishmentBtn" class="mt-2 flex justify-end gap-2">
-            <RouterLink
-              :to="{ name: 'commitments' }"
-              class="dark:text-secondary-100 border border-surface-400 text-xs text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
-              custom
-              v-slot="{ href, navigate }"
-            >
+            <RouterLink :to="{ name: 'accomplishment-reports/index' }">
               <Button
-                :href="href"
                 label="Cancel"
-                @click="navigate"
                 :loading="formIsSubmitting"
                 :disabled="formIsSubmitting"
                 class="dark:text-secondary-100 border border-surface-400 text-xs text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
@@ -340,7 +348,7 @@ const handleFormSubmission = async () => {
               </Button>
             </RouterLink>
             <Button
-              @click="handleFormSubmission"
+              @click="handleSaveSubmissionif('draft')"
               label="Save as Draft"
               :loading="formIsSubmitting"
               :disabled="formIsSubmitting"
@@ -352,6 +360,7 @@ const handleFormSubmission = async () => {
               </template>
             </Button>
             <Button
+              @click="handleSaveSubmissionif('done')"
               label="Save Accomplishment"
               :loading="formIsSubmitting"
               :disabled="formIsSubmitting"
@@ -363,7 +372,6 @@ const handleFormSubmission = async () => {
               </template>
             </Button>
           </div>
-
           <!-- End Action Buttons -->
         </template>
       </Card>

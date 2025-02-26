@@ -59,32 +59,56 @@ const routes = [
   {
     path: '/commitments',
     name: 'commitments',
-    component: AccomplishmentReportPage,
     meta: <RouteMeta>{
       group: RouteGroup.MAIN,
       label: 'Commitments',
       isSidebarMenu: true,
-      authType: AuthType.AUTHENTICATED,
-      roles: [AuthRole.STANDARD_USER, AuthRole.EMPLOYEE, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
     },
-  },
-  {
-    path: '/accomplishments/create',
-    name: 'create-accomplishment-report',
-    component: CreateAccomplishmentReportForm,
-    meta: <RouteMeta>{
-      authType: AuthType.AUTHENTICATED,
-      roles: [AuthRole.STANDARD_USER, AuthRole.EMPLOYEE, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
-    },
-  },
-  {
-    path: '/update-accomplishment-reports/:id/editor',
-    name: 'update-accomplishment-report',
-    component: ViewAccomplishmentReport,
-    meta: <RouteMeta>{
-      authType: AuthType.AUTHENTICATED,
-      roles: [AuthRole.STANDARD_USER, AuthRole.EMPLOYEE, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
-    },
+    children: [
+      {
+        path: '/accomplishment-reports/',
+        name: 'accomplishment-reports/index',
+        component: AccomplishmentReportPage,
+        meta: <RouteMeta>{
+          label: 'ARs',
+          isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.STANDARD_USER, AuthRole.EMPLOYEE, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+        },
+      },
+      {
+        path: '/accomplishment-reports/store',
+        name: 'accomplishment-reports/store',
+        component: CreateAccomplishmentReportForm,
+        meta: <RouteMeta>{
+          isSidebarMenu: false,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.STANDARD_USER, AuthRole.EMPLOYEE, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+        },
+      },
+      {
+        path: '/accomplishment-reports/:id',
+        name: 'accomplishment-reports/update',
+        component: ViewAccomplishmentReport,
+        meta: <RouteMeta>{
+          isSidebarMenu: false,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.STANDARD_USER, AuthRole.EMPLOYEE, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+        },
+      },
+
+      {
+        path: '/ipcipc-ccef/',
+        name: 'view-ipc-ccef/index',
+        component: ViewAccomplishmentReport,
+        meta: <RouteMeta>{
+          label: 'IPC/CCEF',
+          isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.STANDARD_USER, AuthRole.EMPLOYEE, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+        },
+      },
+    ],
   },
   {
     path: '/support',
