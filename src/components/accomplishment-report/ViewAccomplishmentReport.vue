@@ -30,7 +30,9 @@ const exportToFile = async () => {
     console.error('No accomplishment report or ID available for export.')
     return // Or show a user-friendly message
   }
-  const reportResponse = await accomplishmentReportStore.generateAccomplishmentReport(String(accomplishmentReportExport.value.id))
+  const reportResponse = await accomplishmentReportStore.generateAccomplishmentReport(
+    accomplishmentReportExport.value.id as string
+  )
   let fileName = 'report.docx'
   let fileUrl = ''
   if (typeof reportResponse === 'string') {
@@ -180,6 +182,20 @@ const requireConfirmationUpdate = (event: Event) => {
     },
   })
 }
+
+const btnExportFile = (event: Event) => {
+  confirmUpdate.require({
+    group: 'global',
+    target: event.currentTarget as HTMLElement,
+    message: ' Are you sure you want to export this Accomplishment Report? You cannot undo this.',
+    header: 'Export File Details',
+    acceptLabel: 'Confirm Export',
+    rejectLabel: 'Cancel',
+    accept: () => {
+      exportToFile()
+    },
+  })
+}
 </script>
 <template>
   <div v-if="payload">
@@ -219,7 +235,7 @@ const requireConfirmationUpdate = (event: Event) => {
                   label="Export to MS Word"
                   class="border border-primary-400 px-4 py-2 text-sm font-semibold text-surface-0 dark:text-primary-100 lg:text-primary-400 dark:lg:text-primary-400"
                   text
-                  @click="exportToFile()"
+                  @click="btnExportFile($event)"
                 >
                   <template #icon>
                     <i class="pi pi-file mr-2"></i>
