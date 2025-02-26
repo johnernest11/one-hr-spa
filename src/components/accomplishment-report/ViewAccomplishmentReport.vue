@@ -12,8 +12,9 @@ import { useConfirm } from 'primevue/useconfirm'
 import Card from 'primevue/card'
 import { useAccomplishmentReportStore } from '@/stores/personnel-accomplishment-report.store'
 import { PersonnelAccomplishmentReportPayload } from '@/stores/personnel-accomplishment-report.store'
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { useRoute } from 'vue-router'
-
+import Dialog from 'primevue/dialog'
 const route = useRoute()
 const accomplishmentReportStore = useAccomplishmentReportStore()
 const isLoading = ref(true)
@@ -247,18 +248,10 @@ const handleMarkDone = async () => {
   emit('accomplishment-report-updated', true)
 }
 
-const btnMarkDone = (event: Event) => {
-  confirmUpdate.require({
-    group: 'global',
-    target: event.currentTarget as HTMLElement,
-    message: ' Are you sure you want to Mark as Done this Accomplishment Report? You cannot undo this.',
-    header: 'Mark as Done Details',
-    acceptLabel: 'Confirm Done',
-    rejectLabel: 'Cancel',
-    accept: () => {
-      handleMarkDone()
-    },
-  })
+const visible = ref(false)
+
+const btnMarkDone = () => {
+  visible.value = true
 }
 </script>
 
@@ -278,8 +271,8 @@ const btnMarkDone = (event: Event) => {
                 @click="$router.go(-1)"
                 size="small"
               />
-              <h2 class="mb-2 ml-4 text-3xl font-semibold text-primary-900 dark:text-primary-100">
-                <i class="pi pi-angle-double-down text-xl"></i>Viewing Accomplishment
+              <h2 class="mb-2 ml-4 text-3xl font-semibold text-primary-800 dark:text-primary-100 md:ml-4">
+                <font-awesome-icon :icon="['fas', 'check-double']" />Viewing Accomplishment
               </h2>
             </div>
             <p class="mb-2 ml-20 text-xl font-semibold text-primary-900 dark:text-primary-100">Viewing Accomplishments</p>
@@ -319,12 +312,49 @@ const btnMarkDone = (event: Event) => {
                   :disabled="payload && payload.status === 'done'"
                   class="border border-primary-400 px-4 py-2 text-sm font-semibold text-surface-0 dark:text-primary-100 lg:text-primary-400 dark:lg:text-primary-400"
                   text
-                  @click="btnMarkDone($event)"
+                  @click="btnMarkDone()"
                 >
                   <template #icon>
                     <i class="pi pi-save mr-2"></i>
                   </template>
                 </Button>
+                <!-- Start Mark as Done Dialog Box Message -->
+                <Dialog v-model:visible="visible" modal :style="{ width: '35vw' }" :closable="true" closeIcon="pi pi-times">
+                  <template #header>
+                    <div style="display: flex; justify-content: space-between; width: 100%"></div>
+                  </template>
+                  <h1 class="text-md font-bold">
+                    Are your sure you want to mark this accomplishment as<em class="ml-1">Done ?</em>
+                  </h1>
+                  <p>Marking your accomplishment as done will make it uneditable.</p>
+                  <template #footer>
+                    <Button
+                      label="Cancel"
+                      :loading="formIsSubmitting"
+                      :disabled="formIsSubmitting"
+                      class="dark:text-secondary-100 border border-surface-400 text-xs text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
+                      text
+                      @click="visible = false"
+                    >
+                      <template #icon>
+                        <i class="pi pi-ban mr-2"></i>
+                      </template>
+                    </Button>
+                    <Button
+                      @click="handleMarkDone"
+                      label="Yes, Archive this Document"
+                      :loading="formIsSubmitting"
+                      :disabled="formIsSubmitting"
+                      class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+                      text
+                    >
+                      <template #icon>
+                        <font-awesome-icon :icon="['fas', 'arrow-left']" />
+                      </template>
+                    </Button>
+                  </template>
+                </Dialog>
+                <!-- Start Mark as Done Dialog Box Message -->
               </div>
             </div>
             <!-- Start Alert Message -->
@@ -342,7 +372,10 @@ const btnMarkDone = (event: Event) => {
             </transition>
             <!-- End Alert Message -->
             <h1 class="mb-2 text-lg font-semibold text-surface-600 dark:text-primary-100">Accomplishment</h1>
-            <span> <i class="pi pi-ban mr-2"></i>Double click the area you wish to edit</span>
+            <span>
+              <font-awesome-icon :icon="['fas', 'circle-info']" class="text-primary-600" />
+              <em class="ml-1">Double click the area you wish to edit</em>
+            </span>
             <div class="grid grid-cols-3 justify-center gap-4 border-b-2 bg-surface-100 py-2">
               <div class="ml-24 text-start font-semibold text-surface-500">Week # (Date/s)</div>
               <div class="text-start font-semibold text-surface-500">SPECIFIC ACTIVITY</div>
@@ -353,9 +386,6 @@ const btnMarkDone = (event: Event) => {
               <div class="mb-4 ml-6 flex w-full flex-col items-start justify-center gap-2 py-8 md:w-64">
                 <div class="flex w-full flex-col">
                   <label for="week" class="mb-0 text-sm text-surface-600">Week <span class="text-error-500">*</span></label>
-                  <label for="dates" class="mb-0 text-sm text-surface-600"
-                    >Date/s or Coverage <span class="text-error-500">*</span></label
-                  >
                   <Dropdown
                     :id="'week-' + index"
                     v-model="row.week_num"
