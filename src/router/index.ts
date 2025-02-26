@@ -66,8 +66,8 @@ const routes = [
     },
     children: [
       {
-        path: '/accomplishment-reports/',
-        name: 'accomplishment-reports/index',
+        path: '/accomplishment-reports',
+        name: 'accomplishment-reports',
         component: AccomplishmentReportPage,
         meta: <RouteMeta>{
           label: 'ARs',
@@ -87,8 +87,8 @@ const routes = [
         },
       },
       {
-        path: '/accomplishment-reports/:id',
-        name: 'accomplishment-reports/update',
+        path: '/accomplishment-reports/:id/editor',
+        name: 'accomplishment-reports/editor',
         component: ViewAccomplishmentReport,
         meta: <RouteMeta>{
           isSidebarMenu: false,

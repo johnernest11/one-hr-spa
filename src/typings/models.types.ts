@@ -79,6 +79,7 @@ export type UserProfileResponse = {
 export type PersonnelAccomplishmentReportResponse = {
   period: string
   supervisor_notes: string
+  status: string
   rows: Array<PersonnelAccomplishmentReportDetialsResponse> | null | undefined
 } & ApiResponseData
 
