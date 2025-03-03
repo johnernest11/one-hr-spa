@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { useApiCall } from '@/composables/network'
+import { useFetchBlob } from '@/composables/fetch.blob'
 import { useAuthStore } from '@/stores/auth.store.ts'
 import { PersonnelAccomplishmentReportResponse } from '@/typings/models.types.ts'
 import { ApiResponseBody } from '@/typings/http-resources.types.ts'
@@ -85,22 +86,10 @@ export const useAccomplishmentReportStore = defineStore('personnel-accomplishmen
   }
   // store.ts
   const generateAccomplishmentReport = async (id: string) => {
-    const url = `/accomplishment-reports/${id}/generate`
-    const response = await useApiCall(url, auth.authenticationToken).get()
-    const responseBody: ApiResponseBody = response.data.value as ApiResponseBody // Access data.value directly
-    if (
-      responseBody.success &&
-      responseBody.data &&
-      (responseBody.data as { fileContent: string; fileName: string }).fileContent &&
-      (responseBody.data as { fileContent: string; fileName: string }).fileName
-    ) {
-      const data = responseBody.data as { fileContent: string; fileName: string }
-      return {
-        fileContent: data.fileContent,
-        fileName: data.fileName,
-      }
-    }
-    return responseBody
+    const api_url = `/accomplishment-reports/${id}/generate`
+
+    const { data, fileNameHeader } = await useFetchBlob(api_url, auth.authenticationToken)
+    return { data, fileNameHeader }
   }
 
   return {
