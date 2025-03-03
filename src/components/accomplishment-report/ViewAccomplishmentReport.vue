@@ -322,7 +322,7 @@ const handleMarkDone = async () => {
               <div class="mt-2 flex w-64 flex-initial justify-end gap-2 md:ml-auto md:w-auto md:items-center md:justify-start">
                 <Button
                   label="Export to MS Word"
-                  class="border border-primary-400 px-4 py-2 text-sm font-semibold text-surface-0 dark:text-primary-100 lg:text-primary-400 dark:lg:text-primary-400"
+                  class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
                   text
                   @click="openDialog('export')"
                 >
@@ -335,7 +335,7 @@ const handleMarkDone = async () => {
                   label="Mark as Done"
                   :loading="formIsSubmitting"
                   :disabled="payload && payload.status === 'done'"
-                  class="border border-primary-400 px-4 py-2 text-sm font-semibold text-surface-0 dark:text-primary-100 lg:text-primary-400 dark:lg:text-primary-400"
+                  class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
                   text
                   @click="openDialog('markDone')"
                 >
@@ -450,7 +450,7 @@ const handleMarkDone = async () => {
                 label="Save Draft"
                 :loading="formIsSubmitting"
                 :disabled="payload && payload.status === 'done'"
-                class="border border-primary-400 text-xs font-semibold text-surface-0 dark:text-primary-100 lg:text-primary-400 dark:lg:text-primary-400"
+                class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
                 text
               >
                 <template #icon>
@@ -459,9 +459,21 @@ const handleMarkDone = async () => {
               </Button>
             </div>
             <!-- Start Dialog Confirmation Modal Action  -->
-            <Dialog v-model:visible="visible" modal :style="{ width: '35vw' }" :closable="true" closeIcon="pi pi-times">
+            <Dialog v-model:visible="visible" modal :style="{ width: '25vw' }" :closable="false">
               <template #header>
-                <div style="display: flex; justify-content: space-between; width: 100%"></div>
+                <div style="display: flex; justify-content: flex-end; width: 100%">
+                  <Button
+                    :loading="formIsSubmitting"
+                    :disabled="formIsSubmitting"
+                    class="dark:text-secondary-100 border-none text-xs text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
+                    text
+                    @click="visible = false"
+                  >
+                    <template #icon>
+                      <i class="pi pi pi-times mr-2"></i>
+                    </template>
+                  </Button>
+                </div>
               </template>
               <h1 class="text-md font-bold">
                 {{ dialogTitle }}
@@ -489,7 +501,7 @@ const handleMarkDone = async () => {
                   text
                 >
                   <template #icon>
-                    <font-awesome-icon :icon="['fas', 'arrow-left']" />
+                    <font-awesome-icon :icon="['fas', 'share']" />
                   </template>
                 </Button>
               </template>
