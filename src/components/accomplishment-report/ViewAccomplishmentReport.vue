@@ -325,7 +325,7 @@ const btnExportFile = (event: Event) => {
                   @click="btnExportFile($event)"
                 >
                   <template #icon>
-                    <i class="pi pi-file mr-2"></i>
+                    <i class="pi pi-file-word mr-2"></i>
                   </template>
                 </Button>
                 <Button
