@@ -27,31 +27,20 @@ const navigateToDetails = (accomplishmentReport: PersonnelAccomplishmentReportRe
 
 const accomplishmentReportStore = useAccomplishmentReportStore()
 const exportToFile = async (accomplishmentReport: PersonnelAccomplishmentReportResponse) => {
-  const reportResponse = await accomplishmentReportStore.generateAccomplishmentReport(String(accomplishmentReport.id))
-  // Check if reportResponse is a URL or an object
-  let fileName = 'report.docx' // Default filename
-  let fileUrl = ''
-  if (typeof reportResponse === 'string') {
-    // If it's a string, assume it's the URL and set the fileUrl directly
-    fileUrl = reportResponse
-  } else if (
-    typeof reportResponse === 'object' &&
-    reportResponse !== null &&
-    'fileName' in reportResponse &&
-    'fileContent' in reportResponse
-  ) {
-    // If it's an object, access fileName and also set the URL if applicable
-    const reportData = reportResponse as { fileContent: string; fileName: string }
-    fileName = reportData.fileName
-    fileUrl = reportData.fileContent // Use fileContent instead of url
+  const reportResponse = await accomplishmentReportStore.generateAccomplishmentReport(accomplishmentReport.id as string)
+
+  const blob = reportResponse.data.value // Get the Blob
+
+  if (blob) {
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${reportResponse.fileNameHeader.value}`
+    document.body.appendChild(a)
+    a.click()
+    window.URL.revokeObjectURL(url)
+    document.body.removeChild(a)
   }
-  // Create link and initiate download
-  const link = document.createElement('a')
-  link.href = fileUrl // Set the href to the file URL
-  link.download = fileName // Set the download filename
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
 }
 
 const accomplishmentReportIsLoading = ref(false)

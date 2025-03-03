@@ -46,31 +46,18 @@ const exportToFile = async () => {
     String(accomplishmentReportExportFile.value.id)
   )
 
-  let fileName = 'report.docx'
-  let fileUrl = ''
+  const blob = reportResponse.data.value // Get the Blob
 
-  if (typeof reportResponse === 'string') {
-    fileUrl = reportResponse
-  } else if (
-    typeof reportResponse === 'object' &&
-    reportResponse !== null &&
-    'fileName' in reportResponse &&
-    'fileContent' in reportResponse
-  ) {
-    const reportData = reportResponse as { fileContent: string; fileName: string }
-    fileName = reportData.fileName
-    fileUrl = reportData.fileContent
-  } else {
-    console.error('Invalid report response format:', reportResponse)
-    return
+  if (blob) {
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${reportResponse.fileNameHeader.value}`
+    document.body.appendChild(a)
+    a.click()
+    window.URL.revokeObjectURL(url)
+    document.body.removeChild(a)
   }
-
-  const link = document.createElement('a')
-  link.href = fileUrl
-  link.download = fileName
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
 }
 
 /** Emits */
