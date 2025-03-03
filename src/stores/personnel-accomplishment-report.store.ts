@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
-import { useGlobalUiStore } from '@/stores/ui.store.ts'
-import { useFetch } from '@vueuse/core'
 import { useApiCall } from '@/composables/network'
+import { useFetchBlob } from '@/composables/fetch.blob'
 import { useAuthStore } from '@/stores/auth.store.ts'
 import { PersonnelAccomplishmentReportResponse } from '@/typings/models.types.ts'
 import { ApiResponseBody } from '@/typings/http-resources.types.ts'
@@ -87,72 +86,9 @@ export const useAccomplishmentReportStore = defineStore('personnel-accomplishmen
   }
   // store.ts
   const generateAccomplishmentReport = async (id: string) => {
-    let api_url = `/accomplishment-reports/${id}/generate`
+    const api_url = `/accomplishment-reports/${id}/generate`
 
-    // Call useFetch and not useApiCall to intercept the response and get the header for the filename of the document
-    // The following code copies the structure in network.ts
-    // Only added afterFetch() to get the header
-
-    const fileNameHeader = ref<string | null>(null)
-
-    const baseUrl = import.meta.env.VITE_API_ROOT_URL
-
-    // Remove the first char of the uri if it starts with a '/'
-    if (api_url.charAt(0) === '/') api_url = api_url.substring(1)
-
-    const { data } = await useFetch(`${baseUrl}/${api_url}`, {
-      async beforeFetch({ url, options }) {
-        if (!auth.authenticationToken) return { url, options }
-
-        // We add the auth token if the request needs authentication
-        options.headers = {
-          ...options.headers,
-          Authorization: `Bearer ${auth.authenticationToken}`,
-        }
-
-        return { options, url }
-      },
-      // Intercept when the auth token expires
-      onFetchError(ctx) {
-        const authStore = useAuthStore()
-        const authToken = authStore.authenticationToken
-        if (authToken && ctx?.data?.error_code === 'UNAUTHORIZED_ERROR' && ctx?.response?.status === 401) {
-          const authStore = useAuthStore()
-          if (authStore.authenticatedUser !== null) authStore.authExpired = true
-        }
-
-        // Handle Rate limit
-        const globalStore = useGlobalUiStore()
-        if (ctx?.response?.status === 429) {
-          globalStore.showRateLimitToast = new Date()
-        }
-
-        return ctx
-      },
-      updateDataOnError: true,
-      afterFetch(ctx) {
-        // Get Content-Disposition header to get the filename
-        if (ctx.response && ctx.response.headers) {
-          const contentDisposition = ctx.response.headers.get('content-disposition')
-          if (contentDisposition) {
-            const filenameMatch = /filename="([^"]+)"/.exec(contentDisposition)
-            if (filenameMatch && filenameMatch[1]) {
-              fileNameHeader.value = filenameMatch[1]
-            } else {
-              // Alternative regex for filename*
-              const filenameMatch2 = /filename\*=UTF-8''([^"]+)/.exec(contentDisposition)
-              if (filenameMatch2 && filenameMatch2[1]) {
-                fileNameHeader.value = decodeURIComponent(filenameMatch2[1])
-              }
-            }
-          }
-        }
-        return ctx
-      },
-    })
-      .get()
-      .blob() // Parse data as blob
-
+    const { data, fileNameHeader } = await useFetchBlob(api_url, auth.authenticationToken)
     return { data, fileNameHeader }
   }
 

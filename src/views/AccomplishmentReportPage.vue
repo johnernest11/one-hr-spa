@@ -11,6 +11,7 @@ import { ApiResponsePagination } from '@/typings/http-resources.types.ts'
 import { PersonnelAccomplishmentReportResponse } from '@/typings/models.types.ts'
 import { useAccomplishmentReportStore } from '@/stores/personnel-accomplishment-report.store'
 import { useRouter } from 'vue-router'
+import { useToast } from 'primevue/usetoast'
 const router = useRouter()
 const navigateToDetails = (accomplishmentReport: PersonnelAccomplishmentReportResponse) => {
   if (!accomplishmentReport || !accomplishmentReport.id) {
@@ -25,8 +26,16 @@ const navigateToDetails = (accomplishmentReport: PersonnelAccomplishmentReportRe
   })
 }
 
+const toast = useToast()
+
 const accomplishmentReportStore = useAccomplishmentReportStore()
 const exportToFile = async (accomplishmentReport: PersonnelAccomplishmentReportResponse) => {
+  toast.add({
+    severity: 'info',
+    summary: 'Exporting...',
+    detail: `Exporting ${accomplishmentReport.period || 'the Accomplishment Report '}...`,
+    life: 5000,
+  })
   const reportResponse = await accomplishmentReportStore.generateAccomplishmentReport(accomplishmentReport.id as string)
 
   const blob = reportResponse.data.value // Get the Blob
@@ -40,6 +49,13 @@ const exportToFile = async (accomplishmentReport: PersonnelAccomplishmentReportR
     a.click()
     window.URL.revokeObjectURL(url)
     document.body.removeChild(a)
+
+    toast.add({
+      severity: 'success',
+      summary: 'Accomplishment Report Details Exported',
+      detail: `The Accomplishment Report from ${accomplishmentReport.period} was successfully exported.`,
+      life: 5000,
+    })
   }
 }
 
@@ -219,7 +235,7 @@ const formatDate = (dateString: string | null | undefined): string => {
                   <div class="flex gap-4 whitespace-nowrap md:w-auto">
                     <Button
                       icon="pi pi-eye"
-                      v-tooltip.top="'Export to MS Word'"
+                      v-tooltip.top="'View Accomplishment Report'"
                       severity="info"
                       class="border-none text-lg font-semibold text-primary-600 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
                       text

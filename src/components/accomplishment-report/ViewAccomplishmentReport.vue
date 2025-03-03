@@ -40,7 +40,20 @@ const accomplishmentReportExportFile = ref<PersonnelAccomplishmentReportResponse
 const exportToFile = async () => {
   if (!accomplishmentReportExportFile.value || !accomplishmentReportExportFile.value.id) {
     console.error('No accomplishment report or ID available for export.')
-    return // Or show a user-friendly message
+    toast.add({
+      severity: 'error',
+      summary: 'Export failed.',
+      detail: 'No accomplishment report or ID available for export.',
+      life: 5000,
+    })
+    return
+  } else {
+    toast.add({
+      severity: 'info',
+      summary: 'Exporting...',
+      detail: `Exporting ${accomplishmentReportExportFile.value.period || 'the Accomplishment Report '}...`,
+      life: 5000,
+    })
   }
   const reportResponse = await accomplishmentReportStore.generateAccomplishmentReport(
     String(accomplishmentReportExportFile.value.id)
@@ -57,6 +70,13 @@ const exportToFile = async () => {
     a.click()
     window.URL.revokeObjectURL(url)
     document.body.removeChild(a)
+
+    toast.add({
+      severity: 'success',
+      summary: 'Accomplishment Report Details Exported',
+      detail: `The Accomplishment Report from ${accomplishmentReportExportFile.value.period} was successfully exported.`,
+      life: 5000,
+    })
   }
 }
 
@@ -241,12 +261,13 @@ const btnMarkDone = () => {
   visible.value = true
 }
 
+const confirmExport = useConfirm()
 const btnExportFile = (event: Event) => {
-  confirmUpdate.require({
+  confirmExport.require({
     group: 'global',
     target: event.currentTarget as HTMLElement,
-    message: ' Are you sure you want to export this Accomplishment Report? You cannot undo this.',
-    header: 'Export File Details',
+    message: 'This will generate a .DOCX file on the selected Accomplishment Report.',
+    header: 'Are you sure you want to export this Accomplishment Report?',
     acceptLabel: 'Confirm Export',
     rejectLabel: 'Cancel',
     accept: () => {
