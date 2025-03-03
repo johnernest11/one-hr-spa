@@ -7,14 +7,18 @@ import Button from 'primevue/button'
 import WbInputText from '@/components/webkit/WbInputText.vue'
 import Message from 'primevue/message'
 import Divider from 'primevue/divider'
+import Dropdown from 'primevue/dropdown'
 import { useConfirm } from 'primevue/useconfirm'
 import Card from 'primevue/card'
 import { useAccomplishmentReportStore } from '@/stores/personnel-accomplishment-report.store'
 import { PersonnelAccomplishmentReportPayload } from '@/stores/personnel-accomplishment-report.store'
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { useRoute } from 'vue-router'
+import Dialog from 'primevue/dialog'
 const route = useRoute()
 const accomplishmentReportStore = useAccomplishmentReportStore()
 const isLoading = ref(true)
+
 const payload = reactive<PersonnelAccomplishmentReportPayload>({
   period: null,
   supervisor_notes: '',
@@ -22,11 +26,19 @@ const payload = reactive<PersonnelAccomplishmentReportPayload>({
   rows: [],
 })
 
+/** Options for selecting the week number */
+const weekOptions = ref([
+  { label: 'Week 1', value: 'Week 1' },
+  { label: 'Week 2', value: 'Week 2' },
+  { label: 'Week 3', value: 'Week 3' },
+  { label: 'Week 4', value: 'Week 4' },
+  { label: 'Week 5', value: 'Week 5' },
+])
 //  Make sure accomplishmentReport is reactive so it updates
-const accomplishmentReportExport = ref<PersonnelAccomplishmentReportResponse | null>(null)
+const accomplishmentReportExportFile = ref<PersonnelAccomplishmentReportResponse | null>(null)
 
 const exportToFile = async () => {
-  if (!accomplishmentReportExport.value || !accomplishmentReportExport.value.id) {
+  if (!accomplishmentReportExportFile.value || !accomplishmentReportExportFile.value.id) {
     console.error('No accomplishment report or ID available for export.')
     return // Or show a user-friendly message
   }
@@ -35,6 +47,7 @@ const exportToFile = async () => {
   )
   let fileName = 'report.docx'
   let fileUrl = ''
+
   if (typeof reportResponse === 'string') {
     fileUrl = reportResponse
   } else if (
@@ -50,6 +63,7 @@ const exportToFile = async () => {
     console.error('Invalid report response format:', reportResponse)
     return
   }
+
   const link = document.createElement('a')
   link.href = fileUrl
   link.download = fileName
@@ -57,26 +71,31 @@ const exportToFile = async () => {
   link.click()
   document.body.removeChild(link)
 }
+
 /** Emits */
 const emit = defineEmits<{
   (e: 'accomplishment-report-updated', value: boolean): void
 }>()
+
 /** Props */
 type AccomplishmentReportDetailsFormProps = {
   accomplishmentReport?: PersonnelAccomplishmentReportResponse
 }
+
 const props = defineProps<AccomplishmentReportDetailsFormProps>()
+
 onMounted(async () => {
   const id = route.params.id as string
   if (id) {
     const response = await accomplishmentReportStore.fetchAccomplishmentById(id)
     if (response && response.success) {
-      accomplishmentReportExport.value = response.data as PersonnelAccomplishmentReportResponse // Directly update the ref
+      accomplishmentReportExportFile.value = response.data as PersonnelAccomplishmentReportResponse // Directly update the ref
       updatePayloadFromReport(response.data as PersonnelAccomplishmentReportResponse)
     }
   }
   isLoading.value = false
 })
+
 const updatePayloadFromReport = (report: PersonnelAccomplishmentReportResponse | null) => {
   if (report) {
     payload.period = report.period ?? null
@@ -124,50 +143,62 @@ watch(
   },
   { immediate: true }
 )
+
 const isEditingSpecificActivity = ref(false)
 const isEditingHighlights = ref(false)
+
 const editSpecificActivity = () => {
   isEditingSpecificActivity.value = true
 }
+
 const editHighlights = () => {
   isEditingHighlights.value = true
 }
+
 const formIsSubmitting = ref(false)
 const showErrorAlert = ref(false)
 const errorMessage = ref<string | null>(null)
 const errorDetails = ref<string[]>([])
 const toast = useToast()
+
 /** Handle Accomplishment Report Update */
 const IsBeingUpdated = ref(false)
+const shouldReloadPageAfterUpdate = (): boolean => {
+  return true
+}
 const handleUpdated = async () => {
   IsBeingUpdated.value = true
   const id = route.params.id as string
+
   const response = await accomplishmentReportStore.updateAccomplishment(payload, id)
+
   if (!response.success) {
     const result = parseApiResponseError(response)
     if (!result) return (formIsSubmitting.value = false)
+
     showErrorAlert.value = true
     errorMessage.value = result.message
     errorDetails.value = result.errors
     IsBeingUpdated.value = false
     return document.getElementsByClassName('update-ar-creds-section')[0]?.scrollIntoView({ behavior: 'smooth' })
   }
+
   toast.add({
     severity: 'success',
     summary: 'Accomplishment Report Details update',
     detail: `${id || 'The Accomplishment Report '} was successfully update`,
     life: 3000,
   })
+
   if (shouldReloadPageAfterUpdate()) {
     setTimeout(() => {
       window.location.reload()
     }, 2000)
   }
+
   emit('accomplishment-report-updated', true)
 }
-const shouldReloadPageAfterUpdate = (): boolean => {
-  return true
-}
+
 const confirmUpdate = useConfirm()
 const requireConfirmationUpdate = (event: Event) => {
   confirmUpdate.require({
@@ -197,6 +228,7 @@ const btnExportFile = (event: Event) => {
   })
 }
 </script>
+
 <template>
   <div v-if="payload">
     <form autocomplete="off" @submit.prevent>
@@ -213,8 +245,8 @@ const btnExportFile = (event: Event) => {
                 @click="$router.go(-1)"
                 size="small"
               />
-              <h2 class="mb-2 ml-4 text-3xl font-semibold text-primary-900 dark:text-primary-100">
-                <i class="pi pi-angle-double-down text-xl"></i>Viewing Accomplishment
+              <h2 class="mb-2 ml-4 text-3xl font-semibold text-primary-800 dark:text-primary-100 md:ml-4">
+                <font-awesome-icon :icon="['fas', 'check-double']" />Viewing Accomplishment
               </h2>
             </div>
             <p class="mb-2 ml-20 text-xl font-semibold text-primary-900 dark:text-primary-100">Viewing Accomplishments</p>
@@ -226,10 +258,17 @@ const btnExportFile = (event: Event) => {
                   <label for="password" class="mb-0 text-sm text-surface-600">
                     Period of Accomplishment <span class="text-error-500">*</span>
                   </label>
-                  <WbInputText v-model="payload.period" label="" placeholder="Period of Accomplishment" class="w-full">
+                  <WbInputText
+                    v-model="payload.period"
+                    label=""
+                    placeholder="Period of Accomplishment"
+                    :disabled="payload && payload.status === 'done'"
+                    class="w-full"
+                  >
                   </WbInputText>
                 </div>
               </div>
+
               <div class="mt-2 flex w-64 flex-initial justify-end gap-2 md:ml-auto md:w-auto md:items-center md:justify-start">
                 <Button
                   label="Export to MS Word"
@@ -244,14 +283,52 @@ const btnExportFile = (event: Event) => {
                 <Button
                   label="Mark as Done"
                   :loading="formIsSubmitting"
-                  :disabled="formIsSubmitting"
+                  :disabled="payload && payload.status === 'done'"
                   class="border border-primary-400 px-4 py-2 text-sm font-semibold text-surface-0 dark:text-primary-100 lg:text-primary-400 dark:lg:text-primary-400"
                   text
+                  @click="btnMarkDone()"
                 >
                   <template #icon>
                     <i class="pi pi-save mr-2"></i>
                   </template>
                 </Button>
+                <!-- Start Mark as Done Dialog Box Message -->
+                <Dialog v-model:visible="visible" modal :style="{ width: '35vw' }" :closable="true" closeIcon="pi pi-times">
+                  <template #header>
+                    <div style="display: flex; justify-content: space-between; width: 100%"></div>
+                  </template>
+                  <h1 class="text-md font-bold">
+                    Are your sure you want to mark this accomplishment as<em class="ml-1">Done ?</em>
+                  </h1>
+                  <p>Marking your accomplishment as done will make it uneditable.</p>
+                  <template #footer>
+                    <Button
+                      label="Cancel"
+                      :loading="formIsSubmitting"
+                      :disabled="formIsSubmitting"
+                      class="dark:text-secondary-100 border border-surface-400 text-xs text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
+                      text
+                      @click="visible = false"
+                    >
+                      <template #icon>
+                        <i class="pi pi-ban mr-2"></i>
+                      </template>
+                    </Button>
+                    <Button
+                      @click="handleMarkDone"
+                      label="Yes, Archive this Document"
+                      :loading="formIsSubmitting"
+                      :disabled="formIsSubmitting"
+                      class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+                      text
+                    >
+                      <template #icon>
+                        <font-awesome-icon :icon="['fas', 'arrow-left']" />
+                      </template>
+                    </Button>
+                  </template>
+                </Dialog>
+                <!-- Start Mark as Done Dialog Box Message -->
               </div>
             </div>
             <!-- Start Alert Message -->
@@ -269,7 +346,10 @@ const btnExportFile = (event: Event) => {
             </transition>
             <!-- End Alert Message -->
             <h1 class="mb-2 text-lg font-semibold text-surface-600 dark:text-primary-100">Accomplishment</h1>
-            <span> <i class="pi pi-ban mr-2"></i>Double click the area you wish to edit</span>
+            <span>
+              <font-awesome-icon :icon="['fas', 'circle-info']" class="text-primary-600" />
+              <em class="ml-1">Double click the area you wish to edit</em>
+            </span>
             <div class="grid grid-cols-3 justify-center gap-4 border-b-2 bg-surface-100 py-2">
               <div class="ml-24 text-start font-semibold text-surface-500">Week # (Date/s)</div>
               <div class="text-start font-semibold text-surface-500">SPECIFIC ACTIVITY</div>
@@ -280,21 +360,25 @@ const btnExportFile = (event: Event) => {
               <div class="mb-4 ml-6 flex w-full flex-col items-start justify-center gap-2 py-8 md:w-64">
                 <div class="flex w-full flex-col">
                   <label for="week" class="mb-0 text-sm text-surface-600">Week <span class="text-error-500">*</span></label>
-                  <label for="dates" class="mb-0 text-sm text-surface-600"
-                    >Date/s or Coverage <span class="text-error-500">*</span></label
-                  >
-                  <WbInputText
+                  <Dropdown
+                    :id="'week-' + index"
                     v-model="row.week_num"
-                    label=""
-                    placeholder="e.g. 16 - 17 January 2025"
-                    class="md:w-12/12 w-full"
-                  />
+                    v-tooltip.top="'Choose a Week'"
+                    :disabled="payload && payload.status === 'done'"
+                    :options="weekOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                    class="mb-4 w-full"
+                    placeholder="Choose a week"
+                  >
+                  </Dropdown>
                   <label for="dates" class="mb-0 text-sm text-surface-600"
                     >Date/s or Coverage <span class="text-error-500">*</span></label
                   >
                   <WbInputText
                     v-model="row.dates_in_week"
                     label=""
+                    :disabled="payload && payload.status === 'done'"
                     placeholder="e.g. 16 - 17 January 2025, , 3, 4 & 5 January 2025"
                     class="md:w-12/12 w-full"
                   >
@@ -307,6 +391,7 @@ const btnExportFile = (event: Event) => {
                   <textarea
                     :readonly="!isEditingSpecificActivity"
                     v-model="row.specific_activity"
+                    :disabled="payload && payload.status === 'done'"
                     class="w-full border-b-2 border-surface-300 outline-none focus:outline-none focus:ring-primary-500"
                     placeholder="Enter your Specific Activity..."
                     rows="10"
@@ -320,6 +405,7 @@ const btnExportFile = (event: Event) => {
                   <textarea
                     :readonly="!isEditingHighlights"
                     v-model="row.highlights"
+                    :disabled="payload && payload.status === 'done'"
                     class="w-full border-b-2 border-surface-300 outline-none focus:outline-none focus:ring-primary-500"
                     placeholder="Enter your Highlights..."
                     rows="10"
@@ -330,7 +416,7 @@ const btnExportFile = (event: Event) => {
             </div>
             <Divider layout="horizontal"></Divider>
             <div class="mt-2 flex justify-end gap-2">
-              <RouterLink :to="{ path: 'accomplishment-reports' }" custom v-slot="{ href, navigate }">
+              <RouterLink :to="{ name: 'accomplishment-reports' }" custom v-slot="{ href, navigate }">
                 <Button
                   :href="href"
                   label="Cancel"
@@ -349,7 +435,7 @@ const btnExportFile = (event: Event) => {
                 @click="requireConfirmationUpdate($event)"
                 label="Save Draft"
                 :loading="formIsSubmitting"
-                :disabled="formIsSubmitting"
+                :disabled="payload && payload.status === 'done'"
                 class="border border-primary-400 text-xs font-semibold text-surface-0 dark:text-primary-100 lg:text-primary-400 dark:lg:text-primary-400"
                 text
               >
