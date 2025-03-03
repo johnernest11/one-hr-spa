@@ -230,7 +230,7 @@ const formatDate = (dateString: string | null | undefined): string => {
                   <div class="flex gap-4 whitespace-nowrap md:w-auto">
                     <Button
                       icon="pi pi-eye"
-                      v-tooltip.top="'Export to MS Word'"
+                      v-tooltip.top="'View Accomplishment Report'"
                       severity="info"
                       class="border-none text-lg font-semibold text-primary-600 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
                       text

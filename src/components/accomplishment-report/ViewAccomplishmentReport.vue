@@ -8,7 +8,6 @@ import WbInputText from '@/components/webkit/WbInputText.vue'
 import Message from 'primevue/message'
 import Divider from 'primevue/divider'
 import Dropdown from 'primevue/dropdown'
-import { useConfirm } from 'primevue/useconfirm'
 import Card from 'primevue/card'
 import { useAccomplishmentReportStore } from '@/stores/personnel-accomplishment-report.store'
 import { PersonnelAccomplishmentReportPayload } from '@/stores/personnel-accomplishment-report.store'
@@ -18,6 +17,16 @@ import Dialog from 'primevue/dialog'
 const route = useRoute()
 const accomplishmentReportStore = useAccomplishmentReportStore()
 const isLoading = ref(true)
+const formIsSubmitting = ref(false)
+const showErrorAlert = ref(false)
+const errorMessage = ref<string | null>(null)
+const errorDetails = ref<string[]>([])
+const toast = useToast()
+const visible = ref(false)
+const dialogType = ref('') // Add empty string for initial value
+const dialogTitle = ref('')
+const dialogMessage = ref('')
+const confirmButtonLabel = ref('')
 
 const payload = reactive<PersonnelAccomplishmentReportPayload>({
   period: null,
@@ -34,9 +43,171 @@ const weekOptions = ref([
   { label: 'Week 4', value: 'Week 4' },
   { label: 'Week 5', value: 'Week 5' },
 ])
-//  Make sure accomplishmentReport is reactive so it updates
+// Make sure accomplishmentReport is reactive so it updates
 const accomplishmentReportExportFile = ref<PersonnelAccomplishmentReportResponse | null>(null)
 
+/** Emits */
+const emit = defineEmits<{
+  (e: 'accomplishment-report-updated', value: boolean): void
+}>()
+
+/** Props */
+type AccomplishmentReportDetailsFormProps = {
+  accomplishmentReport?: PersonnelAccomplishmentReportResponse
+}
+const props = defineProps<AccomplishmentReportDetailsFormProps>()
+
+/** Lifecycle hook that runs when the component is mounted */
+onMounted(async () => {
+  const id = route.params.id as string
+  if (id) {
+    const response = await accomplishmentReportStore.fetchAccomplishmentById(id)
+    if (response && response.success) {
+      accomplishmentReportExportFile.value = response.data as PersonnelAccomplishmentReportResponse // Directly update the ref
+      updatePayloadFromReport(response.data as PersonnelAccomplishmentReportResponse)
+    }
+  }
+  isLoading.value = false
+})
+
+/** Update the payload from the fetched accomplishment report */
+const updatePayloadFromReport = (report: PersonnelAccomplishmentReportResponse | null) => {
+  if (report) {
+    payload.period = report.period ?? null
+    payload.supervisor_notes = report.supervisor_notes ?? ''
+    payload.status = report.status ?? '' // Make sure status is in the payload!
+    payload.rows =
+      report.rows?.map((row) => ({
+        id: row.id ?? '',
+        week_num: row.week_num ?? '',
+        dates_in_week: row.dates_in_week ?? '',
+        specific_activity: row.specific_activity ?? null,
+        highlights: row.highlights ?? null,
+      })) ?? []
+  } else {
+    // Important: Reset payload if report is null
+    payload.period = null
+    payload.supervisor_notes = ''
+    payload.status = ''
+    payload.rows = []
+  }
+}
+
+/** Watcher to reactively respond to changes in the accomplishment report prop */
+watch(
+  () => props.accomplishmentReport,
+  (newValue) => {
+    // Check if newValue exists before accessing its properties
+    if (newValue) {
+      payload.period = newValue.period ?? null // Use nullish coalescing operator (??)
+      payload.supervisor_notes = newValue.supervisor_notes ?? ''
+      payload.rows =
+        newValue.rows?.map((row) => ({
+          id: row.id ?? '',
+          week_num: row.week_num ?? '',
+          dates_in_week: row.dates_in_week ?? '',
+          specific_activity: row.specific_activity ?? null,
+          highlights: row.highlights ?? null,
+        })) ?? [] // Use nullish coalescing and optional chaining
+    } else {
+      // Reset payload if accomplishmentReport becomes undefined
+      payload.period = null
+      payload.supervisor_notes = ''
+      payload.status = ''
+      payload.rows = []
+    }
+  },
+  { immediate: true }
+)
+
+const isEditingSpecificActivity = ref(false)
+const isEditingHighlights = ref(false)
+
+/** Set editing mode for specific activity */
+const editSpecificActivity = () => {
+  isEditingSpecificActivity.value = true
+}
+
+/** Set editing mode for highlights */
+const editHighlights = () => {
+  isEditingHighlights.value = true
+}
+
+/** Open a dialog with a specified type (export, markDone, or saveDraft) */
+const openDialog = (type: 'export' | 'markDone' | 'saveDraft') => {
+  dialogType.value = type
+  visible.value = true
+
+  if (type === 'export') {
+    dialogTitle.value = 'Are you sure you want to export this accomplishment as File?'
+    dialogMessage.value = 'Exporting your accomplishment will download an Word File.'
+    confirmButtonLabel.value = 'Yes, Export this Document'
+  } else if (type === 'markDone') {
+    dialogTitle.value = 'Are you sure you want to mark this accomplishment as Done?'
+    dialogMessage.value = 'Marking your accomplishment as done will make it uneditable.'
+    confirmButtonLabel.value = 'Yes, Archive this Document'
+  } else if (type === 'saveDraft') {
+    dialogTitle.value = 'Are you sure you want to save this accomplishment as Draft?'
+    dialogMessage.value = 'Saving your accomplishment as draft will allow you to edit it later.'
+    confirmButtonLabel.value = 'Yes, Save as Draft'
+  }
+}
+
+/** Confirm the action based on the dialog type */
+const confirmAction = () => {
+  if (dialogType.value === 'export') {
+    exportToFile()
+  } else if (dialogType.value === 'markDone') {
+    handleMarkDone()
+  } else if (dialogType.value === 'saveDraft') {
+    handleUpdated()
+  }
+  visible.value = false
+}
+
+/** Handle updates to the accomplishment report */
+const IsBeingUpdated = ref(false)
+
+/** Check if the page should be reloaded after the update */
+const shouldReloadPageAfterUpdate = (): boolean => {
+  return true
+}
+
+/** Handle updating the accomplishment report */
+const handleUpdated = async () => {
+  IsBeingUpdated.value = true
+  const id = route.params.id as string
+
+  const response = await accomplishmentReportStore.updateAccomplishment(payload, id)
+
+  if (!response.success) {
+    const result = parseApiResponseError(response)
+    if (!result) return (formIsSubmitting.value = false)
+
+    showErrorAlert.value = true
+    errorMessage.value = result.message
+    errorDetails.value = result.errors
+    IsBeingUpdated.value = false
+    return document.getElementsByClassName('update-ar-creds-section')[0]?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  toast.add({
+    severity: 'success',
+    summary: 'Accomplishment Report Details update',
+    detail: `${id || 'The Accomplishment Report '} was successfully updated`,
+    life: 3000,
+  })
+
+  if (shouldReloadPageAfterUpdate()) {
+    setTimeout(() => {
+      window.location.reload()
+    }, 2000)
+  }
+
+  emit('accomplishment-report-updated', true)
+}
+
+/** Handle exporting the report to MS Word */
 const exportToFile = async () => {
   if (!accomplishmentReportExportFile.value || !accomplishmentReportExportFile.value.id) {
     console.error('No accomplishment report or ID available for export.')
@@ -73,148 +244,7 @@ const exportToFile = async () => {
   document.body.removeChild(link)
 }
 
-/** Emits */
-const emit = defineEmits<{
-  (e: 'accomplishment-report-updated', value: boolean): void
-}>()
-
-/** Props */
-type AccomplishmentReportDetailsFormProps = {
-  accomplishmentReport?: PersonnelAccomplishmentReportResponse
-}
-
-const props = defineProps<AccomplishmentReportDetailsFormProps>()
-
-onMounted(async () => {
-  const id = route.params.id as string
-  if (id) {
-    const response = await accomplishmentReportStore.fetchAccomplishmentById(id)
-    if (response && response.success) {
-      accomplishmentReportExportFile.value = response.data as PersonnelAccomplishmentReportResponse // Directly update the ref
-      updatePayloadFromReport(response.data as PersonnelAccomplishmentReportResponse)
-    }
-  }
-  isLoading.value = false
-})
-
-const updatePayloadFromReport = (report: PersonnelAccomplishmentReportResponse | null) => {
-  if (report) {
-    payload.period = report.period ?? null
-    payload.supervisor_notes = report.supervisor_notes ?? ''
-    payload.status = report.status ?? '' // Make sure status is in the payload!
-    payload.rows =
-      report.rows?.map((row) => ({
-        id: row.id ?? '',
-        week_num: row.week_num ?? '',
-        dates_in_week: row.dates_in_week ?? '',
-        specific_activity: row.specific_activity ?? null,
-        highlights: row.highlights ?? null,
-      })) ?? []
-  } else {
-    // Important: Reset payload if report is null
-    payload.period = null
-    payload.supervisor_notes = ''
-    payload.status = ''
-    payload.rows = []
-  }
-}
-// Use watch to initialize payload AFTER props are received
-watch(
-  () => props.accomplishmentReport,
-  (newValue) => {
-    // Check if newValue exists before accessing its properties
-    if (newValue) {
-      payload.period = newValue.period ?? null // Use nullish coalescing operator (??)
-      payload.supervisor_notes = newValue.supervisor_notes ?? ''
-      payload.rows =
-        newValue.rows?.map((row) => ({
-          id: row.id ?? '',
-          week_num: row.week_num ?? '',
-          dates_in_week: row.dates_in_week ?? '',
-          specific_activity: row.specific_activity ?? null,
-          highlights: row.highlights ?? null,
-        })) ?? [] // Use nullish coalescing and optional chaining
-    } else {
-      // Reset payload if accomplishmentReport becomes undefined
-      payload.period = null
-      payload.supervisor_notes = ''
-      payload.status = ''
-      payload.rows = []
-    }
-  },
-  { immediate: true }
-)
-
-const isEditingSpecificActivity = ref(false)
-const isEditingHighlights = ref(false)
-
-const editSpecificActivity = () => {
-  isEditingSpecificActivity.value = true
-}
-
-const editHighlights = () => {
-  isEditingHighlights.value = true
-}
-
-const formIsSubmitting = ref(false)
-const showErrorAlert = ref(false)
-const errorMessage = ref<string | null>(null)
-const errorDetails = ref<string[]>([])
-const toast = useToast()
-
-/** Handle Accomplishment Report Update */
-const IsBeingUpdated = ref(false)
-const shouldReloadPageAfterUpdate = (): boolean => {
-  return true
-}
-const handleUpdated = async () => {
-  IsBeingUpdated.value = true
-  const id = route.params.id as string
-
-  const response = await accomplishmentReportStore.updateAccomplishment(payload, id)
-
-  if (!response.success) {
-    const result = parseApiResponseError(response)
-    if (!result) return (formIsSubmitting.value = false)
-
-    showErrorAlert.value = true
-    errorMessage.value = result.message
-    errorDetails.value = result.errors
-    IsBeingUpdated.value = false
-    return document.getElementsByClassName('update-ar-creds-section')[0]?.scrollIntoView({ behavior: 'smooth' })
-  }
-
-  toast.add({
-    severity: 'success',
-    summary: 'Accomplishment Report Details update',
-    detail: `${id || 'The Accomplishment Report '} was successfully update`,
-    life: 3000,
-  })
-
-  if (shouldReloadPageAfterUpdate()) {
-    setTimeout(() => {
-      window.location.reload()
-    }, 2000)
-  }
-
-  emit('accomplishment-report-updated', true)
-}
-
-const confirmUpdate = useConfirm()
-const requireConfirmationUpdate = (event: Event) => {
-  confirmUpdate.require({
-    group: 'global',
-    target: event.currentTarget as HTMLElement,
-    message: ' Are you sure you want to update this Accomplishment Report? You cannot undo this.',
-    header: 'Update Details',
-    acceptLabel: 'Confirm Update',
-    rejectLabel: 'Cancel',
-    accept: () => {
-      handleUpdated()
-    },
-  })
-}
-
+/** Handle marking the accomplishment report as done */
 const handleMarkDone = async () => {
   IsBeingUpdated.value = true
   const id = route.params.id as string
@@ -234,8 +264,8 @@ const handleMarkDone = async () => {
 
   toast.add({
     severity: 'success',
-    summary: 'Accomplishment Report Details update',
-    detail: `${id || 'The Accomplishment Report '} was successfully update`,
+    summary: 'Accomplishment Report Marked as Done',
+    detail: `${id || 'The Accomplishment Report '} was successfully marked as done`,
     life: 3000,
   })
 
@@ -246,12 +276,6 @@ const handleMarkDone = async () => {
   }
 
   emit('accomplishment-report-updated', true)
-}
-
-const visible = ref(false)
-
-const btnMarkDone = () => {
-  visible.value = true
 }
 </script>
 
@@ -300,61 +324,25 @@ const btnMarkDone = () => {
                   label="Export to MS Word"
                   class="border border-primary-400 px-4 py-2 text-sm font-semibold text-surface-0 dark:text-primary-100 lg:text-primary-400 dark:lg:text-primary-400"
                   text
-                  @click="exportToFile()"
+                  @click="openDialog('export')"
                 >
                   <template #icon>
                     <i class="pi pi-file mr-2"></i>
                   </template>
                 </Button>
+
                 <Button
                   label="Mark as Done"
                   :loading="formIsSubmitting"
                   :disabled="payload && payload.status === 'done'"
                   class="border border-primary-400 px-4 py-2 text-sm font-semibold text-surface-0 dark:text-primary-100 lg:text-primary-400 dark:lg:text-primary-400"
                   text
-                  @click="btnMarkDone()"
+                  @click="openDialog('markDone')"
                 >
                   <template #icon>
                     <i class="pi pi-save mr-2"></i>
                   </template>
                 </Button>
-                <!-- Start Mark as Done Dialog Box Message -->
-                <Dialog v-model:visible="visible" modal :style="{ width: '35vw' }" :closable="true" closeIcon="pi pi-times">
-                  <template #header>
-                    <div style="display: flex; justify-content: space-between; width: 100%"></div>
-                  </template>
-                  <h1 class="text-md font-bold">
-                    Are your sure you want to mark this accomplishment as<em class="ml-1">Done ?</em>
-                  </h1>
-                  <p>Marking your accomplishment as done will make it uneditable.</p>
-                  <template #footer>
-                    <Button
-                      label="Cancel"
-                      :loading="formIsSubmitting"
-                      :disabled="formIsSubmitting"
-                      class="dark:text-secondary-100 border border-surface-400 text-xs text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
-                      text
-                      @click="visible = false"
-                    >
-                      <template #icon>
-                        <i class="pi pi-ban mr-2"></i>
-                      </template>
-                    </Button>
-                    <Button
-                      @click="handleMarkDone"
-                      label="Yes, Archive this Document"
-                      :loading="formIsSubmitting"
-                      :disabled="formIsSubmitting"
-                      class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
-                      text
-                    >
-                      <template #icon>
-                        <font-awesome-icon :icon="['fas', 'arrow-left']" />
-                      </template>
-                    </Button>
-                  </template>
-                </Dialog>
-                <!-- Start Mark as Done Dialog Box Message -->
               </div>
             </div>
             <!-- Start Alert Message -->
@@ -458,7 +446,7 @@ const btnMarkDone = () => {
                 </Button>
               </RouterLink>
               <Button
-                @click="requireConfirmationUpdate($event)"
+                @click="openDialog('saveDraft')"
                 label="Save Draft"
                 :loading="formIsSubmitting"
                 :disabled="payload && payload.status === 'done'"
@@ -470,6 +458,43 @@ const btnMarkDone = () => {
                 </template>
               </Button>
             </div>
+            <!-- Start Dialog Confirmation Modal Action  -->
+            <Dialog v-model:visible="visible" modal :style="{ width: '35vw' }" :closable="true" closeIcon="pi pi-times">
+              <template #header>
+                <div style="display: flex; justify-content: space-between; width: 100%"></div>
+              </template>
+              <h1 class="text-md font-bold">
+                {{ dialogTitle }}
+              </h1>
+              <p>{{ dialogMessage }}</p>
+              <template #footer>
+                <Button
+                  label="Cancel"
+                  :loading="formIsSubmitting"
+                  :disabled="formIsSubmitting"
+                  class="dark:text-secondary-100 border border-surface-400 text-xs text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
+                  text
+                  @click="visible = false"
+                >
+                  <template #icon>
+                    <i class="pi pi-ban mr-2"></i>
+                  </template>
+                </Button>
+                <Button
+                  @click="confirmAction"
+                  :label="confirmButtonLabel"
+                  :loading="formIsSubmitting"
+                  :disabled="formIsSubmitting"
+                  class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+                  text
+                >
+                  <template #icon>
+                    <font-awesome-icon :icon="['fas', 'arrow-left']" />
+                  </template>
+                </Button>
+              </template>
+            </Dialog>
+            <!-- End Dialog Confirmation Modal Action -->
             <!-- End Action Buttons -->
           </template>
         </Card>
