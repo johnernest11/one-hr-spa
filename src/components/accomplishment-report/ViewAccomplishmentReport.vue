@@ -40,36 +40,44 @@ const accomplishmentReportExportFile = ref<PersonnelAccomplishmentReportResponse
 const exportToFile = async () => {
   if (!accomplishmentReportExportFile.value || !accomplishmentReportExportFile.value.id) {
     console.error('No accomplishment report or ID available for export.')
-    return // Or show a user-friendly message
+    toast.add({
+      severity: 'error',
+      summary: 'Export failed.',
+      detail: 'No accomplishment report or ID available for export.',
+      life: 5000,
+    })
+    return
+  } else {
+    toast.add({
+      severity: 'info',
+      summary: 'Exporting...',
+      detail: `Exporting ${accomplishmentReportExportFile.value.period || 'the Accomplishment Report '}...`,
+      life: 5000,
+    })
   }
   const reportResponse = await accomplishmentReportStore.generateAccomplishmentReport(
-    accomplishmentReportExport.value.id as string
+    String(accomplishmentReportExportFile.value.id)
   )
-  let fileName = 'report.docx'
-  let fileUrl = ''
 
-  if (typeof reportResponse === 'string') {
-    fileUrl = reportResponse
-  } else if (
-    typeof reportResponse === 'object' &&
-    reportResponse !== null &&
-    'fileName' in reportResponse &&
-    'fileContent' in reportResponse
-  ) {
-    const reportData = reportResponse as { fileContent: string; fileName: string }
-    fileName = reportData.fileName
-    fileUrl = reportData.fileContent
-  } else {
-    console.error('Invalid report response format:', reportResponse)
-    return
+  const blob = reportResponse.data.value // Get the Blob
+
+  if (blob) {
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${reportResponse.fileNameHeader.value}`
+    document.body.appendChild(a)
+    a.click()
+    window.URL.revokeObjectURL(url)
+    document.body.removeChild(a)
+
+    toast.add({
+      severity: 'success',
+      summary: 'Accomplishment Report Details Exported',
+      detail: `The Accomplishment Report from ${accomplishmentReportExportFile.value.period} was successfully exported.`,
+      life: 5000,
+    })
   }
-
-  const link = document.createElement('a')
-  link.href = fileUrl
-  link.download = fileName
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
 }
 
 /** Emits */
@@ -214,12 +222,52 @@ const requireConfirmationUpdate = (event: Event) => {
   })
 }
 
+const handleMarkDone = async () => {
+  IsBeingUpdated.value = true
+  const id = route.params.id as string
+  payload.status = 'done'
+  const response = await accomplishmentReportStore.updateAccomplishment(payload, id)
+
+  if (!response.success) {
+    const result = parseApiResponseError(response)
+    if (!result) return (formIsSubmitting.value = false)
+
+    showErrorAlert.value = true
+    errorMessage.value = result.message
+    errorDetails.value = result.errors
+    IsBeingUpdated.value = false
+    return document.getElementsByClassName('update-ar-creds-section')[0]?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  toast.add({
+    severity: 'success',
+    summary: 'Accomplishment Report Details update',
+    detail: `${id || 'The Accomplishment Report '} was successfully update`,
+    life: 3000,
+  })
+
+  if (shouldReloadPageAfterUpdate()) {
+    setTimeout(() => {
+      window.location.reload()
+    }, 2000)
+  }
+
+  emit('accomplishment-report-updated', true)
+}
+
+const visible = ref(false)
+
+const btnMarkDone = () => {
+  visible.value = true
+}
+
+const confirmExport = useConfirm()
 const btnExportFile = (event: Event) => {
-  confirmUpdate.require({
+  confirmExport.require({
     group: 'global',
     target: event.currentTarget as HTMLElement,
-    message: ' Are you sure you want to export this Accomplishment Report? You cannot undo this.',
-    header: 'Export File Details',
+    message: 'This will generate a .DOCX file on the selected Accomplishment Report.',
+    header: 'Are you sure you want to export this Accomplishment Report?',
     acceptLabel: 'Confirm Export',
     rejectLabel: 'Cancel',
     accept: () => {
@@ -277,7 +325,7 @@ const btnExportFile = (event: Event) => {
                   @click="btnExportFile($event)"
                 >
                   <template #icon>
-                    <i class="pi pi-file mr-2"></i>
+                    <i class="pi pi-file-word mr-2"></i>
                   </template>
                 </Button>
                 <Button

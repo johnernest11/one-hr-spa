@@ -11,6 +11,7 @@ import { ApiResponsePagination } from '@/typings/http-resources.types.ts'
 import { PersonnelAccomplishmentReportResponse } from '@/typings/models.types.ts'
 import { useAccomplishmentReportStore } from '@/stores/personnel-accomplishment-report.store'
 import { useRouter } from 'vue-router'
+import { useToast } from 'primevue/usetoast'
 const router = useRouter()
 const navigateToDetails = (accomplishmentReport: PersonnelAccomplishmentReportResponse) => {
   if (!accomplishmentReport || !accomplishmentReport.id) {
@@ -25,33 +26,37 @@ const navigateToDetails = (accomplishmentReport: PersonnelAccomplishmentReportRe
   })
 }
 
+const toast = useToast()
+
 const accomplishmentReportStore = useAccomplishmentReportStore()
 const exportToFile = async (accomplishmentReport: PersonnelAccomplishmentReportResponse) => {
-  const reportResponse = await accomplishmentReportStore.generateAccomplishmentReport(String(accomplishmentReport.id))
-  // Check if reportResponse is a URL or an object
-  let fileName = 'report.docx' // Default filename
-  let fileUrl = ''
-  if (typeof reportResponse === 'string') {
-    // If it's a string, assume it's the URL and set the fileUrl directly
-    fileUrl = reportResponse
-  } else if (
-    typeof reportResponse === 'object' &&
-    reportResponse !== null &&
-    'fileName' in reportResponse &&
-    'fileContent' in reportResponse
-  ) {
-    // If it's an object, access fileName and also set the URL if applicable
-    const reportData = reportResponse as { fileContent: string; fileName: string }
-    fileName = reportData.fileName
-    fileUrl = reportData.fileContent // Use fileContent instead of url
+  toast.add({
+    severity: 'info',
+    summary: 'Exporting...',
+    detail: `Exporting ${accomplishmentReport.period || 'the Accomplishment Report '}...`,
+    life: 5000,
+  })
+  const reportResponse = await accomplishmentReportStore.generateAccomplishmentReport(accomplishmentReport.id as string)
+
+  const blob = reportResponse.data.value // Get the Blob
+
+  if (blob) {
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${reportResponse.fileNameHeader.value}`
+    document.body.appendChild(a)
+    a.click()
+    window.URL.revokeObjectURL(url)
+    document.body.removeChild(a)
+
+    toast.add({
+      severity: 'success',
+      summary: 'Accomplishment Report Details Exported',
+      detail: `The Accomplishment Report from ${accomplishmentReport.period} was successfully exported.`,
+      life: 5000,
+    })
   }
-  // Create link and initiate download
-  const link = document.createElement('a')
-  link.href = fileUrl // Set the href to the file URL
-  link.download = fileName // Set the download filename
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
 }
 
 const accomplishmentReportIsLoading = ref(false)
@@ -230,7 +235,7 @@ const formatDate = (dateString: string | null | undefined): string => {
                   <div class="flex gap-4 whitespace-nowrap md:w-auto">
                     <Button
                       icon="pi pi-eye"
-                      v-tooltip.top="'Export to MS Word'"
+                      v-tooltip.top="'View Accomplishment Report'"
                       severity="info"
                       class="border-none text-lg font-semibold text-primary-600 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
                       text

@@ -16,12 +16,6 @@ const toggleVisibility = () => {
   visible.value = !visible.value
 }
 
-const handleToggle = (link: Link) => {
-  // Type the link parameter
-  toggleExpanded(link)
-  visible.value = false
-}
-
 /** Handle Logout */
 const router = useRouter()
 const authStore = useAuthStore()
@@ -74,7 +68,12 @@ const handleLogout = async () => {
               <div
                 v-if="link.children && link.children.length > 0"
                 class="flex items-center justify-between rounded-lg px-2 py-2 transition-colors duration-300 hover:bg-primary-100 hover:text-primary-900 dark:text-surface-200 dark:hover:bg-primary-400/70"
-                @click="handleToggle(link)"
+                @click="
+                  () => {
+                    toggleExpanded(link)
+                    visible = false
+                  }
+                "
               >
                 <div class="flex items-center">
                   <i :class="link.icon"></i>
