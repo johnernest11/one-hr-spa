@@ -4,7 +4,6 @@ import { useAuthStore } from '@/stores/auth.store.ts'
 import { PersonnelAccomplishmentReportResponse } from '@/typings/models.types.ts'
 import { ApiResponseBody } from '@/typings/http-resources.types.ts'
 import { ref } from 'vue'
-
 /** Typings for Fecthing All Ccaomplishment Report */
 export type PersonnelAccomplishmentReportPayload = {
   period: string | null
@@ -17,7 +16,6 @@ export type PersonnelAccomplishmentReportPayload = {
     highlights: string | null // Consider a more specific type (e.g., string)
   }[]
 }
-
 /** Typings for Creating Accomplishment Report */
 export type PersonnelAccomplishmentReportDetailsPayload = {
   week_num: string
@@ -25,83 +23,83 @@ export type PersonnelAccomplishmentReportDetailsPayload = {
   specific_activity: string | null
   highlights: string | null
 }
-
 export const useAccomplishmentReportStore = defineStore('personnel-accomplishment-report', () => {
   const auth = useAuthStore()
   const accomplishment = ref<PersonnelAccomplishmentReportResponse[]>([])
   /** States */
   const accomplishmentReportArray = ref<PersonnelAccomplishmentReportResponse[]>([])
-
   const selectedAccomplishmentReport = ref<PersonnelAccomplishmentReportResponse | null>(null)
-
   const fetchAccomplishment = async (limit: number = 10, page: number | null = null) => {
     let uri = `/accomplishment-reports?limit=${limit}&sort=asc&`
     if (page) uri += `page=${page}`
-
     const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
     const responseBody: ApiResponseBody = data.value
-
     if (responseBody.success) {
       const accomplishmentReportsList = Array.isArray(responseBody.data)
         ? (responseBody.data as PersonnelAccomplishmentReportResponse[])
         : []
       accomplishmentReportArray.value = [...accomplishmentReportsList]
     }
-
     return responseBody
   }
-
   const fetchAccomplishmentById = async (id: string) => {
     const url = `/accomplishment-reports/${id}`
-
     const { data } = await useApiCall(url, auth.authenticationToken).get().json()
     const responseBody: ApiResponseBody = data.value
-
     if (responseBody.success) {
       selectedAccomplishmentReport.value = responseBody.data as PersonnelAccomplishmentReportResponse
     }
     return responseBody
   }
-
   const createAccomplishment = async (accomplishmentReport: Partial<PersonnelAccomplishmentReportPayload>) => {
     const { data } = await useApiCall('/accomplishment-reports/', auth.authenticationToken).post(accomplishmentReport).json()
     const responseBody: ApiResponseBody = data.value
-
     if (responseBody.success) {
       accomplishment.value.unshift(responseBody.data as PersonnelAccomplishmentReportResponse)
     }
-
     return responseBody
   }
-
   const searchAccomplishment = async (query: string | null) => {
     let uri = '/accomplishment-reports/search?'
     if (query) uri += `query=${query}`
-
     const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
     const responseBody: ApiResponseBody = data.value
-
     if (responseBody.success) {
       const accomplishmentReportsList = responseBody.data as PersonnelAccomplishmentReportResponse[]
       accomplishmentReportArray.value = [...accomplishmentReportsList]
     }
-
     return responseBody
   }
-
   const updateAccomplishment = async (
     accomplishmentReport: Partial<PersonnelAccomplishmentReportPayload>,
     id: string | number
   ) => {
     const { data } = await useApiCall(`/accomplishment-reports/${id}`, auth.authenticationToken).put(accomplishmentReport).json()
     const responseBody: ApiResponseBody = data.value
-
     if (responseBody.success) {
       const index = accomplishment.value.findIndex((accomplishmentReport) => accomplishmentReport?.id === id)
       if (index === -1) return responseBody
       accomplishment.value[index] = responseBody.data as PersonnelAccomplishmentReportResponse
     }
-
+    return responseBody
+  }
+  // store.ts
+  const generateAccomplishmentReport = async (id: string) => {
+    const url = `/accomplishment-reports/${id}/generate`
+    const response = await useApiCall(url, auth.authenticationToken).get()
+    const responseBody: ApiResponseBody = response.data.value as ApiResponseBody // Access data.value directly
+    if (
+      responseBody.success &&
+      responseBody.data &&
+      (responseBody.data as { fileContent: string; fileName: string }).fileContent &&
+      (responseBody.data as { fileContent: string; fileName: string }).fileName
+    ) {
+      const data = responseBody.data as { fileContent: string; fileName: string }
+      return {
+        fileContent: data.fileContent,
+        fileName: data.fileName,
+      }
+    }
     return responseBody
   }
 
@@ -112,5 +110,6 @@ export const useAccomplishmentReportStore = defineStore('personnel-accomplishmen
     fetchAccomplishmentById,
     updateAccomplishment,
     searchAccomplishment,
+    generateAccomplishmentReport,
   }
 })

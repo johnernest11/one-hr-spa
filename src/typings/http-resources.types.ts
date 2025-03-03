@@ -1,6 +1,7 @@
 export type ApiResponseBody = {
   success: boolean
   data?: Array<object> | object
+  file?: Blob
   message?: string
   error_code?: string
   error_message?: string
