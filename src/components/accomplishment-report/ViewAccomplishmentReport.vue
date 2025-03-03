@@ -8,7 +8,6 @@ import WbInputText from '@/components/webkit/WbInputText.vue'
 import Message from 'primevue/message'
 import Divider from 'primevue/divider'
 import Dropdown from 'primevue/dropdown'
-import { useConfirm } from 'primevue/useconfirm'
 import Card from 'primevue/card'
 import { useAccomplishmentReportStore } from '@/stores/personnel-accomplishment-report.store'
 import { PersonnelAccomplishmentReportPayload } from '@/stores/personnel-accomplishment-report.store'
@@ -18,6 +17,16 @@ import Dialog from 'primevue/dialog'
 const route = useRoute()
 const accomplishmentReportStore = useAccomplishmentReportStore()
 const isLoading = ref(true)
+const formIsSubmitting = ref(false)
+const showErrorAlert = ref(false)
+const errorMessage = ref<string | null>(null)
+const errorDetails = ref<string[]>([])
+const toast = useToast()
+const visible = ref(false)
+const dialogType = ref('') // Add empty string for initial value
+const dialogTitle = ref('')
+const dialogMessage = ref('')
+const confirmButtonLabel = ref('')
 
 const payload = reactive<PersonnelAccomplishmentReportPayload>({
   period: null,
@@ -34,51 +43,8 @@ const weekOptions = ref([
   { label: 'Week 4', value: 'Week 4' },
   { label: 'Week 5', value: 'Week 5' },
 ])
-//  Make sure accomplishmentReport is reactive so it updates
+// Make sure accomplishmentReport is reactive so it updates
 const accomplishmentReportExportFile = ref<PersonnelAccomplishmentReportResponse | null>(null)
-
-const exportToFile = async () => {
-  if (!accomplishmentReportExportFile.value || !accomplishmentReportExportFile.value.id) {
-    console.error('No accomplishment report or ID available for export.')
-    toast.add({
-      severity: 'error',
-      summary: 'Export failed.',
-      detail: 'No accomplishment report or ID available for export.',
-      life: 5000,
-    })
-    return
-  } else {
-    toast.add({
-      severity: 'info',
-      summary: 'Exporting...',
-      detail: `Exporting ${accomplishmentReportExportFile.value.period || 'the Accomplishment Report '}...`,
-      life: 5000,
-    })
-  }
-  const reportResponse = await accomplishmentReportStore.generateAccomplishmentReport(
-    String(accomplishmentReportExportFile.value.id)
-  )
-
-  const blob = reportResponse.data.value // Get the Blob
-
-  if (blob) {
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${reportResponse.fileNameHeader.value}`
-    document.body.appendChild(a)
-    a.click()
-    window.URL.revokeObjectURL(url)
-    document.body.removeChild(a)
-
-    toast.add({
-      severity: 'success',
-      summary: 'Accomplishment Report Details Exported',
-      detail: `The Accomplishment Report from ${accomplishmentReportExportFile.value.period} was successfully exported.`,
-      life: 5000,
-    })
-  }
-}
 
 /** Emits */
 const emit = defineEmits<{
@@ -89,9 +55,9 @@ const emit = defineEmits<{
 type AccomplishmentReportDetailsFormProps = {
   accomplishmentReport?: PersonnelAccomplishmentReportResponse
 }
-
 const props = defineProps<AccomplishmentReportDetailsFormProps>()
 
+/** Lifecycle hook that runs when the component is mounted */
 onMounted(async () => {
   const id = route.params.id as string
   if (id) {
@@ -104,6 +70,7 @@ onMounted(async () => {
   isLoading.value = false
 })
 
+/** Update the payload from the fetched accomplishment report */
 const updatePayloadFromReport = (report: PersonnelAccomplishmentReportResponse | null) => {
   if (report) {
     payload.period = report.period ?? null
@@ -125,7 +92,8 @@ const updatePayloadFromReport = (report: PersonnelAccomplishmentReportResponse |
     payload.rows = []
   }
 }
-// Use watch to initialize payload AFTER props are received
+
+/** Watcher to reactively respond to changes in the accomplishment report prop */
 watch(
   () => props.accomplishmentReport,
   (newValue) => {
@@ -155,25 +123,57 @@ watch(
 const isEditingSpecificActivity = ref(false)
 const isEditingHighlights = ref(false)
 
+/** Set editing mode for specific activity */
 const editSpecificActivity = () => {
   isEditingSpecificActivity.value = true
 }
 
+/** Set editing mode for highlights */
 const editHighlights = () => {
   isEditingHighlights.value = true
 }
 
-const formIsSubmitting = ref(false)
-const showErrorAlert = ref(false)
-const errorMessage = ref<string | null>(null)
-const errorDetails = ref<string[]>([])
-const toast = useToast()
+/** Open a dialog with a specified type (export, markDone, or saveDraft) */
+const openDialog = (type: 'export' | 'markDone' | 'saveDraft') => {
+  dialogType.value = type
+  visible.value = true
 
-/** Handle Accomplishment Report Update */
+  if (type === 'export') {
+    dialogTitle.value = 'Are you sure you want to export this accomplishment as File?'
+    dialogMessage.value = 'Exporting your accomplishment will download an Word File.'
+    confirmButtonLabel.value = 'Yes, Export this Document'
+  } else if (type === 'markDone') {
+    dialogTitle.value = 'Are you sure you want to mark this accomplishment as Done?'
+    dialogMessage.value = 'Marking your accomplishment as done will make it uneditable.'
+    confirmButtonLabel.value = 'Yes, Archive this Document'
+  } else if (type === 'saveDraft') {
+    dialogTitle.value = 'Are you sure you want to save this accomplishment as Draft?'
+    dialogMessage.value = 'Saving your accomplishment as draft will allow you to edit it later.'
+    confirmButtonLabel.value = 'Yes, Save as Draft'
+  }
+}
+
+/** Confirm the action based on the dialog type */
+const confirmAction = () => {
+  if (dialogType.value === 'export') {
+    exportToFile()
+  } else if (dialogType.value === 'markDone') {
+    handleMarkDone()
+  } else if (dialogType.value === 'saveDraft') {
+    handleUpdated()
+  }
+  visible.value = false
+}
+
+/** Handle updates to the accomplishment report */
 const IsBeingUpdated = ref(false)
+
+/** Check if the page should be reloaded after the update */
 const shouldReloadPageAfterUpdate = (): boolean => {
   return true
 }
+
+/** Handle updating the accomplishment report */
 const handleUpdated = async () => {
   IsBeingUpdated.value = true
   const id = route.params.id as string
@@ -194,7 +194,7 @@ const handleUpdated = async () => {
   toast.add({
     severity: 'success',
     summary: 'Accomplishment Report Details update',
-    detail: `${id || 'The Accomplishment Report '} was successfully update`,
+    detail: `${id || 'The Accomplishment Report '} was successfully updated`,
     life: 3000,
   })
 
@@ -207,21 +207,44 @@ const handleUpdated = async () => {
   emit('accomplishment-report-updated', true)
 }
 
-const confirmUpdate = useConfirm()
-const requireConfirmationUpdate = (event: Event) => {
-  confirmUpdate.require({
-    group: 'global',
-    target: event.currentTarget as HTMLElement,
-    message: ' Are you sure you want to update this Accomplishment Report? You cannot undo this.',
-    header: 'Update Details',
-    acceptLabel: 'Confirm Update',
-    rejectLabel: 'Cancel',
-    accept: () => {
-      handleUpdated()
-    },
-  })
+/** Handle exporting the report to MS Word */
+const exportToFile = async () => {
+  if (!accomplishmentReportExportFile.value || !accomplishmentReportExportFile.value.id) {
+    console.error('No accomplishment report or ID available for export.')
+    return // Or show a user-friendly message
+  }
+  const reportResponse = await accomplishmentReportStore.generateAccomplishmentReport(
+    String(accomplishmentReportExportFile.value.id)
+  )
+
+  let fileName = 'report.docx'
+  let fileUrl = ''
+
+  if (typeof reportResponse === 'string') {
+    fileUrl = reportResponse
+  } else if (
+    typeof reportResponse === 'object' &&
+    reportResponse !== null &&
+    'fileName' in reportResponse &&
+    'fileContent' in reportResponse
+  ) {
+    const reportData = reportResponse as { fileContent: string; fileName: string }
+    fileName = reportData.fileName
+    fileUrl = reportData.fileContent
+  } else {
+    console.error('Invalid report response format:', reportResponse)
+    return
+  }
+
+  const link = document.createElement('a')
+  link.href = fileUrl
+  link.download = fileName
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
 }
 
+/** Handle marking the accomplishment report as done */
 const handleMarkDone = async () => {
   IsBeingUpdated.value = true
   const id = route.params.id as string
@@ -241,8 +264,8 @@ const handleMarkDone = async () => {
 
   toast.add({
     severity: 'success',
-    summary: 'Accomplishment Report Details update',
-    detail: `${id || 'The Accomplishment Report '} was successfully update`,
+    summary: 'Accomplishment Report Marked as Done',
+    detail: `${id || 'The Accomplishment Report '} was successfully marked as done`,
     life: 3000,
   })
 
@@ -253,27 +276,6 @@ const handleMarkDone = async () => {
   }
 
   emit('accomplishment-report-updated', true)
-}
-
-const visible = ref(false)
-
-const btnMarkDone = () => {
-  visible.value = true
-}
-
-const confirmExport = useConfirm()
-const btnExportFile = (event: Event) => {
-  confirmExport.require({
-    group: 'global',
-    target: event.currentTarget as HTMLElement,
-    message: 'This will generate a .DOCX file on the selected Accomplishment Report.',
-    header: 'Are you sure you want to export this Accomplishment Report?',
-    acceptLabel: 'Confirm Export',
-    rejectLabel: 'Cancel',
-    accept: () => {
-      exportToFile()
-    },
-  })
 }
 </script>
 
@@ -320,63 +322,27 @@ const btnExportFile = (event: Event) => {
               <div class="mt-2 flex w-64 flex-initial justify-end gap-2 md:ml-auto md:w-auto md:items-center md:justify-start">
                 <Button
                   label="Export to MS Word"
-                  class="border border-primary-400 px-4 py-2 text-sm font-semibold text-surface-0 dark:text-primary-100 lg:text-primary-400 dark:lg:text-primary-400"
+                  class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
                   text
-                  @click="btnExportFile($event)"
+                  @click="openDialog('export')"
                 >
                   <template #icon>
                     <i class="pi pi-file-word mr-2"></i>
                   </template>
                 </Button>
+
                 <Button
                   label="Mark as Done"
                   :loading="formIsSubmitting"
                   :disabled="payload && payload.status === 'done'"
-                  class="border border-primary-400 px-4 py-2 text-sm font-semibold text-surface-0 dark:text-primary-100 lg:text-primary-400 dark:lg:text-primary-400"
+                  class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
                   text
-                  @click="btnMarkDone()"
+                  @click="openDialog('markDone')"
                 >
                   <template #icon>
                     <i class="pi pi-save mr-2"></i>
                   </template>
                 </Button>
-                <!-- Start Mark as Done Dialog Box Message -->
-                <Dialog v-model:visible="visible" modal :style="{ width: '35vw' }" :closable="true" closeIcon="pi pi-times">
-                  <template #header>
-                    <div style="display: flex; justify-content: space-between; width: 100%"></div>
-                  </template>
-                  <h1 class="text-md font-bold">
-                    Are your sure you want to mark this accomplishment as<em class="ml-1">Done ?</em>
-                  </h1>
-                  <p>Marking your accomplishment as done will make it uneditable.</p>
-                  <template #footer>
-                    <Button
-                      label="Cancel"
-                      :loading="formIsSubmitting"
-                      :disabled="formIsSubmitting"
-                      class="dark:text-secondary-100 border border-surface-400 text-xs text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
-                      text
-                      @click="visible = false"
-                    >
-                      <template #icon>
-                        <i class="pi pi-ban mr-2"></i>
-                      </template>
-                    </Button>
-                    <Button
-                      @click="handleMarkDone"
-                      label="Yes, Archive this Document"
-                      :loading="formIsSubmitting"
-                      :disabled="formIsSubmitting"
-                      class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
-                      text
-                    >
-                      <template #icon>
-                        <font-awesome-icon :icon="['fas', 'arrow-left']" />
-                      </template>
-                    </Button>
-                  </template>
-                </Dialog>
-                <!-- Start Mark as Done Dialog Box Message -->
               </div>
             </div>
             <!-- Start Alert Message -->
@@ -480,11 +446,11 @@ const btnExportFile = (event: Event) => {
                 </Button>
               </RouterLink>
               <Button
-                @click="requireConfirmationUpdate($event)"
+                @click="openDialog('saveDraft')"
                 label="Save Draft"
                 :loading="formIsSubmitting"
                 :disabled="payload && payload.status === 'done'"
-                class="border border-primary-400 text-xs font-semibold text-surface-0 dark:text-primary-100 lg:text-primary-400 dark:lg:text-primary-400"
+                class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
                 text
               >
                 <template #icon>
@@ -492,6 +458,55 @@ const btnExportFile = (event: Event) => {
                 </template>
               </Button>
             </div>
+            <!-- Start Dialog Confirmation Modal Action  -->
+            <Dialog v-model:visible="visible" modal :style="{ width: '25vw' }" :closable="false">
+              <template #header>
+                <div style="display: flex; justify-content: flex-end; width: 100%">
+                  <Button
+                    :loading="formIsSubmitting"
+                    :disabled="formIsSubmitting"
+                    class="dark:text-secondary-100 border-none text-xs text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
+                    text
+                    @click="visible = false"
+                  >
+                    <template #icon>
+                      <i class="pi pi pi-times mr-2"></i>
+                    </template>
+                  </Button>
+                </div>
+              </template>
+              <h1 class="text-md font-bold">
+                {{ dialogTitle }}
+              </h1>
+              <p>{{ dialogMessage }}</p>
+              <template #footer>
+                <Button
+                  label="Cancel"
+                  :loading="formIsSubmitting"
+                  :disabled="formIsSubmitting"
+                  class="dark:text-secondary-100 border border-surface-400 text-xs text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
+                  text
+                  @click="visible = false"
+                >
+                  <template #icon>
+                    <i class="pi pi-ban mr-2"></i>
+                  </template>
+                </Button>
+                <Button
+                  @click="confirmAction"
+                  :label="confirmButtonLabel"
+                  :loading="formIsSubmitting"
+                  :disabled="formIsSubmitting"
+                  class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+                  text
+                >
+                  <template #icon>
+                    <font-awesome-icon :icon="['fas', 'share']" />
+                  </template>
+                </Button>
+              </template>
+            </Dialog>
+            <!-- End Dialog Confirmation Modal Action -->
             <!-- End Action Buttons -->
           </template>
         </Card>
