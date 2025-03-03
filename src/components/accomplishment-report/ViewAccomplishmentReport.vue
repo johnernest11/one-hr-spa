@@ -43,9 +43,8 @@ const exportToFile = async () => {
     return // Or show a user-friendly message
   }
   const reportResponse = await accomplishmentReportStore.generateAccomplishmentReport(
-    String(accomplishmentReportExportFile.value.id)
+    accomplishmentReportExport.value.id as string
   )
-
   let fileName = 'report.docx'
   let fileUrl = ''
 
@@ -215,43 +214,18 @@ const requireConfirmationUpdate = (event: Event) => {
   })
 }
 
-const handleMarkDone = async () => {
-  IsBeingUpdated.value = true
-  const id = route.params.id as string
-  payload.status = 'done'
-  const response = await accomplishmentReportStore.updateAccomplishment(payload, id)
-
-  if (!response.success) {
-    const result = parseApiResponseError(response)
-    if (!result) return (formIsSubmitting.value = false)
-
-    showErrorAlert.value = true
-    errorMessage.value = result.message
-    errorDetails.value = result.errors
-    IsBeingUpdated.value = false
-    return document.getElementsByClassName('update-ar-creds-section')[0]?.scrollIntoView({ behavior: 'smooth' })
-  }
-
-  toast.add({
-    severity: 'success',
-    summary: 'Accomplishment Report Details update',
-    detail: `${id || 'The Accomplishment Report '} was successfully update`,
-    life: 3000,
+const btnExportFile = (event: Event) => {
+  confirmUpdate.require({
+    group: 'global',
+    target: event.currentTarget as HTMLElement,
+    message: ' Are you sure you want to export this Accomplishment Report? You cannot undo this.',
+    header: 'Export File Details',
+    acceptLabel: 'Confirm Export',
+    rejectLabel: 'Cancel',
+    accept: () => {
+      exportToFile()
+    },
   })
-
-  if (shouldReloadPageAfterUpdate()) {
-    setTimeout(() => {
-      window.location.reload()
-    }, 2000)
-  }
-
-  emit('accomplishment-report-updated', true)
-}
-
-const visible = ref(false)
-
-const btnMarkDone = () => {
-  visible.value = true
 }
 </script>
 
@@ -300,7 +274,7 @@ const btnMarkDone = () => {
                   label="Export to MS Word"
                   class="border border-primary-400 px-4 py-2 text-sm font-semibold text-surface-0 dark:text-primary-100 lg:text-primary-400 dark:lg:text-primary-400"
                   text
-                  @click="exportToFile()"
+                  @click="btnExportFile($event)"
                 >
                   <template #icon>
                     <i class="pi pi-file mr-2"></i>
