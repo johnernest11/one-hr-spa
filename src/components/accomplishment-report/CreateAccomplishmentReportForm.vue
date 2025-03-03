@@ -333,7 +333,7 @@ const handleSaveSubmissionif = async (status: string) => {
           </div>
           <!-- Other content -->
           <div v-if="accomplishmentBtn" class="mt-2 flex justify-end gap-2">
-            <RouterLink :to="{ name: 'accomplishment-reports/index' }">
+            <RouterLink :to="{ name: 'accomplishment-reports' }">
               <Button
                 label="Cancel"
                 :loading="formIsSubmitting"
