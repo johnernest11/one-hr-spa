@@ -8,6 +8,7 @@ import WbInputText from '@/components/webkit/WbInputText.vue'
 import Button from 'primevue/button'
 import Divider from 'primevue/divider'
 import Card from 'primevue/card'
+import Dialog from 'primevue/dialog'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import Dropdown from 'primevue/dropdown'
 import { useRolesStore } from '@/stores/roles.store.ts'
@@ -18,10 +19,19 @@ import {
 } from '@/stores/personnel-accomplishment-report.store'
 
 /** Payload for the Personnel Accomplishment Report */
-const payload = reactive<Partial<PersonnelAccomplishmentReportPayload>>({
+const payload = reactive<PersonnelAccomplishmentReportPayload>({
   period: null,
   supervisor_notes: '',
   status: '',
+  rows: [
+    {
+      // Initialize with at least one row
+      week_num: '',
+      dates_in_week: '',
+      specific_activity: null,
+      highlights: null,
+    },
+  ],
 })
 
 /** Payload details for each accomplishment entry */
@@ -46,6 +56,12 @@ const accomplishmentBtn = ref(false)
 const addAccomplishmentFieldBtn = ref(false)
 const showTextAreaActivity = ref(false)
 const showTextAreaHighlights = ref(false)
+
+const visible = ref(false)
+const dialogType = ref('') // Add empty string for initial value
+const dialogTitle = ref('')
+const dialogMessage = ref('')
+const confirmButtonLabel = ref('')
 
 /** Array to store the accomplishment entries */
 const accomplishments = ref([
@@ -134,7 +150,31 @@ const toast = useToast()
 const emit = defineEmits<{
   (e: 'ar-created', value: boolean): void
 }>()
+/** Open a dialog with a specified type (export, markDone, or saveDraft) */
+const openDialog = (type: 'draft' | 'done') => {
+  dialogType.value = type
+  visible.value = true
 
+  if (type === 'draft') {
+    dialogTitle.value = 'Save Accomplishment as Draft?'
+    dialogMessage.value = 'Saving as draft allows you to continue editing later.'
+    confirmButtonLabel.value = 'Save as Draft'
+  } else if (type === 'done') {
+    dialogTitle.value = 'Save and Finalize Accomplishment?'
+    dialogMessage.value = 'Finalizing will save the accomplishment and prevent further edits.'
+    confirmButtonLabel.value = 'Save and Finalize'
+  }
+}
+
+/** Confirm the action based on the dialog type */
+const confirmAction = () => {
+  if (dialogType.value === 'draft') {
+    handleSaveSubmissionif('draft')
+  } else if (dialogType.value === 'done') {
+    handleSaveSubmissionif('done')
+  }
+  visible.value = false
+}
 const handleSaveSubmissionif = async (status: string) => {
   const valid = await validator.value.$validate()
   if (!valid) {
@@ -280,8 +320,7 @@ const handleSaveSubmissionif = async (status: string) => {
                   label=""
                   placeholder="e.g. 16-17 January 2025 or 1, 3, 4 & 5 January 2025"
                   class="w-full"
-                >
-                </WbInputText>
+                ></WbInputText>
               </div>
             </div>
             <Divider layout="vertical" class="hidden md:block"></Divider>
@@ -347,7 +386,7 @@ const handleSaveSubmissionif = async (status: string) => {
               </Button>
             </RouterLink>
             <Button
-              @click="handleSaveSubmissionif('draft')"
+              @click="openDialog('draft')"
               label="Save as Draft"
               :loading="formIsSubmitting"
               :disabled="formIsSubmitting"
@@ -359,7 +398,7 @@ const handleSaveSubmissionif = async (status: string) => {
               </template>
             </Button>
             <Button
-              @click="handleSaveSubmissionif('done')"
+              @click="openDialog('done')"
               label="Save Accomplishment"
               :loading="formIsSubmitting"
               :disabled="formIsSubmitting"
@@ -371,6 +410,55 @@ const handleSaveSubmissionif = async (status: string) => {
               </template>
             </Button>
           </div>
+          <!-- Start Dialog Confirmation Modal Action  -->
+          <Dialog v-model:visible="visible" modal :style="{ width: '25vw' }" :closable="false">
+            <template #header>
+              <div style="display: flex; justify-content: flex-end; width: 100%">
+                <Button
+                  :loading="formIsSubmitting"
+                  :disabled="formIsSubmitting"
+                  class="dark:text-secondary-100 border-none text-xs text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
+                  text
+                  @click="visible = false"
+                >
+                  <template #icon>
+                    <i class="pi pi pi-times mr-2"></i>
+                  </template>
+                </Button>
+              </div>
+            </template>
+            <h1 class="text-md font-bold">
+              {{ dialogTitle }}
+            </h1>
+            <p>{{ dialogMessage }}</p>
+            <template #footer>
+              <Button
+                label="Cancel"
+                :loading="formIsSubmitting"
+                :disabled="formIsSubmitting"
+                class="dark:text-secondary-100 border border-surface-400 text-xs text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
+                text
+                @click="visible = false"
+              >
+                <template #icon>
+                  <i class="pi pi-ban mr-2"></i>
+                </template>
+              </Button>
+              <Button
+                @click="confirmAction"
+                :label="confirmButtonLabel"
+                :loading="formIsSubmitting"
+                :disabled="formIsSubmitting"
+                class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+                text
+              >
+                <template #icon>
+                  <font-awesome-icon :icon="['fas', 'share']" />
+                </template>
+              </Button>
+            </template>
+          </Dialog>
+          <!-- End Dialog Confirmation Modal Action -->
           <!-- End Action Buttons -->
         </template>
       </Card>
