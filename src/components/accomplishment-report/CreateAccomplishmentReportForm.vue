@@ -453,7 +453,7 @@ const handleSaveSubmissionif = async (status: string) => {
                 text
               >
                 <template #icon>
-                  <font-awesome-icon :icon="['fas', 'share']" />
+                  <font-awesome-icon :icon="['fas', 'share']" class="mr-2" />
                 </template>
               </Button>
             </template>
