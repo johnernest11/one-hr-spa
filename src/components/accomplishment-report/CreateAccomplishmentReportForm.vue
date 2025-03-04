@@ -156,11 +156,11 @@ const openDialog = (type: 'draft' | 'done') => {
   visible.value = true
 
   if (type === 'draft') {
-    dialogTitle.value = 'Save Accomplishment as Draft?'
+    dialogTitle.value = 'Save Accomplishment as Draft ?'
     dialogMessage.value = 'Saving as draft allows you to continue editing later.'
     confirmButtonLabel.value = 'Save as Draft'
   } else if (type === 'done') {
-    dialogTitle.value = 'Save and Finalize Accomplishment?'
+    dialogTitle.value = 'Save and Finalize Accomplishment ?'
     dialogMessage.value = 'Finalizing will save the accomplishment and prevent further edits.'
     confirmButtonLabel.value = 'Save and Finalize'
   }
