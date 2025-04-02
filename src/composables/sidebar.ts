@@ -67,6 +67,9 @@ export const useSidebarNavLinks = () => {
           case 'user-management':
             navLink.icon = 'pi pi-users'
             break
+          case 'recruitments':
+            navLink.icon = 'pi pi-briefcase'
+            break
           default:
             navLink.icon = 'fa-solid fa-circle-question'
             break
@@ -96,6 +99,9 @@ export const useSidebarNavLinks = () => {
                   break
                 case 'view-ipc-ccef/index':
                   childNavLink.icon = 'fas fa-check-double' // Example icon
+                  break
+                case 'item-numbers':
+                  childNavLink.icon = 'fas fa-user-plus' // Example icon
                   break
                 // ... other child route icon assignments
               }

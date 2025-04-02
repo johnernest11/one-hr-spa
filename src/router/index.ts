@@ -6,6 +6,9 @@ import SupportPage from '@/views/SupportPage.vue'
 import AccomplishmentReportPage from '@/views/AccomplishmentReportPage.vue'
 import CreateAccomplishmentReportForm from '@/components/accomplishment-report/CreateAccomplishmentReportForm.vue'
 import ViewAccomplishmentReport from '@/components/accomplishment-report/ViewAccomplishmentReport.vue'
+import ItemNumberPage from '@/views/ItemNumberPage.vue'
+import CreateItemNumberForm from '@/components/item-number/CreateItemNumberForm.vue'
+import ViewItemNumber from '@/components/item-number/ViewItemNumberForm.vue'
 import AboutUsPage from '@/views/AboutUsPage.vue'
 import AnnouncementsPage from '@/views/AnnouncementsPage.vue'
 import { AuthRole, AuthType } from '@/typings/auth.types.ts'
@@ -13,6 +16,7 @@ import { useAuthStore } from '@/stores/auth.store.ts'
 
 const enum RouteGroup {
   MAIN = 'Main',
+  HUMAN_RESOURCES = 'Human Resources',
   ADMIN_TOOLS = 'Admin Tools',
   MISC = 'Misc',
   AUTH = 'Auth',
@@ -133,6 +137,49 @@ const routes = [
       authType: AuthType.AUTHENTICATED,
       roles: [AuthRole.STANDARD_USER, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
     },
+  },
+
+  {
+    path: '/recruitments',
+    name: 'recruitments',
+    meta: <RouteMeta>{
+      group: RouteGroup.HUMAN_RESOURCES,
+      label: 'Recruitment',
+      isSidebarMenu: true,
+    },
+    children: [
+      {
+        path: '/item-numbers',
+        name: 'item-numbers',
+        component: ItemNumberPage,
+        meta: <RouteMeta>{
+          label: 'Item Number',
+          isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+      {
+        path: '/item-numbers/store',
+        name: 'item-numbers/store',
+        component: CreateItemNumberForm,
+        meta: <RouteMeta>{
+          isSidebarMenu: false,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+      {
+        path: '/item-numbers/:id/editor',
+        name: 'item-numbers/editor',
+        component: ViewItemNumber,
+        meta: <RouteMeta>{
+          isSidebarMenu: false,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+    ],
   },
   {
     path: '/auth',

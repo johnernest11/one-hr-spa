@@ -51,6 +51,26 @@ export type AddressResponse = {
   region: RegionResponse | null
 } & ApiResponseData
 
+export type ItemNumberResponse = {
+  item_number: string | null
+  date_of_creation: string | null
+  status: string | number | null
+  date_filled_up: string | number | null
+  fund_source_id: FundSourceResponse | null
+  employment_status: string | number | null
+  position_id: PositionResponse | null
+} & ApiResponseData
+
+export type FundSourceResponse = {
+  name: string
+} & ApiResponseData
+
+export type PositionResponse = {
+  title: string
+  parenthetical_title: string | number | null
+  level: '1st' | '2nd' | '3rd' | null
+} & ApiResponseData
+
 /** User (HTTP Responses) */
 export type UserResponse = {
   email: string
