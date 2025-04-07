@@ -78,10 +78,3 @@ const props = withDefaults(defineProps<WbInputTextProps>(), {
     <!-- End validation messages -->
   </div>
 </template>
-<style scoped>
-/* Target the asterisk in the label */
-.red-aesterisk-label::after {
-  content: '*';
-  color: red;
-}
-</style>

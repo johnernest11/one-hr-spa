@@ -12,6 +12,7 @@ export const useSidebarNavLinks = () => {
     name: string | undefined
     children?: NavLink[]
     expanded?: boolean // Add the expanded property
+    active?: boolean // Track active state
   }
   type NavItem = {
     group: string
@@ -101,11 +102,17 @@ export const useSidebarNavLinks = () => {
                   childNavLink.icon = 'fas fa-check-double' // Example icon
                   break
                 case 'item-numbers':
-                  childNavLink.icon = 'fas fa-user-plus' // Example icon
+                  childNavLink.icon = 'fas fa-sitemap' // Example icon
                   break
                 // ... other child route icon assignments
               }
               navLink.children.push(childNavLink) // Now safe to push
+
+              // Set active state for child and parent
+              if (childRoute.name === route.name) {
+                childNavLink.active = true // Mark child active
+                navLink.active = true // If any child is active, set parent active
+              }
             }
           }
           // Only add the parent if it has children

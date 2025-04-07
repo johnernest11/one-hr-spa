@@ -81,6 +81,16 @@ export const uniqueUserIdentifierRule =
       return res.data.is_available
     }
 
+export const uniqueItemNumberIdentifierRule =
+  (key: 'item_number', excludedId: string | number | undefined | null = null): any =>
+    async (value: string) => {
+    /** @note We still need to check as the library can still take in non-string types at run time */
+      if (value === null || value === '' || value === undefined) return true
+
+      const res = await availabilityStore.checkItemNumberUniqueIdentifierAvailability(key, value, excludedId || null)
+      return res.data.is_available
+    }
+
 /** @description Only allow certain file extensions **/
 export const mimeTypeRule = (mimeTypes: string[]) => (value: File) => {
   return mimeTypes.includes(value.type)

@@ -52,10 +52,10 @@ export type AddressResponse = {
 } & ApiResponseData
 
 export type ItemNumberResponse = {
-  item_number: string | null
+  number: string | null
   date_of_creation: string | null
   status: string | number | null
-  date_filled_up: string | number | null
+  date_filled_up: string | null
   fund_source_id: FundSourceResponse | null
   employment_status: string | number | null
   position_id: PositionResponse | null

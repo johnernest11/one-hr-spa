@@ -129,55 +129,63 @@ const formatDate = (dateString: string | null | undefined): string => {
                 <h1
                   class="mb-2 mr-4 whitespace-nowrap text-xl font-semibold text-primary-800 dark:text-primary-100 md:text-xl lg:text-4xl"
                 >
-                  Item Number
+                  Item Numbers
                 </h1>
               </div>
-              <div class="gap-4 whitespace-nowrap md:w-auto">
-                <Button
-                  icon="pi pi-filter-fill"
-                  v-tooltip.top="'Filter Item'"
-                  severity="info"
-                  size="large"
-                  class="mr-2 border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100 sm:text-primary-400 md:text-primary-400 lg:text-primary-400 dark:lg:text-primary-400"
-                  text
-                  @click="$router.push({ name: 'sign-up' })"
-                />
-                <Button
-                  icon="pi pi-plus"
-                  v-tooltip.top="'Create Item Number'"
-                  severity="info"
-                  size="large"
-                  class="border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100 sm:text-primary-400 md:text-primary-400 lg:text-primary-400 dark:lg:text-primary-400"
-                  text
-                  @click="navigateToCreate"
-                />
-              </div>
-              <div class="flex w-full md:w-auto lg:w-1/2">
-                <InputGroup v-model="searchQuery" class="w-full">
-                  <InputText
-                    v-model="searchQuery"
-                    placeholder="Search Item Number"
-                    class="w-full"
-                    :disabled="itemNumberIsLoading"
-                    @keyup.enter="handleSearchItemNumber"
+              <div class="flex w-full items-center justify-end gap-4">
+                <div class="flex space-x-2 whitespace-nowrap md:w-auto">
+                  <!-- Added flex and space-x-4 -->
+                  <Button
+                    icon="pi pi-filter-fill"
+                    v-tooltip.top="'Filter Item'"
+                    severity="info"
+                    size="large"
+                    class="border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100"
+                    text
+                    @click="$router.push({ name: 'sign-up' })"
                   />
                   <Button
-                    icon="pi pi-search"
-                    @click="handleSearchItemNumber"
-                    :loading="itemNumberIsLoading"
-                    :disabled="itemNumberIsLoading"
+                    icon="pi pi-plus"
+                    v-tooltip.top="'Create Item Number'"
+                    severity="info"
+                    size="large"
+                    class="border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100"
+                    text
+                    @click="navigateToCreate"
                   />
-                </InputGroup>
+                </div>
+                <div class="flex w-full md:w-auto lg:w-1/2">
+                  <InputGroup v-model="searchQuery" class="w-full">
+                    <InputText
+                      v-model="searchQuery"
+                      placeholder="Search Item Number"
+                      class="w-full"
+                      :disabled="itemNumberIsLoading"
+                      @keyup.enter="handleSearchItemNumber"
+                    />
+                    <Button
+                      icon="pi pi-search"
+                      @click="handleSearchItemNumber"
+                      :loading="itemNumberIsLoading"
+                      :disabled="itemNumberIsLoading"
+                    />
+                  </InputGroup>
+                </div>
               </div>
             </div>
+            <!-- Show Table if tableData has items -->
+            <div
+              v-if="itemNumberStore.ItemNumberArray && itemNumberStore.ItemNumberArray.length > 0"
+              class="mx-auto flex h-full w-full flex-col"
+            ></div>
             <DataTable :value="itemNumberStore.ItemNumberArray" class="mt-6" dataKey="id">
               <Column
                 field="period"
-                header="Item Number"
+                header="Item Numbers"
                 headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
               >
                 <template #body="props">
-                  <p class="font-semibold uppercase text-surface-600">{{ props.data.item_number }}</p>
+                  <p class="font-semibold uppercase text-surface-600">{{ props.data.number }}</p>
                 </template>
               </Column>
               <Column
@@ -195,14 +203,14 @@ const formatDate = (dateString: string | null | undefined): string => {
                 headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
               >
                 <template #body="props">
-                  <template v-if="props.data.status.toUpperCase() === 'Unfilled'">
-                    <Chip label="Unfilled" class="bg-red-600 px-4 py-1 text-center font-semibold text-white" />
+                  <template v-if="props.data.status === 'Unfilled'">
+                    <Chip
+                      label="Unfilled"
+                      class="flex items-center justify-center bg-error-900 px-4 py-1 font-semibold text-white"
+                    />
                   </template>
-                  <template v-else-if="props.data.status.toUpperCase() === 'Filled'">
-                    <Chip label="Filled" class="bg-green-900 px-4 py-1 text-center font-semibold text-white" />
-                  </template>
-                  <template v-else>
-                    <Chip label="Action" class="w-24 text-center font-semibold text-surface-600" />
+                  <template v-else-if="props.data.status === 'Filled'">
+                    <Chip label="Filled" class="flex items-center justify-center bg-success-900 text-white" />
                   </template>
                 </template>
               </Column>
@@ -243,14 +251,10 @@ const formatDate = (dateString: string | null | undefined): string => {
                 <div class="flex flex-col items-center sm:flex-col md:flex-col">
                   <div
                     class="my-6 flex w-full flex-col items-center justify-between gap-4 rounded-lg bg-surface-0 px-6 py-6 dark:bg-surface-800 md:my-4 md:flex-row md:px-4 md:py-4"
-                  >
-                    <h1
-                      class="mb-2 mr-4 whitespace-nowrap text-xl font-semibold text-primary-800 dark:text-primary-100 md:text-xl lg:text-4xl"
-                    >
-                      Item Number
-                    </h1>
+                  ></div>
+                  <div class="flex justify-center">
+                    <img src="@/assets/image/undraw_site-stats.svg" class="w-96 pt-12" />
                   </div>
-                  <div><img src="@/assets/image/undraw_site-stats.svg" class="mx-auto w-96 pt-12" /></div>
                   <h2
                     class="mb-2 mt-4 flex w-full justify-center text-xl font-semibold text-surface-800 dark:text-primary-100 sm:text-2xl"
                   >
@@ -263,7 +267,6 @@ const formatDate = (dateString: string | null | undefined): string => {
                     <Button
                       icon="pi pi-plus"
                       label="New Item Number"
-                      v-tooltip.top="'Create Item Number'"
                       severity="info"
                       size="large"
                       class="border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100 sm:text-primary-400 md:text-primary-400 lg:text-primary-400 dark:lg:text-primary-400"

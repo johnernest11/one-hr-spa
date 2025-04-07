@@ -10,7 +10,7 @@ import WbBreadcrumbs from '@/components/layout/AppBreadcrumbs.vue'
     <Toolbar class="!rounded-0 bg-gradient-primary !bg-primary-500 px-4 shadow-none !ring-0 lg:hidden">
       <template #start>
         <!-- <AppLogo color="light" /> -->
-        <img src="@/assets/image/dswd-logo.png" width="100" class="mx-auto my-1" />
+        <img src="@/assets/image/dswd-logo.png" width="100" class="mx-auto my-1 brightness-0 invert filter" />
       </template>
       <template #end>
         <AppMobileSidebar />

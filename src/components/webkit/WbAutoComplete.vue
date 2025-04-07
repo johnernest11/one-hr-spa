@@ -125,10 +125,3 @@ const handleItemClear = (): void => {
     <!-- End Validation Messages -->
   </div>
 </template>
-<style scoped>
-/* Target the asterisk in the label */
-.red-aesterisk-label::after {
-  content: '*';
-  color: red;
-}
-</style>
