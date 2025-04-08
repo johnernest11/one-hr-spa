@@ -21,6 +21,7 @@ type WbCalendarProps = {
   labelClass?: string
   validationErrorMessageClass?: string
   validationSuccessMessageClass?: string
+  required?: boolean
 }
 
 const props = withDefaults(defineProps<WbCalendarProps>(), {
@@ -32,14 +33,16 @@ const props = withDefaults(defineProps<WbCalendarProps>(), {
   labelClass: '',
   validationErrorMessageClass: '',
   validationSuccessMessageClass: '',
+  required: false,
 })
 </script>
 
 <template>
   <div :class="`flex w-full flex-col gap-2 ${wrapperClass}`">
-    <label :for="$.uid.toString()" :class="`${props.labelClass || 'text-xs text-surface-800 dark:text-surface-200'}`">{{
-      props.label
-    }}</label>
+    <label :for="$.uid.toString()" :class="`${props.labelClass || 'text-xs text-surface-800 dark:text-surface-200'}`"
+      >{{ props.label }} <span v-if="props.required" class="text-error-500">*</span>
+      <!-- Asterisk for required fields -->
+    </label>
 
     <div :class="`relative ${$attrs.disabled ? 'hover:cursor-not-allowed' : ''}`">
       <!-- Start Prepend Icon -->

@@ -67,8 +67,11 @@ export const useItemNumberStore = defineStore('item-number', () => {
     return responseBody
   }
 
-  const updateItemNumber = async (ItemNumber: Partial<ItemNumberPayload>, id: string | number) => {
-    const { data } = await useApiCall(`/items/${id}`, auth.authenticationToken).put(ItemNumber).json()
+  const updateItemNumber = async (item: Partial<ItemNumberPayload>, id: string | number) => {
+    if (item.date_of_creation) {
+      item.date_of_creation = useDateFormat(item.date_of_creation, 'YYYY-MM-DD').value.toString()
+    }
+    const { data } = await useApiCall(`/items/${id}`, auth.authenticationToken).put(item).json()
     const responseBody: ApiResponseBody = data.value
     if (responseBody.success) {
       const index = itemNumber.value.findIndex((ItemNumber) => ItemNumber?.id === id)

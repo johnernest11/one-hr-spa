@@ -21,7 +21,7 @@ const payload = reactive<RegistrationAddressPayload>({
   home_address: formStore.registrationInfo.address?.home_address || null,
   barangay_id: formStore.registrationInfo.address?.barangay_id || null,
   city_id: formStore.registrationInfo.address?.city_id || null,
-  region_id: '',
+  region_id: formStore.registrationInfo.address?.region_id || null,
   province_id: formStore.registrationInfo.address?.province_id || null,
   postal_code: formStore.registrationInfo.address?.postal_code || null,
 })

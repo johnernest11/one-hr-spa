@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted, watch } from 'vue'
+import { ref, reactive, onMounted, watch, toRef, computed } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import { parseApiResponseError } from '@/utils/error-handle.ts'
 import useVuelidate from '@vuelidate/core'
 import { helpers, maxLength, required } from '@vuelidate/validators'
-import WbAutoComplete, { WbAutoCompleteOption } from '@/components/webkit/WbAutoComplete.vue'
+import WbAutoComplete, { WbAutoCompleteOption, WbAutoCompleteOptionTrueValue } from '@/components/webkit/WbAutoComplete.vue'
 import WbInputText from '@/components/webkit/WbInputText.vue'
 import WbDropdown from '@/components//webkit/WbDropdown.vue'
 import WbCalendar from '../webkit/WbCalendar.vue'
@@ -16,6 +16,8 @@ import { useFundSourceStore } from '@/stores/fund-source.store'
 import { usePositionStore } from '@/stores/position.store.ts'
 import { ItemNumberResponse } from '@/typings/models.types'
 import { useRoute } from 'vue-router'
+import { useRouter } from 'vue-router'
+import { useWbAutoCompleteHandleTrueValue } from '@/composables/wb-ui-components.ts'
 /** Payload for the Item Number */
 const payload = reactive<ItemNumberPayload>({
   number: null,
@@ -46,12 +48,19 @@ const formRules = {
   employment_status: {
     required: helpers.withMessage('Employment Status is Required', required),
   },
+  fund_source_id: {
+    required: helpers.withMessage('Fund Source Status is Required', required),
+  },
+  position_id: {
+    required: helpers.withMessage('Position Status is Required', required),
+  },
 }
 
 const route = useRoute()
+const router = useRouter()
 const publicPositionStore = usePositionStore()
 const publicFundSourceStore = useFundSourceStore()
-const ItemNumberStore = useItemNumberStore()
+const itemNumberStore = useItemNumberStore()
 const validator = useVuelidate<Partial<ItemNumberPayload>>(formRules, payload)
 const errorMessage = ref<string | null>(null)
 const errorDetails = ref<string[]>([])
@@ -64,28 +73,7 @@ const toast = useToast()
 
 /** Position & Fund Sources WbAutoComplete Object References */
 const selectedPosition = ref<WbAutoCompleteOption | null>(null)
-
-watch(selectedPosition, (newValue) => {
-  if (newValue) {
-    payload.position_id = String(newValue.value) // Assuming the value here corresponds to the position_id
-  } else {
-    payload.position_id = null // Reset if no selection
-  }
-})
 const selectedFundSource = ref<WbAutoCompleteOption | null>(null)
-watch(selectedFundSource, (newValue) => {
-  // When a new position is selected, set the position_id in payload
-  if (newValue) {
-    payload.fund_source_id = String(newValue.value) // Assuming the value here corresponds to the position_id
-  } else {
-    payload.fund_source_id = null // Reset if no selection
-  }
-})
-
-/** Check if the page should be reloaded after the update */
-const shouldReloadPageAfterUpdate = (): boolean => {
-  return true
-}
 
 /** Emits */
 const emit = defineEmits<{
@@ -100,56 +88,17 @@ const employementStatusOptions = [
   { label: 'Job Order', value: 'Job Order' },
 ]
 
-// Function to handle position search
-const searchPositionOptions = async (query: string) => {
-  if (query) {
-    console.log('Search Query:', query) // Log the search query
-    try {
-      await publicPositionStore.searchPosition(query)
-      if (!publicPositionStore.positionOptions.length) {
-        selectedPosition.value = null
-      }
-    } catch (error) {
-      console.error('Error fetching positions:', error) // Log any errors
-    }
-  } else {
-    publicPositionStore.positionOptions = []
-    selectedPosition.value = null
-  }
-}
-
-// Function to handle fund source search
-const searchFundSourceOptions = async (query: string) => {
-  if (query) {
-    console.log('Search Query:', query) // Log the search query
-    try {
-      await publicFundSourceStore.searchFundSources(query)
-      if (!publicFundSourceStore.fundSourceOptions.length) {
-        selectedFundSource.value = null
-      }
-    } catch (error) {
-      console.error('Error fetching positions:', error) // Log any errors
-    }
-  } else {
-    publicFundSourceStore.fundSourceOptions = []
-    selectedFundSource.value = null
-  }
-}
-
-// Debounced input handler
-const onInputPosition = async (event: InputEvent) => {
+const onInputSearch = async (event: InputEvent, type: 'position' | 'fundSource') => {
   const target = event.target as HTMLInputElement
   searchQuery.value = target.value
 
-  await searchPositionOptions(searchQuery.value)
-} // Adjust delay as necessary
-
-// Debounced input handler
-const onInputFundSource = async (event: InputEvent) => {
-  const target = event.target as HTMLInputElement
-  searchQuery.value = target.value
-
-  await searchFundSourceOptions(searchQuery.value)
+  if (type === 'position') {
+    await publicPositionStore.searchPosition(searchQuery.value)
+    selectedPosition.value = publicPositionStore.positionOptions.length ? selectedPosition.value : null
+  } else if (type === 'fundSource') {
+    await publicFundSourceStore.searchFundSources(searchQuery.value)
+    selectedFundSource.value = publicFundSourceStore.fundSourceOptions.length ? selectedFundSource.value : null
+  }
 }
 
 /** Props */
@@ -161,7 +110,7 @@ const props = defineProps<ItemNumberDetailsFormProps>()
 onMounted(async () => {
   const id = route.params.id as string
   if (id) {
-    const response = await ItemNumberStore.fetchItemNumberById(id)
+    const response = await itemNumberStore.fetchItemNumberById(id)
     if (response && response.success) {
       updatePayloadFromReport(response.data as ItemNumberResponse)
     }
@@ -169,25 +118,33 @@ onMounted(async () => {
   isLoading.value = false
 })
 
+// Check if the button should be visible
+const isButtonVisible = computed(() => true)
+const handleButtonClick = async () => {
+  formIsSubmitting.value = true
+
+  if (route.params.id) {
+    await updateButtonSubmission() // Make sure this is asynchronous
+  } else {
+    await saveButtonSubmission() // Make sure this is asynchronous
+  }
+
+  formIsSubmitting.value = false
+}
+
+// Change button label based on route params
+const buttonLabel = computed(() => {
+  return route.params.id ? 'Update' : 'Save'
+})
+
 /** Update the payload from the fetched item number */
 const updatePayloadFromReport = (itemNumber: ItemNumberResponse | null) => {
-  if (itemNumber) {
-    payload.number = itemNumber.number ?? null
-    payload.date_of_creation = itemNumber.date_of_creation ?? ''
-    payload.date_filled_up = itemNumber.date_filled_up ?? ''
-    payload.fund_source_id = String(itemNumber.fund_source_id ?? '')
-    payload.employment_status = String(itemNumber.employment_status ?? '')
-    payload.position_id = String(itemNumber.position_id ?? '')
-  } else {
-    // Reset payload if report is null
-    // ... (reset payload and selected values)
-    payload.number = ''
-    payload.date_of_creation = ''
-    payload.date_filled_up = ''
-    payload.fund_source_id = null
-    payload.employment_status = ''
-    payload.position_id = null
-  }
+  payload.number = itemNumber.number ?? null
+  payload.date_of_creation = itemNumber.date_of_creation ?? ''
+  payload.date_filled_up = itemNumber.date_filled_up ?? ''
+  payload.fund_source_id = itemNumber.fund_source_id ?? ''
+  payload.employment_status = itemNumber.employment_status ?? ''
+  payload.position_id = itemNumber.position_id ?? ''
 }
 /** Watcher to reactively respond to changes in the item number prop */
 watch(
@@ -198,14 +155,14 @@ watch(
       payload.number = newValue.number ?? null
       payload.date_of_creation = newValue.date_of_creation ?? ''
       ;(payload.status = 'Unfilled'), (payload.date_filled_up = newValue.date_filled_up ?? '')
-      payload.fund_source_id = String(newValue.fund_source_id ?? '')
-      payload.employment_status = String(newValue.employment_status ?? '') // Corrected line
-      payload.position_id = String(newValue.position_id ?? '') // Ensure fetching correct ID
+      payload.fund_source_id = newValue.fund_source_id ?? ''
+      payload.employment_status = newValue.employment_status ?? ''
+      payload.position_id = newValue.position_id ?? ''
     } else {
       // Reset payload if itemNumber becomes undefined
       payload.number = ''
       payload.date_of_creation = ''
-      ;(payload.status = 'Unfilled'), (payload.date_of_creation = '')
+      payload.status = 'Unfilled'
       payload.fund_source_id = ''
       payload.employment_status = ''
       payload.position_id = ''
@@ -217,7 +174,7 @@ watch(
 const saveButtonSubmission = async () => {
   const valid = await validator.value.$validate()
   if (!valid) {
-    document.getElementsByClassName('create-item-number-creds-section')[0]?.scrollIntoView({ behavior: 'smooth' })
+    document.getElementById('Item-number')?.scrollIntoView({ behavior: 'smooth' })
     toast.add({
       severity: 'error',
       summary: 'Error in adding Item Number',
@@ -228,7 +185,7 @@ const saveButtonSubmission = async () => {
   }
 
   formIsSubmitting.value = true
-  const response = await ItemNumberStore.createItemNumber(payload)
+  const response = await itemNumberStore.createItemNumber(payload)
   // Handle the API error
   if (!response.success) {
     const result = parseApiResponseError(response)
@@ -239,7 +196,7 @@ const saveButtonSubmission = async () => {
     errorDetails.value = result.errors
 
     formIsSubmitting.value = false
-    return document.getElementsByClassName('create-item-number-creds-section')[0]?.scrollIntoView({ behavior: 'smooth' })
+    return document.getElementById('Item-number')?.scrollIntoView({ behavior: 'smooth' })
   }
 
   formIsSubmitting.value = false
@@ -249,17 +206,18 @@ const saveButtonSubmission = async () => {
     detail: "You've successfully created a Item Number",
     life: 5000,
   })
-
+  formIsSubmitting.value = false
   emit('item-number-created', true)
-  setTimeout(() => {
-    window.location.reload() // Consider alternative approaches if full reload isn't necessary
-  }, 1000)
+  setTimeout(async () => {
+    await router.push({ name: 'item-numbers' })
+  }, 1000) // Delay the navigation
 }
+
 /** Handle updating the item number */
 const updateButtonSubmission = async () => {
   const valid = await validator.value.$validate()
   if (!valid) {
-    document.getElementsByClassName('update-item-number-creds-section')[0]?.scrollIntoView({ behavior: 'smooth' })
+    document.getElementById('Item-number')?.scrollIntoView({ behavior: 'smooth' })
     toast.add({
       severity: 'error',
       summary: 'Error in updating Item Number',
@@ -272,7 +230,7 @@ const updateButtonSubmission = async () => {
   const id = route.params.id as string
 
   formIsSubmitting.value = true
-  const response = await ItemNumberStore.updateItemNumber(payload, id)
+  const response = await itemNumberStore.updateItemNumber(payload, id)
 
   if (!response.success) {
     const result = parseApiResponseError(response)
@@ -282,7 +240,7 @@ const updateButtonSubmission = async () => {
     errorMessage.value = result.message
     errorDetails.value = result.errors
     IsBeingUpdated.value = false
-    return document.getElementsByClassName('update-item-number-creds-section')[0]?.scrollIntoView({ behavior: 'smooth' })
+    return document.getElementById('Item-number')?.scrollIntoView({ behavior: 'smooth' })
   }
 
   formIsSubmitting.value = false
@@ -293,19 +251,14 @@ const updateButtonSubmission = async () => {
     life: 3000,
   })
 
-  if (shouldReloadPageAfterUpdate()) {
-    setTimeout(() => {
-      window.location.reload()
-    }, 2000)
-  }
-
+  formIsSubmitting.value = false
   emit('item-number-updated', true)
 }
 </script>
 
 <template>
   <form autocomplete="off" @submit.prevent>
-    <div class="flex w-full flex-col gap-4 pb-4 pl-4 pt-8">
+    <div id="Item-number" class="flex w-full flex-col gap-4 pb-4 pl-4 pt-8">
       <Card class="h-full">
         <template #content>
           <div class="flex w-full flex-col items-start md:flex-row">
@@ -325,17 +278,14 @@ const updateButtonSubmission = async () => {
           </div>
           <div class="flex flex-col gap-4 pb-6 md:flex-row">
             <div class="flex w-full flex-col">
-              <label class="mb-0 flex items-center text-xs text-surface-600">
-                Item Number
-                <span class="pl-1 text-red-600">*</span>
-              </label>
               <WbInputText
                 v-model="payload.number"
-                :label="''"
+                label=" Item Number "
                 label-class="mb-0 text-xs text-surface-600"
                 :invalid="validator.number.$invalid"
                 :invalid-text="validator.number.$errors[0]?.$message"
                 @blur="validator.number.$touch"
+                required
               />
             </div>
             <div class="flex w-full flex-col">
@@ -351,75 +301,76 @@ const updateButtonSubmission = async () => {
           </div>
           <div class="flex flex-col gap-4 pb-6 md:flex-row">
             <div class="flex w-full flex-col">
-              <label class="mb-0 flex items-center text-xs text-surface-600">
-                Date of Creation
-                <span class="pl-1 text-red-900">*</span>
-              </label>
               <WbCalendar
                 v-model="payload.date_of_creation"
-                label=""
+                label="Date of Creation"
                 label-class="mb-0 text-xs text-surface-600"
                 dateFormat="MM dd, yy"
                 :maxDate="new Date()"
                 :invalid="validator.date_of_creation.$invalid"
                 :invalid-text="validator.date_of_creation.$errors[0]?.$message"
                 @blur="validator.date_of_creation.$touch"
+                required
               >
               </WbCalendar>
             </div>
             <div class="flex w-full flex-col">
-              <label class="mb-0 flex items-center text-xs text-surface-600">
-                Fund Source
-                <span class="pl-1 text-red-600">*</span>
-              </label>
               <WbAutoComplete
                 v-model="selectedFundSource"
                 :suggestions="publicFundSourceStore.fundSourceOptions"
                 :loading="publicFundSourceStore.fundSourceOptionsIsLoading"
-                label=""
+                :invalid="validator.fund_source_id.$invalid"
+                :invalid-text="validator.fund_source_id.$errors[0]?.$message"
+                @blur="validator.fund_source_id.$touch"
+                label="Fund Source"
                 optionLabel="label"
                 optionValue="value"
                 forceSelection
-                @input="onInputFundSource"
-                label-class="mb-0 text-surface-600"
+                @input="onInputSearch($event, 'fundSource')"
+                @on-true-value-computed="
+                  (value: WbAutoCompleteOptionTrueValue) =>
+                    useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'fund_source_id'))
+                "
+                label-class="mb-0 text-xs text-surface-600"
+                required
               >
               </WbAutoComplete>
             </div>
           </div>
           <div class="flex flex-col gap-4 pb-6 md:flex-row">
             <div class="flex w-full flex-col">
-              <label class="mb-0 flex items-center text-xs text-surface-600">
-                Employement Status
-                <span class="pl-1 text-red-600">*</span>
-              </label>
               <WbDropdown
                 v-model="payload.employment_status"
                 :options="employementStatusOptions"
                 optionLabel="label"
                 optionValue="value"
-                label=""
+                label=" Employement Status "
                 :invalid="validator.employment_status.$invalid"
                 :invalid-text="validator.employment_status.$errors[0]?.$message"
                 @blur="validator.employment_status.$touch"
                 label-class="mb-0 text-xs text-surface-600"
+                required
               >
               </WbDropdown>
             </div>
             <div class="flex w-full flex-col">
-              <label class="mb-0 flex items-center text-xs text-surface-600">
-                Position
-                <span class="pl-1 text-red-600">*</span>
-              </label>
               <WbAutoComplete
                 v-model="selectedPosition"
                 :suggestions="publicPositionStore.positionOptions"
                 :loading="publicPositionStore.positionOptionsIsLoading"
-                label=""
+                :invalid="validator.position_id.$invalid"
+                :invalid-text="validator.position_id.$errors[0]?.$message"
+                @blur="validator.position_id.$touch"
+                label="Position"
                 optionLabel="label"
                 optionValue="value"
                 forceSelection
-                @input="onInputPosition"
-                label-class="mb-0 text-surface-600"
+                @input="onInputSearch($event, 'position')"
+                @on-true-value-computed="
+                  (value: WbAutoCompleteOptionTrueValue) => useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'position_id'))
+                "
+                label-class="mb-0 text-xs text-surface-600"
+                required
               >
               </WbAutoComplete>
             </div>
@@ -438,24 +389,9 @@ const updateButtonSubmission = async () => {
               </template>
             </Button>
             <Button
-              v-if="!route.params.id"
-              @click="saveButtonSubmission"
-              label="Save"
-              :loading="formIsSubmitting"
-              :disabled="formIsSubmitting"
-              size="large"
-              class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
-              text
-            >
-              <template #icon>
-                <i class="pi pi-save mr-2"></i>
-              </template>
-            </Button>
-            <!-- Update button should be visible regardless -->
-            <Button
-              v-if="route.params.id"
-              @click="updateButtonSubmission"
-              label="Update"
+              v-if="isButtonVisible"
+              :label="buttonLabel"
+              @click="handleButtonClick"
               :loading="formIsSubmitting"
               :disabled="formIsSubmitting"
               size="large"
