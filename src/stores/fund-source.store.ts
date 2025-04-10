@@ -41,10 +41,8 @@ export const useFundSourceStore = defineStore('fund_source', () => {
 
     if (res.success && Array.isArray(res.data)) {
       const fundSourcesListResponse = res.data as FundSourceResponse[]
-
       fundSourceOptions.value = fundSourcesListResponse.map((fundSource: FundSourceResponse) => {
-        const label = fundSource.name || ''
-        return { value: fundSource.id, label }
+        return { value: fundSource.id, label: fundSource.name }
       })
     } else {
       fundSourceOptions.value = []

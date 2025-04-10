@@ -18,7 +18,7 @@ import { ItemNumberResponse } from '@/typings/models.types'
 import { useRoute } from 'vue-router'
 import { useRouter } from 'vue-router'
 import { useWbAutoCompleteHandleTrueValue } from '@/composables/wb-ui-components.ts'
-/** Payload for the Item Number */
+
 const payload = reactive<ItemNumberPayload>({
   number: null,
   date_of_creation: '',
@@ -88,18 +88,20 @@ const employementStatusOptions = [
   { label: 'Job Order', value: 'Job Order' },
 ]
 
-const onInputSearch = async (event: InputEvent, type: 'position' | 'fundSource') => {
+const onInputSearch = (event: InputEvent, type: 'position' | 'fundSource') => {
   const target = event.target as HTMLInputElement
-  searchQuery.value = target.value
-
-  if (type === 'position') {
-    await publicPositionStore.searchPosition(searchQuery.value)
-    selectedPosition.value = publicPositionStore.positionOptions.length ? selectedPosition.value : null
-  } else if (type === 'fundSource') {
-    await publicFundSourceStore.searchFundSources(searchQuery.value)
-    selectedFundSource.value = publicFundSourceStore.fundSourceOptions.length ? selectedFundSource.value : null
-  }
+  searchQuery.value = target.value.trim()
+  clearTimeout(onInputSearch.lastTimeout)
+  onInputSearch.lastTimeout = setTimeout(async () => {
+    if (type === 'position') {
+      await publicPositionStore.searchPosition(searchQuery.value)
+    } else if (type === 'fundSource') {
+      await publicFundSourceStore.searchFundSources(searchQuery.value)
+    }
+  }, 1000)
 }
+
+onInputSearch.lastTimeout = null
 
 /** Props */
 type ItemNumberDetailsFormProps = {
@@ -118,26 +120,23 @@ onMounted(async () => {
   isLoading.value = false
 })
 
-// Check if the button should be visible
 const isButtonVisible = computed(() => true)
 const handleButtonClick = async () => {
   formIsSubmitting.value = true
 
   if (route.params.id) {
-    await updateButtonSubmission() // Make sure this is asynchronous
+    await updateButtonSubmission()
   } else {
-    await saveButtonSubmission() // Make sure this is asynchronous
+    await saveButtonSubmission()
   }
 
   formIsSubmitting.value = false
 }
 
-// Change button label based on route params
 const buttonLabel = computed(() => {
   return route.params.id ? 'Update' : 'Save'
 })
 
-/** Update the payload from the fetched item number */
 const updatePayloadFromReport = (itemNumber: ItemNumberResponse | null) => {
   payload.number = itemNumber.number ?? null
   payload.date_of_creation = itemNumber.date_of_creation ?? ''
@@ -146,11 +145,10 @@ const updatePayloadFromReport = (itemNumber: ItemNumberResponse | null) => {
   payload.employment_status = itemNumber.employment_status ?? ''
   payload.position_id = itemNumber.position_id ?? ''
 }
-/** Watcher to reactively respond to changes in the item number prop */
+
 watch(
   () => props.itemNumber,
   (newValue) => {
-    // Check if newValue exists before accessing its properties
     if (newValue) {
       payload.number = newValue.number ?? null
       payload.date_of_creation = newValue.date_of_creation ?? ''
@@ -159,7 +157,6 @@ watch(
       payload.employment_status = newValue.employment_status ?? ''
       payload.position_id = newValue.position_id ?? ''
     } else {
-      // Reset payload if itemNumber becomes undefined
       payload.number = ''
       payload.date_of_creation = ''
       payload.status = 'Unfilled'
@@ -170,6 +167,7 @@ watch(
   },
   { immediate: true }
 )
+
 /** Form Submission */
 const saveButtonSubmission = async () => {
   const valid = await validator.value.$validate()
@@ -186,7 +184,6 @@ const saveButtonSubmission = async () => {
 
   formIsSubmitting.value = true
   const response = await itemNumberStore.createItemNumber(payload)
-  // Handle the API error
   if (!response.success) {
     const result = parseApiResponseError(response)
     if (!result) return (formIsSubmitting.value = false)
@@ -196,7 +193,6 @@ const saveButtonSubmission = async () => {
     errorDetails.value = result.errors
 
     formIsSubmitting.value = false
-    return document.getElementById('Item-number')?.scrollIntoView({ behavior: 'smooth' })
   }
 
   formIsSubmitting.value = false
@@ -210,7 +206,7 @@ const saveButtonSubmission = async () => {
   emit('item-number-created', true)
   setTimeout(async () => {
     await router.push({ name: 'item-numbers' })
-  }, 1000) // Delay the navigation
+  }, 1000)
 }
 
 /** Handle updating the item number */
@@ -240,7 +236,6 @@ const updateButtonSubmission = async () => {
     errorMessage.value = result.message
     errorDetails.value = result.errors
     IsBeingUpdated.value = false
-    return document.getElementById('Item-number')?.scrollIntoView({ behavior: 'smooth' })
   }
 
   formIsSubmitting.value = false
@@ -258,7 +253,7 @@ const updateButtonSubmission = async () => {
 
 <template>
   <form autocomplete="off" @submit.prevent>
-    <div id="Item-number" class="flex w-full flex-col gap-4 pb-4 pl-4 pt-8">
+    <div class="flex w-full flex-col gap-4 pb-4 pl-4 pt-8">
       <Card class="h-full">
         <template #content>
           <div class="flex w-full flex-col items-start md:flex-row">
@@ -281,7 +276,7 @@ const updateButtonSubmission = async () => {
               <WbInputText
                 v-model="payload.number"
                 label=" Item Number "
-                label-class="mb-0 text-xs text-surface-600"
+                label-class="text-sm text-surface-600"
                 :invalid="validator.number.$invalid"
                 :invalid-text="validator.number.$errors[0]?.$message"
                 @blur="validator.number.$touch"
@@ -292,7 +287,7 @@ const updateButtonSubmission = async () => {
               <WbCalendar
                 v-model="payload.date_filled_up"
                 label="Date Filled Up  "
-                label-class="mb-0 text-xs text-surface-600"
+                label-class=" text-sm text-surface-600"
                 dateFormat="MM dd, yy"
                 :maxDate="new Date()"
               >
@@ -304,7 +299,7 @@ const updateButtonSubmission = async () => {
               <WbCalendar
                 v-model="payload.date_of_creation"
                 label="Date of Creation"
-                label-class="mb-0 text-xs text-surface-600"
+                label-class="text-sm text-surface-600"
                 dateFormat="MM dd, yy"
                 :maxDate="new Date()"
                 :invalid="validator.date_of_creation.$invalid"
@@ -331,7 +326,7 @@ const updateButtonSubmission = async () => {
                   (value: WbAutoCompleteOptionTrueValue) =>
                     useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'fund_source_id'))
                 "
-                label-class="mb-0 text-xs text-surface-600"
+                label-class="text-sm text-surface-600"
                 required
               >
               </WbAutoComplete>
@@ -348,7 +343,7 @@ const updateButtonSubmission = async () => {
                 :invalid="validator.employment_status.$invalid"
                 :invalid-text="validator.employment_status.$errors[0]?.$message"
                 @blur="validator.employment_status.$touch"
-                label-class="mb-0 text-xs text-surface-600"
+                label-class="text-sm text-surface-600"
                 required
               >
               </WbDropdown>
@@ -369,7 +364,7 @@ const updateButtonSubmission = async () => {
                 @on-true-value-computed="
                   (value: WbAutoCompleteOptionTrueValue) => useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'position_id'))
                 "
-                label-class="mb-0 text-xs text-surface-600"
+                label-class="text-sm text-surface-600"
                 required
               >
               </WbAutoComplete>

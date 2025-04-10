@@ -45,8 +45,10 @@ export const usePositionStore = defineStore('position', () => {
     if (res.success && Array.isArray(res.data)) {
       const positionsListResponse = res.data as PositionResponse[]
       positionOptions.value = positionsListResponse.map((position: PositionResponse) => {
-        const label = position.parenthetical_title ? `${position.title} (${position.parenthetical_title})` : position.title
-        return { value: position.id, label }
+        return {
+          value: position.id,
+          label: position.parenthetical_title ? `${position.title} (${position.parenthetical_title})` : position.title,
+        }
       })
     } else {
       positionOptions.value = []

@@ -206,13 +206,14 @@ const formatDate = (dateString: string | null | undefined): string => {
                   <template v-if="props.data.status === 'Unfilled'">
                     <Chip
                       label="Unfilled"
-                      class="flex items-center justify-center bg-error-600 px-4 py-1 font-semibold text-white"
-                    />
+                      class="flex items-center justify-center bg-error-700 px-4 py-1 font-semibold text-surface-0"
+                    >
+                    </Chip>
                   </template>
                   <template v-else-if="props.data.status === 'Filled'">
                     <Chip
                       label="Filled"
-                      class="flex items-center justify-center bg-success-600 px-4 py-1 font-semibold text-white"
+                      class="flex items-center justify-center bg-success-700 px-4 py-1 font-semibold text-surface-0"
                     />
                   </template>
                 </template>
