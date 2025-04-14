@@ -23,7 +23,7 @@ export const useItemNumberStore = defineStore('item-number', () => {
   const ItemNumberArray = ref<ItemNumberResponse[]>([])
   const selectedItemNumber = ref<ItemNumberResponse | null>(null)
   const fetchItemNumber = async (limit: number = 10, page: number | null = null) => {
-    let uri = `/items?limit=${limit}&sort=asc&`
+    let uri = `/item?limit=${limit}&sort=asc&`
     if (page) uri += `page=${page}`
     const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
     const responseBody: ApiResponseBody = data.value
@@ -34,7 +34,7 @@ export const useItemNumberStore = defineStore('item-number', () => {
     return responseBody
   }
   const fetchItemNumberById = async (id: string) => {
-    const url = `/items/${id}`
+    const url = `/item/${id}`
     const { data } = await useApiCall(url, auth.authenticationToken).get().json()
     const responseBody: ApiResponseBody = data.value
     if (responseBody.success) {
@@ -46,7 +46,7 @@ export const useItemNumberStore = defineStore('item-number', () => {
     if (item.date_of_creation) {
       item.date_of_creation = useDateFormat(item.date_of_creation, 'YYYY-MM-DD').value.toString()
     }
-    const { data } = await useApiCall('/items/', auth.authenticationToken).post(item).json()
+    const { data } = await useApiCall('/item/', auth.authenticationToken).post(item).json()
     const responseBody: ApiResponseBody = data.value
 
     if (responseBody.success) {
@@ -56,7 +56,7 @@ export const useItemNumberStore = defineStore('item-number', () => {
   }
 
   const searchItemNumber = async (query: string | null) => {
-    let uri = '/items/search?'
+    let uri = '/item/search?'
     if (query) uri += `query=${query}`
     const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
     const responseBody: ApiResponseBody = data.value
@@ -71,7 +71,7 @@ export const useItemNumberStore = defineStore('item-number', () => {
     if (item.date_of_creation) {
       item.date_of_creation = useDateFormat(item.date_of_creation, 'YYYY-MM-DD').value.toString()
     }
-    const { data } = await useApiCall(`/items/${id}`, auth.authenticationToken).put(item).json()
+    const { data } = await useApiCall(`/item/${id}`, auth.authenticationToken).put(item).json()
     const responseBody: ApiResponseBody = data.value
     if (responseBody.success) {
       const index = itemNumber.value.findIndex((ItemNumber) => ItemNumber?.id === id)
