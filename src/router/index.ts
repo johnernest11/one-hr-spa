@@ -1,15 +1,16 @@
 import { createRouter, createWebHistory, RouteMeta } from 'vue-router'
 import { vueApp } from '@/app.ts'
 import Dashboard from '@/views/DashboardPage.vue'
-import ProfilePage from '@/views/ProfilePage.vue'
 import SupportPage from '@/views/SupportPage.vue'
+import EmployeeEntryPage from '@/views/EmployeeEntryPage.vue'
 import AboutUsPage from '@/views/AboutUsPage.vue'
 import AnnouncementsPage from '@/views/AnnouncementsPage.vue'
 import { AuthRole, AuthType } from '@/typings/auth.types.ts'
 import { useAuthStore } from '@/stores/auth.store.ts'
+import CreateEmployeeC1Form from '@/components/employee-entry/CreateEmployeeC1Form.vue'
 
 const enum RouteGroup {
-  HOME = 'Home',
+  MAIN = 'Main',
   ADMIN_TOOLS = 'Admin Tools',
   MISC = 'Misc',
   AUTH = 'Auth',
@@ -21,35 +22,42 @@ const routes = [
     name: 'dashboard',
     component: Dashboard,
     meta: <RouteMeta>{
-      group: RouteGroup.HOME,
-      label: 'Dashboard',
+      group: RouteGroup.MAIN,
+      label: 'Home',
       isSidebarMenu: true,
       authType: AuthType.AUTHENTICATED,
-      roles: [AuthRole.STANDARD_USER, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+      roles: [AuthRole.STANDARD_USER, AuthRole.EMPLOYEE, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
     },
   },
-  {
-    path: '/profile',
-    name: 'profile',
-    component: ProfilePage,
-    meta: <RouteMeta>{
-      group: RouteGroup.HOME,
-      label: 'Profile',
-      isSidebarMenu: true,
-      authType: AuthType.AUTHENTICATED,
-      roles: [AuthRole.STANDARD_USER, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
-    },
-  },
+
   {
     path: '/announcements',
     name: 'announcements',
     component: AnnouncementsPage,
     meta: <RouteMeta>{
-      group: RouteGroup.HOME,
-      label: 'Announcements',
+      group: RouteGroup.MAIN,
+      label: 'Request',
       isSidebarMenu: true,
       authType: AuthType.AUTHENTICATED,
-      roles: [AuthRole.STANDARD_USER, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+      roles: [AuthRole.STANDARD_USER, AuthRole.EMPLOYEE, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+    },
+  },
+  {
+    path: '/profile',
+    name: 'profile',
+    meta: <RouteMeta>{
+      group: RouteGroup.MAIN,
+      label: 'My Profile',
+      isSidebarMenu: true,
+    },
+  },
+  {
+    path: '/commitments',
+    name: 'commitments',
+    meta: <RouteMeta>{
+      group: RouteGroup.MAIN,
+      label: 'Commitments',
+      isSidebarMenu: true,
     },
   },
   {
@@ -185,6 +193,41 @@ const routes = [
         },
       },
       {
+        path: '/personnel-management',
+        name: 'personnel-management',
+        component: EmployeeEntryPage,
+        meta: <RouteMeta>{
+          label: 'Personnel Management',
+          isSidebarMenu: true,
+          group: RouteGroup.ADMIN_TOOLS,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+        children: [
+          {
+            path: '/employee-entry',
+            name: 'employee-entry',
+            component: EmployeeEntryPage,
+            meta: <RouteMeta>{
+              label: 'Employee',
+              isSidebarMenu: true,
+              authType: AuthType.AUTHENTICATED,
+              roles: [AuthRole.ADMIN, AuthRole.SUPER_USER],
+            },
+          },
+          {
+            path: '/employee-entry/store',
+            name: 'employee-entry/store',
+            component: CreateEmployeeC1Form,
+            meta: <RouteMeta>{
+              isSidebarMenu: false,
+              authType: AuthType.AUTHENTICATED,
+              roles: [AuthRole.ADMIN, AuthRole.SUPER_USER],
+            },
+          },
+        ],
+      },
+      {
         path: 'settings',
         name: 'settings',
         component: () => import('@/views/SettingsPage.vue'),
@@ -198,6 +241,7 @@ const routes = [
       },
     ],
   },
+
   {
     path: '/:catchAll(.*)',
     name: 'not-found',
@@ -259,7 +303,7 @@ router.beforeEach(async (to, from) => {
   if (to.meta.authType === AuthType.AUTHENTICATED) {
     const roles = authStore.authRoles
     if (to.meta.roles && !to.meta.roles.some((r: string) => roles.includes(r))) {
-      return { name: 'home' }
+      return { name: 'main' }
     }
   }
 

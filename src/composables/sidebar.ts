@@ -1,53 +1,59 @@
+// composables/sidebar.ts
 import { useRouter } from 'vue-router'
 import { AuthType } from '@/typings/auth.types.ts'
 import { useAuthStore } from '@/stores/auth.store.ts'
 import { watch, ref } from 'vue'
-
 export const useSidebarNavLinks = () => {
   const router = useRouter()
   const authStore = useAuthStore()
-
   type NavLink = {
     label: string
     icon: string
     name: string | undefined
+    children?: NavLink[]
+    expanded?: boolean // Add the expanded property
   }
-
   type NavItem = {
     group: string
     links: NavLink[]
   }
-
   const navLinks = ref<NavItem[]>([])
-
+  // Function to toggle the expanded state of a parent link
+  const toggleExpanded = (link: NavLink) => {
+    if (link.children) {
+      link.expanded = !link.expanded
+    }
+  }
   const handleRoutesVisibility = () => {
     navLinks.value = []
-    router.getRoutes().forEach((route) => {
+    const routes = router.getRoutes()
+    for (const route of routes) {
       if (route.meta.isSidebarMenu) {
-        const navLink: NavLink = { name: route.name?.toString(), label: route.meta.label, icon: '' }
+        const navLink: NavLink = {
+          name: route.name?.toString(),
+          label: route.meta.label,
+          icon: '',
+          children: [],
+          expanded: false, // Initialize as collapsed
+        }
         const navLinkGroup = route.meta.group?.valueOf()
-
-        // Filter routes that need to be authenticated
-        if (route.meta.auth === AuthType.AUTHENTICATED && !authStore.isAuthenticated) return
-
-        // Filter routes that need the user to NOT be authenticated
-        if (route.meta.auth === AuthType.UNAUTHENTICATED && authStore.isAuthenticated) return
-
-        // Filter routes that require roles
-        if (route.meta.roles && authStore.isAuthenticated && !authStore.authHasRequiredRole(route.meta.roles)) return
-
+        // Authentication and Role Checks
+        if (route.meta.auth === AuthType.AUTHENTICATED && !authStore.isAuthenticated) continue
+        if (route.meta.auth === AuthType.UNAUTHENTICATED && authStore.isAuthenticated) continue
+        if (route.meta.roles && authStore.isAuthenticated && !authStore.authHasRequiredRole(route.meta.roles)) continue
+        // Icon Assignments
         switch (route.name) {
           case 'dashboard':
-            navLink.icon = 'pi pi-desktop'
-            break
-          case 'profile':
-            navLink.icon = 'pi pi-id-card'
+            navLink.icon = 'pi pi-home'
             break
           case 'announcements':
-            navLink.icon = 'pi pi-megaphone'
+            navLink.icon = 'pi pi-bookmark'
             break
-          case 'user-management':
+          case 'profile':
             navLink.icon = 'pi pi-users'
+            break
+          case 'commitments':
+            navLink.icon = 'pi pi-clock'
             break
           case 'settings':
             navLink.icon = 'pi pi-cog'
@@ -58,29 +64,79 @@ export const useSidebarNavLinks = () => {
           case 'about-us':
             navLink.icon = 'pi pi-heart'
             break
+          case 'user-management':
+            navLink.icon = 'pi pi-users'
+            break
+          case 'personnel-management':
+            navLink.icon = 'pi pi-users'
+            break
           default:
             navLink.icon = 'fa-solid fa-circle-question'
             break
         }
-
-        if (navLinkGroup) {
-          const foundGroup = navLinks.value.find((n) => n.group === navLinkGroup)
-          if (!foundGroup) {
-            return navLinks.value.push({ group: navLinkGroup, links: [navLink] })
+        // Handle Children
+        if (route.children && route.children.length > 0) {
+          // Ensure navLink.children is initialized
+          if (!navLink.children) {
+            navLink.children = [] // Initialize the children array if it's not already
           }
-
-          navLinks.value.forEach((n) => {
-            if (n.group === navLinkGroup) {
-              n.links.push(navLink)
+          for (const childRoute of route.children) {
+            if (childRoute.meta && childRoute.meta.isSidebarMenu) {
+              const childNavLink: NavLink = {
+                name: childRoute.name?.toString(),
+                label: childRoute.meta.label,
+                icon: '', // assign icon if needed
+                // expanded is not needed for the children
+              }
+              // Authentication and Role checks for children
+              if (childRoute.meta.auth === AuthType.AUTHENTICATED && !authStore.isAuthenticated) continue
+              if (childRoute.meta.auth === AuthType.UNAUTHENTICATED && authStore.isAuthenticated) continue
+              if (childRoute.meta.roles && authStore.isAuthenticated && !authStore.authHasRequiredRole(childRoute.meta.roles))
+                continue
+              switch (childRoute.name) {
+                case 'accomplishment-reports':
+                  childNavLink.icon = 'fas fa-check-double'
+                  break
+                case 'view-ipc-ccef/index':
+                  childNavLink.icon = 'fas fa-check-double' // Example icon
+                  break
+                case 'personal-data-sheet':
+                  childNavLink.icon = 'fas fa-file-lines' // Example icon
+                  break
+                case 'employee-entry':
+                  childNavLink.icon = 'fas fa-file-lines'
+                  break
+                // ... other child route icon assignments
+              }
+              navLink.children.push(childNavLink) // Now safe to push
             }
-          })
+          }
+          // Only add the parent if it has children
+          if (navLink.children.length > 0) {
+            if (navLinkGroup) {
+              const foundGroup = navLinks.value.find((n) => n.group === navLinkGroup)
+              if (!foundGroup) {
+                navLinks.value.push({ group: navLinkGroup, links: [navLink] })
+              } else {
+                foundGroup.links.push(navLink)
+              }
+            }
+          }
+        } else {
+          // If the route has no children, just add the route.
+          if (navLinkGroup) {
+            const foundGroup = navLinks.value.find((n) => n.group === navLinkGroup)
+            if (!foundGroup) {
+              navLinks.value.push({ group: navLinkGroup, links: [navLink] })
+            } else {
+              foundGroup.links.push(navLink)
+            }
+          }
         }
       }
-    })
+    }
   }
-
   handleRoutesVisibility()
-
   // Refresh the navbar items everytime the user re-authenticates
   watch(
     () => authStore.authenticationToken,
@@ -88,6 +144,5 @@ export const useSidebarNavLinks = () => {
       handleRoutesVisibility()
     }
   )
-
-  return { navLinks }
+  return { navLinks, toggleExpanded } // Expose the toggle function
 }
