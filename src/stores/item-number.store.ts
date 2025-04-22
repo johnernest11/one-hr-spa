@@ -43,9 +43,12 @@ export const useItemNumberStore = defineStore('item-number', () => {
     return responseBody
   }
   const createItemNumber = async (item: Partial<ItemNumberPayload>) => {
-    if (item.date_of_creation) {
-      item.date_of_creation = useDateFormat(item.date_of_creation, 'YYYY-MM-DD').value.toString()
+    const formatDate = (date: Date | string | null | undefined): string | undefined => {
+      return date ? useDateFormat(date, 'YYYY-MM-DD').value.toString() : undefined
     }
+
+    item.date_of_creation = formatDate(item.date_of_creation)
+    item.date_filled_up = formatDate(item.date_filled_up)
     const { data } = await useApiCall('/items/', auth.authenticationToken).post(item).json()
     const responseBody: ApiResponseBody = data.value
 
@@ -68,9 +71,12 @@ export const useItemNumberStore = defineStore('item-number', () => {
   }
 
   const updateItemNumber = async (item: Partial<ItemNumberPayload>, id: string | number) => {
-    if (item.date_of_creation) {
-      item.date_of_creation = useDateFormat(item.date_of_creation, 'YYYY-MM-DD').value.toString()
+    const formatDate = (date: Date | string | null | undefined): string | undefined => {
+      return date ? useDateFormat(date, 'YYYY-MM-DD').value.toString() : undefined
     }
+
+    item.date_of_creation = formatDate(item.date_of_creation)
+    item.date_filled_up = formatDate(item.date_filled_up)
     const { data } = await useApiCall(`/items/${id}`, auth.authenticationToken).put(item).json()
     const responseBody: ApiResponseBody = data.value
     if (responseBody.success) {
