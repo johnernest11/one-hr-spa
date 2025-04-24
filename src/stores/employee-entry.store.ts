@@ -1,9 +1,10 @@
 import { defineStore, storeToRefs } from 'pinia'
 import { useApiCall } from '@/composables/network'
 import { useAuthStore } from '@/stores/auth.store.ts'
-import { UserResponse } from '@/typings/models.types.ts'
+import { PersonnelResponse, UserResponse } from '@/typings/models.types.ts'
 import { ApiResponseBody } from '@/typings/http-resources.types.ts'
 import { useDateFormat } from '@vueuse/core'
+import { ref } from 'vue'
 
 /** Typings */
 export type UploadProfilePictureResponse = { owner_id: string | number; path: string; url: string }
@@ -71,7 +72,7 @@ export type PersonalDataSheetPayload = {
   scholarship_academic_honors_received: string
 }
 
-export const useProfileStore = defineStore('profile', () => {
+export const useEmployeeEntryStore = defineStore('personnel', () => {
   /**
    * VueUse's useStorage() loses reactivity after serialization,
    * we make it reactive again by wrapping storeToRefs()
@@ -79,6 +80,12 @@ export const useProfileStore = defineStore('profile', () => {
    * @see https://pinia.vuejs.org/core-concepts/#Destructuring-from-a-Store
    */
   const auth = storeToRefs(useAuthStore())
+  const employees = ref<PersonnelResponse[]>([])
+  const isEmployeesLoading = ref(true)
+
+  const fetchEmployees = () => {
+    employees.value = []
+  }
 
   const fetchPersonalDataSheet = async () => {
     const { data } = await useApiCall('/profile', auth.authenticationToken.value).get().json()
@@ -123,5 +130,8 @@ export const useProfileStore = defineStore('profile', () => {
     fetchPersonalDataSheet,
     updatePersonalDataSheet,
     uploadPersonalDataSheetPicture,
+    fetchEmployees,
+    employees,
+    isEmployeesLoading,
   }
 })

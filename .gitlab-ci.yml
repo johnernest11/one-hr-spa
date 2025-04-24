@@ -1,0 +1,129 @@
+stages:
+  - build_dev
+  - deploy_dev
+  - build_uat
+  - deploy_uat
+  - build_staging
+  - deploy_staging
+  - build_prod
+  - deploy_prod
+
+build_dev:
+  stage: build_dev
+  only:
+    - develop
+  image: node:18
+  script:
+    - echo 'build_dev'
+    - npm install
+    - npm run build:development
+  artifacts:
+    paths:
+      - dist/
+
+deploy_dev:
+  stage: deploy_dev
+  only:
+    - develop
+  image:
+    name: registry.gitlab.com/gitlab-org/cloud-deploy/aws-base:latest
+  script:
+    - aws --version
+    - aws s3 rm s3://hr-cares-s3 --recursive
+    - aws s3 cp  dist/ s3://hr-cares-s3  --recursive
+    - aws cloudfront create-invalidation --distribution-id E2DIRQ76ZG9280 --paths "/*"
+
+build_uat:
+  stage: build_uat
+  only:
+    refs:
+      - tags
+    variables:
+      - $CI_COMMIT_TAG =~ /^[Rr]elease\/v.*$/
+  image: node:18
+  script:
+    - echo 'build_uat'
+    - npm install
+    - npm run build:uat
+  artifacts:
+    paths:
+      - dist/
+
+deploy_uat:
+  stage: deploy_uat
+  only:
+    refs:
+      - tags
+    variables:
+      - $CI_COMMIT_TAG =~ /^[Rr]elease\/v.*$/
+  image:
+    name: registry.gitlab.com/gitlab-org/cloud-deploy/aws-base:latest
+  script:
+    - aws --version
+    - aws s3 rm s3://doc-tracker-spa-uat --recursive
+    - aws s3 cp  dist/ s3://doc-tracker-spa-uat --recursive
+    - aws cloudfront create-invalidation --distribution-id E3MQXKC69TPZTW --paths "/*"
+  environment:
+    name: uat
+
+build_staging:
+  stage: build_staging
+  only:
+    refs:
+      - tags
+    variables:
+      - $CI_COMMIT_TAG =~ /^[Rr]elease-staging\/v.*$/
+  image: node:18
+  script:
+    - echo 'build_staging'
+    - npm install
+    - npm run build:staging
+  artifacts:
+    paths:
+      - dist/
+
+deploy_staging:
+  stage: deploy_staging
+  only:
+    refs:
+      - tags
+    variables:
+      - $CI_COMMIT_TAG =~ /^[Rr]elease-staging\/v.*$/
+  image:
+    name: registry.gitlab.com/gitlab-org/cloud-deploy/aws-base:latest
+  script:
+    - aws --version
+    - aws s3 rm s3://doc-tracker-spa-staging --recursive
+    - aws s3 cp  dist/ s3://doc-tracker-spa-staging --recursive
+    - aws cloudfront create-invalidation --distribution-id E12KB7WEMUBKUF --paths "/*"
+  environment:
+    name: staging
+
+build_prod:
+  stage: build_prod
+  only:
+    - main
+  image: node:18
+
+  script:
+    - echo 'build_uat main'
+    - npm install
+    - npm run build:production
+  artifacts:
+    paths:
+      - dist/
+
+deploy_prod:
+  stage: deploy_prod
+  only:
+    - main
+  image:
+    name: registry.gitlab.com/gitlab-org/cloud-deploy/aws-base:latest
+  script:
+    - aws --version
+    - aws s3 rm s3://doc-tracker-spa-production --recursive
+    - aws s3 cp  dist/ s3://doc-tracker-spa-production --recursive
+    - aws cloudfront create-invalidation --distribution-id E2UMDSR3WA6NV8 --paths "/*"
+  environment:
+    name: production
+  when: manual

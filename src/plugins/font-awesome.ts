@@ -27,6 +27,8 @@ import {
   faUpDown,
   faDeleteLeft,
   faCheckCircle,
+  faCircleUser,
+  faPlus,
 } from '@fortawesome/free-solid-svg-icons'
 
 library.add(
@@ -55,5 +57,7 @@ library.add(
   faCheck,
   faUpDown,
   faDeleteLeft,
-  faCheckCircle
+  faCheckCircle,
+  faCircleUser,
+  faPlus
 )
