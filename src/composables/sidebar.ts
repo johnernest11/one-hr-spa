@@ -49,11 +49,20 @@ export const useSidebarNavLinks = () => {
           case 'announcements':
             navLink.icon = 'pi pi-bookmark'
             break
-          case 'profile':
+          case 'requests':
+            navLink.icon = 'pi pi-bookmark'
+            break
+          case 'my-profile':
             navLink.icon = 'pi pi-id-card'
             break
           case 'commitments':
             navLink.icon = 'pi pi-clock'
+            break
+          case 'recruitment':
+            navLink.icon = 'pi pi-briefcase'
+            break
+          case 'personnel':
+            navLink.icon = 'pi pi-users'
             break
           case 'settings':
             navLink.icon = 'pi pi-cog'
@@ -93,6 +102,12 @@ export const useSidebarNavLinks = () => {
               switch (childRoute.name) {
                 case 'accomplishment-reports':
                   childNavLink.icon = 'fas fa-check-double'
+                  break
+                case 'employees':
+                  childNavLink.icon = 'fas fa-circle-user'
+                  break
+                case 'create-employee':
+                  childNavLink.icon = 'fas fa-circle-user'
                   break
                 case 'view-ipc-ccef/index':
                   childNavLink.icon = 'fas fa-check-double' // Example icon

@@ -90,6 +90,75 @@ export type PersonnelAccomplishmentReportDetialsResponse = {
   highlights: string | null
 } & ApiResponseData
 
+export type PersonnelResponse = {
+  id: number
+  first_name: string
+  last_name: string
+  middle_name: string | null
+  ext_name: string | null
+  birthday: string
+  sex: string
+  place_of_birth: string
+  civil_status: string
+  height: number
+  weight: number
+  blood_type: string
+  gsis_no: string
+  pag_ibig_no: string
+  philhealth_no: string
+  sss_no: string
+  tin: string
+  citizenship: string
+  citizenship_acquisition: string
+  individual_address: PersonnelAddress | null
+  individual_contact_info: PersonnelContactInfo | null
+  employee: PersonnelEmployee | null
+} & ApiResponseData
+
+export type PersonnelAddress = {
+  id: number
+  individual_basic_detail_id: string | null
+  residential_house_block_lot_no: string | null
+  residential_street: string | null
+  residential_subdivision_village: string | null
+  residential_brgy_id: number | null
+  residential_citymun_id: number | null
+  residential_province_id: number | null
+  residential_region_id: number | null
+  residential_zip_code: string | null
+  permanent_house_block_lot_no: string | null
+  permanent_street: string | null
+  permanent_subdivision_village: string | null
+  permanent_brgy_id: number | null
+  permanent_citymun_id: number | null
+  permanent_province_id: number | null
+  permanent_region_id: number | null
+  permanent_zip_code: string | null
+  created_at: string | null
+  updated_at: string | null
+  deleted_at: string | null
+  city: string | null
+  province: string | null
+  region: string | null
+  barangay: string | null
+}
+
+export type PersonnelContactInfo = {
+  id: string | null
+  individual_basic_detail_id: number | null
+  tel_no: string | null
+  mobile_no: string | null
+  email_address: string | null
+}
+
+export type PersonnelEmployee = {
+  id: number
+  individual_basic_detail_id: number | null
+  id_number: string | null
+  item_id: number | null
+  agency_employee_no: string | null
+}
+
 /** Role (HTTP Responses) */
 export type RoleResponse = {
   name: string
