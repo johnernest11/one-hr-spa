@@ -23,7 +23,7 @@ const items = ref([
   },
 ])
 
-const toggle = (event) => {
+const toggle = (event: Event) => {
   menu.value.toggle(event)
 }
 

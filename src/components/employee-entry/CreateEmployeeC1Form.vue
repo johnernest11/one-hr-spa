@@ -27,10 +27,7 @@ import Divider from 'primevue/divider'
 /** Payload */
 const authStore = useAuthStore()
 const auntenticatedUser = authStore.authenticatedUser?.user_profile
-const authPersonnelDataSheet = authStore.authenticatedUser?.user_profile?.personnel_data_sheet
-const authPersonnelAdresses = authStore.authenticatedUser?.user_profile?.personnel_data_sheet?.personnel_addresses
-const authPersonnelFamily = authStore.authenticatedUser?.user_profile?.personnel_data_sheet?.personnel_family
-const authPersonnelEducation = authStore.authenticatedUser?.user_profile?.personnel_data_sheet?.personnel_educational_background
+
 const payload = reactive<PersonalDataSheetPayload>({
   /** User Profile  */
   last_name: auntenticatedUser?.last_name || '',
@@ -40,64 +37,64 @@ const payload = reactive<PersonalDataSheetPayload>({
   birthday: auntenticatedUser?.birthday || '',
   sex: auntenticatedUser?.sex || null,
   /** Personnel Data Sheet  */
-  place_of_birth: authPersonnelDataSheet?.place_of_birth || '',
-  civil_status: authPersonnelDataSheet?.civil_status || null,
-  height: authPersonnelDataSheet?.height || '',
-  weight: authPersonnelDataSheet?.weight || '',
-  blood_type: authPersonnelDataSheet?.blood_type || null,
-  gsis_no: authPersonnelDataSheet?.pag_ibig_no || '',
-  philhealth_no: authPersonnelDataSheet?.philhealth_no || '',
-  pag_ibig_no: authPersonnelDataSheet?.sss_no || '',
-  sss_no: authPersonnelDataSheet?.sss_no || '',
-  tin_no: authPersonnelDataSheet?.tin_no || '',
-  agency_employee_no: authPersonnelDataSheet?.agency_employee_no || '',
-  citizenship: authPersonnelDataSheet?.citizenship || '',
-  citizenship_country: authPersonnelDataSheet?.citizenship_country || '',
+  place_of_birth: '',
+  civil_status: null,
+  height: '',
+  weight: '',
+  blood_type: null,
+  gsis_no: '',
+  philhealth_no: '',
+  pag_ibig_no: '',
+  sss_no: '',
+  tin_no: '',
+  agency_employee_no: '',
+  citizenship: '',
+  citizenship_country: '',
   /** Personnel Data Sheet  */
-  tel_no: authPersonnelDataSheet?.personnel_contact_info?.tel_no || '',
-  mobile_no: authPersonnelDataSheet?.personnel_contact_info?.mobile_no || '',
-  email_address: authPersonnelDataSheet?.personnel_contact_info?.email_address || '',
+  tel_no: '',
+  mobile_no: '',
+  email_address: '',
   /** Personnel Address  */
-  residential_house_block_lot_no: authPersonnelAdresses?.residential_house_block_lot_no || '',
-  residential_street: authPersonnelAdresses?.residential_street || '',
-  residential_subdivision_village: authPersonnelAdresses?.residential_subdivision_village || '',
-  residential_brgy_id: authPersonnelAdresses?.barangay?.id || '',
-  residential_citynum_id: authPersonnelAdresses?.city?.id || '',
-  residential_province_id: authPersonnelAdresses?.province?.id || '',
-  residential_region_id: authPersonnelAdresses?.region?.id || '',
-  residential_zip_code: authPersonnelAdresses?.residential_zip_code || '',
-  permanent_house_block_lot_no: authPersonnelAdresses?.permanent_house_block_lot_no || '',
-  permanent_street: authPersonnelAdresses?.permanent_street || '',
-  permanent_subdivision_village: authPersonnelAdresses?.permanent_subdivision_village || '',
-  permanent_brgy_id: authPersonnelAdresses?.barangay?.id || '',
-  permanent_citynum_id: authPersonnelAdresses?.city?.id || '',
-  permanent_province_id: authPersonnelAdresses?.province?.id || '',
-  permanent_region_id: authPersonnelAdresses?.region?.id || '',
-  permanent_zip_code: authPersonnelAdresses?.permanent_zip_code || '',
+  residential_house_block_lot_no: '',
+  residential_street: '',
+  residential_subdivision_village: '',
+  residential_brgy_id: '',
+  residential_citynum_id: '',
+  residential_province_id: '',
+  residential_region_id: '',
+  residential_zip_code: '',
+  permanent_house_block_lot_no: '',
+  permanent_street: '',
+  permanent_subdivision_village: '',
+  permanent_brgy_id: '',
+  permanent_citynum_id: '',
+  permanent_province_id: '',
+  permanent_region_id: '',
+  permanent_zip_code: '',
   /** Personnel Family  */
-  family_first_name: authPersonnelFamily?.family_first_name || '',
-  family_middle_name: authPersonnelFamily?.family_middle_name || '',
-  family_last_name: authPersonnelFamily?.family_last_name || '',
-  family_ext_name: authPersonnelFamily?.family_ext_name || '',
-  family_occupation: authPersonnelFamily?.family_occupation || '',
-  family_employers_business_name: authPersonnelFamily?.family_employers_business_name || '',
-  family_business_address: authPersonnelFamily?.family_business_address || '',
-  family_telephone_no: authPersonnelFamily?.family_telephone_no || '',
-  family_date_of_birth: authPersonnelFamily?.family_date_of_birth || '',
-  family_class: authPersonnelFamily?.family_class || null,
+  family_first_name: '',
+  family_middle_name: '',
+  family_last_name: '',
+  family_ext_name: '',
+  family_occupation: '',
+  family_employers_business_name: '',
+  family_business_address: '',
+  family_telephone_no: '',
+  family_date_of_birth: '',
+  family_class: null,
   /** Personnel Educational Background  */
-  schools_name: authPersonnelEducation?.schools_name || '',
-  level: authPersonnelEducation?.level || null,
-  period_of_attendance_from: authPersonnelEducation?.period_of_attendance_from || '',
-  period_of_attendance_to: authPersonnelEducation?.period_of_attendance_to || '',
-  highest_level_units_earned: authPersonnelEducation?.highest_level_units_earned || '',
-  year_graduated: authPersonnelEducation?.year_graduated || '',
-  scholarship_academic_honors_received: authPersonnelEducation?.scholarship_academic_honors_received || '',
+  schools_name: '',
+  level: null,
+  period_of_attendance_from: '',
+  period_of_attendance_to: '',
+  highest_level_units_earned: '',
+  year_graduated: '',
+  scholarship_academic_honors_received: '',
 })
 
 /** Address Section **/
 /** Address WbAutoComplete Object References */
-const selectedResidentialRegion = ref<WbAutoCompleteOption | null>(null)
+
 const selectedResidentialProvince = ref<WbAutoCompleteOption | null>(null)
 const selectedResidentialCity = ref<WbAutoCompleteOption | null>(null)
 const selectedResidentialBarangay = ref<WbAutoCompleteOption | null>(null)
@@ -113,14 +110,6 @@ onBeforeMount(async () => {
     publicStore.fetchCities(),
     publicStore.fetchBarangays(),
   ])
-
-  // Set the initial value of the selected addresses
-  selectedResidentialRegion.value = publicStore.regionOptions.find((r) => r.value === authPersonnelAdresses?.region?.id) || null
-  selectedResidentialProvince.value =
-    publicStore.provinceOptions.find((p) => p.value === authPersonnelAdresses?.province?.id) || null
-  selectedResidentialCity.value = publicStore.cityOptions.find((c) => c.value === authPersonnelAdresses?.city?.id) || null
-  selectedResidentialBarangay.value =
-    publicStore.barangayOptions.find((b) => b.value === authPersonnelAdresses?.barangay?.id) || null
 
   addressesAreLoading.value = false
 })
