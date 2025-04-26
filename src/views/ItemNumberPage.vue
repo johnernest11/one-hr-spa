@@ -11,6 +11,7 @@ import Paginator, { PageState } from 'primevue/paginator'
 import { ApiResponsePagination } from '@/typings/http-resources.types.ts'
 import { ItemNumberResponse } from '@/typings/models.types.ts'
 import { useItemNumberStore } from '@/stores/item-number.store'
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -39,7 +40,7 @@ onBeforeMount(async () => {
   }
   itemNumberIsLoading.value = false
 })
-/** Pagination */
+
 const pagination = ref<ApiResponsePagination | null>(null)
 const handlePaginationPageChange = async (event: PageState) => {
   const pageSelected = event.page + 1
@@ -50,14 +51,16 @@ const handlePaginationPageChange = async (event: PageState) => {
   }
   itemNumberIsLoading.value = false
 }
-/** Search and Filters */
+
 const roleFilter = ref<number | null>(null)
 const searchQuery = ref<string | null>(null)
+const isSearching = ref(false)
 watch(
   () => roleFilter.value,
   async () => {
     itemNumberIsLoading.value = true
     searchQuery.value = null
+    isSearching.value = false
     const response = await itemNumberStore.fetchItemNumber(paginationLimit)
     if (response.success && response.pagination) {
       pagination.value = response.pagination
@@ -65,25 +68,29 @@ watch(
     itemNumberIsLoading.value = false
   }
 )
+const searchSubmitted = ref(false)
 const handleSearchItemNumber = async () => {
-  // We do regular fetch if the query is null / empty
   itemNumberIsLoading.value = true
+  searchSubmitted.value = true
+
   if (!searchQuery.value) {
     const response = await itemNumberStore.fetchItemNumber(paginationLimit)
     if (response.success && response.pagination) {
       pagination.value = response.pagination
     }
-    return (itemNumberIsLoading.value = false)
+    itemNumberIsLoading.value = false
+    return
   }
-  // Handle the search if the search query
+
   const response = await itemNumberStore.searchItemNumber(searchQuery.value)
   if (response.success && response.pagination) {
     pagination.value = response.pagination
+
     searchQuery.value = null
   }
   itemNumberIsLoading.value = false
 }
-/** End of Search and Filters */
+
 const navigateToCreate = () => {
   router.push({ name: 'item-numbers/store' })
 }
@@ -101,7 +108,7 @@ const formatDate = (dateString: string | null | undefined): string => {
       year: 'numeric',
     }
     const formattedDate = date.toLocaleDateString(undefined, options)
-    return formattedDate.replace(/^(\w+)\s(\d+),\s(\d+)$/, '$2 $1 $3') //Regex for month dd, yyyy
+    return formattedDate.replace(/^(\w+)\s(\d+),\s(\d+)$/, '$2 $1 $3')
   } catch (error) {
     console.error('Error formatting date:', error)
     return 'Invalid Date'
@@ -112,29 +119,24 @@ const formatDate = (dateString: string | null | undefined): string => {
   <div class="mx-auto flex h-full w-full flex-col pl-4 pt-8">
     <Card class="h-full">
       <template #content>
-        <!-- Start Data Table (Conditional Rendering) -->
         <div>
-          <!-- Show Table if tableData has items -->
-          <div
-            v-if="itemNumberStore.ItemNumberArray && itemNumberStore.ItemNumberArray.length > 0"
-            class="mx-auto flex h-full w-full flex-col"
-          >
-            <!-- Start Filter Create & Search Employee Item Number  Button -->
-
-            <!-- End Filter Create & Search Item Number Button -->
-            <div class="flex w-full items-center justify-end gap-4">
+          <div class="mx-auto flex h-full w-full flex-col">
+            <div
+              class="flex w-full items-center justify-end gap-4"
+              v-if="!itemNumberIsLoading && (searchSubmitted || itemNumberStore.ItemNumberArray.length > 0)"
+            >
               <div
                 class="my-6 flex w-full flex-col items-center justify-between gap-4 rounded-lg bg-surface-0 px-6 py-6 dark:bg-surface-800 md:my-4 md:flex-row md:px-4 md:py-4"
               >
                 <h1
                   class="mb-2 mr-4 whitespace-nowrap text-xl font-semibold text-primary-800 dark:text-primary-100 md:text-xl lg:text-4xl"
                 >
+                  <font-awesome-icon :icon="['fas', 'sitemap']" />
                   Item Numbers
                 </h1>
               </div>
               <div class="flex w-full items-center justify-end gap-4">
                 <div class="flex space-x-2 whitespace-nowrap md:w-auto">
-                  <!-- Added flex and space-x-4 -->
                   <Button
                     icon="pi pi-filter-fill"
                     v-tooltip.top="'Filter Item'"
@@ -163,93 +165,109 @@ const formatDate = (dateString: string | null | undefined): string => {
                       :disabled="itemNumberIsLoading"
                       @keyup.enter="handleSearchItemNumber"
                     />
-                    <Button
-                      icon="pi pi-search"
-                      @click="handleSearchItemNumber"
-                      :loading="itemNumberIsLoading"
-                      :disabled="itemNumberIsLoading"
-                    />
+                    <Button icon="pi pi-search" @click="handleSearchItemNumber" />
                   </InputGroup>
                 </div>
               </div>
             </div>
-            <!-- Show Table if tableData has items -->
             <div
               v-if="itemNumberStore.ItemNumberArray && itemNumberStore.ItemNumberArray.length > 0"
               class="mx-auto flex h-full w-full flex-col"
-            ></div>
-            <DataTable :value="itemNumberStore.ItemNumberArray" class="mt-6" dataKey="id">
-              <Column
-                field="period"
-                header="Item Numbers"
-                headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
-              >
-                <template #body="props">
-                  <p class="font-semibold uppercase text-surface-600">{{ props.data.number }}</p>
-                </template>
-              </Column>
-              <Column
-                field="edited_at"
-                header="Date Created"
-                headerClass=" w-80 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
-              >
-                <template #body="props">
-                  <p class="uppercase text-surface-600">{{ formatDate(props.data.date_of_creation) }}</p>
-                </template>
-              </Column>
-              <Column
-                field="status"
-                header="Status"
-                headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
-              >
-                <template #body="props">
-                  <template v-if="props.data.status === 'Unfilled'">
-                    <Chip
-                      label="Unfilled"
-                      class="flex items-center justify-center bg-error-700 px-4 py-1 font-semibold text-surface-0"
-                    >
-                    </Chip>
+            >
+              <DataTable :value="itemNumberStore.ItemNumberArray" class="mt-6" dataKey="id">
+                <Column
+                  field="period"
+                  header="Item Numbers"
+                  headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
+                >
+                  <template #body="props">
+                    <p class="font-semibold uppercase text-surface-600">{{ props.data.number }}</p>
                   </template>
-                  <template v-else-if="props.data.status === 'Filled'">
-                    <Chip
-                      label="Filled"
-                      class="flex items-center justify-center bg-success-700 px-4 py-1 font-semibold text-surface-0"
-                    />
+                </Column>
+                <Column
+                  field="edited_at"
+                  header="Date Created"
+                  headerClass=" w-80 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
+                >
+                  <template #body="props">
+                    <p class="uppercase text-surface-600">{{ formatDate(props.data.date_of_creation) }}</p>
                   </template>
-                </template>
-              </Column>
-              <Column field="action" header="Actions" headerClass="w-64 bg-surface-100 opacity-70 font-bold py-2">
-                <template #body="props">
-                  <div class="flex gap-4 whitespace-nowrap md:w-auto">
-                    <Button
-                      icon="pi pi-eye"
-                      v-tooltip.top="'View Item Number'"
-                      severity="info"
-                      class="border-none text-lg font-semibold text-primary-600 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
-                      text
-                      @click="navigateToDetails(props.data)"
-                    />
-                  </div>
-                </template>
-              </Column>
-            </DataTable>
-            <!-- Start Pagination -->
+                </Column>
+                <Column
+                  field="status"
+                  header="Status"
+                  headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
+                >
+                  <template #body="props">
+                    <template v-if="props.data.status === 'Unfilled'">
+                      <Chip
+                        label="Unfilled"
+                        class="flex items-center justify-center bg-error-700 px-4 py-1 font-semibold text-surface-0"
+                      >
+                      </Chip>
+                    </template>
+                    <template v-else-if="props.data.status === 'Filled'">
+                      <Chip
+                        label="Filled"
+                        class="flex items-center justify-center bg-success-700 px-4 py-1 font-semibold text-surface-0"
+                      />
+                    </template>
+                  </template>
+                </Column>
+                <Column field="action" header="Actions" headerClass="w-64 bg-surface-100 opacity-70 font-bold py-2">
+                  <template #body="props">
+                    <div class="flex gap-4 whitespace-nowrap md:w-auto">
+                      <Button
+                        icon="pi pi-eye"
+                        v-tooltip.top="'View Item Number'"
+                        severity="info"
+                        class="border-none text-lg font-semibold text-primary-600 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
+                        text
+                        @click="navigateToDetails(props.data)"
+                      />
+                    </div>
+                  </template>
+                </Column>
+              </DataTable>
+            </div>
             <div class="mt-6 flex w-full justify-center md:mt-10">
               <Paginator
                 v-if="pagination && pagination.total > 0"
                 :rows="pagination.per_page"
                 :total-records="pagination.total"
-                template="FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink"
+                template="CurrentPageReport FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink"
                 currentPageReportTemplate="Showing {first} to {last} of {totalRecords}"
                 @page="(event: PageState) => handlePaginationPageChange(event)"
-                class="text-xs md:text-sm"
+                class="text-s md:text-sm"
+                :pt="{
+                  pageButton: ({ context }) => ({
+                    class: [
+                      'rounded-md', // Tailwind: Basic rounded corners
+                      {
+                        'bg-primary-500 text-surface-50': context.active, // Tailwind: Blue background and white text for active
+                      },
+                      'transition-colors', // Tailwind: Smooth color transitions
+                      'duration-200',
+                      'ease-in-out',
+                      'px-5', // Tailwind: Horizontal padding
+                      'py-3', // Tailwind: Vertical padding
+                    ],
+                  }),
+                }"
               />
             </div>
-            <!-- End Pagination -->
           </div>
-          <!-- End Data Table -->
-          <!-- Show "No Item Number" message if tableData is empty -->
-          <div v-if="!itemNumberIsLoading && !pagination?.total" class="mx-auto flex h-full w-full flex-col">
+          <div
+            v-if="searchSubmitted && !itemNumberIsLoading && !itemNumberStore.ItemNumberArray.length"
+            class="flex h-full w-full flex-col items-center justify-center font-menu text-lg dark:text-surface-300"
+          >
+            <i class="pi pi-exclamation-triangle mb-2 text-2xl"></i>
+            <p>No items found</p>
+          </div>
+          <div
+            v-if="!itemNumberIsLoading && !itemNumberStore.ItemNumberArray.length && !searchSubmitted"
+            class="mx-auto flex h-full w-full flex-col"
+          >
             <Card class="w-full p-0 shadow-none">
               <template #content>
                 <div class="flex flex-col items-center sm:flex-col md:flex-col">
