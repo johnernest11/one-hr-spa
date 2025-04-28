@@ -88,27 +88,29 @@ const employementStatusOptions = [
   { label: 'Job Order', value: 'Job Order' },
 ]
 
+let lastTimeout: NodeJS.Timeout | number | null = null
+
 const onInputSearch = (event: InputEvent, type: 'position' | 'fundSource') => {
   const target = event.target as HTMLInputElement
   searchQuery.value = target.value.trim()
-  clearTimeout(onInputSearch.lastTimeout)
-  onInputSearch.lastTimeout = setTimeout(async () => {
+  lastTimeout = setTimeout(async () => {
     if (type === 'position') {
       await publicPositionStore.searchPosition(searchQuery.value)
     } else if (type === 'fundSource') {
       await publicFundSourceStore.searchFundSources(searchQuery.value)
     }
+    lastTimeout = null
   }, 1000)
 }
 
+onInputSearch.lastTimeout = lastTimeout
+
 onInputSearch.lastTimeout = null
 
-/** Props */
 type ItemNumberDetailsFormProps = {
   itemNumber?: ItemNumberResponse
 }
 const props = defineProps<ItemNumberDetailsFormProps>()
-/** Lifecycle hook that runs when the component is mounted */
 onMounted(async () => {
   const id = route.params.id as string
   if (id) {
@@ -138,24 +140,19 @@ const buttonLabel = computed(() => {
 })
 
 const updatePayloadFromReport = (itemNumber: ItemNumberResponse | null) => {
-  payload.number = itemNumber.number ?? null
-  payload.date_of_creation = itemNumber.date_of_creation ?? ''
-  payload.date_filled_up = itemNumber.date_filled_up ?? ''
-  payload.fund_source_id = itemNumber.fund_source_id ?? ''
-  payload.employment_status = itemNumber.employment_status ?? ''
-  payload.position_id = itemNumber.position_id ?? ''
+  payload.number = itemNumber?.number ?? null
+  payload.date_of_creation = itemNumber?.date_of_creation ?? ''
+  payload.date_filled_up = itemNumber?.date_filled_up ?? ''
+  payload.fund_source_id = itemNumber?.fund_source_id?.id ?? ''
+  payload.employment_status = itemNumber?.employment_status ?? ''
+  payload.position_id = itemNumber?.position_id?.id ?? ''
 }
 
 watch(
   () => props.itemNumber,
   (newValue) => {
     if (newValue) {
-      payload.number = newValue.number ?? null
-      payload.date_of_creation = newValue.date_of_creation ?? ''
-      ;(payload.status = 'Unfilled'), (payload.date_filled_up = newValue.date_filled_up ?? '')
-      payload.fund_source_id = newValue.fund_source_id ?? ''
-      payload.employment_status = newValue.employment_status ?? ''
-      payload.position_id = newValue.position_id ?? ''
+      updatePayloadFromReport(newValue)
     } else {
       payload.number = ''
       payload.date_of_creation = ''

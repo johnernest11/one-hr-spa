@@ -169,7 +169,7 @@ const routes = [
     name: 'recruitment',
     component: AnnouncementsPage,
     meta: <RouteMeta>{
-      group: RouteGroup.HR,
+      group: RouteGroup.HUMAN_RESOURCES,
       label: 'Recruitment',
       isSidebarMenu: true,
       authType: AuthType.AUTHENTICATED,
@@ -188,7 +188,7 @@ const routes = [
     path: '/personnel',
     name: 'personnel',
     meta: <RouteMeta>{
-      group: RouteGroup.HR,
+      group: RouteGroup.HUMAN_RESOURCES,
       label: 'Personnel Management',
       isSidebarMenu: true,
       authType: AuthType.AUTHENTICATED,
