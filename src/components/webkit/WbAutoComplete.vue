@@ -4,17 +4,31 @@
  * @see https://tailwind.primevue.org/autocomplete/
  */
 import AutoComplete, { AutoCompleteCompleteEvent, AutoCompleteItemSelectEvent } from 'primevue/autocomplete'
+import { useDebounceFn } from '@vueuse/core'
+import { useAuthStore } from '@/stores/auth.store.ts'
+import { useApiCall } from '@/composables/network.ts'
+import { createUrlWithParams, getObjectValueUsingPath } from '@/utils/helpers.ts'
 import { ref } from 'vue'
+import { storeToRefs } from 'pinia'
 
+
+const auth = storeToRefs(useAuthStore())
 defineOptions({
   inheritAttrs: false,
 })
 
 /** Emits **/
-export type WbAutoCompleteOptionTrueValue = string | number | null
+export type WbAutoCompleteOptionTrueValue = string | number | null | object
 const emit = defineEmits<{
-  (e: 'onTrueValueComputed', value: WbAutoCompleteOptionTrueValue): void
+  (e: 'onTrueValueComputed', value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]): void
 }>()
+
+
+interface ApiSuggestion {
+  [key: string]: string | number
+  id: string | number
+  name: string
+}
 
 /** Props */
 export type WbAutoCompleteOption = {
@@ -27,6 +41,11 @@ export type WbAutoCompleteOptionKey = 'value' | 'label'
 
 type WbAutoCompleteProps = {
   label: string
+  
+  apiEndpoint?: string | undefined
+  apiOptionLabel?: string
+  apiOptionValue?: string
+  useApiFilter?: boolean
   suggestions: WbAutoCompleteOption[]
   trueValueKey?: WbAutoCompleteOptionKey
   invalid?: boolean
@@ -35,34 +54,70 @@ type WbAutoCompleteProps = {
   successText?: string
   wrapperClass?: string
   labelClass?: string
+  required?: boolean
   validationErrorMessageClass?: string
   validationSuccessMessageClass?: string
 }
 
 const props = withDefaults(defineProps<WbAutoCompleteProps>(), {
   trueValueKey: 'value',
+  apiOptionLabel: 'name',
+  apiOptionValue: 'id',
   invalid: false,
   invalidText: '',
   success: false,
   successText: '',
   wrapperClass: '',
   labelClass: '',
+  required: false,
   validationErrorMessageClass: '',
   validationSuccessMessageClass: '',
 })
 
 /** Search functionality */
 const filteredSuggestions = ref<WbAutoCompleteOption[]>()
-const search = (event: AutoCompleteCompleteEvent): void => {
-  if (!event.query.trim().length) {
+
+const search = useDebounceFn(async (event: AutoCompleteCompleteEvent) => {
+  const query = event.query.trim().toLowerCase().replace(/\s+/g, '')
+  if (!query.length) {
     filteredSuggestions.value = [...props.suggestions]
     return
   }
 
-  filteredSuggestions.value = props.suggestions.filter((suggestion) => {
-    return suggestion.label.toLowerCase().replace(/\s+/g, '').includes(event.query.toLowerCase().replace(/\s+/g, ''))
-  })
-}
+  console.log(props.useApiFilter)
+
+  if (props.useApiFilter) {
+    const apiUrl = createUrlWithParams(props.apiEndpoint, {
+      ...props.apiFilters,
+      query: event.query.trim(),
+    })
+
+    console.log(apiUrl)
+
+    const { data } = await useApiCall(apiUrl, auth.authenticationToken.value).get().json()
+    const apiSuggestions = (data.value?.data || []) as ApiSuggestion[]
+
+    filteredSuggestions.value = []
+    apiSuggestions.forEach((element: ApiSuggestion) => {
+      const label = getObjectValueUsingPath(element, props.apiOptionLabel)
+
+      filteredSuggestions.value?.push({
+        label: label,
+        value: element[props.apiOptionValue],
+      })
+    })
+
+    const localSuggestions = props.suggestions.filter((suggestion) => {
+      return suggestion.label.toLowerCase().replace(/\s+/g, '').includes(event.query.toLowerCase().replace(/\s+/g, ''))
+    })
+
+    filteredSuggestions.value = [...filteredSuggestions.value, ...localSuggestions]
+  } else {
+    filteredSuggestions.value = props.suggestions.filter((suggestion) => {
+      return suggestion.label.toLowerCase().replace(/\s+/g, '').includes(event.query.toLowerCase().replace(/\s+/g, ''))
+    })
+  }
+}, 250)
 
 /** Send back the true value of an object to the parent */
 const handleItemSelect = (event: AutoCompleteItemSelectEvent): void => {
@@ -80,6 +135,7 @@ const handleItemClear = (): void => {
   <div :class="`flex w-full flex-col gap-2 ${wrapperClass}`">
     <label :for="$.uid.toString()" :class="`${props.labelClass || 'text-xs text-surface-800 dark:text-surface-200'}`">
       {{ props.label }}
+      <span v-if="props.required" class="text-red-500">*</span>
     </label>
     <!-- Start AutoComplete-->
     <div :class="`relative ${$attrs.disabled ? 'hover:cursor-not-allowed' : ''}`">
@@ -95,13 +151,14 @@ const handleItemClear = (): void => {
       <AutoComplete
         v-bind="$attrs"
         :aria-describedby="`${$.uid.toString()}-help`"
-        :class="`h-12 w-full ${$attrs.class}`"
+        :class="`h-12 w-full transition-all ease-in-out duration-300 ${$attrs.class}`"
         :input-class="`h-12 w-full ${$slots['prepend-icon'] ? 'pl-10' : ''}
         ${props.invalid ? '!ring-error-500 dark:!ring-error-300' : ''}
         ${$attrs.disabled ? '!text-surface-600 dark:!text-surface-0/70' : ''}
         ${$attrs.inputClass}`"
         @complete="search"
         :suggestions="filteredSuggestions"
+        :fluid="true"
         @item-select="(event: AutoCompleteItemSelectEvent) => handleItemSelect(event)"
         @clear="handleItemClear"
       />

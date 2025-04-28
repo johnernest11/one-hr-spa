@@ -10,6 +10,7 @@ import AnnouncementsPage from '@/views/AnnouncementsPage.vue'
 import { AuthRole, AuthType } from '@/typings/auth.types.ts'
 import { useAuthStore } from '@/stores/auth.store.ts'
 
+
 const enum RouteGroup {
   MAIN = 'Main',
   HR = 'Human Resources',
@@ -169,29 +170,9 @@ const routes = [
   {
     path: '/recruitment',
     name: 'recruitment',
-    component: AnnouncementsPage,
     meta: <RouteMeta>{
       group: RouteGroup.HR,
       label: 'Recruitment',
-      isSidebarMenu: true,
-      authType: AuthType.AUTHENTICATED,
-      roles: [
-        AuthRole.STANDARD_USER,
-        AuthRole.EMPLOYEE,
-        AuthRole.HR_PPMS_ADMIN,
-        AuthRole.HR_PPMS_ADMIN,
-        AuthRole.ADMIN,
-        AuthRole.SYSTEM_SUPPORT,
-        AuthRole.SUPER_USER,
-      ],
-    },
-  },
-  {
-    path: '/personnel',
-    name: 'personnel',
-    meta: <RouteMeta>{
-      group: RouteGroup.HR,
-      label: 'Personnel Management',
       isSidebarMenu: true,
       authType: AuthType.AUTHENTICATED,
       roles: [
@@ -210,7 +191,7 @@ const routes = [
         name: 'employees',
         component: () => import('@/views/personnel/EmployeesPage.vue'),
         meta: <RouteMeta>{
-          label: 'Employees',
+          label: 'Employment',
           isSidebarMenu: true,
           authType: AuthType.AUTHENTICATED,
           roles: [
@@ -226,7 +207,7 @@ const routes = [
       {
         path: ':id?/editor',
         name: 'create-personnel',
-        component: () => import('@/components/employee-entry/CreateEmployeeC1Form.vue'),
+        component: () => import('@/views/personnel/PdsForm.vue'),
         meta: <RouteMeta>{
           label: 'Create Personnel',
           isSidebarMenu: false,
@@ -235,6 +216,26 @@ const routes = [
         },
       },
     ],
+  },
+  {
+    path: '/personnel',
+    name: 'personnel',
+    component: AnnouncementsPage,
+    meta: <RouteMeta>{
+      group: RouteGroup.HR,
+      label: 'Personnel Management',
+      isSidebarMenu: true,
+      authType: AuthType.AUTHENTICATED,
+      roles: [
+        AuthRole.STANDARD_USER,
+        AuthRole.EMPLOYEE,
+        AuthRole.HR_PPMS_ADMIN,
+        AuthRole.HR_PPMS_ADMIN,
+        AuthRole.ADMIN,
+        AuthRole.SYSTEM_SUPPORT,
+        AuthRole.SUPER_USER,
+      ],
+    },
   },
 
   {

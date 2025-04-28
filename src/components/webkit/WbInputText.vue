@@ -12,6 +12,7 @@ defineOptions({
 /** Props */
 type WbInputTextProps = {
   label: string
+  required?: boolean
   invalid?: boolean
   invalidText?: string
   success?: boolean
@@ -24,6 +25,7 @@ type WbInputTextProps = {
 
 const props = withDefaults(defineProps<WbInputTextProps>(), {
   invalid: false,
+  required: false,
   invalidText: '',
   success: false,
   successText: '',
@@ -38,6 +40,7 @@ const props = withDefaults(defineProps<WbInputTextProps>(), {
   <div :class="`flex w-full flex-col gap-2 ${wrapperClass}`">
     <label :for="$.uid.toString()" :class="`${props.labelClass || 'text-xs text-surface-800 dark:text-surface-200'}`">
       {{ props.label }}
+      <span v-if="props.required" class="text-red-500">*</span>
     </label>
 
     <!-- Start InputText-->
@@ -54,7 +57,7 @@ const props = withDefaults(defineProps<WbInputTextProps>(), {
       <InputText
         v-bind="$attrs"
         :aria-describedby="`${$.uid.toString()}-help`"
-        :class="`h-12 w-full ${$slots['prepend-icon'] ? 'pl-10' : ''} ${
+        :class="`transition-all ease-in-out duration-300 focus:text-surface-900 h-12 w-full ${$slots['prepend-icon'] ? 'pl-10' : ''} ${
           props.invalid ? '!ring-error-500 dark:!ring-error-300' : ''
         } ${$attrs.disabled ? 'dark:!text-surface-0/70' : ''}`"
       />

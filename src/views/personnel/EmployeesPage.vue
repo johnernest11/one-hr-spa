@@ -8,6 +8,7 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { sleep } from '@/utils/helpers.ts'
 
 const personnelStore = useEmployeeEntryStore()
+
 const columnWidths = ['w-32', 'w-24', 'w-64', 'w-24', 'w-40', 'w-32', 'w-48']
 const menu = ref()
 const items = ref([
@@ -15,21 +16,28 @@ const items = ref([
     items: [
       {
         label: 'via Manual Input',
+        to: 'create-personnel',
+        command: () => {
+          personnelStore.pdsMode = 'via Manual Input'
+        },
       },
       {
         label: 'via PDS Importation',
+        to: 'dashboard' /** abang */,
+        command: () => {
+          personnelStore.pdsMode = 'via PDS Import'
+        },
       },
     ],
   },
 ])
 
-const toggle = (event: Event) => {
+const toggleAddingList = (event: Event) => {
   menu.value.toggle(event)
 }
 
 onBeforeMount(async () => {
-  await sleep(3)
-  console.log(personnelStore.employees)
+  await sleep(2)
   personnelStore.isEmployeesLoading = false
 })
 </script>
@@ -58,13 +66,19 @@ onBeforeMount(async () => {
                 <p class="text-md text-surface-600 lg:text-lg">List of employees shall appear here.</p>
 
                 <div class="mt-4">
-                  <Button size="large" outlined severity="info" class="rounded-sm" @click="toggle">
+                  <Button size="large" outlined severity="info" class="rounded-sm" @click="toggleAddingList">
                     <template #icon>
                       <FontAwesomeIcon icon="fa-solid fa-plus" class="mr-1.5 h-4 w-4" />
                       <span class="lg:text-md text-sm">New Employee</span>
                     </template>
                   </Button>
-                  <Menu ref="menu" id="overlay_menu" :model="items" :popup="true" />
+                  <Menu ref="menu" id="overlay_menu" :model="items" :popup="true">
+                    <template #item="{ item, props }">
+                      <RouterLink :to="{ name: item.to }" v-bind="props.action">
+                        <span class="ml-2">{{ item.label }}</span>
+                      </RouterLink>
+                    </template>
+                  </Menu>
                 </div>
               </div>
             </div>

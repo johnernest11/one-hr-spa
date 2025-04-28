@@ -157,7 +157,11 @@ export type PersonnelEmployee = {
   id_number: string | null
   item_id: number | null
   agency_employee_no: string | null
+  office_id: number
+  division_id: number
+  section_unit: number
 }
+
 
 /** Role (HTTP Responses) */
 export type RoleResponse = {
