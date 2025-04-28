@@ -37,6 +37,7 @@ type WbAutoCompleteProps = {
   labelClass?: string
   validationErrorMessageClass?: string
   validationSuccessMessageClass?: string
+  required?: boolean
 }
 
 const props = withDefaults(defineProps<WbAutoCompleteProps>(), {
@@ -49,6 +50,7 @@ const props = withDefaults(defineProps<WbAutoCompleteProps>(), {
   labelClass: '',
   validationErrorMessageClass: '',
   validationSuccessMessageClass: '',
+  required: false,
 })
 
 /** Search functionality */
@@ -80,6 +82,8 @@ const handleItemClear = (): void => {
   <div :class="`flex w-full flex-col gap-2 ${wrapperClass}`">
     <label :for="$.uid.toString()" :class="`${props.labelClass || 'text-xs text-surface-800 dark:text-surface-200'}`">
       {{ props.label }}
+      <span v-if="props.required" class="text-error-500">*</span>
+      <!-- Asterisk for required fields -->
     </label>
     <!-- Start AutoComplete-->
     <div :class="`relative ${$attrs.disabled ? 'hover:cursor-not-allowed' : ''}`">

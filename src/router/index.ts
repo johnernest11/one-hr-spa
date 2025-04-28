@@ -5,6 +5,8 @@ import SupportPage from '@/views/SupportPage.vue'
 import AccomplishmentReportPage from '@/views/AccomplishmentReportPage.vue'
 import CreateAccomplishmentReportForm from '@/components/accomplishment-report/CreateAccomplishmentReportForm.vue'
 import ViewAccomplishmentReport from '@/components/accomplishment-report/ViewAccomplishmentReport.vue'
+import ItemNumberPage from '@/views/ItemNumberPage.vue'
+import ItemNumberForm from '@/components/item-number/ItemNumberForm.vue'
 import AboutUsPage from '@/views/AboutUsPage.vue'
 import AnnouncementsPage from '@/views/AnnouncementsPage.vue'
 import { AuthRole, AuthType } from '@/typings/auth.types.ts'
@@ -12,13 +14,14 @@ import { useAuthStore } from '@/stores/auth.store.ts'
 
 const enum RouteGroup {
   MAIN = 'Main',
-  HR = 'Human Resources',
+  HUMAN_RESOURCES = 'Human Resources',
   ADMIN_TOOLS = 'Admin Tools',
   MISC = 'Misc',
   AUTH = 'Auth',
 }
 
 const routes = [
+  /* MAIN  ROUTE*/
   {
     path: '',
     name: 'dashboard',
@@ -28,14 +31,7 @@ const routes = [
       label: 'Home',
       isSidebarMenu: true,
       authType: AuthType.AUTHENTICATED,
-      roles: [
-        AuthRole.STANDARD_USER,
-        AuthRole.EMPLOYEE,
-        AuthRole.HR_PPMS_ADMIN,
-        AuthRole.ADMIN,
-        AuthRole.SYSTEM_SUPPORT,
-        AuthRole.SUPER_USER,
-      ],
+      roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
     },
   },
   {
@@ -47,14 +43,7 @@ const routes = [
       label: 'Requests',
       isSidebarMenu: true,
       authType: AuthType.AUTHENTICATED,
-      roles: [
-        AuthRole.STANDARD_USER,
-        AuthRole.EMPLOYEE,
-        AuthRole.HR_PPMS_ADMIN,
-        AuthRole.ADMIN,
-        AuthRole.SYSTEM_SUPPORT,
-        AuthRole.SUPER_USER,
-      ],
+      roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
     },
   },
   {
@@ -66,14 +55,7 @@ const routes = [
       label: 'My Profile',
       isSidebarMenu: true,
       authType: AuthType.AUTHENTICATED,
-      roles: [
-        AuthRole.STANDARD_USER,
-        AuthRole.EMPLOYEE,
-        AuthRole.HR_PPMS_ADMIN,
-        AuthRole.ADMIN,
-        AuthRole.SYSTEM_SUPPORT,
-        AuthRole.SUPER_USER,
-      ],
+      roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
     },
   },
   {
@@ -102,14 +84,7 @@ const routes = [
           label: 'ARs',
           isSidebarMenu: true,
           authType: AuthType.AUTHENTICATED,
-          roles: [
-            AuthRole.STANDARD_USER,
-            AuthRole.EMPLOYEE,
-            AuthRole.HR_PPMS_ADMIN,
-            AuthRole.ADMIN,
-            AuthRole.SYSTEM_SUPPORT,
-            AuthRole.SUPER_USER,
-          ],
+          roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
         },
       },
       {
@@ -119,14 +94,7 @@ const routes = [
         meta: <RouteMeta>{
           isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
-          roles: [
-            AuthRole.STANDARD_USER,
-            AuthRole.EMPLOYEE,
-            AuthRole.HR_PPMS_ADMIN,
-            AuthRole.ADMIN,
-            AuthRole.SYSTEM_SUPPORT,
-            AuthRole.SUPER_USER,
-          ],
+          roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
         },
       },
       {
@@ -136,14 +104,7 @@ const routes = [
         meta: <RouteMeta>{
           isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
-          roles: [
-            AuthRole.STANDARD_USER,
-            AuthRole.EMPLOYEE,
-            AuthRole.HR_PPMS_ADMIN,
-            AuthRole.ADMIN,
-            AuthRole.SYSTEM_SUPPORT,
-            AuthRole.SUPER_USER,
-          ],
+          roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
         },
       },
       {
@@ -154,18 +115,55 @@ const routes = [
           label: 'IPC/CCEF',
           isSidebarMenu: true,
           authType: AuthType.AUTHENTICATED,
-          roles: [
-            AuthRole.STANDARD_USER,
-            AuthRole.EMPLOYEE,
-            AuthRole.HR_PPMS_ADMIN,
-            AuthRole.ADMIN,
-            AuthRole.SYSTEM_SUPPORT,
-            AuthRole.SUPER_USER,
-          ],
+          roles: [AuthRole.STANDARD_USER, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
         },
       },
     ],
   },
+  /* HUMAN RESOURCES  ROUTE*/
+  {
+    path: '/recruitments',
+    name: 'recruitments',
+    meta: <RouteMeta>{
+      group: RouteGroup.HUMAN_RESOURCES,
+      label: 'Recruitment',
+      isSidebarMenu: true,
+    },
+    children: [
+      {
+        path: '/item-numbers/:id?',
+        name: 'item-numbers',
+        component: ItemNumberPage,
+        meta: <RouteMeta>{
+          label: 'Item Number',
+          isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+      {
+        path: '/item-numbers/store',
+        name: 'item-numbers/store',
+        component: ItemNumberForm,
+        meta: <RouteMeta>{
+          isSidebarMenu: false,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+      {
+        path: '/item-numbers/:id/editor',
+        name: 'item-numbers/editor',
+        component: ItemNumberForm,
+        meta: <RouteMeta>{
+          isSidebarMenu: false,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+    ],
+  },
+  /* SUPPORT  ROUTE*/
   {
     path: '/recruitment',
     name: 'recruitment',
@@ -261,6 +259,32 @@ const routes = [
       roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
     },
   },
+  /* ADMIN ROUTE*/
+  {
+    path: '/user-management',
+    name: 'user-management',
+    component: () => import('@/views/UsersManagementPage.vue'),
+    meta: <RouteMeta>{
+      label: 'User Management',
+      isSidebarMenu: true,
+      group: RouteGroup.ADMIN_TOOLS,
+      authType: AuthType.AUTHENTICATED,
+      roles: [AuthRole.ADMIN, AuthRole.SUPER_USER, AuthRole.HR_PPMS_ADMIN],
+    },
+  },
+  {
+    path: '/settings',
+    name: 'settings',
+    component: () => import('@/views/SettingsPage.vue'),
+    meta: <RouteMeta>{
+      label: 'Settings',
+      isSidebarMenu: true,
+      group: RouteGroup.ADMIN_TOOLS,
+      authType: AuthType.AUTHENTICATED,
+      roles: [AuthRole.ADMIN, AuthRole.SUPER_USER],
+    },
+  },
+
   {
     path: '/auth',
     name: 'auth',
@@ -348,37 +372,6 @@ const routes = [
           label: 'Multi-Factor Authentication',
           hideNavigation: true,
           authType: AuthType.MFA,
-        },
-      },
-    ],
-  },
-  {
-    path: '/admin',
-    name: 'admin-tools',
-    redirect: { name: 'user-management' },
-    children: [
-      {
-        path: 'user-management',
-        name: 'user-management',
-        component: () => import('@/views/UsersManagementPage.vue'),
-        meta: <RouteMeta>{
-          label: 'User Management',
-          isSidebarMenu: true,
-          group: RouteGroup.ADMIN_TOOLS,
-          authType: AuthType.AUTHENTICATED,
-          roles: [AuthRole.ADMIN, AuthRole.SUPER_USER],
-        },
-      },
-      {
-        path: 'settings',
-        name: 'settings',
-        component: () => import('@/views/SettingsPage.vue'),
-        meta: <RouteMeta>{
-          label: 'Settings',
-          isSidebarMenu: true,
-          group: RouteGroup.ADMIN_TOOLS,
-          authType: AuthType.AUTHENTICATED,
-          roles: [AuthRole.ADMIN, AuthRole.SUPER_USER],
         },
       },
     ],
