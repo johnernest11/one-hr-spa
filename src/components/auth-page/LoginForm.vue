@@ -50,9 +50,10 @@ const credsErrorMessage = ref('')
 const router = useRouter()
 const authStore = useAuthStore()
 const settingsStore = useSettingsStore()
+const hrCaresUrl = import.meta.env.VITE_SPA_SSO_URL
 const token = ref<string | undefined>()
 const handleSSO = async () => {
-  window.location.href = 'http://localhost:3000/auth/login?service=hr_cares&redirect=http://localhost:3001/'
+  window.location.href = hrCaresUrl
 }
 
 const ssoToken = async (token: string) => {
