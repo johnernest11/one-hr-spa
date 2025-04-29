@@ -124,7 +124,7 @@ const routes = [
     },
     children: [
       {
-        path: '/item-numbers/:id?/editor',
+        path: '/item-numbers/:id?',
         name: 'item-numbers',
         component: ItemNumberPage,
         meta: <RouteMeta>{

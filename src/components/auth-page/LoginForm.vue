@@ -3,7 +3,7 @@ import WbInputText from '@/components/webkit/WbInputText.vue'
 import Message from 'primevue/message'
 import Button from 'primevue/button'
 import WbPassword from '@/components/webkit/WbPassword.vue'
-import { reactive, ref } from 'vue'
+import { reactive, ref, onMounted } from 'vue'
 import useVuelidate from '@vuelidate/core'
 import { helpers, required } from '@vuelidate/validators'
 import { useRoute, useRouter } from 'vue-router'
@@ -50,6 +50,29 @@ const credsErrorMessage = ref('')
 const router = useRouter()
 const authStore = useAuthStore()
 const settingsStore = useSettingsStore()
+const token = ref<string | undefined>()
+const handleSSO = async () => {
+  window.location.href = 'http://localhost:3000/auth/login?service=hr_cares&redirect=http://localhost:3001/'
+}
+
+const ssoToken = async (token: string) => {
+  const res = await authStore.ssoLogin(token)
+
+  if (res.success) {
+    await router.push({ name: 'dashboard' })
+  } else {
+    credsErrorMessage.value = 'Auto-login failed. Please log in manually.'
+    showCredsErrorAlert.value = true
+  }
+}
+
+onMounted(async () => {
+  token.value = route.query.token as string | undefined
+  if (token.value) {
+    await ssoToken(token.value)
+  }
+})
+
 const handleLogin = async () => {
   formIsSubmitting.value = true
   const valid = await validator.value.$validate()
@@ -206,6 +229,7 @@ const manageIfEmailIsPhoneNumber = (payload: LoginPayload) => {
       </WbPassword>
       <div>
         <Button @click="handleLogin" label="Sign in" size="large" class="mt-3 w-full" :loading="formIsSubmitting"></Button>
+        <Button @click="handleSSO" label="Sign in using SSO" size="large" class="mt-3 w-full"></Button>
       </div>
       <p class="flex justify-between pt-3 text-center">
         <Button
