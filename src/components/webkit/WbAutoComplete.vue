@@ -11,7 +11,6 @@ import { createUrlWithParams, getObjectValueUsingPath } from '@/utils/helpers.ts
 import { ref } from 'vue'
 import { storeToRefs } from 'pinia'
 
-
 const auth = storeToRefs(useAuthStore())
 defineOptions({
   inheritAttrs: false,
@@ -22,7 +21,6 @@ export type WbAutoCompleteOptionTrueValue = string | number | null | object
 const emit = defineEmits<{
   (e: 'onTrueValueComputed', value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]): void
 }>()
-
 
 interface ApiSuggestion {
   [key: string]: string | number
@@ -41,7 +39,7 @@ export type WbAutoCompleteOptionKey = 'value' | 'label'
 
 type WbAutoCompleteProps = {
   label: string
-  
+
   apiEndpoint?: string | undefined
   apiOptionLabel?: string
   apiOptionValue?: string
@@ -151,7 +149,7 @@ const handleItemClear = (): void => {
       <AutoComplete
         v-bind="$attrs"
         :aria-describedby="`${$.uid.toString()}-help`"
-        :class="`h-12 w-full transition-all ease-in-out duration-300 ${$attrs.class}`"
+        :class="`h-12 w-full transition-all duration-300 ease-in-out ${$attrs.class}`"
         :input-class="`h-12 w-full ${$slots['prepend-icon'] ? 'pl-10' : ''}
         ${props.invalid ? '!ring-error-500 dark:!ring-error-300' : ''}
         ${$attrs.disabled ? '!text-surface-600 dark:!text-surface-0/70' : ''}

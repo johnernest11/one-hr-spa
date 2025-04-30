@@ -78,6 +78,9 @@ export const EmployeeEntryC1FormRules = {
   citizenship_country: {
     maxLength: helpers.withMessage(() => generateMessage('citizenship_country').maxLength, globalStringMaxLengthRule),
   },
+  citizenship_acquisition: {
+    maxLength: helpers.withMessage(() => generateMessage('citizenship_acquisition').maxLength, globalStringMaxLengthRule),
+  },
   /** Personnel Contact Info */
   tel_no: {
     tel_no: helpers.withMessage('Must be a valid PH mobile number', mobilePhoneRule()),

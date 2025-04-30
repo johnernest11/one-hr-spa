@@ -162,7 +162,6 @@ export type PersonnelEmployee = {
   section_unit: number
 }
 
-
 /** Role (HTTP Responses) */
 export type RoleResponse = {
   name: string

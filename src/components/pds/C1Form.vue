@@ -10,6 +10,7 @@ import useVuelidate from '@vuelidate/core'
 import WbInputText from '@/components/webkit/WbInputText.vue'
 import WbCalendar from '@/components/webkit/WbCalendar.vue'
 import WbDropdown from '@/components/webkit/WbDropdown.vue'
+import InputNumber from 'primevue/inputnumber'
 import Button from 'primevue/button'
 import InputMask from 'primevue/inputmask'
 import RadioButton from 'primevue/radiobutton'
@@ -26,10 +27,10 @@ import {
 } from '@/typings/employee-entry.types'
 import Divider from 'primevue/divider'
 import { TabGroup, TabList, Tab, TabPanels, TabPanel } from '@headlessui/vue'
-import {PersonnelEmployee} from '@/typings/models.types.ts'
+import { PersonnelEmployee } from '@/typings/models.types.ts'
 import { usePrependOrAppendOnce } from '@/utils/helpers.js'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-
+import { TransitionRoot } from '@headlessui/vue'
 
 const getId = usePrependOrAppendOnce('pds-c1-section-form')
 
@@ -51,17 +52,17 @@ const selectedSectionUnit = ref<WbAutoCompleteOption[] | null>(null)
 
 const payload = reactive<PersonalDataSheetPayload>({
   /** User Profile  */
-  last_name: auntenticatedUser?.last_name || '',
-  first_name: auntenticatedUser?.first_name || '',
-  middle_name: auntenticatedUser?.middle_name || '',
-  ext_name: auntenticatedUser?.ext_name || '',
-  birthday: auntenticatedUser?.birthday || '',
-  sex: auntenticatedUser?.sex || null,
+  last_name: null,
+  first_name: null,
+  middle_name: null,
+  ext_name: null,
+  birthday: null,
+  sex: null,
   /** Personnel Data Sheet  */
-  place_of_birth: authPersonnelDataSheet?.place_of_birth || '',
+  place_of_birth: null,
   civil_status: authPersonnelDataSheet?.civil_status || null,
-  height: authPersonnelDataSheet?.height || '',
-  weight: authPersonnelDataSheet?.weight || '',
+  height: null,
+  weight: null,
   blood_type: authPersonnelDataSheet?.blood_type || null,
   gsis_no: authPersonnelDataSheet?.pag_ibig_no || '',
   philhealth_no: authPersonnelDataSheet?.philhealth_no || '',
@@ -70,6 +71,7 @@ const payload = reactive<PersonalDataSheetPayload>({
   tin_no: authPersonnelDataSheet?.tin_no || '',
   agency_employee_no: authPersonnelDataSheet?.agency_employee_no || '',
   citizenship: authPersonnelDataSheet?.citizenship || '',
+  citizenship_acquisition: null,
   citizenship_country: authPersonnelDataSheet?.citizenship_country || '',
   /** Personnel Data Sheet  */
   tel_no: authPersonnelDataSheet?.personnel_contact_info?.tel_no || '',
@@ -111,7 +113,7 @@ const payload = reactive<PersonalDataSheetPayload>({
   highest_level_units_earned: authPersonnelEducation?.highest_level_units_earned || '',
   year_graduated: authPersonnelEducation?.year_graduated || '',
   scholarship_academic_honors_received: authPersonnelEducation?.scholarship_academic_honors_received || '',
-  employee: <PersonnelEmployee>{} || null
+  employee: <PersonnelEmployee>{} || null,
 })
 
 /** Address Section **/
@@ -126,12 +128,12 @@ const publicStore = useAddressStore()
 const addressesAreLoading = ref(false)
 onBeforeMount(async () => {
   addressesAreLoading.value = true
-  await Promise.allSettled([
-    publicStore.fetchRegions(),
-    publicStore.fetchProvinces(),
-    publicStore.fetchCities(),
-    publicStore.fetchBarangays(),
-  ])
+  // await Promise.allSettled([
+  //   publicStore.fetchRegions(),
+  //   publicStore.fetchProvinces(),
+  //   publicStore.fetchCities(),
+  //   publicStore.fetchBarangays(),
+  // ])
 
   // Set the initial value of the selected addresses
   selectedResidentialRegion.value = publicStore.regionOptions.find((r) => r.value === authPersonnelAdresses?.region?.id) || null
@@ -254,7 +256,7 @@ const c1Tabs = ref([
             <Tab v-for="subSection in c1Tabs" as="template" :key="subSection" v-slot="{ selected }">
               <button
                 :class="[
-                  'w-full border-b-2 border-solid py-4 text-base font-medium italic leading-5 ring-transparent transition-all duration-300 ease-in-out focus:outline-none ',
+                  'w-full border-b-2 border-solid py-4 text-sm font-medium italic leading-5 ring-transparent transition-all duration-300 ease-in-out focus:outline-none md:text-base ',
                   selected
                     ? 'border-b-2 border-solid border-primary-600 bg-primary-100 text-primary-600'
                     : 'border-surface-300 text-surface-400 hover:bg-white/[0.12]',
@@ -266,139 +268,338 @@ const c1Tabs = ref([
           </TabList>
 
           <TabPanels>
+            <!-- START PERSONAL INFO SECTION -->
             <TabPanel :class="['my-8 md:mx-12 ', ' ring-white/60 focus:outline-none ']">
-              <div class="flex flex-col gap-4">
-                <div class="flex flex-row items-center justify-center gap-4">
-                  <WbAutoComplete
-                    :useApiFilter="true"
-                    :apiEndpoint="'/items/search'"
-                    :suggestions="libraryStore.officeOptions"
-                    apiOptionLabel="item_number"
-                    label="Item Number"
-                    placeholder="Type the item number"
-                    v-model="selectedItemNo"
-                    :id="getId('input-item-no')"
-                    optionLabel="label"
-                    optionValue="value"
-                    required
-                    @on-true-value-computed="
-                      (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
-                        useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'references'))
-                    "
-                    label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                    class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                    validation-error-message-class="text-xs text-error-300 font-bold lg:font-normal dark:lg:text-error-300"
-                  >
-                  </WbAutoComplete>
-                  <RouterLink :to="{ name: 'support', params: {from: 'recruitment'} }" v-tooltip.top="'Add Item Number'" >
-                    <FontAwesomeIcon icon="fa-solid fa-plus" class="mt-8 text-3xl font-bold text-primary-500"  />
-                  </RouterLink>
+              <TransitionRoot
+                appear
+                :show="true"
+                enter="transition-all ease-in-out duration-500 "
+                enterFrom="opacity-0 translate-y-6"
+                enterTo="opacity-100 translate-y-0"
+                leave="transition-all ease-in-out duration-800"
+                leaveFrom="opacity-100"
+                leaveTo="opacity-0"
+              >
+                <div class="flex flex-col gap-4">
+                  <!-- START ITEM NUMBER Fields as HR PPMS -->
+                  <template v-if="true">
+                    <div class="flex flex-row items-center justify-center gap-4">
+                      <WbAutoComplete
+                        :useApiFilter="true"
+                        :apiEndpoint="'/items/search'"
+                        :suggestions="libraryStore.officeOptions"
+                        apiOptionLabel="item_number"
+                        label="Item Number"
+                        placeholder="Type the item number"
+                        v-model="selectedItemNo"
+                        :id="getId('input-item-no')"
+                        optionLabel="label"
+                        optionValue="value"
+                        required
+                        @on-true-value-computed="
+                          (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
+                            useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'references'))
+                        "
+                        label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                        validation-error-message-class="text-xs text-error-300 font-bold lg:font-normal dark:lg:text-error-300"
+                      >
+                      </WbAutoComplete>
+                      <RouterLink :to="{ name: 'support', state: { from: 'recruitment' } }" v-tooltip.top="'Add Item Number'">
+                        <FontAwesomeIcon icon="fa-solid fa-plus" class="mt-8 text-3xl font-bold text-primary-500" />
+                      </RouterLink>
+                    </div>
+
+                    <WbInputText
+                      :id="getId('input-item-position')"
+                      label="Position"
+                      :required="true"
+                      readonly
+                      placeholder="Position will be auto populated upon item number selection"
+                      class="lg:text-md lg:placeholder:text-md cursor-not-allowed bg-surface-200 text-sm placeholder:text-sm read-only:cursor-not-allowed disabled:cursor-not-allowed"
+                      label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                      validation-error-message-class="text-xs text-error-300 font-bold lg:font-normal dark:lg:text-error-300"
+                    />
+
+                    <WbAutoComplete
+                      :useApiFilter="true"
+                      :apiEndpoint="'/salary-grades/search'"
+                      :suggestions="libraryStore.officeOptions"
+                      apiOptionLabel="salary_grade"
+                      label="Salary Grade"
+                      placeholder="Type Salary Grade with its tranche here"
+                      v-model="selectedSalaryGrade"
+                      :id="getId('input-salary-grade')"
+                      optionLabel="label"
+                      optionValue="value"
+                      required
+                      @on-true-value-computed="
+                        (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
+                          useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'references'))
+                      "
+                      label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                      class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                      validation-error-message-class="text-xs text-error-300 font-bold lg:font-normal dark:lg:text-error-300"
+                    >
+                    </WbAutoComplete>
+
+                    <div class="flex flex-col gap-2 md:flex-row md:gap-4">
+                      <WbAutoComplete
+                        :useApiFilter="true"
+                        :apiEndpoint="'/libraries/offices/search'"
+                        :suggestions="libraryStore.officeOptions"
+                        :loading="libraryStore.officeOptionsLoading"
+                        apiOptionLabel="name"
+                        label="Office"
+                        placeholder="Type the Employee's Office to search and select"
+                        v-model="selectedOffice"
+                        :id="getId('input-office')"
+                        optionLabel="label"
+                        optionValue="value"
+                        required
+                        forceSelection
+                        @on-true-value-computed="
+                          (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
+                            useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'employee.office_id'))
+                        "
+                        label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                        validation-error-message-class="text-xs text-error-300 font-bold lg:font-normal dark:lg:text-error-300"
+                      >
+                      </WbAutoComplete>
+                      <WbAutoComplete
+                        :useApiFilter="true"
+                        :apiEndpoint="'/libraries/divisions/search'"
+                        :suggestions="libraryStore.divisionOptions"
+                        :loading="libraryStore.divisionOptionsLoading"
+                        apiOptionLabel="name"
+                        label="Division"
+                        placeholder="Type the Division"
+                        v-model="selectedDivision"
+                        :id="getId('input-division')"
+                        optionLabel="label"
+                        optionValue="value"
+                        required
+                        @on-true-value-computed="
+                          (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
+                            useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'employee.division_id'))
+                        "
+                        label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                        validation-error-message-class="text-xs text-error-300 font-bold lg:font-normal dark:lg:text-error-300"
+                      >
+                      </WbAutoComplete>
+                      <WbAutoComplete
+                        :useApiFilter="true"
+                        :apiEndpoint="'/libraries/section-or-units/search'"
+                        :suggestions="libraryStore.sectionUnitOptions"
+                        :loading="libraryStore.sectionUnitOptionsLoading"
+                        apiOptionLabel="name"
+                        label="Section/Unit"
+                        placeholder="Type the Section / Unit"
+                        v-model="selectedSectionUnit"
+                        :id="getId('input-section-unit')"
+                        optionLabel="label"
+                        optionValue="value"
+                        required
+                        @on-true-value-computed="
+                          (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
+                            useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'employee.section_unit'))
+                        "
+                        label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                        validation-error-message-class="text-xs text-error-300 font-bold lg:font-normal dark:lg:text-error-300"
+                      >
+                      </WbAutoComplete>
+                    </div>
+                  </template>
+                  <!-- END ITEM NUMBER Fields as HR PPMS -->
+
+                  <div class="mt-6 grid grid-cols-1 gap-x-12 gap-y-4 md:grid-cols-2">
+                    <WbInputText
+                      v-model="payload.last_name"
+                      label="Surname"
+                      required
+                      label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                      class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                      validation-error-message-class="text-xs text-error-300 font-bold lg:font-normal dark:lg:text-error-300"
+                      :invalid="validator.last_name.$invalid"
+                      :invalid-text="validator.last_name.$errors[0]?.$message"
+                      @blur="validator.last_name.$touch"
+                    >
+                    </WbInputText>
+
+                    <WbInputText
+                      v-model="payload.first_name"
+                      label="First Name"
+                      required
+                      label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                      class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                      validation-error-message-class="text-xs text-error-300 font-bold lg:font-normal dark:lg:text-error-300"
+                      :invalid="validator.first_name.$invalid"
+                      :invalid-text="validator.first_name.$errors[0]?.$message"
+                      @blur="validator.first_name.$touch"
+                    >
+                    </WbInputText>
+                    <WbInputText
+                      v-model="payload.middle_name"
+                      label="Middle Name"
+                      label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                      class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                      validation-error-message-class="text-xs text-error-300 font-bold lg:font-normal dark:lg:text-error-300"
+                      :invalid="validator.middle_name.$invalid"
+                      :invalid-text="validator.middle_name.$errors[0]?.$message"
+                      @blur="validator.middle_name.$touch"
+                    >
+                    </WbInputText>
+                    <WbDropdown
+                      v-model="payload.ext_name"
+                      optionLabel="label"
+                      optionValue="value"
+                      :options="libraryStore.extNameOptions"
+                      label="Extension Name"
+                      label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                      class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                      validation-error-message-class="text-xs text-error-300 font-bold lg:font-normal dark:lg:text-error-300"
+                      :invalid="validator.ext_name.$invalid"
+                      :invalid-text="validator.ext_name.$errors[0]?.$message"
+                      @blur="validator.ext_name.$touch"
+                    >
+                    </WbDropdown>
+
+                    <WbCalendar
+                      v-model="payload.birthday"
+                      dateFormat="MM dd, yy"
+                      :maxDate="new Date()"
+                      label="Date of Birth"
+                      label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                    >
+                      <template #prepend-icon>
+                        <i class="pi pi-gift" />
+                      </template>
+                    </WbCalendar>
+
+                    <WbInputText
+                      v-model="payload.place_of_birth"
+                      label="Place of Birth"
+                      required
+                      label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                      class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                      validation-error-message-class="text-xs text-error-300 font-bold lg:font-normal dark:lg:text-error-300"
+                      :invalid="validator.place_of_birth.$invalid"
+                      :invalid-text="validator.place_of_birth.$errors[0]?.$message"
+                      @blur="validator.place_of_birth.$touch"
+                    >
+                    </WbInputText>
+
+                    <WbDropdown
+                      v-model="payload.sex"
+                      required
+                      :options="libraryStore.sexOptions"
+                      optionLabel="label"
+                      optionValue="value"
+                      label="Sex"
+                      label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                      :invalid="validator.sex.$invalid"
+                      :invalid-text="validator.sex.$errors[0]?.$message"
+                      @blur="validator.sex.$touch"
+                    >
+                      <template #prepend-icon>
+                        <FontAwesomeIcon icon="fa-solid fa-mars-and-venus" />
+                      </template>
+                    </WbDropdown>
+
+                    <div class="flex flex-col gap-4">
+                      <div class="flex flex-row space-x-2">
+                        <h3 class="text-md text-surface-600 dark:lg:text-surface-200">Citizenship</h3>
+                        <span class="text-red-500">*</span>
+                      </div>
+                      <div class="flex flex-row items-center justify-center gap-12 p-4 md:justify-start md:p-2">
+                        <div class="flex items-center">
+                          <RadioButton v-model="payload.citizenship" inputId="ingredient1" name="citizenship" value="Filipino" />
+                          <label for="ingredient1" class="ml-2 cursor-pointer">Filipino</label>
+                        </div>
+                        <div class="flex items-center">
+                          <RadioButton
+                            v-model="payload.citizenship"
+                            inputId="ingredient2"
+                            name="citizenship"
+                            value="Dual Citizenship"
+                          />
+                          <label for="ingredient2" class="ml-2 cursor-pointer">Dual Citizen</label>
+                        </div>
+                      </div>
+                    </div>
+
+                    <WbDropdown
+                      v-model="payload.civil_status"
+                      required
+                      :options="libraryStore.civilStatusOptions"
+                      optionLabel="label"
+                      optionValue="value"
+                      label="Civil Status"
+                      label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                      :invalid="validator.civil_status.$invalid"
+                      :invalid-text="validator.civil_status.$errors[0]?.$message"
+                      @blur="validator.civil_status.$touch"
+                    >
+                      <template #prepend-icon>
+                        <FontAwesomeIcon icon="fa-solid fa-people-arrows" />
+                      </template>
+                    </WbDropdown>
+
+                    <WbDropdown
+                      v-model="payload.citizenship_acquisition"
+                      required
+                      :options="libraryStore.citizenshipAcquisitionOptions"
+                      optionLabel="label"
+                      optionValue="value"
+                      label="Filipino by"
+                      label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                      :invalid="validator.citizenship_acquisition.$invalid"
+                      :invalid-text="validator.citizenship_acquisition.$errors[0]?.$message"
+                      @blur="validator.citizenship_acquisition.$touch"
+                    >
+                      <template #prepend-icon>
+                        <FontAwesomeIcon icon="fa-solid fa-house-flag" />
+                      </template>
+                    </WbDropdown>
+                    <InputNumber
+                      placeholder="Height in meters"
+                      required
+                      label="Height (m)"
+                      v-model="payload.height"
+                      suffix=" m"
+                    />
+                    <WbDropdown
+                      v-model="payload.blood_type"
+                      required
+                      :options="libraryStore.bloodTypeOptions"
+                      optionLabel="label"
+                      optionValue="value"
+                      label="Blood Type"
+                      label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                      :invalid="validator.blood_type.$invalid"
+                      :invalid-text="validator.blood_type.$errors[0]?.$message"
+                      @blur="validator.blood_type.$touch"
+                    >
+                      <template #prepend-icon>
+                        <FontAwesomeIcon icon="fa-solid fa-droplet" />
+                      </template>
+                    </WbDropdown>
+
+                    <InputNumber
+                      placeholder="Weight in kilos"
+                      required
+                      label="Weight (kg)"
+                      v-model="payload.height"
+                      suffix=" kg"
+                    />
+                  </div>
                 </div>
-
-                <WbInputText
-                  :id="getId('input-item-position')"
-                  label="Position"
-                  :required="true"
-                  readonly
-                  placeholder="Position will be auto populated upon item number selection"
-                  class="lg:text-md lg:placeholder:text-md cursor-not-allowed bg-surface-200 text-sm placeholder:text-sm read-only:cursor-not-allowed disabled:cursor-not-allowed"
-                  label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                  validation-error-message-class="text-xs text-error-300 font-bold lg:font-normal dark:lg:text-error-300"
-                />
-
-                <WbAutoComplete
-                  :useApiFilter="true"
-                  :apiEndpoint="'/salary-grades/search'"
-                  :suggestions="libraryStore.officeOptions"
-                  apiOptionLabel="salary_grade"
-                  label="Salary Grade"
-                  placeholder="Type Salary Grade with its tranche here"
-                  v-model="selectedSalaryGrade"
-                  :id="getId('input-salary-grade')"
-                  optionLabel="label"
-                  optionValue="value"
-                  required
-                  @on-true-value-computed="
-                    (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
-                      useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'references'))
-                  "
-                  label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                  class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                  validation-error-message-class="text-xs text-error-300 font-bold lg:font-normal dark:lg:text-error-300"
-                >
-                </WbAutoComplete>
-
-                <div class="flex flex-col gap-2 md:flex-row md:gap-4">
-                  <WbAutoComplete
-                    :useApiFilter="true"
-                    :apiEndpoint="'/libraries/offices/search'"
-                    :suggestions="libraryStore.officeOptions"
-                    :loading="libraryStore.officeOptionsLoading"
-                    apiOptionLabel="name"
-                    label="Office"
-                    placeholder="Type the Employee's Office to search and select"
-                    v-model="selectedOffice"
-                    :id="getId('input-office')"
-                    optionLabel="label"
-                    optionValue="value"
-                    required
-                    forceSelection
-                    @on-true-value-computed="
-                      (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
-                        useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'employee.office_id'))
-                    "
-                    label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                    class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                    validation-error-message-class="text-xs text-error-300 font-bold lg:font-normal dark:lg:text-error-300"
-                  >
-                  </WbAutoComplete>
-                  <WbAutoComplete
-                    :useApiFilter="true"
-                    :apiEndpoint="'/libraries/divisions/search'"
-                    :suggestions="libraryStore.divisionOptions"
-                    :loading="libraryStore.divisionOptionsLoading"
-                    apiOptionLabel="name"
-                    label="Division"
-                    placeholder="Type the Division"
-                    v-model="selectedDivision"
-                    :id="getId('input-division')"
-                    optionLabel="label"
-                    optionValue="value"
-                    required
-                    @on-true-value-computed="
-                      (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
-                        useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'employee.division_id'))
-                    "
-                    label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                    class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                    validation-error-message-class="text-xs text-error-300 font-bold lg:font-normal dark:lg:text-error-300"
-                  >
-                  </WbAutoComplete>
-                  <WbAutoComplete
-                    :useApiFilter="true"
-                    :apiEndpoint="'/libraries/section-or-units/search'"
-                    :suggestions="libraryStore.sectionUnitOptions"
-                    :loading="libraryStore.sectionUnitOptionsLoading"
-                    apiOptionLabel="name"
-                    label="Section/Unit"
-                    placeholder="Type the Section / Unit"
-                    v-model="selectedSectionUnit"
-                    :id="getId('input-section-unit')"
-                    optionLabel="label"
-                    optionValue="value"
-                    required
-                    @on-true-value-computed="
-                      (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
-                        useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'employee.section_unit'))
-                    "
-                    label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                    class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                    validation-error-message-class="text-xs text-error-300 font-bold lg:font-normal dark:lg:text-error-300"
-                  >
-                  </WbAutoComplete>
-                </div>
-              </div>
+              </TransitionRoot>
             </TabPanel>
+            <!-- END PERSONAL INFO SECTION -->
           </TabPanels>
         </TabGroup>
       </div>

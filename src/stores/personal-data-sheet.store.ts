@@ -29,6 +29,7 @@ export type PersonalDataSheetPayload = {
   agency_employee_no: string
   citizenship: string
   citizenship_country: string
+  citizenship_acquisition: string
   /**Personnel Data Sheet Contact Info*/
   tel_no: string
   mobile_no: string

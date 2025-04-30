@@ -56,7 +56,6 @@ export const checkIfValidMobileNumber = (value: string, country: CountryCode = '
   return isValidPhoneNumber(value, country)
 }
 
-
 export const usePrependOrAppendOnce = (affix: string, type = 'append') => {
   if (!['append', 'prepend'].includes(type)) {
     throw new Error('Valid values are `prepend` and `append`')
@@ -87,4 +86,27 @@ export const createUrlWithParams = <T>(url: string | undefined, obj: T) => {
 export const getObjectValueUsingPath = <T>(obj: T, path: string) => {
   /* eslint-disable  @typescript-eslint/no-explicit-any */
   return path.split('.').reduce((a: any, b: any) => a[b], obj)
+}
+
+/**
+ * Lower Case the first character in a string
+ *
+ * e.g.
+ * lcFirst('ABC') outputs 'aBC'
+ * lcFirst('A BC') outputs 'a BC'
+ *
+ *
+ * @param string
+ * @returns
+ */
+export const lcFirst = (string: string) => {
+  if (typeof string !== 'string') {
+    return ''
+  }
+
+  if (string.length === 0) {
+    return string
+  }
+
+  return string[0].toLowerCase() + string.slice(1)
 }

@@ -23,14 +23,14 @@ export const passwordRule = () => helpers.regex(/(?=.*\d)(?=.*[a-z])(?=.*[A-Z])/
  */
 export const digitCountRule =
   (numOfDigits: number): any =>
-  (value: string) => {
+    (value: string) => {
     /** @note We still need to check as the library can still take in non-string types at run time */
-    if (value === null || value === '' || value === undefined) return true
+      if (value === null || value === '' || value === undefined) return true
 
-    const pattern = '^\\d{' + numOfDigits + '}$'
-    const regex = new RegExp(pattern)
-    return regex.test(value)
-  }
+      const pattern = '^\\d{' + numOfDigits + '}$'
+      const regex = new RegExp(pattern)
+      return regex.test(value)
+    }
 
 /**
  * @description Must be a valid mobile number format from the specified country
@@ -38,22 +38,22 @@ export const digitCountRule =
  */
 export const mobilePhoneRule =
   (country = 'PH'): any =>
-  (value: string) => {
+    (value: string) => {
     /** @note We still need to check as the library can still take in non-string types at run time */
-    if (value === null || value === '' || value === undefined) return true
+      if (value === null || value === '' || value === undefined) return true
 
-    let phone
+      let phone
 
-    try {
-      phone = parsePhoneNumber(value, country)
-    } catch (err) {
-      return false
+      try {
+        phone = parsePhoneNumber(value, country)
+      } catch (err) {
+        return false
+      }
+
+      if (!phone) return false
+
+      return phone.isValid()
     }
-
-    if (!phone) return false
-
-    return phone.isValid()
-  }
 
 const availabilityStore = useAvailabilitiesStore()
 /**
@@ -61,25 +61,25 @@ const availabilityStore = useAvailabilitiesStore()
  */
 export const uniqueUserIdentifierRule =
   (key: 'mobile_number' | 'email', excludedId: string | number | undefined | null = null): any =>
-  async (value: string) => {
+    async (value: string) => {
     /** @note We still need to check as the library can still take in non-string types at run time */
-    if (value === null || value === '' || value === undefined) return true
+      if (value === null || value === '' || value === undefined) return true
 
-    if (key === 'email') {
+      if (key === 'email') {
       // Check if the email format is valid before making an API call
-      const validator = useVuelidate({ email: { email } }, { email: value })
-      const isValidFormat = await validator.value.$validate()
-      if (!isValidFormat) return true
-    } else {
+        const validator = useVuelidate({ email: { email } }, { email: value })
+        const isValidFormat = await validator.value.$validate()
+        if (!isValidFormat) return true
+      } else {
       // Check if the mobile number format is valid before making an API call
-      const validator = useVuelidate({ mobile_number: { mobile_number: mobilePhoneRule() } }, { mobile_number: value })
-      const isValidFormat = await validator.value.$validate()
-      if (!isValidFormat) return true
-    }
+        const validator = useVuelidate({ mobile_number: { mobile_number: mobilePhoneRule() } }, { mobile_number: value })
+        const isValidFormat = await validator.value.$validate()
+        if (!isValidFormat) return true
+      }
 
-    const res = await availabilityStore.checkUserUniqueIdentifierAvailability(key, value, excludedId || null)
-    return res.data.is_available
-  }
+      const res = await availabilityStore.checkUserUniqueIdentifierAvailability(key, value, excludedId || null)
+      return res.data.is_available
+    }
 
 /** @description Only allow certain file extensions **/
 export const mimeTypeRule = (mimeTypes: string[]) => (value: File) => {

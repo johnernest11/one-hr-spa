@@ -12,6 +12,7 @@ defineOptions({
 /** Props */
 type WbDropdownProps = {
   label: string
+  required?: boolean
   invalid?: boolean
   invalidText?: string
   success?: boolean
@@ -24,6 +25,7 @@ type WbDropdownProps = {
 
 const props = withDefaults(defineProps<WbDropdownProps>(), {
   invalid: false,
+  required: false,
   invalidText: '',
   success: false,
   successText: '',
@@ -36,9 +38,9 @@ const props = withDefaults(defineProps<WbDropdownProps>(), {
 
 <template>
   <div :class="`flex w-full flex-col gap-2 ${wrapperClass}`">
-    <label :for="$.uid.toString()" :class="`${props.labelClass || 'text-xs text-surface-800 dark:text-surface-200'}`">{{
-      props.label
-    }}</label>
+    <label :for="$.uid.toString()" :class="`${props.labelClass || 'text-xs text-surface-800 dark:text-surface-200'}`">
+      {{ props.label }} <span v-if="props.required" class="text-red-500">*</span>
+    </label>
 
     <div :class="`relative ${$attrs.disabled ? 'hover:cursor-not-allowed' : ''}`">
       <!-- Start Prepend Icon -->

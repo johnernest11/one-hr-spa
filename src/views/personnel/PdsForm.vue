@@ -1,10 +1,14 @@
 <script setup lang="ts">
-import { onBeforeMount, ref, shallowRef } from 'vue'
+import { onBeforeMount, onMounted, ref, shallowRef } from 'vue'
 import { useProfileStore } from '@/stores/profile.store.ts'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { TabGroup, TabList, Tab, TabPanels, TabPanel } from '@headlessui/vue'
 import { TransitionRoot } from '@headlessui/vue'
 import C1Form from '@/components/pds/C1Form.vue'
+import { useRoute } from 'vue-router'
+import { lcFirst } from '@/utils/helpers.ts'
+
+const route = useRoute()
 
 import { useEmployeeEntryStore } from '@/stores/employee-entry.store.ts'
 
@@ -41,6 +45,15 @@ const profileStore = useProfileStore()
 
 onBeforeMount(async () => {
   await profileStore.fetchProfile()
+
+  console.log(route.query.mode.replace(/-/g, ' ').replace(/(?:^|\s)\S/g, (a) => a.toUpperCase()))
+  if (route.query.mode === 'via-manual-input') {
+    personnelStore.pdsMode = route.query.mode.replace(/-/g, ' ').replace(/(?:^|\s)\S/g, (a) => a.toUpperCase())
+  }
+})
+
+onMounted(() => {
+  console.info('Mounted')
 })
 
 // Reset sub-tab when changing main tabs
@@ -60,7 +73,7 @@ const switchTab = (index: number) => {
         <FontAwesomeIcon :icon="['fas', 'users']" class="text-2xl md:text-4xl" />
         <span class="flex flex-col justify-center">
           <p class="text-xl md:text-3xl">Personal Data Sheet</p>
-          <p class="text-surface-500">{{ personnelStore.pdsMode }}</p>
+          <p class="text-surface-500">{{ lcFirst(personnelStore.pdsMode) }}</p>
         </span>
       </div>
 
@@ -71,7 +84,7 @@ const switchTab = (index: number) => {
               <Tab v-for="pdsPage in pdsSections" as="template" :key="pdsPage" v-slot="{ selected }">
                 <button
                   :class="[
-                    'w-full  border-b-2 border-solid py-4 text-base font-medium leading-5 ring-transparent transition-all duration-300 ease-in-out focus:outline-none ',
+                    'w-full  border-b-2 border-solid py-4 text-sm font-medium leading-5 ring-transparent transition-all duration-300 ease-in-out focus:outline-none md:text-base ',
                     selected
                       ? 'border-b-2 border-solid border-primary-600 bg-primary-100 text-primary-600'
                       : 'border-surface-300 text-surface-400 hover:bg-white/[0.12]',

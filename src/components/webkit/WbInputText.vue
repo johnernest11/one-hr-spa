@@ -57,7 +57,7 @@ const props = withDefaults(defineProps<WbInputTextProps>(), {
       <InputText
         v-bind="$attrs"
         :aria-describedby="`${$.uid.toString()}-help`"
-        :class="`transition-all ease-in-out duration-300 focus:text-surface-900 h-12 w-full ${$slots['prepend-icon'] ? 'pl-10' : ''} ${
+        :class="`h-12 w-full transition-all duration-300 ease-in-out focus:text-surface-900 ${$slots['prepend-icon'] ? 'pl-10' : ''} ${
           props.invalid ? '!ring-error-500 dark:!ring-error-300' : ''
         } ${$attrs.disabled ? 'dark:!text-surface-0/70' : ''}`"
       />

@@ -10,7 +10,6 @@ import AnnouncementsPage from '@/views/AnnouncementsPage.vue'
 import { AuthRole, AuthType } from '@/typings/auth.types.ts'
 import { useAuthStore } from '@/stores/auth.store.ts'
 
-
 const enum RouteGroup {
   MAIN = 'Main',
   HR = 'Human Resources',

@@ -16,17 +16,13 @@ const items = ref([
     items: [
       {
         label: 'via Manual Input',
+        mode: 'via-manual-input',
         to: 'create-personnel',
-        command: () => {
-          personnelStore.pdsMode = 'via Manual Input'
-        },
       },
       {
         label: 'via PDS Importation',
+        mode: 'via-pds-importation',
         to: 'dashboard' /** abang */,
-        command: () => {
-          personnelStore.pdsMode = 'via PDS Import'
-        },
       },
     ],
   },
@@ -37,7 +33,7 @@ const toggleAddingList = (event: Event) => {
 }
 
 onBeforeMount(async () => {
-  await sleep(2)
+  await sleep(1)
   personnelStore.isEmployeesLoading = false
 })
 </script>
@@ -73,8 +69,8 @@ onBeforeMount(async () => {
                     </template>
                   </Button>
                   <Menu ref="menu" id="overlay_menu" :model="items" :popup="true">
-                    <template #item="{ item, props }">
-                      <RouterLink :to="{ name: item.to }" v-bind="props.action">
+                    <template #item="{ item, action }">
+                      <RouterLink :to="{ name: item.to, query: { mode: item.mode } }" v-bind="action">
                         <span class="ml-2">{{ item.label }}</span>
                       </RouterLink>
                     </template>
