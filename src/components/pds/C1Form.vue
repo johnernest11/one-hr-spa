@@ -8,11 +8,12 @@ import { useAddressStore } from '@/stores/address.store.ts'
 import { useLibrariesStore } from '@/stores/libraries.store.ts'
 import useVuelidate from '@vuelidate/core'
 import WbInputText from '@/components/webkit/WbInputText.vue'
+import WbInputNumber from '@/components/webkit/WbInputNumber.vue'
 import WbCalendar from '@/components/webkit/WbCalendar.vue'
 import WbDropdown from '@/components/webkit/WbDropdown.vue'
-import InputNumber from 'primevue/inputnumber'
+import WbInputMask from '@/components/webkit/WbInputMask.vue'
 import Button from 'primevue/button'
-import InputMask from 'primevue/inputmask'
+
 import RadioButton from 'primevue/radiobutton'
 import WbAutoComplete from '@/components/webkit/WbAutoComplete.vue'
 import { WbAutoCompleteOption, WbAutoCompleteOptionTrueValue } from '@/components/webkit/WbAutoComplete.vue'
@@ -74,8 +75,8 @@ const payload = reactive<PersonalDataSheetPayload>({
   citizenship_acquisition: null,
   citizenship_country: authPersonnelDataSheet?.citizenship_country || '',
   /** Personnel Data Sheet  */
-  tel_no: authPersonnelDataSheet?.personnel_contact_info?.tel_no || '',
-  mobile_no: authPersonnelDataSheet?.personnel_contact_info?.mobile_no || '',
+  tel_no: null,
+  mobile_no: null,
   email_address: authPersonnelDataSheet?.personnel_contact_info?.email_address || '',
   /** Personnel Address  */
   residential_house_block_lot_no: authPersonnelAdresses?.residential_house_block_lot_no || '',
@@ -122,6 +123,13 @@ const selectedResidentialRegion = ref<WbAutoCompleteOption | null>(null)
 const selectedResidentialProvince = ref<WbAutoCompleteOption | null>(null)
 const selectedResidentialCity = ref<WbAutoCompleteOption | null>(null)
 const selectedResidentialBarangay = ref<WbAutoCompleteOption | null>(null)
+
+
+/** Address WbAutoComplete Object References */
+const selectedPermanentRegion = ref<WbAutoCompleteOption | null>(null)
+const selectedPermanentProvince = ref<WbAutoCompleteOption | null>(null)
+const selectedPermanentCity = ref<WbAutoCompleteOption | null>(null)
+const selectedPermanentBarangay = ref<WbAutoCompleteOption | null>(null)
 
 /** Initialize Address Options List */
 const publicStore = useAddressStore()
@@ -415,6 +423,7 @@ const c1Tabs = ref([
                   </template>
                   <!-- END ITEM NUMBER Fields as HR PPMS -->
 
+                  <!-- START PERSONAL INFO -->
                   <div class="mt-6 grid grid-cols-1 gap-x-12 gap-y-4 md:grid-cols-2">
                     <WbInputText
                       v-model="payload.last_name"
@@ -564,13 +573,24 @@ const c1Tabs = ref([
                         <FontAwesomeIcon icon="fa-solid fa-house-flag" />
                       </template>
                     </WbDropdown>
-                    <InputNumber
-                      placeholder="Height in meters"
-                      required
-                      label="Height (m)"
+                    <WbInputNumber
                       v-model="payload.height"
+                      label="Height (m)"
+                      placeholder="Height in meters"
                       suffix=" m"
-                    />
+                      required
+                      label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                      class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                      validation-error-message-class="text-xs text-error-300 font-bold lg:font-normal dark:lg:text-error-300"
+                      :invalid="validator.height.$invalid"
+                      :invalid-text="validator.height.$errors[0]?.$message"
+                      @blur="validator.height.$touch"
+                    >
+                      <template #prepend-icon>
+                        <FontAwesomeIcon icon="fa-solid fa-ruler-vertical" />
+                      </template>
+                    </WbInputNumber>
+                    
                     <WbDropdown
                       v-model="payload.blood_type"
                       required
@@ -588,14 +608,387 @@ const c1Tabs = ref([
                       </template>
                     </WbDropdown>
 
-                    <InputNumber
-                      placeholder="Weight in kilos"
-                      required
+                    <WbInputNumber
+                      v-model="payload.weight"
                       label="Weight (kg)"
-                      v-model="payload.height"
+                      placeholder="Weight in kilos"
                       suffix=" kg"
-                    />
+                      required
+                      label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                      class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                      validation-error-message-class="text-xs text-error-300 font-bold lg:font-normal dark:lg:text-error-300"
+                      :invalid="validator.weight.$invalid"
+                      :invalid-text="validator.weight.$errors[0]?.$message"
+                      @blur="validator.weight.$touch"
+                    >
+                      <template #prepend-icon>
+                          <FontAwesomeIcon icon="fa-solid fa-weight-scale" />
+                        </template>
+                    </WbInputNumber>
+
+                    <WbInputText
+                      v-model="payload.gsis_no"
+                      label="GSIS ID No."
+                      label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                      class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                      validation-error-message-class="text-xs text-error-300 font-bold lg:font-normal dark:lg:text-error-300"
+                      :invalid="validator.gsis_no.$invalid"
+                      :invalid-text="validator.gsis_no.$errors[0]?.$message"
+                      @blur="validator.gsis_no.$touch"
+                    >
+                    </WbInputText>
+                    <WbInputText
+                      v-model="payload.pag_ibig_no"
+                      required
+                      label="PAG-IBIG ID No."
+                      label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                      class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                      validation-error-message-class="text-xs text-error-300 font-bold lg:font-normal dark:lg:text-error-300"
+                      :invalid="validator.pag_ibig_no.$invalid"
+                      :invalid-text="validator.pag_ibig_no.$errors[0]?.$message"
+                      @blur="validator.pag_ibig_no.$touch"
+                    >
+                    </WbInputText>
+                    <WbInputText
+                      v-model="payload.philhealth_no"
+                      required
+                      label="PHILHEALTH No."
+                      label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                      class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                      validation-error-message-class="text-xs text-error-300 font-bold lg:font-normal dark:lg:text-error-300"
+                      :invalid="validator.philhealth_no.$invalid"
+                      :invalid-text="validator.philhealth_no.$errors[0]?.$message"
+                      @blur="validator.philhealth_no.$touch"
+                    >
+                    </WbInputText>
+                    <WbInputText
+                      v-model="payload.tin_no"
+                      required
+                      label="TIN"
+                      label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                      class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                      validation-error-message-class="text-xs text-error-300 font-bold lg:font-normal dark:lg:text-error-300"
+                      :invalid="validator.tin_no.$invalid"
+                      :invalid-text="validator.tin_no.$errors[0]?.$message"
+                      @blur="validator.tin_no.$touch"
+                    >
+                    </WbInputText>
+                    <WbInputText
+                      v-model="payload.sss_no"
+                      label="SSS No."
+                      label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                      class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                      validation-error-message-class="text-xs text-error-300 font-bold lg:font-normal dark:lg:text-error-300"
+                      :invalid="validator.sss_no.$invalid"
+                      :invalid-text="validator.sss_no.$errors[0]?.$message"
+                      @blur="validator.sss_no.$touch"
+                    >
+                    </WbInputText>
+                    <WbInputMask
+                      v-model="payload.mobile_no"
+                      required
+                      label="Mobile Number"
+                      label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                      mask="+639999999999"
+                      placeholder="+63 XXX XXX XXXX"
+                      class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                      validation-error-message-class="text-xs text-error-300 font-bold lg:font-normal dark:lg:text-error-300"
+                      :invalid="validator.mobile_no.$invalid"
+                      :invalid-text="validator.mobile_no.$errors[0]?.$message"
+                      @blur="validator.mobile_no.$touch"
+                      @focusin="validator.mobile_no.$dirty = false"
+                    >
+                      <template #prepend-icon>
+                        <FontAwesomeIcon icon="fa-solid fa-mobile" />
+                      </template>
+                    </WbInputMask>
+                    <WbInputMask
+                      v-model="payload.tel_no"
+                      label="Telephone Number"
+                      label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                      mask="(999) 999-9999"
+                      placeholder="(072) 687-8000"
+                      class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                      validation-error-message-class="text-xs text-error-300 font-bold lg:font-normal dark:lg:text-error-300"
+                      :invalid="validator.tel_no.$invalid"
+                      :invalid-text="validator.tel_no.$errors[0]?.$message"
+                      @blur="validator.tel_no.$touch"
+                      @focusin="validator.tel_no.$dirty = false"
+                    >
+                      <template #prepend-icon>
+                        <FontAwesomeIcon icon="fa-solid fa-phone" />
+                      </template>
+                    </WbInputMask>
+                    <WbInputText
+                      v-model="payload.agency_employee_no"
+                      required
+                      label="Agency Employee No."
+                      label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                      class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                      validation-error-message-class="text-xs text-error-300 font-bold lg:font-normal dark:lg:text-error-300"
+                      :invalid="validator.agency_employee_no.$invalid"
+                      :invalid-text="validator.agency_employee_no.$errors[0]?.$message"
+                      @blur="validator.agency_employee_no.$touch"
+                    >
+                    </WbInputText>
+                    <WbInputText
+                      v-model="payload.email_address"
+                      required
+                      label="Email Address (if any)"
+                      label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                      class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                      validation-error-message-class="text-xs text-error-300 font-bold lg:font-normal dark:lg:text-error-300"
+                      :invalid="validator.email_address.$invalid"
+                      :invalid-text="validator.email_address.$errors[0]?.$message"
+                      @blur="validator.email_address.$touch"
+                    >
+                      <template #prepend-icon>
+                        <FontAwesomeIcon icon="fa-solid fa-square-envelope" />
+                      </template>
+                    </WbInputText>
                   </div>
+                  <!-- END PERSONAL INFO -->
+
+                  <!-- START RESIDENTIAL ADDRESS -->
+                  <div class="mt-2 ">
+                    <span class="flex flex-col justify-center font-medium text-primary-700 space-y-2">
+                      <p class="text-lg md:text-xl italic">Address Information</p>
+                      <p class="ml-4 text-lg md:text-xl italic">Residential Address</p>
+                    </span>
+
+                    <div class="mt-4 ml-4 grid grid-cols-1 gap-x-12 gap-y-4 md:grid-cols-2">
+                      <WbAutoComplete
+                        v-model="selectedResidentialProvince"
+                        :suggestions="filteredProvinceOptionsByRegion"
+                        label=" Province "
+                        label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                        validation-error-message-class="text-xs text-error-300 font-bold lg:font-normal dark:lg:text-error-300"
+                        optionLabel="label"
+                        :placeholder="'Select or Type your Province'"
+                        forceSelection
+                        @on-true-value-computed="
+                                (value: WbAutoCompleteOptionTrueValue) =>
+                                  useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'residential_province_id'))
+                              "
+                        :loading="publicStore.provinceOptionsIsLoading"
+                        dropdown
+                        dropdownClass="bg-transparent"
+                      >
+                      </WbAutoComplete>
+                      <WbAutoComplete
+                        v-model="selectedResidentialCity"
+                        :suggestions="filteredCityOptionsByProvince"
+                        label=" City / Municipality "
+                        label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                        validation-error-message-class="text-xs text-error-300 font-bold lg:font-normal dark:lg:text-error-300"
+                        optionLabel="label"
+                        :placeholder="'Select or Type your City/Municipality'"
+                        forceSelection
+                        @on-true-value-computed="
+                                (value: WbAutoCompleteOptionTrueValue) =>
+                                  useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'residential_citynum_id'))
+                              "
+                        :loading="publicStore.cityOptionsIsLoading"
+                        :virtualScrollerOptions="{ itemSize: 38 }"
+                        dropdown
+                        dropdownClass="bg-transparent"
+                      >
+                      </WbAutoComplete>
+                      <WbAutoComplete
+                        v-model="selectedResidentialBarangay"
+                        :suggestions="filteredBarangayOptionsByCity"
+                        label=" Barangay "
+                        label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                        validation-error-message-class="text-xs text-error-300 font-bold lg:font-normal dark:lg:text-error-300"
+                        optionLabel="label"
+                        :placeholder="'Select your Barangay'"
+                        forceSelection
+                        @on-true-value-computed="
+                                (value: WbAutoCompleteOptionTrueValue) =>
+                                  useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'residential_brgy_id'))
+                              "
+                        :loading="publicStore.barangayOptionsIsLoading"
+                        :virtualScrollerOptions="{ itemSize: 38 }"
+                        dropdown
+                        dropdownClass="bg-transparent"
+                      >
+                      </WbAutoComplete>
+                      <WbInputText
+                        v-model="payload.residential_subdivision_village"
+                        label="Subdivision / Village"
+                        label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                        validation-error-message-class="text-xs text-error-300 font-bold lg:font-normal dark:lg:text-error-300"
+                        :invalid="validator.residential_subdivision_village.$invalid"
+                        :invalid-text="validator.residential_subdivision_village.$errors[0]?.$message"
+                        @blur="validator.residential_subdivision_village.$touch"
+                      >
+                      </WbInputText>
+                      <WbInputText
+                        v-model="payload.residential_street"
+                        label="Street"
+                        label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                        validation-error-message-class="text-xs text-error-300 font-bold lg:font-normal dark:lg:text-error-300"
+                        :invalid="validator.residential_street.$invalid"
+                        :invalid-text="validator.residential_street.$errors[0]?.$message"
+                        @blur="validator.residential_street.$touch"
+                      >
+                      </WbInputText>
+                      <WbInputText
+                        v-model="payload.residential_house_block_lot_no"
+                        label="House / Block / Lot No."
+                        label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                        validation-error-message-class="text-xs text-error-300 font-bold lg:font-normal dark:lg:text-error-300"
+                        :invalid="validator.residential_house_block_lot_no.$invalid"
+                        :invalid-text="validator.residential_house_block_lot_no.$errors[0]?.$message"
+                        @blur="validator.residential_house_block_lot_no.$touch"
+                      >
+                      </WbInputText>
+                      
+                    </div>
+                    <div class="ml-4 my-4">
+                      <WbInputText
+                        v-model="payload.residential_zip_code"
+                        required
+                        label="ZIP Code"
+                        label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                        validation-error-message-class="text-xs text-error-300 font-bold lg:font-normal dark:lg:text-error-300"
+                        :invalid="validator.residential_zip_code.$invalid"
+                        :invalid-text="validator.residential_zip_code.$errors[0]?.$message"
+                        @blur="validator.residential_zip_code.$touch"
+                      >
+                      </WbInputText>
+                    </div>
+                      
+                  </div>
+                  <!-- END RESIDENTIAL ADDRESS -->
+
+                  <!-- START PERMANENT ADDRESS -->
+                  <div class="mt-2 ">
+                    <span class="flex flex-col justify-center font-medium text-primary-700 space-y-2">
+                      <p class="ml-4 text-lg md:text-xl italic">Permanent Address</p>
+                      
+                    </span>
+
+                    <div class="mt-4 ml-4 grid grid-cols-1 gap-x-12 gap-y-4 md:grid-cols-2">
+                      <WbAutoComplete
+                        v-model="selectedPermanentProvince"
+                        :suggestions="filteredProvinceOptionsByRegion"
+                        label=" Province "
+                        label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                        validation-error-message-class="text-xs text-error-300 font-bold lg:font-normal dark:lg:text-error-300"
+                        optionLabel="label"
+                        :placeholder="'Select or Type your Province'"
+                        forceSelection
+                        @on-true-value-computed="
+                                (value: WbAutoCompleteOptionTrueValue) =>
+                                  useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'permanent_province_id'))
+                              "
+                        :loading="publicStore.provinceOptionsIsLoading"
+                        dropdown
+                        dropdownClass="bg-transparent"
+                      >
+                      </WbAutoComplete>
+                      <WbAutoComplete
+                        v-model="selectedPermanentCity"
+                        :suggestions="filteredCityOptionsByProvince"
+                        label=" City / Municipality "
+                        label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                        validation-error-message-class="text-xs text-error-300 font-bold lg:font-normal dark:lg:text-error-300"
+                        optionLabel="label"
+                        :placeholder="'Select or Type your City/Municipality'"
+                        forceSelection
+                        @on-true-value-computed="
+                                (value: WbAutoCompleteOptionTrueValue) =>
+                                  useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'permanent_citymun_id'))
+                              "
+                        :loading="publicStore.cityOptionsIsLoading"
+                        :virtualScrollerOptions="{ itemSize: 38 }"
+                        dropdown
+                        dropdownClass="bg-transparent"
+                      >
+                      </WbAutoComplete>
+                      <WbAutoComplete
+                        v-model="selectedPermanentBarangay"
+                        :suggestions="filteredBarangayOptionsByCity"
+                        label=" Barangay "
+                        label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                        validation-error-message-class="text-xs text-error-300 font-bold lg:font-normal dark:lg:text-error-300"
+                        optionLabel="label"
+                        :placeholder="'Select your Barangay'"
+                        forceSelection
+                        @on-true-value-computed="
+                                (value: WbAutoCompleteOptionTrueValue) =>
+                                  useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'permanent_brgy_id'))
+                              "
+                        :loading="publicStore.barangayOptionsIsLoading"
+                        :virtualScrollerOptions="{ itemSize: 38 }"
+                        dropdown
+                        dropdownClass="bg-transparent"
+                      >
+                      </WbAutoComplete>
+                      <WbInputText
+                        v-model="payload.permanent_subdivision_village"
+                        label="Subdivision / Village"
+                        label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                        validation-error-message-class="text-xs text-error-300 font-bold lg:font-normal dark:lg:text-error-300"
+                        :invalid="validator.permanent_subdivision_village.$invalid"
+                        :invalid-text="validator.permanent_subdivision_village.$errors[0]?.$message"
+                        @blur="validator.permanent_subdivision_village.$touch"
+                      >
+                      </WbInputText>
+                      <WbInputText
+                        v-model="payload.permanent_street"
+                        label="Street"
+                        label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                        validation-error-message-class="text-xs text-error-300 font-bold lg:font-normal dark:lg:text-error-300"
+                        :invalid="validator.permanent_street.$invalid"
+                        :invalid-text="validator.permanent_street.$errors[0]?.$message"
+                        @blur="validator.permanent_street.$touch"
+                      >
+                      </WbInputText>
+                      <WbInputText
+                        v-model="payload.permanent_house_block_lot_no"
+                        label="House / Block / Lot No."
+                        label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                        validation-error-message-class="text-xs text-error-300 font-bold lg:font-normal dark:lg:text-error-300"
+                        :invalid="validator.permanent_house_block_lot_no.$invalid"
+                        :invalid-text="validator.permanent_house_block_lot_no.$errors[0]?.$message"
+                        @blur="validator.permanent_house_block_lot_no.$touch"
+                      >
+                      </WbInputText>
+                      
+                    </div>
+                    <div class="ml-4 my-4">
+                      <WbInputText
+                        v-model="payload.permanent_zip_code"
+                        required
+                        label="ZIP Code"
+                        label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                        validation-error-message-class="text-xs text-error-300 font-bold lg:font-normal dark:lg:text-error-300"
+                        :invalid="validator.permanent_zip_code.$invalid"
+                        :invalid-text="validator.permanent_zip_code.$errors[0]?.$message"
+                        @blur="validator.permanent_zip_code.$touch"
+                      >
+                      </WbInputText>
+                    </div>
+                      
+                  </div>
+                  <!-- END PERMANENT ADDRESS -->
+                  
                 </div>
               </TransitionRoot>
             </TabPanel>

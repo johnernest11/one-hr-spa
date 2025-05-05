@@ -1,4 +1,4 @@
-import { helpers, maxLength, required } from '@vuelidate/validators'
+import { helpers, maxLength, required, email } from '@vuelidate/validators'
 import { digitCountRule, mobilePhoneRule, uniqueUserIdentifierRule } from './custom-validations'
 
 const generateMessage = (fieldName: string): { required: string; maxLength: string } => ({
@@ -83,10 +83,7 @@ export const EmployeeEntryC1FormRules = {
   },
   /** Personnel Contact Info */
   tel_no: {
-    tel_no: helpers.withMessage('Must be a valid PH mobile number', mobilePhoneRule()),
-    unique: helpers.withAsync(
-      helpers.withMessage('This telephone number is already taken', uniqueUserIdentifierRule('mobile_number'))
-    ),
+    maxLength: helpers.withMessage(() => generateMessage('tin_no').maxLength, globalStringMaxLengthRule),
   },
   mobile_no: {
     mobile_no: helpers.withMessage('Must be a valid PH mobile number', mobilePhoneRule()),
@@ -95,19 +92,19 @@ export const EmployeeEntryC1FormRules = {
     ),
   },
   email_address: {
+    required: helpers.withMessage('Please enter your email address', required),
+    email: helpers.withMessage('Email format is invalid', email),
+    unique: helpers.withAsync(helpers.withMessage('This email is already taken', uniqueUserIdentifierRule('email'))),
     maxLength: helpers.withMessage(() => generateMessage('email_address').maxLength, globalStringMaxLengthRule),
   },
   /** Personnel Addresses */
   residential_house_block_lot_no: {
-    required: helpers.withMessage(() => generateMessage('residential_house_block_lot_no').required, required),
     maxLength: helpers.withMessage(() => generateMessage('residential_house_block_lot_no').maxLength, globalStringMaxLengthRule),
   },
   residential_street: {
-    required: helpers.withMessage(() => generateMessage('residential_street').required, required),
     maxLength: helpers.withMessage(() => generateMessage('residential_street').maxLength, globalStringMaxLengthRule),
   },
   residential_subdivision_village: {
-    required: helpers.withMessage(() => generateMessage('residential_subdivision_village').required, required),
     maxLength: helpers.withMessage(() => generateMessage('residential_subdivision_village').maxLength, globalStringMaxLengthRule),
   },
   residential_brgy_id: {
@@ -140,7 +137,7 @@ export const EmployeeEntryC1FormRules = {
   permanent_brgy_id: {
     required: helpers.withMessage(() => generateMessage('permanent_brgy_id').required, required),
   },
-  permanent_citynum_id: {
+  permanent_citymun_id: {
     required: helpers.withMessage(() => generateMessage('permanent_citynum_id').required, required),
   },
   permanent_province_id: {
