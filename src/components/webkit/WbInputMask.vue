@@ -37,10 +37,7 @@ const props = withDefaults(defineProps<WbInputMaskProps>(), {
 
 <template>
   <div :class="`flex w-full flex-col gap-2 ${wrapperClass}`">
-    <label
-      :for="$.uid.toString()"
-      :class="`${labelClass ? props.labelClass : 'text-xs text-surface-800 dark:text-surface-200'}`"
-      >
+    <label :for="$.uid.toString()" :class="`${labelClass ? props.labelClass : 'text-xs text-surface-800 dark:text-surface-200'}`">
       {{ props.label }}
       <span v-if="props.required" class="text-red-500">*</span>
     </label>

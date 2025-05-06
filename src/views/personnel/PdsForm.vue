@@ -13,32 +13,12 @@ const route = useRoute()
 import { useEmployeeEntryStore } from '@/stores/employee-entry.store.ts'
 
 const personnelStore = useEmployeeEntryStore()
-const activeIndex = ref(0) // Main tab index
-const activeSubIndex = ref(0) // Sub-tab index (resets when switching main tabs)
 
 const pdsSections = ref([
   { name: 'C1', component: shallowRef(C1Form) },
   { name: 'C2', component: shallowRef(C1Form) },
   { name: 'C3', component: shallowRef(C1Form) },
   { name: 'C4', component: shallowRef(C1Form) },
-])
-
-const subTabs = ref([
-  [
-    { name: 'Personal Information', index: 0 },
-    { name: 'Family Background', index: 1 },
-    { name: 'Educational Background', index: 2 },
-  ],
-  [
-    { name: 'Civil Service Eligibility', index: 0 },
-    { name: 'Work Experience', index: 1 },
-  ],
-  [
-    { name: 'Voluntary Work', index: 0 },
-    { name: 'Learning & Development', index: 1 },
-    { name: 'Other Information', index: 2 },
-  ],
-  [{ name: 'Other Information Cont.', index: 0 }],
 ])
 
 const profileStore = useProfileStore()
@@ -55,13 +35,6 @@ onBeforeMount(async () => {
 onMounted(() => {
   console.info('Mounted')
 })
-
-// Reset sub-tab when changing main tabs
-const switchTab = (index: number) => {
-  activeIndex.value = index
-  activeSubIndex.value = 0 // Reset to first sub-tab
-  console.log('Tab switched to:', index, 'Sub-tab reset to:', 0)
-}
 </script>
 
 <template>

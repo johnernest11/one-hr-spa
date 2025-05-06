@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import WbBreadcrumbs from '@/components/layout/AppBreadcrumbs.vue'
 import Toolbar from 'primevue/toolbar'
 import Avatar from 'primevue/avatar'
 import Button from 'primevue/button'
@@ -10,7 +11,6 @@ import { useAuthStore } from '@/stores/auth.store.ts'
 import { useRouter } from 'vue-router'
 import { computed, ref } from 'vue'
 import { snakeCaseToTitleCase } from '@/utils/helpers.ts'
-import InputText from 'primevue/inputtext'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -55,10 +55,7 @@ const handleLogout = async () => {
 <template>
   <Toolbar class="min-h-[4rem] bg-surface-100 px-6 py-6 shadow-none !ring-0 dark:bg-surface-950">
     <template #start>
-      <span class="relative mr-4">
-        <i class="pi pi-search absolute left-3 top-2/4 -mt-2 text-surface-400 dark:text-surface-600" />
-        <InputText placeholder="Search" class="!border-0 pl-10" />
-      </span>
+      <WbBreadcrumbs class="mt-4 px-6 !font-medium" />
     </template>
 
     <template #end>

@@ -20,7 +20,20 @@ export const useAvailabilitiesStore = defineStore('availabilities', () => {
     return data.value as ApiResponseBody & { data: { is_available: boolean } }
   }
 
+  const checkItemNumberUniqueIdentifierAvailability = async (
+    key: 'item_number',
+    value: string,
+    excludeId: string | number | null = null
+  ) => {
+    let url = `/availability/${key}?value=${value}`
+    if (excludeId) url += `&excluded_id=${excludeId}`
+
+    const { data } = await useApiCall(url).get().json()
+    return data.value as ApiResponseBody & { data: { is_available: boolean } }
+  }
+
   return {
     checkUserUniqueIdentifierAvailability,
+    checkItemNumberUniqueIdentifierAvailability,
   }
 })

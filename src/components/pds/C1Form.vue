@@ -12,21 +12,13 @@ import WbInputNumber from '@/components/webkit/WbInputNumber.vue'
 import WbCalendar from '@/components/webkit/WbCalendar.vue'
 import WbDropdown from '@/components/webkit/WbDropdown.vue'
 import WbInputMask from '@/components/webkit/WbInputMask.vue'
-import Button from 'primevue/button'
 
 import RadioButton from 'primevue/radiobutton'
 import WbAutoComplete from '@/components/webkit/WbAutoComplete.vue'
 import { WbAutoCompleteOption, WbAutoCompleteOptionTrueValue } from '@/components/webkit/WbAutoComplete.vue'
 import { useWbAutoCompleteHandleTrueValue } from '@/composables/wb-ui-components.ts'
 import { EmployeeEntryC1FormRules } from '@/utils/employee-entry-validations.ts'
-import {
-  bloodTypeOptions,
-  SexTypeOptions,
-  ExtensionTypeOptions,
-  FilipinobyTypeOptions,
-  CountryTypeOptions,
-} from '@/typings/employee-entry.types'
-import Divider from 'primevue/divider'
+import { bloodTypeOptions, SexTypeOptions, ExtensionTypeOptions } from '@/typings/employee-entry.types'
 import { TabGroup, TabList, Tab, TabPanels, TabPanel } from '@headlessui/vue'
 import { PersonnelEmployee } from '@/typings/models.types.ts'
 import { usePrependOrAppendOnce } from '@/utils/helpers.js'
@@ -39,7 +31,6 @@ const getId = usePrependOrAppendOnce('pds-c1-section-form')
 const authStore = useAuthStore()
 const libraryStore = useLibrariesStore()
 
-const auntenticatedUser = authStore.authenticatedUser?.user_profile
 const authPersonnelDataSheet = authStore.authenticatedUser?.user_profile?.personnel_data_sheet
 const authPersonnelAdresses = authStore.authenticatedUser?.user_profile?.personnel_data_sheet?.personnel_addresses
 const authPersonnelFamily = authStore.authenticatedUser?.user_profile?.personnel_data_sheet?.personnel_family
@@ -124,9 +115,8 @@ const selectedResidentialProvince = ref<WbAutoCompleteOption | null>(null)
 const selectedResidentialCity = ref<WbAutoCompleteOption | null>(null)
 const selectedResidentialBarangay = ref<WbAutoCompleteOption | null>(null)
 
-
 /** Address WbAutoComplete Object References */
-const selectedPermanentRegion = ref<WbAutoCompleteOption | null>(null)
+// const selectedPermanentRegion = ref<WbAutoCompleteOption | null>(null)
 const selectedPermanentProvince = ref<WbAutoCompleteOption | null>(null)
 const selectedPermanentCity = ref<WbAutoCompleteOption | null>(null)
 const selectedPermanentBarangay = ref<WbAutoCompleteOption | null>(null)
@@ -170,74 +160,6 @@ useClearSelectedAddressIfNotInParentList(
   filteredCityOptionsByProvince,
   filteredBarangayOptionsByCity
 )
-
-/** Array to store the new childrens Field entries */
-const newpersonnelfamilies = ref([
-  {
-    family_last_name: null,
-    family_first_name: null,
-    family_middle_name: null,
-    family_extension_name: null,
-    family_date_of_birth: null,
-  },
-])
-
-/** Function to add a new childrens Field entry */
-const addAdditionalPersonnelFamily = (newFields = {}) => {
-  const defaultPersonnelFamily = {
-    family_last_name: null,
-    family_first_name: null,
-    family_middle_name: null,
-    family_extension_name: null,
-    family_date_of_birth: null,
-  }
-
-  const newpersonnelfamilyField = { ...defaultPersonnelFamily, ...newFields }
-  newpersonnelfamilies.value.push(newpersonnelfamilyField)
-}
-
-/** Function to remove childrens Field  entry */
-const removePersonnelFamily = (index: number) => {
-  if (index >= 0 && index < newpersonnelfamilies.value.length) {
-    newpersonnelfamilies.value.splice(index, 1)
-  }
-}
-
-/** Array to store the new Educational Background Field entries */
-const newpersonneleducationbackgrounds = ref([
-  {
-    schools_name: null,
-    level: null,
-    period_of_attendance_from: null,
-    period_of_attendance_to: null,
-    highest_level_units_earned: null,
-    year_graduated: null,
-    scholarship_academic_honors_received: null,
-  },
-])
-
-/** Function to add a new childrens Field entry */
-const addAdditionalPersonnelEducationBackground = (newFields = {}) => {
-  const defaultPersonnelEducationField = {
-    schools_name: null,
-    level: null,
-    period_of_attendance_from: null,
-    period_of_attendance_to: null,
-    highest_level_units_earned: null,
-    year_graduated: null,
-    scholarship_academic_honors_received: null,
-  }
-
-  const newpersonneleducationField = { ...defaultPersonnelEducationField, ...newFields }
-  newpersonneleducationbackgrounds.value.push(newpersonneleducationField)
-}
-
-/** Function to remove childrens Field  entry */
-const removePersonnelEducationalBackground = (index: number) => {
-  if (index >= 0 && index < newpersonneleducationbackgrounds.value.length) {
-    newpersonneleducationbackgrounds.value.splice(index, 1)
-  }
-}
 
 const validator = useVuelidate<Partial<PersonalDataSheetPayload>>(EmployeeEntryC1FormRules, payload)
 
@@ -465,7 +387,7 @@ const c1Tabs = ref([
                       v-model="payload.ext_name"
                       optionLabel="label"
                       optionValue="value"
-                      :options="libraryStore.extNameOptions"
+                      :options="ExtensionTypeOptions"
                       label="Extension Name"
                       label-class="text-md text-surface-600 dark:lg:text-surface-200"
                       class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
@@ -504,7 +426,7 @@ const c1Tabs = ref([
                     <WbDropdown
                       v-model="payload.sex"
                       required
-                      :options="libraryStore.sexOptions"
+                      :options="SexTypeOptions"
                       optionLabel="label"
                       optionValue="value"
                       label="Sex"
@@ -590,11 +512,11 @@ const c1Tabs = ref([
                         <FontAwesomeIcon icon="fa-solid fa-ruler-vertical" />
                       </template>
                     </WbInputNumber>
-                    
+
                     <WbDropdown
                       v-model="payload.blood_type"
                       required
-                      :options="libraryStore.bloodTypeOptions"
+                      :options="bloodTypeOptions"
                       optionLabel="label"
                       optionValue="value"
                       label="Blood Type"
@@ -622,8 +544,8 @@ const c1Tabs = ref([
                       @blur="validator.weight.$touch"
                     >
                       <template #prepend-icon>
-                          <FontAwesomeIcon icon="fa-solid fa-weight-scale" />
-                        </template>
+                        <FontAwesomeIcon icon="fa-solid fa-weight-scale" />
+                      </template>
                     </WbInputNumber>
 
                     <WbInputText
@@ -750,13 +672,13 @@ const c1Tabs = ref([
                   <!-- END PERSONAL INFO -->
 
                   <!-- START RESIDENTIAL ADDRESS -->
-                  <div class="mt-2 ">
-                    <span class="flex flex-col justify-center font-medium text-primary-700 space-y-2">
-                      <p class="text-lg md:text-xl italic">Address Information</p>
-                      <p class="ml-4 text-lg md:text-xl italic">Residential Address</p>
+                  <div class="mt-2">
+                    <span class="flex flex-col justify-center space-y-2 font-medium text-primary-700">
+                      <p class="text-lg italic md:text-xl">Address Information</p>
+                      <p class="ml-4 text-lg italic md:text-xl">Residential Address</p>
                     </span>
 
-                    <div class="mt-4 ml-4 grid grid-cols-1 gap-x-12 gap-y-4 md:grid-cols-2">
+                    <div class="ml-4 mt-4 grid grid-cols-1 gap-x-12 gap-y-4 md:grid-cols-2">
                       <WbAutoComplete
                         v-model="selectedResidentialProvince"
                         :suggestions="filteredProvinceOptionsByRegion"
@@ -768,9 +690,9 @@ const c1Tabs = ref([
                         :placeholder="'Select or Type your Province'"
                         forceSelection
                         @on-true-value-computed="
-                                (value: WbAutoCompleteOptionTrueValue) =>
-                                  useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'residential_province_id'))
-                              "
+                          (value: WbAutoCompleteOptionTrueValue) =>
+                            useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'residential_province_id'))
+                        "
                         :loading="publicStore.provinceOptionsIsLoading"
                         dropdown
                         dropdownClass="bg-transparent"
@@ -787,9 +709,9 @@ const c1Tabs = ref([
                         :placeholder="'Select or Type your City/Municipality'"
                         forceSelection
                         @on-true-value-computed="
-                                (value: WbAutoCompleteOptionTrueValue) =>
-                                  useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'residential_citynum_id'))
-                              "
+                          (value: WbAutoCompleteOptionTrueValue) =>
+                            useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'residential_citynum_id'))
+                        "
                         :loading="publicStore.cityOptionsIsLoading"
                         :virtualScrollerOptions="{ itemSize: 38 }"
                         dropdown
@@ -807,9 +729,9 @@ const c1Tabs = ref([
                         :placeholder="'Select your Barangay'"
                         forceSelection
                         @on-true-value-computed="
-                                (value: WbAutoCompleteOptionTrueValue) =>
-                                  useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'residential_brgy_id'))
-                              "
+                          (value: WbAutoCompleteOptionTrueValue) =>
+                            useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'residential_brgy_id'))
+                        "
                         :loading="publicStore.barangayOptionsIsLoading"
                         :virtualScrollerOptions="{ itemSize: 38 }"
                         dropdown
@@ -849,9 +771,8 @@ const c1Tabs = ref([
                         @blur="validator.residential_house_block_lot_no.$touch"
                       >
                       </WbInputText>
-                      
                     </div>
-                    <div class="ml-4 my-4">
+                    <div class="my-4 ml-4">
                       <WbInputText
                         v-model="payload.residential_zip_code"
                         required
@@ -865,18 +786,16 @@ const c1Tabs = ref([
                       >
                       </WbInputText>
                     </div>
-                      
                   </div>
                   <!-- END RESIDENTIAL ADDRESS -->
 
                   <!-- START PERMANENT ADDRESS -->
-                  <div class="mt-2 ">
-                    <span class="flex flex-col justify-center font-medium text-primary-700 space-y-2">
-                      <p class="ml-4 text-lg md:text-xl italic">Permanent Address</p>
-                      
+                  <div class="mt-2">
+                    <span class="flex flex-col justify-center space-y-2 font-medium text-primary-700">
+                      <p class="ml-4 text-lg italic md:text-xl">Permanent Address</p>
                     </span>
 
-                    <div class="mt-4 ml-4 grid grid-cols-1 gap-x-12 gap-y-4 md:grid-cols-2">
+                    <div class="ml-4 mt-4 grid grid-cols-1 gap-x-12 gap-y-4 md:grid-cols-2">
                       <WbAutoComplete
                         v-model="selectedPermanentProvince"
                         :suggestions="filteredProvinceOptionsByRegion"
@@ -888,9 +807,9 @@ const c1Tabs = ref([
                         :placeholder="'Select or Type your Province'"
                         forceSelection
                         @on-true-value-computed="
-                                (value: WbAutoCompleteOptionTrueValue) =>
-                                  useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'permanent_province_id'))
-                              "
+                          (value: WbAutoCompleteOptionTrueValue) =>
+                            useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'permanent_province_id'))
+                        "
                         :loading="publicStore.provinceOptionsIsLoading"
                         dropdown
                         dropdownClass="bg-transparent"
@@ -907,9 +826,9 @@ const c1Tabs = ref([
                         :placeholder="'Select or Type your City/Municipality'"
                         forceSelection
                         @on-true-value-computed="
-                                (value: WbAutoCompleteOptionTrueValue) =>
-                                  useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'permanent_citymun_id'))
-                              "
+                          (value: WbAutoCompleteOptionTrueValue) =>
+                            useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'permanent_citymun_id'))
+                        "
                         :loading="publicStore.cityOptionsIsLoading"
                         :virtualScrollerOptions="{ itemSize: 38 }"
                         dropdown
@@ -927,9 +846,9 @@ const c1Tabs = ref([
                         :placeholder="'Select your Barangay'"
                         forceSelection
                         @on-true-value-computed="
-                                (value: WbAutoCompleteOptionTrueValue) =>
-                                  useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'permanent_brgy_id'))
-                              "
+                          (value: WbAutoCompleteOptionTrueValue) =>
+                            useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'permanent_brgy_id'))
+                        "
                         :loading="publicStore.barangayOptionsIsLoading"
                         :virtualScrollerOptions="{ itemSize: 38 }"
                         dropdown
@@ -969,9 +888,8 @@ const c1Tabs = ref([
                         @blur="validator.permanent_house_block_lot_no.$touch"
                       >
                       </WbInputText>
-                      
                     </div>
-                    <div class="ml-4 my-4">
+                    <div class="my-4 ml-4">
                       <WbInputText
                         v-model="payload.permanent_zip_code"
                         required
@@ -985,10 +903,8 @@ const c1Tabs = ref([
                       >
                       </WbInputText>
                     </div>
-                      
                   </div>
                   <!-- END PERMANENT ADDRESS -->
-                  
                 </div>
               </TransitionRoot>
             </TabPanel>

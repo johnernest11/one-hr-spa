@@ -60,7 +60,7 @@ const props = withDefaults(defineProps<WbInputTextProps>(), {
         :class="`h-12 w-full transition-all duration-300 ease-in-out focus:text-surface-900 ${$slots['prepend-icon'] ? 'pl-10' : ''} ${
           props.invalid ? '!ring-error-500 dark:!ring-error-300' : ''
         } ${$attrs.disabled ? 'dark:!text-surface-0/70' : ''}`"
-       />
+      />
     </div>
     <!-- End InputTex -->
     <!-- Start validation messages -->

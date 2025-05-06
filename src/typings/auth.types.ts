@@ -7,10 +7,10 @@ export const enum AuthType {
 
 export enum AuthRole {
   STANDARD_USER = 'standard_user',
+  ADMIN = 'admin',
   EMPLOYEE = 'employee',
   HR_PAS_ADMIN = 'hr_pas_admin',
   HR_PPMS_ADMIN = 'hr_ppms_admin',
-  ADMIN = 'admin',
-  SUPER_USER = 'super_user',
   SYSTEM_SUPPORT = 'system_support',
+  SUPER_USER = 'super_user',
 }
