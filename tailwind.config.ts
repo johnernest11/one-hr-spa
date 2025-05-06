@@ -94,6 +94,7 @@ const tailwindConfig = {
         'success-800': withOpacity('--success-800'),
         'success-900': withOpacity('--success-900'),
         'success-950': withOpacity('--success-950'),
+        'nav-bar-500': withOpacity('--nav-500'),
       },
       keyframes: {
         'spin-up': {

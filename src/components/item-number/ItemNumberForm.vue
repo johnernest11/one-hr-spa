@@ -87,7 +87,9 @@ const employementStatusOptions = [
   { label: 'Contract of Service', value: 'Contract of Service' },
   { label: 'Job Order', value: 'Job Order' },
 ]
+
 let lastTimeout: NodeJS.Timeout | number | null = null
+
 const onInputSearch = (event: InputEvent, type: 'position' | 'fundSource') => {
   const target = event.target as HTMLInputElement
   searchQuery.value = target.value.trim()
@@ -97,17 +99,18 @@ const onInputSearch = (event: InputEvent, type: 'position' | 'fundSource') => {
     } else if (type === 'fundSource') {
       await publicFundSourceStore.searchFundSources(searchQuery.value)
     }
+    lastTimeout = null
   }, 1000)
 }
+
 onInputSearch.lastTimeout = lastTimeout
+
 onInputSearch.lastTimeout = null
 
-/** Props */
 type ItemNumberDetailsFormProps = {
   itemNumber?: ItemNumberResponse
 }
 const props = defineProps<ItemNumberDetailsFormProps>()
-/** Lifecycle hook that runs when the component is mounted */
 onMounted(async () => {
   const id = route.params.id as string
   if (id) {
@@ -194,13 +197,13 @@ const saveButtonSubmission = async () => {
     severity: 'success',
     summary: 'New Item Number',
     detail: "You've successfully created a Item Number",
-    life: 5000,
+    life: 3000,
   })
   formIsSubmitting.value = false
   emit('item-number-created', true)
   setTimeout(async () => {
     await router.push({ name: 'item-numbers' })
-  }, 1000)
+  }, 500)
 }
 
 /** Handle updating the item number */
@@ -237,7 +240,7 @@ const updateButtonSubmission = async () => {
     severity: 'success',
     summary: 'Item Number Details update',
     detail: `${id || 'The Item Number '} was successfully updated`,
-    life: 3000,
+    life: 1000,
   })
 
   formIsSubmitting.value = false
@@ -247,23 +250,27 @@ const updateButtonSubmission = async () => {
 
 <template>
   <form autocomplete="off" @submit.prevent>
-    <div class="flex w-full flex-col gap-4 pb-4 pl-4 pt-8">
+    <div class="flex w-full flex-col gap-4 pb-4 pl-4 pt-4">
       <Card class="h-full">
         <template #content>
           <div class="flex w-full flex-col items-start md:flex-row">
-            <Button
-              icon="pi pi-angle-left"
-              severity="secondary"
-              aria-label="Bookmark"
-              rounded
-              @click="$router.go(-1)"
-              size="small"
-              class="mb-2 ml-4 md:mb-0 md:ml-0"
-            />
-            <h2 class="mb-2 ml-4 pb-6 text-3xl font-semibold text-primary-800 dark:text-primary-100 md:ml-4">
-              <font-awesome-icon :icon="['fas', 'sitemap']" />
-              {{ route.params.id ? 'Update Item Number' : 'New Item Number' }}
-            </h2>
+            <div class="pt-1">
+              <Button
+                icon="pi pi-angle-left"
+                severity="secondary"
+                aria-label="Bookmark"
+                rounded
+                @click="$router.go(-1)"
+                size="small"
+                class="mb-2 ml-4 md:mb-0 md:ml-0"
+              />
+            </div>
+            <div>
+              <h2 class="mb-2 ml-4 pb-6 text-3xl font-semibold text-primary-800 dark:text-primary-100 md:ml-4">
+                <font-awesome-icon :icon="['fas', 'sitemap']" />
+                {{ route.params.id ? 'Update Item Number' : 'New Item Number' }}
+              </h2>
+            </div>
           </div>
           <div class="flex flex-col gap-4 pb-6 md:flex-row">
             <div class="flex w-full flex-col">
@@ -333,7 +340,7 @@ const updateButtonSubmission = async () => {
                 :options="employementStatusOptions"
                 optionLabel="label"
                 optionValue="value"
-                label=" Employement Status "
+                label=" Employment Status "
                 :invalid="validator.employment_status.$invalid"
                 :invalid-text="validator.employment_status.$errors[0]?.$message"
                 @blur="validator.employment_status.$touch"
@@ -369,7 +376,7 @@ const updateButtonSubmission = async () => {
           <div class="mt-2 flex justify-end gap-2">
             <Button
               label="Cancel"
-              class="dark:text-secondary-100 border border-surface-400 text-xs text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
+              class="dark:text-secondary-100 border border-surface-400 text-base text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
               text
               @click="$router.go(-1)"
             >
@@ -384,7 +391,7 @@ const updateButtonSubmission = async () => {
               :loading="formIsSubmitting"
               :disabled="formIsSubmitting"
               size="large"
-              class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+              class="dark:text-secondary-100 border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
               text
             >
               <template #icon>

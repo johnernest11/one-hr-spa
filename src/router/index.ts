@@ -1,7 +1,6 @@
 import { createRouter, createWebHistory, RouteMeta } from 'vue-router'
 import { vueApp } from '@/app.ts'
 import Dashboard from '@/views/DashboardPage.vue'
-import ProfilePage from '@/views/ProfilePage.vue'
 import SupportPage from '@/views/SupportPage.vue'
 import AccomplishmentReportPage from '@/views/AccomplishmentReportPage.vue'
 import CreateAccomplishmentReportForm from '@/components/accomplishment-report/CreateAccomplishmentReportForm.vue'
@@ -36,21 +35,21 @@ const routes = [
     },
   },
   {
-    path: '/announcements',
-    name: 'announcements',
+    path: '/requests',
+    name: 'requests',
     component: AnnouncementsPage,
     meta: <RouteMeta>{
       group: RouteGroup.MAIN,
-      label: 'Request',
+      label: 'Requests',
       isSidebarMenu: true,
       authType: AuthType.AUTHENTICATED,
       roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
     },
   },
   {
-    path: '/profile',
-    name: 'profile',
-    component: ProfilePage,
+    path: '/my-profile',
+    name: 'my-profile',
+    component: AnnouncementsPage,
     meta: <RouteMeta>{
       group: RouteGroup.MAIN,
       label: 'My Profile',
@@ -66,10 +65,19 @@ const routes = [
       group: RouteGroup.MAIN,
       label: 'Commitments',
       isSidebarMenu: true,
+      authType: AuthType.AUTHENTICATED,
+      roles: [
+        AuthRole.STANDARD_USER,
+        AuthRole.EMPLOYEE,
+        AuthRole.HR_PPMS_ADMIN,
+        AuthRole.ADMIN,
+        AuthRole.SYSTEM_SUPPORT,
+        AuthRole.SUPER_USER,
+      ],
     },
     children: [
       {
-        path: '/accomplishment-reports',
+        path: 'accomplishment-reports',
         name: 'accomplishment-reports',
         component: AccomplishmentReportPage,
         meta: <RouteMeta>{
@@ -80,7 +88,7 @@ const routes = [
         },
       },
       {
-        path: '/accomplishment-reports/store',
+        path: 'accomplishment-reports/store',
         name: 'accomplishment-reports/store',
         component: CreateAccomplishmentReportForm,
         meta: <RouteMeta>{
@@ -90,7 +98,7 @@ const routes = [
         },
       },
       {
-        path: '/accomplishment-reports/:id/editor',
+        path: 'accomplishment-reports/:id/editor',
         name: 'accomplishment-reports/editor',
         component: ViewAccomplishmentReport,
         meta: <RouteMeta>{
@@ -99,9 +107,8 @@ const routes = [
           roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
         },
       },
-
       {
-        path: '/ipcipc-ccef/',
+        path: 'ipcipc-ccef/',
         name: 'view-ipc-ccef/index',
         component: ViewAccomplishmentReport,
         meta: <RouteMeta>{
@@ -158,6 +165,77 @@ const routes = [
   },
   /* SUPPORT  ROUTE*/
   {
+    path: '/recruitment',
+    name: 'recruitment',
+    component: AnnouncementsPage,
+    meta: <RouteMeta>{
+      group: RouteGroup.HUMAN_RESOURCES,
+      label: 'Recruitment',
+      isSidebarMenu: true,
+      authType: AuthType.AUTHENTICATED,
+      roles: [
+        AuthRole.STANDARD_USER,
+        AuthRole.EMPLOYEE,
+        AuthRole.HR_PPMS_ADMIN,
+        AuthRole.HR_PPMS_ADMIN,
+        AuthRole.ADMIN,
+        AuthRole.SYSTEM_SUPPORT,
+        AuthRole.SUPER_USER,
+      ],
+    },
+  },
+  {
+    path: '/personnel',
+    name: 'personnel',
+    meta: <RouteMeta>{
+      group: RouteGroup.HUMAN_RESOURCES,
+      label: 'Personnel Management',
+      isSidebarMenu: true,
+      authType: AuthType.AUTHENTICATED,
+      roles: [
+        AuthRole.STANDARD_USER,
+        AuthRole.EMPLOYEE,
+        AuthRole.HR_PPMS_ADMIN,
+        AuthRole.HR_PPMS_ADMIN,
+        AuthRole.ADMIN,
+        AuthRole.SYSTEM_SUPPORT,
+        AuthRole.SUPER_USER,
+      ],
+    },
+    children: [
+      {
+        path: '',
+        name: 'employees',
+        component: () => import('@/views/personnel/EmployeesPage.vue'),
+        meta: <RouteMeta>{
+          label: 'Employees',
+          isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [
+            AuthRole.STANDARD_USER,
+            AuthRole.EMPLOYEE,
+            AuthRole.HR_PPMS_ADMIN,
+            AuthRole.ADMIN,
+            AuthRole.SYSTEM_SUPPORT,
+            AuthRole.SUPER_USER,
+          ],
+        },
+      },
+      {
+        path: ':id?/editor',
+        name: 'create-personnel',
+        component: () => import('@/components/employee-entry/CreateEmployeeC1Form.vue'),
+        meta: <RouteMeta>{
+          label: 'Create Personnel',
+          isSidebarMenu: false,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.EMPLOYEE, AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+        },
+      },
+    ],
+  },
+
+  {
     path: '/support',
     name: 'support',
     component: SupportPage,
@@ -166,7 +244,7 @@ const routes = [
       label: 'Support',
       isSidebarMenu: true,
       authType: AuthType.AUTHENTICATED,
-      roles: [AuthRole.STANDARD_USER, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+      roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
     },
   },
   {
@@ -178,7 +256,7 @@ const routes = [
       label: 'About Us',
       isSidebarMenu: true,
       authType: AuthType.AUTHENTICATED,
-      roles: [AuthRole.STANDARD_USER, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+      roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
     },
   },
   /* ADMIN ROUTE*/
@@ -360,7 +438,8 @@ router.beforeEach(async (to, from) => {
   if (to.meta.authType === AuthType.AUTHENTICATED) {
     const roles = authStore.authRoles
     if (to.meta.roles && !to.meta.roles.some((r: string) => roles.includes(r))) {
-      return { name: 'main' }
+      console.log(!to.meta.roles.some((r: string) => roles.includes(r)))
+      return { name: 'dashboard' }
     }
   }
 
