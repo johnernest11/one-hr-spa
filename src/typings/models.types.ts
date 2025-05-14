@@ -176,6 +176,15 @@ export type PersonnelEmployee = {
   individual_basic_detail_id: number | null
   id_number: string | null
   item_id: number | null
+  salary_grade_id: number | null
+  position?: {
+    id: number
+    title: string
+  }
+  fund_source?: {
+    id: number
+    name: string
+  }
   agency_employee_no: string | null
   office_id: number
   division_id: number

@@ -83,15 +83,11 @@ const search = useDebounceFn(async (event: AutoCompleteCompleteEvent) => {
     return
   }
 
-  console.log(props.useApiFilter)
-
   if (props.useApiFilter) {
     const apiUrl = createUrlWithParams(props.apiEndpoint, {
       ...props.apiFilters,
       query: event.query.trim(),
     })
-
-    console.log(apiUrl)
 
     const { data } = await useApiCall(apiUrl, auth.authenticationToken.value).get().json()
     const apiSuggestions = (data.value?.data || []) as ApiSuggestion[]
@@ -100,10 +96,18 @@ const search = useDebounceFn(async (event: AutoCompleteCompleteEvent) => {
     apiSuggestions.forEach((element: ApiSuggestion) => {
       const label = getObjectValueUsingPath(element, props.apiOptionLabel)
 
-      filteredSuggestions.value?.push({
-        label: label,
-        value: element[props.apiOptionValue],
-      })
+      if (props.apiOptionLabel === 'salary_grade') {
+        console.log(element)
+        filteredSuggestions.value?.push({
+          label: `SG-${element.salary_grade}-${element.step} FY: ${element.effective_date.split('-')[0]} Tranche: ${element.tranche} NBC no: ${element.nbc_no} (${element.amount})`,
+          value: element[props.apiOptionValue],
+        })
+      } else {
+        filteredSuggestions.value?.push({
+          label: label,
+          value: element[props.apiOptionValue],
+        })
+      }
     })
 
     const localSuggestions = props.suggestions.filter((suggestion) => {

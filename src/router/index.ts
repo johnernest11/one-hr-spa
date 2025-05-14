@@ -135,7 +135,7 @@ const routes = [
         name: 'item-numbers',
         component: ItemNumberPage,
         meta: <RouteMeta>{
-          label: 'Item Number',
+          label: 'Items',
           isSidebarMenu: true,
           authType: AuthType.AUTHENTICATED,
           roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
@@ -161,30 +161,9 @@ const routes = [
           roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
         },
       },
-    ],
-  },
-  {
-    path: '/personnel',
-    name: 'personnel',
-    meta: <RouteMeta>{
-      group: RouteGroup.HR,
-      label: 'Personnel Management',
-      isSidebarMenu: true,
-      authType: AuthType.AUTHENTICATED,
-      roles: [
-        AuthRole.STANDARD_USER,
-        AuthRole.EMPLOYEE,
-        AuthRole.HR_PPMS_ADMIN,
-        AuthRole.HR_PPMS_ADMIN,
-        AuthRole.ADMIN,
-        AuthRole.SYSTEM_SUPPORT,
-        AuthRole.SUPER_USER,
-      ],
-    },
-    children: [
       {
         path: '',
-        name: 'employees',
+        name: 'employment',
         component: () => import('@/views/personnel/EmployeesPage.vue'),
         meta: <RouteMeta>{
           label: 'Employment',
@@ -213,27 +192,6 @@ const routes = [
       },
     ],
   },
-  {
-    path: '/personnel',
-    name: 'personnel',
-    component: AnnouncementsPage,
-    meta: <RouteMeta>{
-      group: RouteGroup.HR,
-      label: 'Personnel Management',
-      isSidebarMenu: true,
-      authType: AuthType.AUTHENTICATED,
-      roles: [
-        AuthRole.STANDARD_USER,
-        AuthRole.EMPLOYEE,
-        AuthRole.HR_PPMS_ADMIN,
-        AuthRole.HR_PPMS_ADMIN,
-        AuthRole.ADMIN,
-        AuthRole.SYSTEM_SUPPORT,
-        AuthRole.SUPER_USER,
-      ],
-    },
-  },
-
   {
     path: '/support',
     name: 'support',

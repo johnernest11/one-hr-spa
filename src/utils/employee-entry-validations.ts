@@ -150,23 +150,70 @@ export const EmployeeEntryC1FormRules = {
     required: helpers.withMessage(() => generateMessage('permanent_zip_code').required, required),
     digitCount: helpers.withMessage('Enter a 5-digit zip code', digitCountRule(5)),
   },
-  /** Personnel Family */
-  family_last_name: {
-    required: helpers.withMessage(() => generateMessage('family_last_name').required, required),
-    maxLength: helpers.withMessage(() => generateMessage('family_last_name').maxLength, globalStringMaxLengthRule),
+  individual_family_spouse: {
+    last_name: {
+      maxLength: helpers.withMessage(() => generateMessage('spouse_last_name').maxLength, globalStringMaxLengthRule),
+    },
+    first_name: {
+      maxLength: helpers.withMessage(() => generateMessage('spouse_first_name').maxLength, globalStringMaxLengthRule),
+    },
+    middle_name: {
+      maxLength: helpers.withMessage(() => generateMessage('spouse_middle_name').maxLength, globalStringMaxLengthRule),
+    },
+    ext_name: {
+      maxLength: helpers.withMessage(() => generateMessage('spouse_ext_name').maxLength, globalStringMaxLengthRule),
+    },
   },
-  family_first_name: {
-    required: helpers.withMessage(() => generateMessage('family_first_name').required, required),
-    maxLength: helpers.withMessage(() => generateMessage('family_first_name').maxLength, globalStringMaxLengthRule),
+  individual_family_father: {
+    last_name: {
+      required: helpers.withMessage(() => generateMessage('father_last_name').required, required),
+      maxLength: helpers.withMessage(() => generateMessage('father_last_name').maxLength, globalStringMaxLengthRule),
+    },
+    first_name: {
+      required: helpers.withMessage(() => generateMessage('father_first_name').required, required),
+      maxLength: helpers.withMessage(() => generateMessage('father_first_name').maxLength, globalStringMaxLengthRule),
+    },
+    middle_name: {
+      maxLength: helpers.withMessage(() => generateMessage('father_middle_name').maxLength, globalStringMaxLengthRule),
+    },
+    ext_name: {
+      maxLength: helpers.withMessage(() => generateMessage('father_ext_name').maxLength, globalStringMaxLengthRule),
+    },
   },
-  family_middle_name: {
-    required: helpers.withMessage(() => generateMessage('family_middle_name').required, required),
-    maxLength: helpers.withMessage(() => generateMessage('family_middle_name').maxLength, globalStringMaxLengthRule),
+  individual_family_mothers_maiden: {
+    last_name: {
+      required: helpers.withMessage(() => generateMessage('mother_last_name').required, required),
+      maxLength: helpers.withMessage(() => generateMessage('mother_last_name').maxLength, globalStringMaxLengthRule),
+    },
+    first_name: {
+      required: helpers.withMessage(() => generateMessage('mother_first_name').required, required),
+      maxLength: helpers.withMessage(() => generateMessage('mother_first_name').maxLength, globalStringMaxLengthRule),
+    },
+    middle_name: {
+      maxLength: helpers.withMessage(() => generateMessage('mother_middle_name').maxLength, globalStringMaxLengthRule),
+    },
+    ext_name: {
+      maxLength: helpers.withMessage(() => generateMessage('mother_ext_name').maxLength, globalStringMaxLengthRule),
+    },
   },
-  family_ext_name: {
-    required: helpers.withMessage(() => generateMessage('family_ext_name').required, required),
-    maxLength: helpers.withMessage(() => generateMessage('family_ext_name').maxLength, globalStringMaxLengthRule),
+  individual_family_child: {
+    last_name: {
+      maxLength: helpers.withMessage(() => generateMessage('child_last_name').maxLength, globalStringMaxLengthRule),
+    },
+    first_name: {
+      maxLength: helpers.withMessage(() => generateMessage('child_first_name').maxLength, globalStringMaxLengthRule),
+    },
+    middle_name: {
+      maxLength: helpers.withMessage(() => generateMessage('child_middle_name').maxLength, globalStringMaxLengthRule),
+    },
+    ext_name: {
+      maxLength: helpers.withMessage(() => generateMessage('child_ext_name').maxLength, globalStringMaxLengthRule),
+    },
+    date_of_birth: {
+      maxLength: helpers.withMessage(() => generateMessage('child_date_of_birth').maxLength, globalStringMaxLengthRule),
+    },
   },
+  individual_family_children: [],
   occupation: {
     required: helpers.withMessage(() => generateMessage('occupation').required, required),
     maxLength: helpers.withMessage(() => generateMessage('occupation').maxLength, globalStringMaxLengthRule),

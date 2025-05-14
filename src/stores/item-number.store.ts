@@ -20,7 +20,7 @@ export const useItemNumberStore = defineStore('item-number', () => {
   const auth = useAuthStore()
   const itemNumber = ref<ItemNumberResponse[]>([])
   /** States */
-  const ItemNumberArray = ref<ItemNumberResponse[]>([])
+  const itemNumbers = ref<ItemNumberResponse[]>([])
   const selectedItemNumber = ref<ItemNumberResponse | null>(null)
   const fetchItemNumber = async (limit: number = 10, page: number | null = null) => {
     let uri = `/items?limit=${limit}&sort=asc&`
@@ -29,7 +29,7 @@ export const useItemNumberStore = defineStore('item-number', () => {
     const responseBody: ApiResponseBody = data.value
     if (responseBody.success) {
       const ItemNumbersList = Array.isArray(responseBody.data) ? (responseBody.data as ItemNumberResponse[]) : []
-      ItemNumberArray.value = [...ItemNumbersList]
+      itemNumbers.value = [...ItemNumbersList]
     }
     return responseBody
   }
@@ -65,7 +65,7 @@ export const useItemNumberStore = defineStore('item-number', () => {
     const responseBody: ApiResponseBody = data.value
     if (responseBody.success) {
       const itemNumbersList = responseBody.data as ItemNumberResponse[]
-      ItemNumberArray.value = [...itemNumbersList]
+      itemNumbers.value = [...itemNumbersList]
     }
     return responseBody
   }
@@ -88,7 +88,7 @@ export const useItemNumberStore = defineStore('item-number', () => {
   }
 
   return {
-    ItemNumberArray,
+    itemNumbers,
     createItemNumber,
     fetchItemNumber,
     fetchItemNumberById,

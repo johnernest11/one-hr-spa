@@ -107,7 +107,7 @@ export const useSidebarNavLinks = () => {
                 case 'accomplishment-reports':
                   childNavLink.icon = 'fas fa-check-double'
                   break
-                case 'employees':
+                case 'employment':
                   childNavLink.icon = 'fas fa-circle-user'
                   break
                 case 'create-employee':

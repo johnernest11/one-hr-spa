@@ -123,7 +123,7 @@ const formatDate = (dateString: string | null | undefined): string => {
           <div class="mx-auto flex h-full w-full flex-col">
             <div
               class="flex w-full items-center justify-end gap-4"
-              v-if="!itemNumberIsLoading && (searchSubmitted || itemNumberStore.ItemNumberArray.length > 0)"
+              v-if="!itemNumberIsLoading && (searchSubmitted || itemNumberStore.itemNumbers.length > 0)"
             >
               <div
                 class="my-6 flex w-full flex-col items-center justify-between gap-4 rounded-lg bg-surface-0 px-6 py-6 dark:bg-surface-800 md:my-4 md:flex-row md:px-4 md:py-4"
@@ -171,10 +171,10 @@ const formatDate = (dateString: string | null | undefined): string => {
               </div>
             </div>
             <div
-              v-if="itemNumberStore.ItemNumberArray && itemNumberStore.ItemNumberArray.length > 0"
+              v-if="itemNumberStore.itemNumbers && itemNumberStore.itemNumbers.length > 0"
               class="mx-auto flex h-full w-full flex-col"
             >
-              <DataTable :value="itemNumberStore.ItemNumberArray" class="mt-6" dataKey="id">
+              <DataTable :value="itemNumberStore.itemNumbers" class="mt-6" dataKey="id">
                 <Column
                   field="period"
                   header="Item Numbers"
@@ -258,14 +258,14 @@ const formatDate = (dateString: string | null | undefined): string => {
             </div>
           </div>
           <div
-            v-if="searchSubmitted && !itemNumberIsLoading && !itemNumberStore.ItemNumberArray.length"
+            v-if="searchSubmitted && !itemNumberIsLoading && !itemNumberStore.itemNumbers.length"
             class="flex h-full w-full flex-col items-center justify-center font-menu text-lg dark:text-surface-300"
           >
             <i class="pi pi-exclamation-triangle mb-2 text-2xl"></i>
             <p>No items found</p>
           </div>
           <div
-            v-if="!itemNumberIsLoading && !itemNumberStore.ItemNumberArray.length && !searchSubmitted"
+            v-if="!itemNumberIsLoading && !itemNumberStore.itemNumbers.length && !searchSubmitted"
             class="mx-auto flex h-full w-full flex-col"
           >
             <Card class="w-full p-0 shadow-none">

@@ -6,7 +6,7 @@ import { WbAutoCompleteOption } from '@/components/webkit/WbAutoComplete.vue'
 import { FundSourceResponse } from '@/typings/models.types.ts'
 import { useAuthStore } from '@/stores/auth.store.ts'
 
-export const useFundSourceStore = defineStore('fund_source', () => {
+export const useFundSourceStore = defineStore('fund-source', () => {
   /** States */
   const fundSourceOptions = ref<WbAutoCompleteOption[]>([])
   const fundSourceOptionsIsLoading = ref(false)
