@@ -172,7 +172,7 @@ export type PersonnelContactInfo = {
 }
 
 export type PersonnelEmployee = {
-  id: number
+  id: number | null
   individual_basic_detail_id: number | null
   id_number: string | null
   item_id: number | null
@@ -180,15 +180,15 @@ export type PersonnelEmployee = {
   position?: {
     id: number
     title: string
-  }
+  } | null
   fund_source?: {
-    id: number
-    name: string
+    id: number | null
+    name: string | null
   }
   agency_employee_no: string | null
-  office_id: number
-  division_id: number
-  section_unit: number
+  office_id: number | null
+  division_id: number | null
+  section_or_unit: number | null
 }
 
 /** Role (HTTP Responses) */

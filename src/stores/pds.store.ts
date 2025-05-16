@@ -1,67 +1,121 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { PersonnelEmployee } from '@/typings/models.types.ts'
+import { useApiCall } from '@/composables/network'
+import { useAuthStore } from '@/stores/auth.store.ts'
+import { ApiResponseBody } from '@/typings/http-resources.types'
 
 /** Typings */
 export type UploadProfilePictureResponse = { owner_id: string | number; path: string; url: string }
 
 export type PersonalDataSheetPayload = {
   individual: {
-    first_name: string
-    last_name: string
-    middle_name?: string
-    ext_name?: string
-    birthday: string
+    first_name: string | null
+    last_name: string | null
+    middle_name?: string | null
+    ext_name?: string | null
+    birthday: string | null
     sex: 'male' | 'female' | null
     /**Personnel Data Sheet  */
-    place_of_birth: string
+    place_of_birth: string | null
     civil_status: 'single' | 'married' | 'separated' | 'divorced' | 'widowed' | null
-    height: number
-    weight: number
+    height: number | null
+    weight: number | null
     blood_type: 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | '0+' | '0-' | null
-    philhealth_no: string
-    gsis_no: string
-    pag_ibig_no: string
-    sss_no: string
-    tin_no: string
-    agency_employee_no: string
-    citizenship: string
-    citizenship_country: string
-    citizenship_acquisition: string
+    philhealth_no: string | null
+    gsis_no: string | null
+    pag_ibig_no: string | null
+    sss_no: string | null
+    tin_no: string | null
+    agency_employee_no: string | null
+    citizenship: string | null
+    citizenship_country: string | null
+    citizenship_acquisition: string | null
   }
   individual_contact_info: {
     /**Personnel Data Sheet Contact Info*/
-    tel_no: string
-    mobile_no: string
-    email_address: string
+    tel_no: string | null
+    mobile_no: string | null
+    email_address: string | null
   }
   individual_address: {
     /**Personnel Data Sheet Address */
-    residential_house_block_lot_no: string
-    residential_street: string
-    residential_subdivision_village: string
-    residential_brgy_id: string | number
-    residential_citymun_id: string | number
-    residential_province_id: string | number
-    residential_region_id: string | number
-    residential_zip_code: string
-    permanent_house_block_lot_no: string
+    residential_house_block_lot_no: string | null
+    residential_street: string | null
+    residential_subdivision_village: string | null
+    residential_brgy_id: string | number | null
+    residential_citymun_id: string | number | null
+    residential_province_id: string | number | null
+    residential_region_id: string | number | null
+    residential_zip_code: string | null
+    permanent_house_block_lot_no: string | null
     permanent_street: string | null
-    permanent_subdivision_village: string
-    permanent_brgy_id: string | number
-    permanent_citymun_id: string | number
-    permanent_province_id: string | number
-    permanent_region_id: string | number
-    permanent_zip_code: string
+    permanent_subdivision_village: string | null
+    permanent_brgy_id: string | number | null
+    permanent_citymun_id: string | number | null
+    permanent_province_id: string | number | null
+    permanent_region_id: string | number | null
+    permanent_zip_code: string | null
   }
   individual_family: IndividualFamily[] | null
-  individual_family_spouse: IndividualFamily | null
-  individual_family_father: IndividualFamily | null
-  individual_family_mothers_maiden: IndividualFamily | null
-  individual_family_children: IndividualFamily[] | null
-  individual_educational_background: IndividualEducBg[] | null
-  individual_eligibility?: IndividualEducBg[] | null
-  employee?: PersonnelEmployee | null
+  individual_family_spouse: IndividualFamily
+  individual_family_father: IndividualFamily
+  individual_family_mothers_maiden: IndividualFamily
+  individual_family_children: IndividualFamily[]
+  individual_eligibility?: IndividualEducBg[]
+  employee: PersonnelEmployee
+  individual_educational_background: {
+    schools_name: string | null
+    education_description: string | null
+    level: string | null
+    period_of_attendance_from: string | null
+    period_of_attendance_to: string | null
+    highest_level_units_earned: string | null
+    year_graduated: string | null
+    scholarship_academic_honors_received: string | null
+  } | null
+  educations: {
+    elementary: {
+      schools_name: null | string
+      education_description: null | string
+      level: 'elementary'
+      period_of_attendance_from: null | string
+      period_of_attendance_to: null | string
+      highest_level_units_earned: null | string
+      year_graduated: null | string
+      scholarship_academic_honors_received: null | string
+    }
+    high_school: {
+      schools_name: null | string
+      education_description: null | string
+      level: 'high school'
+      period_of_attendance_from: null | string
+      period_of_attendance_to: null | string
+      highest_level_units_earned: null | string
+      year_graduated: null | string
+      scholarship_academic_honors_received: null | string
+    }
+    college: {
+      schools_name: null | string
+      education_description: null | string
+      level: 'college'
+      period_of_attendance_from: null | string
+      period_of_attendance_to: null | string
+      highest_level_units_earned: null | string
+      year_graduated: null | string
+      scholarship_academic_honors_received: null | string
+    }
+    graduate: {
+      schools_name: null | string
+      education_description: null | string
+      level: 'graduate'
+      period_of_attendance_from: null | string
+      period_of_attendance_to: null | string
+      highest_level_units_earned: null | string
+      year_graduated: null | string
+      scholarship_academic_honors_received: null | string
+    }
+  }
 }
 
 export type IndividualEligibility = {
@@ -74,21 +128,21 @@ export type IndividualEligibility = {
 }
 
 export type IndividualFamily = {
-  first_name: string
-  last_name: string
+  first_name: string | null
+  last_name: string | null
   middle_name?: string | null
   ext_name?: string | null
-  occupation: string
-  employers_business_name: string
-  business_address: string
+  occupation: string | null
+  employers_business_name: string | null
+  business_address: string | null
   telephone_no?: string | null
   class: string
-  date_of_birth?: string
+  date_of_birth?: string | null
 }
 
 export type IndividualEducBg = {
-  /**Personnel Data Sheet EducationalBackground */
   schools_name: string
+  education_description: string
   level: 'elementary' | 'high school' | 'college' | 'graduate' | null
   period_of_attendance_from: string
   period_of_attendance_to: string
@@ -99,6 +153,8 @@ export type IndividualEducBg = {
 
 export const usePdsStore = defineStore('pds', () => {
   /** States */
+  const authStore = useAuthStore()
+
   const pdsInfo = ref<PersonalDataSheetPayload>({
     individual: {
       first_name: null,
@@ -140,7 +196,7 @@ export const usePdsStore = defineStore('pds', () => {
       residential_region_id: null,
       residential_zip_code: null,
       permanent_house_block_lot_no: null,
-      permanent_street: null | null,
+      permanent_street: null,
       permanent_subdivision_village: null,
       permanent_brgy_id: null,
       permanent_citymun_id: null,
@@ -199,6 +255,48 @@ export const usePdsStore = defineStore('pds', () => {
         date_of_birth: null,
       },
     ],
+    educations: {
+      elementary: {
+        schools_name: null,
+        education_description: null,
+        level: 'elementary',
+        period_of_attendance_from: null,
+        period_of_attendance_to: null,
+        highest_level_units_earned: null,
+        year_graduated: null,
+        scholarship_academic_honors_received: null,
+      },
+      high_school: {
+        schools_name: null,
+        education_description: null,
+        level: 'high school',
+        period_of_attendance_from: null,
+        period_of_attendance_to: null,
+        highest_level_units_earned: null,
+        year_graduated: null,
+        scholarship_academic_honors_received: null,
+      },
+      college: {
+        schools_name: null,
+        education_description: null,
+        level: 'college',
+        period_of_attendance_from: null,
+        period_of_attendance_to: null,
+        highest_level_units_earned: null,
+        year_graduated: null,
+        scholarship_academic_honors_received: null,
+      },
+      graduate: {
+        schools_name: null,
+        education_description: null,
+        level: 'graduate',
+        period_of_attendance_from: null,
+        period_of_attendance_to: null,
+        highest_level_units_earned: null,
+        year_graduated: null,
+        scholarship_academic_honors_received: null,
+      },
+    },
     individual_educational_background: null,
     individual_eligibility: null,
     employee: {
@@ -215,11 +313,21 @@ export const usePdsStore = defineStore('pds', () => {
       agency_employee_no: null,
       office_id: null,
       division_id: null,
-      section_unit: null,
+      section_or_unit: null,
     },
   })
 
+  const saveC1 = async (payload: PersonalDataSheetPayload) => {
+    const uri = '/individual-basic-details'
+
+    const { data } = await useApiCall(uri, authStore.authenticationToken).post(payload).json()
+    const responseBody: ApiResponseBody = data.value
+
+    return responseBody
+  }
+
   return {
     pdsInfo,
+    saveC1,
   }
 })

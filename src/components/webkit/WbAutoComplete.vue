@@ -55,7 +55,6 @@ type WbAutoCompleteProps = {
   required?: boolean
   validationErrorMessageClass?: string
   validationSuccessMessageClass?: string
-  required?: boolean
 }
 
 const props = withDefaults(defineProps<WbAutoCompleteProps>(), {

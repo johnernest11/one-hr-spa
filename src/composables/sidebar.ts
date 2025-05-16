@@ -119,6 +119,9 @@ export const useSidebarNavLinks = () => {
                 case 'item-numbers':
                   childNavLink.icon = 'fas fa-sitemap' // Example icon
                   break
+                case 'recruitment-dashboard':
+                  childNavLink.icon = 'fas fa-sitemap' // Example icon
+                  break
                 // ... other child route icon assignments
               }
               navLink.children.push(childNavLink) // Now safe to push
