@@ -39,11 +39,11 @@ export type WbAutoCompleteOptionKey = 'value' | 'label'
 
 type WbAutoCompleteProps = {
   label: string
-
   apiEndpoint?: string | undefined
   apiOptionLabel?: string
   apiOptionValue?: string
   useApiFilter?: boolean
+  apiFilters?: object
   suggestions: WbAutoCompleteOption[]
   trueValueKey?: WbAutoCompleteOptionKey
   invalid?: boolean
@@ -96,9 +96,8 @@ const search = useDebounceFn(async (event: AutoCompleteCompleteEvent) => {
       const label = getObjectValueUsingPath(element, props.apiOptionLabel)
 
       if (props.apiOptionLabel === 'salary_grade') {
-        console.log(element)
         filteredSuggestions.value?.push({
-          label: `SG-${element.salary_grade}-${element.step} FY: ${element.effective_date.split('-')[0]} Tranche: ${element.tranche} NBC no: ${element.nbc_no} (${element.amount})`,
+          label: `SG-${element.salary_grade}-${element.step} FY: ${element.effective_date} Tranche: ${element.tranche} NBC no: ${element.nbc_no} (${element.amount})`,
           value: element[props.apiOptionValue],
         })
       } else {

@@ -11,7 +11,7 @@ export enum BloodType {
 }
 
 export enum SexType {
-  MALE = 'Male',
+  MALE = 'male',
   FEMALE = 'female',
 }
 

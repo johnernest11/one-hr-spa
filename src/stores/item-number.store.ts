@@ -5,6 +5,7 @@ import { ItemNumberResponse } from '@/typings/models.types.ts'
 import { ApiResponseBody } from '@/typings/http-resources.types.ts'
 import { useDateFormat } from '@vueuse/core'
 import { ref } from 'vue'
+import { WbAutoCompleteOption } from '@/components/webkit/WbAutoComplete.vue'
 /** Typings for Creating & Fecthing  Item Number */
 export type ItemNumberPayload = {
   number: string | null
@@ -21,6 +22,7 @@ export const useItemNumberStore = defineStore('item-number', () => {
   const itemNumber = ref<ItemNumberResponse[]>([])
   /** States */
   const itemNumbers = ref<ItemNumberResponse[]>([])
+  const itemNumbersSuggestions = ref<WbAutoCompleteOption[]>([])
   const selectedItemNumber = ref<ItemNumberResponse | null>(null)
   const fetchItemNumber = async (limit: number = 10, page: number | null = null) => {
     let uri = `/items?limit=${limit}&sort=asc&`
@@ -30,10 +32,16 @@ export const useItemNumberStore = defineStore('item-number', () => {
     if (responseBody.success) {
       const ItemNumbersList = Array.isArray(responseBody.data) ? (responseBody.data as ItemNumberResponse[]) : []
       itemNumbers.value = [...ItemNumbersList]
+      ItemNumbersList.map((el) => {
+        itemNumbersSuggestions.value.push({
+          value: el.id,
+          label: el.number ?? 'null',
+        })
+      })
     }
     return responseBody
   }
-  const fetchItemNumberById = async (id: string) => {
+  const fetchItemNumberById = async (id: string | number) => {
     const url = `/items/${id}`
     const { data } = await useApiCall(url, auth.authenticationToken).get().json()
     const responseBody: ApiResponseBody = data.value
@@ -94,5 +102,6 @@ export const useItemNumberStore = defineStore('item-number', () => {
     fetchItemNumberById,
     updateItemNumber,
     searchItemNumber,
+    itemNumbersSuggestions,
   }
 })

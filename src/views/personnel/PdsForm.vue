@@ -26,9 +26,8 @@ const profileStore = useProfileStore()
 onBeforeMount(async () => {
   await profileStore.fetchProfile()
 
-  console.log(route.query.mode.replace(/-/g, ' ').replace(/(?:^|\s)\S/g, (a) => a.toUpperCase()))
   if (route.query.mode === 'via-manual-input') {
-    personnelStore.pdsMode = route.query.mode.replace(/-/g, ' ').replace(/(?:^|\s)\S/g, (a) => a.toUpperCase())
+    personnelStore.pdsMode = route.query.mode.replace(/-/g, ' ').replace(/(?:^|\s)\S/g, (a: string) => a.toUpperCase())
   }
 })
 
@@ -54,7 +53,7 @@ onMounted(() => {
         <div class="w-full">
           <TabGroup>
             <TabList class="flex">
-              <Tab v-for="pdsPage in pdsSections" as="template" :key="pdsPage" v-slot="{ selected }">
+              <Tab v-for="pdsPage in pdsSections" as="template" :key="pdsPage.name" v-slot="{ selected }">
                 <button
                   :class="[
                     'w-full  border-b-2 border-solid py-4 text-sm font-medium leading-5 ring-transparent transition-all duration-300 ease-in-out focus:outline-none md:text-base ',

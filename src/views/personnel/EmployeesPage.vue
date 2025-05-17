@@ -69,8 +69,8 @@ onBeforeMount(async () => {
                     </template>
                   </Button>
                   <Menu ref="menu" id="overlay_menu" :model="items" :popup="true">
-                    <template #item="{ item, action }">
-                      <RouterLink :to="{ name: item.to, query: { mode: item.mode } }" v-bind="action">
+                    <template #item="{ item }">
+                      <RouterLink :to="{ name: item.to, query: { mode: item.mode } }">
                         <span class="ml-2">{{ item.label }}</span>
                       </RouterLink>
                     </template>

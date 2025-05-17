@@ -21,7 +21,6 @@ type WbInputTextProps = {
   labelClass?: string
   validationErrorMessageClass?: string
   validationSuccessMessageClass?: string
-  required?: boolean
 }
 
 const props = withDefaults(defineProps<WbInputTextProps>(), {

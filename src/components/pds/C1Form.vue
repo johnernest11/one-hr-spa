@@ -2,14 +2,15 @@
 import Message from 'primevue/message'
 import { helpers, maxLength, required, email } from '@vuelidate/validators'
 import { digitCountRule, mobilePhoneRule, uniqueUserIdentifierRule } from '@/utils/custom-validations'
-import { reactive, ref, onBeforeMount, toRef, toRefs, watch, computed } from 'vue'
+import { reactive, ref, onBeforeMount, toRef, watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useFilterByParentId, useClearSelectedAddressIfNotInParentList } from '@/composables/address.options.ts'
+import { useFilterByParentId } from '@/composables/address.options.ts'
 import { useAddressStore } from '@/stores/address.store.ts'
 import { useLibrariesStore } from '@/stores/libraries.store.ts'
 import { useItemNumberStore } from '@/stores/item-number.store.ts'
 import { useSalaryGradesStore } from '@/stores/salary-grades.store.ts'
 import { usePdsStore, PersonalDataSheetPayload } from '@/stores/pds.store.ts'
+import { useToast } from 'primevue/usetoast'
 import { parseApiResponseError } from '@/utils/error-handle.ts'
 
 import useVuelidate from '@vuelidate/core'
@@ -30,6 +31,7 @@ import { TabGroup, TabList, Tab, TabPanels, TabPanel } from '@headlessui/vue'
 import { usePrependOrAppendOnce } from '@/utils/helpers.js'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { TransitionRoot } from '@headlessui/vue'
+import { ItemNumberResponse } from '@/typings/models.types'
 
 const getId = usePrependOrAppendOnce('pds-c1-section-form')
 
@@ -37,9 +39,12 @@ const libraryStore = useLibrariesStore()
 const employment = useItemNumberStore()
 const sgStore = useSalaryGradesStore()
 const pdsStore = usePdsStore()
+const toast = useToast()
 
 const isPositionLoading = ref(false)
 const isSameResidential = ref(false)
+const activeToasts = ref<number>(0)
+const maxToasts = 5
 
 const selectedItemNo = ref<WbAutoCompleteOption[] | null>(null)
 const selectedSalaryGrade = ref<WbAutoCompleteOption[] | null>(null)
@@ -88,32 +93,16 @@ onBeforeMount(async () => {
 
 const { provinceOptions, cityOptions, barangayOptions } = storeToRefs(publicStore)
 const filteredProvinceOptionsByRegion = useFilterByParentId(
-  toRef(payload.individual_address, 'residential_region_id'),
+  toRef(payload.individual_address_init, 'residential_region_id'),
   provinceOptions
 )
 const filteredCityOptionsByProvince = useFilterByParentId(
-  toRef(payload.individual_address, 'residential_province_id'),
+  toRef(payload.individual_address_init, 'residential_province_id'),
   cityOptions
 )
 const filteredBarangayOptionsByCity = useFilterByParentId(
-  toRef(payload.individual_address, 'residential_citymun_id'),
+  toRef(payload.individual_address_init, 'residential_citymun_id'),
   barangayOptions
-)
-
-useClearSelectedAddressIfNotInParentList(
-  toRefs(payload),
-  selectedResidentialRegion,
-  selectedPermanentRegion,
-  selectedResidentialProvince,
-  selectedResidentialCity,
-  selectedResidentialBarangay,
-  selectedPermanentRegion,
-  selectedPermanentProvince,
-  selectedPermanentCity,
-  selectedPermanentBarangay,
-  filteredProvinceOptionsByRegion,
-  filteredCityOptionsByProvince,
-  filteredBarangayOptionsByCity
 )
 
 const generateMessage = (fieldName: string): { required: string; maxLength: string } => ({
@@ -135,18 +124,19 @@ const formRules = {
       required: helpers.withMessage('Please choose the Item Number of this employee', required),
     },
     salary_grade_id: {
-      required: helpers.withMessage('Please choose the Item Number of this employee', required),
+      required: helpers.withMessage('Please choose the salary grade for this item', required),
     },
     office_id: {
-      required: helpers.withMessage('Please choose the Item Number of this employee', required),
+      required: helpers.withMessage('Please choose the office of the item', required),
     },
     division_id: {
-      required: helpers.withMessage('Please choose the Item Number of this employee', required),
+      required: helpers.withMessage('Please choose the division of the item', required),
     },
-    section_or_unit: {
-      required: helpers.withMessage('Please choose the Item Number of this employee', required),
+    section_or_unit_id: {
+      required: helpers.withMessage('Please choose the section/unit of the item', required),
     },
     agency_employee_no: {
+      required: helpers.withMessage('agency employee no is required', required),
       maxLength: helpers.withMessage(() => generateMessage('agency_employee_no').maxLength, globalStringMaxLengthRule),
     },
   },
@@ -206,23 +196,21 @@ const formRules = {
       required: helpers.withMessage(() => generateMessage('sss_no').required, required),
       maxLength: helpers.withMessage(() => generateMessage('sss_no').maxLength, globalStringMaxLengthRule),
     },
-    tin_no: {
+    tin: {
       required: helpers.withMessage(() => generateMessage('tin').required, required),
       maxLength: helpers.withMessage(() => generateMessage('tin_no').maxLength, globalStringMaxLengthRule),
     },
     citizenship: {
       maxLength: helpers.withMessage(() => generateMessage('citizenship').maxLength, globalStringMaxLengthRule),
     },
-    citizenship_country: {
-      maxLength: helpers.withMessage(() => generateMessage('citizenship_country').maxLength, globalStringMaxLengthRule),
-    },
+
     citizenship_acquisition: {
       required: helpers.withMessage(() => generateMessage('filipino_by').required, required),
       maxLength: helpers.withMessage(() => generateMessage('citizenship_acquisition').maxLength, globalStringMaxLengthRule),
     },
   },
   /** Personnel Contact Info */
-  individual_contact_info: {
+  contact_info: {
     tel_no: {
       maxLength: helpers.withMessage(() => generateMessage('tin_no').maxLength, globalStringMaxLengthRule),
     },
@@ -241,7 +229,7 @@ const formRules = {
     },
   },
   /** Personnel Addresses */
-  individual_address: {
+  individual_address_init: {
     residential_house_block_lot_no: {
       maxLength: helpers.withMessage(
         () => generateMessage('residential_house_block_lot_no').maxLength,
@@ -271,7 +259,7 @@ const formRules = {
     },
     residential_zip_code: {
       required: helpers.withMessage(() => generateMessage('residential_zip_code').required, required),
-      digitCount: helpers.withMessage('Enter a 5-digit zip code', digitCountRule(5)),
+      digitCount: helpers.withMessage('Enter a 5-digit zip code', digitCountRule(4)),
     },
     permanent_house_block_lot_no: {
       maxLength: helpers.withMessage(() => generateMessage('permanent_house_block_lot_no').maxLength, globalStringMaxLengthRule),
@@ -296,7 +284,7 @@ const formRules = {
     },
     permanent_zip_code: {
       required: helpers.withMessage(() => generateMessage('permanent_zip_code').required, required),
-      digitCount: helpers.withMessage('Enter a 5-digit zip code', digitCountRule(5)),
+      digitCount: helpers.withMessage('Enter a 5-digit zip code', digitCountRule(4)),
     },
   },
 
@@ -385,7 +373,6 @@ const formRules = {
         maxLength: helpers.withMessage(() => generateMessage('elementary_to').maxLength, globalStringMaxLengthRule),
       },
       highest_level_units_earned: {
-        required: helpers.withMessage(() => generateMessage('highest_level_units_earned').required, required),
         maxLength: helpers.withMessage(() => generateMessage('highest_level_units_earned').maxLength, globalStringMaxLengthRule),
       },
       year_graduated: {
@@ -396,64 +383,123 @@ const formRules = {
         maxLength: helpers.withMessage(() => generateMessage('year_graduated').maxLength, globalStringMaxLengthRule),
       },
     },
+    high_school: {
+      schools_name: {
+        required: helpers.withMessage(() => generateMessage('elementary_school_name').required, required),
+        maxLength: helpers.withMessage(() => generateMessage('elementary_school_name').maxLength, globalStringMaxLengthRule),
+      },
+      education_description: {
+        required: helpers.withMessage(() => generateMessage('elementary_basic_education_degree_course').required, required),
+        maxLength: helpers.withMessage(
+          () => generateMessage('elementary_basic_education_degree_course').maxLength,
+          globalStringMaxLengthRule
+        ),
+      },
+      period_of_attendance_from: {
+        required: helpers.withMessage(() => generateMessage('elementary_from').required, required),
+        maxLength: helpers.withMessage(() => generateMessage('elementary_from').maxLength, globalStringMaxLengthRule),
+      },
+      period_of_attendance_to: {
+        required: helpers.withMessage(() => generateMessage('elementary_to').required, required),
+        maxLength: helpers.withMessage(() => generateMessage('elementary_to').maxLength, globalStringMaxLengthRule),
+      },
+      highest_level_units_earned: {
+        maxLength: helpers.withMessage(() => generateMessage('highest_level_units_earned').maxLength, globalStringMaxLengthRule),
+      },
+      year_graduated: {
+        required: helpers.withMessage(() => generateMessage('year_graduated').required, required),
+        maxLength: helpers.withMessage(() => generateMessage('year_graduated').maxLength, globalStringMaxLengthRule),
+      },
+      scholarship_academic_honors_received: {
+        maxLength: helpers.withMessage(() => generateMessage('year_graduated').maxLength, globalStringMaxLengthRule),
+      },
+    },
+    vocational: {
+      schools_name: {
+        maxLength: helpers.withMessage(() => generateMessage('elementary_school_name').maxLength, globalStringMaxLengthRule),
+      },
+      education_description: {
+        maxLength: helpers.withMessage(
+          () => generateMessage('elementary_basic_education_degree_course').maxLength,
+          globalStringMaxLengthRule
+        ),
+      },
+      period_of_attendance_from: {
+        maxLength: helpers.withMessage(() => generateMessage('elementary_from').maxLength, globalStringMaxLengthRule),
+      },
+      period_of_attendance_to: {
+        maxLength: helpers.withMessage(() => generateMessage('elementary_to').maxLength, globalStringMaxLengthRule),
+      },
+      highest_level_units_earned: {
+        maxLength: helpers.withMessage(() => generateMessage('highest_level_units_earned').maxLength, globalStringMaxLengthRule),
+      },
+      year_graduated: {
+        maxLength: helpers.withMessage(() => generateMessage('year_graduated').maxLength, globalStringMaxLengthRule),
+      },
+      scholarship_academic_honors_received: {
+        maxLength: helpers.withMessage(() => generateMessage('year_graduated').maxLength, globalStringMaxLengthRule),
+      },
+    },
+    college: {
+      schools_name: {
+        required: helpers.withMessage(() => generateMessage('elementary_school_name').required, required),
+        maxLength: helpers.withMessage(() => generateMessage('elementary_school_name').maxLength, globalStringMaxLengthRule),
+      },
+      education_description: {
+        required: helpers.withMessage(() => generateMessage('elementary_basic_education_degree_course').required, required),
+        maxLength: helpers.withMessage(
+          () => generateMessage('elementary_basic_education_degree_course').maxLength,
+          globalStringMaxLengthRule
+        ),
+      },
+      period_of_attendance_from: {
+        required: helpers.withMessage(() => generateMessage('elementary_from').required, required),
+        maxLength: helpers.withMessage(() => generateMessage('elementary_from').maxLength, globalStringMaxLengthRule),
+      },
+      period_of_attendance_to: {
+        required: helpers.withMessage(() => generateMessage('elementary_to').required, required),
+        maxLength: helpers.withMessage(() => generateMessage('elementary_to').maxLength, globalStringMaxLengthRule),
+      },
+      highest_level_units_earned: {
+        maxLength: helpers.withMessage(() => generateMessage('highest_level_units_earned').maxLength, globalStringMaxLengthRule),
+      },
+      year_graduated: {
+        required: helpers.withMessage(() => generateMessage('year_graduated').required, required),
+        maxLength: helpers.withMessage(() => generateMessage('year_graduated').maxLength, globalStringMaxLengthRule),
+      },
+      scholarship_academic_honors_received: {
+        maxLength: helpers.withMessage(() => generateMessage('year_graduated').maxLength, globalStringMaxLengthRule),
+      },
+    },
+    graduate: {
+      schools_name: {
+        maxLength: helpers.withMessage(() => generateMessage('elementary_school_name').maxLength, globalStringMaxLengthRule),
+      },
+      education_description: {
+        maxLength: helpers.withMessage(
+          () => generateMessage('elementary_basic_education_degree_course').maxLength,
+          globalStringMaxLengthRule
+        ),
+      },
+      period_of_attendance_from: {
+        maxLength: helpers.withMessage(() => generateMessage('elementary_from').maxLength, globalStringMaxLengthRule),
+      },
+      period_of_attendance_to: {
+        maxLength: helpers.withMessage(() => generateMessage('elementary_to').maxLength, globalStringMaxLengthRule),
+      },
+      highest_level_units_earned: {
+        maxLength: helpers.withMessage(() => generateMessage('highest_level_units_earned').maxLength, globalStringMaxLengthRule),
+      },
+      year_graduated: {
+        maxLength: helpers.withMessage(() => generateMessage('year_graduated').maxLength, globalStringMaxLengthRule),
+      },
+      scholarship_academic_honors_received: {
+        maxLength: helpers.withMessage(() => generateMessage('year_graduated').maxLength, globalStringMaxLengthRule),
+      },
+    },
   },
   individual_family_children: [],
-  occupation: {
-    required: helpers.withMessage(() => generateMessage('occupation').required, required),
-    maxLength: helpers.withMessage(() => generateMessage('occupation').maxLength, globalStringMaxLengthRule),
-  },
-  employers_business_name: {
-    required: helpers.withMessage(() => generateMessage('employers_business_name').required, required),
-    maxLength: helpers.withMessage(() => generateMessage('employers_business_name').maxLength, globalStringMaxLengthRule),
-  },
-  business_address: {
-    required: helpers.withMessage(() => generateMessage('business_address').required, required),
-    maxLength: helpers.withMessage(() => generateMessage('business_address').maxLength, globalStringMaxLengthRule),
-  },
-  family_telephone_no: {
-    required: helpers.withMessage(() => generateMessage('family_telephone_no').required, required),
-    maxLength: helpers.withMessage(() => generateMessage('family_telephone_no').maxLength, globalStringMaxLengthRule),
-  },
-  family_date_of_birth: {
-    required: helpers.withMessage(() => generateMessage('family_date_of_birth').required, required),
-    maxLength: helpers.withMessage(() => generateMessage('family_date_of_birth').maxLength, globalStringMaxLengthRule),
-  },
-  class: {
-    required: helpers.withMessage(() => generateMessage('class').required, required),
-    maxLength: helpers.withMessage(() => generateMessage('class').maxLength, globalStringMaxLengthRule),
-  },
-  /** Personnel Educational Background */
-  schools_name: {
-    required: helpers.withMessage(() => generateMessage('schools_name').required, required),
-    maxLength: helpers.withMessage(() => generateMessage('schools_name').maxLength, globalStringMaxLengthRule),
-  },
-  level: {
-    in: helpers.withMessage('Select a valid educational level.', required),
-  },
-  period_of_attendance_from: {
-    required: helpers.withMessage(() => generateMessage('period_of_attendance_from').required, required),
-  },
-  period_of_attendance_to: {
-    required: helpers.withMessage(() => generateMessage('period_of_attendance_to').required, required),
-  },
-  highest_level_units_earned: {
-    maxLength: helpers.withMessage(() => generateMessage('highest_level_units_earned').maxLength, globalStringMaxLengthRule),
-  },
-  year_graduated: {
-    required: helpers.withMessage(() => generateMessage('year_graduated').required, required),
-  },
-  scholarship_academic_honors_received: {
-    maxLength: helpers.withMessage(
-      () => generateMessage('scholarship_academic_honors_received').maxLength,
-      globalStringMaxLengthRule
-    ),
-  },
 }
-
-const individualChildValidationRules = computed(() =>
-  payload.individual_family_children?.map(() => formRules.individual_family_child)
-)
-formRules.individual_family_children = individualChildValidationRules
 
 const validator = useVuelidate<PersonalDataSheetPayload>(formRules, payload)
 
@@ -470,28 +516,94 @@ watch(isSameResidential, (newVal) => {
     selectedPermanentProvince.value = selectedResidentialProvince.value
     selectedPermanentCity.value = selectedResidentialCity.value
     selectedPermanentBarangay.value = selectedResidentialBarangay.value
-    payload.individual_address.permanent_house_block_lot_no = payload.individual_address.residential_house_block_lot_no
-    payload.individual_address.permanent_street = payload.individual_address.residential_street
-    payload.individual_address.permanent_subdivision_village = payload.individual_address.residential_subdivision_village
-    payload.individual_address.permanent_zip_code = payload.individual_address.residential_zip_code
+    payload.individual_address_init.permanent_house_block_lot_no = payload.individual_address_init.residential_house_block_lot_no
+    payload.individual_address_init.permanent_street = payload.individual_address_init.residential_street
+    payload.individual_address_init.permanent_subdivision_village =
+      payload.individual_address_init.residential_subdivision_village
+    payload.individual_address_init.permanent_zip_code = payload.individual_address_init.residential_zip_code
   } else {
     selectedPermanentRegion.value = null
     selectedPermanentProvince.value = null
     selectedPermanentCity.value = null
     selectedPermanentBarangay.value = null
-    payload.individual_address.permanent_house_block_lot_no = null
-    payload.individual_address.permanent_street = null
-    payload.individual_address.permanent_subdivision_village = null
-    payload.individual_address.permanent_zip_code = null
+    payload.individual_address_init.permanent_house_block_lot_no = null
+    payload.individual_address_init.permanent_street = null
+    payload.individual_address_init.permanent_subdivision_village = null
+    payload.individual_address_init.permanent_zip_code = null
   }
 })
 
 watch(
-  () => payload.individual_address.residential_region_id,
+  () => payload.individual_address_init.residential_region_id,
+  (newSelectedItem) => {
+    if (!newSelectedItem) {
+      selectedResidentialRegion.value = null
+      return
+    }
+  }
+)
+
+watch(
+  () => payload.individual.birthday,
+  (newBday) => {
+    if (newBday !== null) {
+      const dateBday = new Date(newBday).toLocaleDateString('default', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        timeZone: 'Asia/Manila',
+      })
+
+      const formatBday = dateBday.split('/')
+      payload.individual.birthday = `${formatBday[2]}-${formatBday[0]}-${formatBday[1]}`
+    }
+  }
+)
+
+watch(
+  () => selectedPermanentRegion.value,
   (newSelectedItem) => {
     if (!newSelectedItem) {
       selectedPermanentRegion.value = null
-      return
+      payload.individual_address_init.permanent_region_id = null
+    } else {
+      payload.individual_address_init.permanent_region_id = newSelectedItem.value
+    }
+  }
+)
+
+watch(
+  () => selectedPermanentProvince.value,
+  (newSelectedItem) => {
+    if (!newSelectedItem) {
+      selectedPermanentRegion.value = null
+      payload.individual_address_init.permanent_province_id = null
+    } else {
+      payload.individual_address_init.permanent_province_id = newSelectedItem.value
+    }
+  }
+)
+
+watch(
+  () => selectedPermanentCity.value,
+  (newSelectedItem) => {
+    if (!newSelectedItem) {
+      selectedPermanentRegion.value = null
+      payload.individual_address_init.permanent_citymun_id = null
+    } else {
+      payload.individual_address_init.permanent_citymun_id = newSelectedItem.value
+    }
+  }
+)
+
+watch(
+  () => selectedPermanentBarangay.value,
+  (newSelectedItem) => {
+    if (!newSelectedItem) {
+      selectedPermanentRegion.value = null
+      payload.individual_address_init.permanent_brgy_id = null
+    } else {
+      payload.individual_address_init.permanent_brgy_id = newSelectedItem.value
     }
   }
 )
@@ -537,7 +649,7 @@ watch(
 )
 
 watch(
-  () => payload.employee.section_or_unit,
+  () => payload.employee.section_or_unit_id,
   (newSelectedItem) => {
     if (!newSelectedItem) {
       selectedSectionUnit.value = null
@@ -546,12 +658,33 @@ watch(
   }
 )
 
+const showToast = (
+  severityPararm: 'success' | 'error' | 'info' | 'warn' | 'secondary' | 'contrast' | undefined,
+  message: string,
+  summaryParam: string
+) => {
+  if (activeToasts.value < maxToasts) {
+    document.getElementsByClassName('views-create-document-page')[0]?.scrollIntoView({ behavior: 'smooth' })
+    toast.add({
+      summary: message,
+      detail: summaryParam,
+      severity: severityPararm,
+      life: 5000,
+    })
+    activeToasts.value++
+
+    setTimeout(() => {
+      activeToasts.value--
+    }, 5000)
+  }
+}
+
 const propPosition = async () => {
   isPositionLoading.value = true
 
-  const itemResp = await employment.fetchItemNumberById(selectedItemNo.value?.value)
-
-  payload.employee.position = itemResp.data?.position?.title
+  const itemResp = await employment.fetchItemNumberById(payload.employee.item_id ?? 'null')
+  const itemRespData = itemResp.data as ItemNumberResponse
+  payload.employee.position = itemRespData.position?.title
   isPositionLoading.value = false
 }
 
@@ -577,8 +710,45 @@ const handleRemoveChild = (childIndex: number) => {
 const handleSaveC1Form = async () => {
   isC1Loading.value = true
 
+  /** Propagate indiividual family to required payload */
+  const families = [{ ...payload.individual_family_father }, { ...payload.individual_family_mothers_maiden }]
+
+  if (
+    typeof payload.individual_family_spouse.last_name?.trim() !== 'undefined' ||
+    payload.individual_family_spouse.last_name !== null
+  ) {
+    families.concat({ ...payload.individual_family_spouse })
+  }
+
+  if (
+    typeof payload.individual_family_children[0].last_name?.trim() !== 'undefined' ||
+    payload.individual_family_children[0].last_name !== null
+  ) {
+    payload.individual_family = families.concat(payload.individual_family_children)
+  }
+  payload.individual_family = families
+
+  /** propagate individual address to match payload */
+  payload.individual_address = [{ ...payload.individual_address_init }]
+
+  /** propagate individual contact */
+  payload.individual_contact_info = [{ ...payload.contact_info }]
+
+  /** propagae educ background */
+  payload.individual_educational_background = [
+    { ...payload.educations.elementary },
+    { ...payload.educations.high_school },
+    { ...payload.educations.college },
+  ]
+  if (payload.educations.vocational.schools_name !== null) {
+    payload.individual_educational_background.push({ ...payload.educations.vocational })
+  }
+  if (payload.educations.vocational.schools_name !== null) {
+    payload.individual_educational_background.push({ ...payload.educations.graduate })
+  }
+
   const valid = await validator.value.$validate()
-  console.log(valid)
+  console.log(validator.value)
   if (!valid) return (isC1Loading.value = false)
 
   const response = await pdsStore.saveC1(payload)
@@ -589,6 +759,9 @@ const handleSaveC1Form = async () => {
     isPdsError.value = true
     errorMessage.value = result?.message
     pdsErrors.value = result?.errors
+    showToast('error', 'PDS C1 Error', 'PLease see the validation messages')
+  } else {
+    showToast('success', 'PDS C1', 'PDS C1 Information has been saved')
   }
 
   isC1Loading.value = false
@@ -603,7 +776,7 @@ const c1Tabs = ref([
 
 <template>
   <div class="flex flex-row">
-    <form @submit.prevent autocomplete="off" class="h-full w-full">
+    <form @submit.prevent="handleSaveC1Form" autocomplete="off" class="h-full w-full">
       <div class="w-full">
         <TabGroup>
           <TabList class="flex">
@@ -656,7 +829,7 @@ const c1Tabs = ref([
                       <WbAutoComplete
                         :useApiFilter="true"
                         :apiEndpoint="'/items/search'"
-                        :suggestions="employment.itemNumbers"
+                        :suggestions="employment.itemNumbersSuggestions"
                         @item-select="propPosition"
                         apiOptionLabel="number"
                         label="Item Number"
@@ -791,15 +964,15 @@ const c1Tabs = ref([
                         required
                         @on-true-value-computed="
                           (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
-                            useWbAutoCompleteHandleTrueValue(value, toRef(payload.employee, 'section_or_unit'))
+                            useWbAutoCompleteHandleTrueValue(value, toRef(payload.employee, 'section_or_unit_id'))
                         "
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                        :invalid="validator.employee.section_or_unit.$invalid"
-                        :invalid-text="validator.employee.section_or_unit.$errors[0]?.$message"
-                        @blur="validator.employee.section_or_unit.$touch"
-                        @focusin="validator.employee.section_or_unit.$dirty = false"
+                        :invalid="validator.employee.section_or_unit_id.$invalid"
+                        :invalid-text="validator.employee.section_or_unit_id.$errors[0]?.$message"
+                        @blur="validator.employee.section_or_unit_id.$touch"
+                        @focusin="validator.employee.section_or_unit_id.$dirty = false"
                       >
                       </WbAutoComplete>
                     </div>
@@ -861,7 +1034,7 @@ const c1Tabs = ref([
 
                     <WbCalendar
                       v-model="payload.individual.birthday"
-                      dateFormat="MM dd, yy"
+                      dateFormat="yy-mm-dd"
                       :maxDate="new Date()"
                       required
                       label="Date of Birth"
@@ -914,20 +1087,20 @@ const c1Tabs = ref([
                         <div class="flex items-center">
                           <RadioButton
                             v-model="payload.individual.citizenship"
-                            inputId="ingredient1"
+                            :id="getId('input-citizenship-fil')"
                             name="citizenship"
                             value="Filipino"
                           />
-                          <label for="ingredient1" class="ml-2 cursor-pointer">Filipino</label>
+                          <label :for="getId('input-citizenship-fil')" class="ml-2 cursor-pointer">Filipino</label>
                         </div>
                         <div class="flex items-center">
                           <RadioButton
                             v-model="payload.individual.citizenship"
-                            inputId="ingredient2"
+                            :id="getId('input-citizenship-dual')"
                             name="citizenship"
                             value="Dual Citizenship"
                           />
-                          <label for="ingredient2" class="ml-2 cursor-pointer">Dual Citizen</label>
+                          <label :for="getId('input-citizenship-dual')" class="ml-2 cursor-pointer">Dual Citizen</label>
                         </div>
                       </div>
                     </div>
@@ -1054,15 +1227,15 @@ const c1Tabs = ref([
                     >
                     </WbInputText>
                     <WbInputText
-                      v-model="payload.individual.tin_no"
+                      v-model="payload.individual.tin"
                       required
                       label="TIN"
                       label-class="text-md text-surface-600 dark:lg:text-surface-200"
                       class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                       validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                      :invalid="validator.individual.tin_no.$invalid"
-                      :invalid-text="validator.individual.tin_no.$errors[0]?.$message"
-                      @blur="validator.individual.tin_no.$touch"
+                      :invalid="validator.individual.tin.$invalid"
+                      :invalid-text="validator.individual.tin.$errors[0]?.$message"
+                      @blur="validator.individual.tin.$touch"
                     >
                     </WbInputText>
                     <WbInputText
@@ -1078,7 +1251,7 @@ const c1Tabs = ref([
                     >
                     </WbInputText>
                     <WbInputMask
-                      v-model="payload.individual_contact_info.mobile_no"
+                      v-model="payload.contact_info.mobile_no"
                       required
                       label="Mobile Number"
                       label-class="text-md text-surface-600 dark:lg:text-surface-200"
@@ -1086,27 +1259,27 @@ const c1Tabs = ref([
                       placeholder="+63 XXX XXX XXXX"
                       class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                       validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                      :invalid="validator.individual_contact_info.mobile_no.$invalid"
-                      :invalid-text="validator.individual_contact_info.mobile_no.$errors[0]?.$message"
-                      @blur="validator.individual_contact_info.mobile_no.$touch"
-                      @focusin="validator.individual_contact_info.mobile_no.$dirty = false"
+                      :invalid="validator.contact_info.mobile_no.$invalid"
+                      :invalid-text="validator.contact_info.mobile_no.$errors[0]?.$message"
+                      @blur="validator.contact_info.mobile_no.$touch"
+                      @focusin="validator.contact_info.mobile_no.$dirty = false"
                     >
                       <template #prepend-icon>
                         <FontAwesomeIcon icon="fa-solid fa-mobile" />
                       </template>
                     </WbInputMask>
                     <WbInputMask
-                      v-model="payload.individual_contact_info.tel_no"
+                      v-model="payload.contact_info.tel_no"
                       label="Telephone Number"
                       label-class="text-md text-surface-600 dark:lg:text-surface-200"
                       mask="(999) 999-9999"
                       placeholder="(072) 687-8000"
                       class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                       validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                      :invalid="validator.individual_contact_info.tel_no.$invalid"
-                      :invalid-text="validator.individual_contact_info.tel_no.$errors[0]?.$message"
-                      @blur="validator.individual_contact_info.tel_no.$touch"
-                      @focusin="validator.individual_contact_info.tel_no.$dirty = false"
+                      :invalid="validator.contact_info.tel_no.$invalid"
+                      :invalid-text="validator.contact_info.tel_no.$errors[0]?.$message"
+                      @blur="validator.contact_info.tel_no.$touch"
+                      @focusin="validator.contact_info.tel_no.$dirty = false"
                     >
                       <template #prepend-icon>
                         <FontAwesomeIcon icon="fa-solid fa-phone" />
@@ -1125,15 +1298,15 @@ const c1Tabs = ref([
                     >
                     </WbInputText>
                     <WbInputText
-                      v-model="payload.individual_contact_info.email_address"
+                      v-model="payload.contact_info.email_address"
                       required
                       label="Email Address"
                       label-class="text-md text-surface-600 dark:lg:text-surface-200"
                       class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                       validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                      :invalid="validator.individual_contact_info.email_address.$invalid"
-                      :invalid-text="validator.individual_contact_info.email_address.$errors[0]?.$message"
-                      @blur="validator.individual_contact_info.email_address.$touch"
+                      :invalid="validator.contact_info.email_address.$invalid"
+                      :invalid-text="validator.contact_info.email_address.$errors[0]?.$message"
+                      @blur="validator.contact_info.email_address.$touch"
                     >
                       <template #prepend-icon>
                         <FontAwesomeIcon icon="fa-solid fa-square-envelope" />
@@ -1163,15 +1336,18 @@ const c1Tabs = ref([
                         forceSelection
                         @on-true-value-computed="
                           (value: WbAutoCompleteOptionTrueValue) =>
-                            useWbAutoCompleteHandleTrueValue(value, toRef(payload.individual_address, 'residential_region_id'))
+                            useWbAutoCompleteHandleTrueValue(
+                              value,
+                              toRef(payload.individual_address_init, 'residential_region_id')
+                            )
                         "
                         :loading="publicStore.regionOptionsIsLoading"
                         dropdown
                         dropdownClass="bg-transparent"
-                        :invalid="validator.individual_address.residential_region_id.$invalid"
-                        :invalid-text="validator.individual_address.residential_region_id.$errors[0]?.$message"
-                        @blur="validator.individual_address.residential_region_id.$touch"
-                        @focusin="validator.individual_address.residential_region_id.$dirty = false"
+                        :invalid="validator.individual_address_init.residential_region_id.$invalid"
+                        :invalid-text="validator.individual_address_init.residential_region_id.$errors[0]?.$message"
+                        @blur="validator.individual_address_init.residential_region_id.$touch"
+                        @focusin="validator.individual_address_init.residential_region_id.$dirty = false"
                       >
                       </WbAutoComplete>
                       <WbAutoComplete
@@ -1187,15 +1363,18 @@ const c1Tabs = ref([
                         forceSelection
                         @on-true-value-computed="
                           (value: WbAutoCompleteOptionTrueValue) =>
-                            useWbAutoCompleteHandleTrueValue(value, toRef(payload.individual_address, 'residential_province_id'))
+                            useWbAutoCompleteHandleTrueValue(
+                              value,
+                              toRef(payload.individual_address_init, 'residential_province_id')
+                            )
                         "
                         :loading="publicStore.provinceOptionsIsLoading"
                         dropdown
                         dropdownClass="bg-transparent"
-                        :invalid="validator.individual_address.residential_province_id.$invalid"
-                        :invalid-text="validator.individual_address.residential_province_id.$errors[0]?.$message"
-                        @blur="validator.individual_address.residential_province_id.$touch"
-                        @focusin="validator.individual_address.residential_province_id.$dirty = false"
+                        :invalid="validator.individual_address_init.residential_province_id.$invalid"
+                        :invalid-text="validator.individual_address_init.residential_province_id.$errors[0]?.$message"
+                        @blur="validator.individual_address_init.residential_province_id.$touch"
+                        @focusin="validator.individual_address_init.residential_province_id.$dirty = false"
                       >
                       </WbAutoComplete>
                       <WbAutoComplete
@@ -1211,16 +1390,19 @@ const c1Tabs = ref([
                         forceSelection
                         @on-true-value-computed="
                           (value: WbAutoCompleteOptionTrueValue) =>
-                            useWbAutoCompleteHandleTrueValue(value, toRef(payload.individual_address, 'residential_citymun_id'))
+                            useWbAutoCompleteHandleTrueValue(
+                              value,
+                              toRef(payload.individual_address_init, 'residential_citymun_id')
+                            )
                         "
                         :loading="publicStore.cityOptionsIsLoading"
                         :virtualScrollerOptions="{ itemSize: 38 }"
                         dropdown
                         dropdownClass="bg-transparent"
-                        :invalid="validator.individual_address.residential_citymun_id.$invalid"
-                        :invalid-text="validator.individual_address.residential_citymun_id.$errors[0]?.$message"
-                        @blur="validator.individual_address.residential_citymun_id.$touch"
-                        @focusin="validator.individual_address.residential_citymun_id.$dirty = false"
+                        :invalid="validator.individual_address_init.residential_citymun_id.$invalid"
+                        :invalid-text="validator.individual_address_init.residential_citymun_id.$errors[0]?.$message"
+                        @blur="validator.individual_address_init.residential_citymun_id.$touch"
+                        @focusin="validator.individual_address_init.residential_citymun_id.$dirty = false"
                       >
                       </WbAutoComplete>
                       <WbAutoComplete
@@ -1236,61 +1418,61 @@ const c1Tabs = ref([
                         forceSelection
                         @on-true-value-computed="
                           (value: WbAutoCompleteOptionTrueValue) =>
-                            useWbAutoCompleteHandleTrueValue(value, toRef(payload.individual_address, 'residential_brgy_id'))
+                            useWbAutoCompleteHandleTrueValue(value, toRef(payload.individual_address_init, 'residential_brgy_id'))
                         "
                         :loading="publicStore.barangayOptionsIsLoading"
                         :virtualScrollerOptions="{ itemSize: 38 }"
                         dropdown
                         dropdownClass="bg-transparent"
-                        :invalid="validator.individual_address.residential_brgy_id.$invalid"
-                        :invalid-text="validator.individual_address.residential_brgy_id.$errors[0]?.$message"
-                        @blur="validator.individual_address.residential_brgy_id.$touch"
-                        @focusin="validator.individual_address.residential_brgy_id.$dirty = false"
+                        :invalid="validator.individual_address_init.residential_brgy_id.$invalid"
+                        :invalid-text="validator.individual_address_init.residential_brgy_id.$errors[0]?.$message"
+                        @blur="validator.individual_address_init.residential_brgy_id.$touch"
+                        @focusin="validator.individual_address_init.residential_brgy_id.$dirty = false"
                       >
                       </WbAutoComplete>
                       <WbInputText
-                        v-model="payload.individual_address.residential_subdivision_village"
+                        v-model="payload.individual_address_init.residential_subdivision_village"
                         label="Subdivision / Village"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                        :invalid="validator.individual_address.residential_subdivision_village.$invalid"
-                        :invalid-text="validator.individual_address.residential_subdivision_village.$errors[0]?.$message"
-                        @blur="validator.individual_address.residential_subdivision_village.$touch"
+                        :invalid="validator.individual_address_init.residential_subdivision_village.$invalid"
+                        :invalid-text="validator.individual_address_init.residential_subdivision_village.$errors[0]?.$message"
+                        @blur="validator.individual_address_init.residential_subdivision_village.$touch"
                       >
                       </WbInputText>
                       <WbInputText
-                        v-model="payload.individual_address.residential_street"
+                        v-model="payload.individual_address_init.residential_street"
                         label="Street"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                        :invalid="validator.individual_address.residential_street.$invalid"
-                        :invalid-text="validator.individual_address.residential_street.$errors[0]?.$message"
-                        @blur="validator.individual_address.residential_street.$touch"
+                        :invalid="validator.individual_address_init.residential_street.$invalid"
+                        :invalid-text="validator.individual_address_init.residential_street.$errors[0]?.$message"
+                        @blur="validator.individual_address_init.residential_street.$touch"
                       >
                       </WbInputText>
                       <WbInputText
-                        v-model="payload.individual_address.residential_house_block_lot_no"
+                        v-model="payload.individual_address_init.residential_house_block_lot_no"
                         label="House / Block / Lot No."
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                        :invalid="validator.individual_address.residential_house_block_lot_no.$invalid"
-                        :invalid-text="validator.individual_address.residential_house_block_lot_no.$errors[0]?.$message"
-                        @blur="validator.individual_address.residential_house_block_lot_no.$touch"
+                        :invalid="validator.individual_address_init.residential_house_block_lot_no.$invalid"
+                        :invalid-text="validator.individual_address_init.residential_house_block_lot_no.$errors[0]?.$message"
+                        @blur="validator.individual_address_init.residential_house_block_lot_no.$touch"
                       >
                       </WbInputText>
                       <WbInputText
-                        v-model="payload.individual_address.residential_zip_code"
+                        v-model="payload.individual_address_init.residential_zip_code"
                         required
                         label="ZIP Code"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                        :invalid="validator.individual_address.residential_zip_code.$invalid"
-                        :invalid-text="validator.individual_address.residential_zip_code.$errors[0]?.$message"
-                        @blur="validator.individual_address.residential_zip_code.$touch"
+                        :invalid="validator.individual_address_init.residential_zip_code.$invalid"
+                        :invalid-text="validator.individual_address_init.residential_zip_code.$errors[0]?.$message"
+                        @blur="validator.individual_address_init.residential_zip_code.$touch"
                       >
                       </WbInputText>
                     </div>
@@ -1332,7 +1514,7 @@ const c1Tabs = ref([
                         forceSelection
                         @on-true-value-computed="
                           (value: WbAutoCompleteOptionTrueValue) =>
-                            useWbAutoCompleteHandleTrueValue(value, toRef(payload.individual_address, 'permanent_region_id'))
+                            useWbAutoCompleteHandleTrueValue(value, toRef(payload.individual_address_init, 'permanent_region_id'))
                         "
                         :loading="publicStore.regionOptionsIsLoading"
                         dropdown
@@ -1352,7 +1534,10 @@ const c1Tabs = ref([
                         forceSelection
                         @on-true-value-computed="
                           (value: WbAutoCompleteOptionTrueValue) =>
-                            useWbAutoCompleteHandleTrueValue(value, toRef(payload.individual_address, 'permanent_province_id'))
+                            useWbAutoCompleteHandleTrueValue(
+                              value,
+                              toRef(payload.individual_address_init, 'permanent_province_id')
+                            )
                         "
                         :loading="publicStore.provinceOptionsIsLoading"
                         dropdown
@@ -1372,7 +1557,10 @@ const c1Tabs = ref([
                         forceSelection
                         @on-true-value-computed="
                           (value: WbAutoCompleteOptionTrueValue) =>
-                            useWbAutoCompleteHandleTrueValue(value, toRef(payload.individual_address, 'permanent_citymun_id'))
+                            useWbAutoCompleteHandleTrueValue(
+                              value,
+                              toRef(payload.individual_address_init, 'permanent_citymun_id')
+                            )
                         "
                         :loading="publicStore.cityOptionsIsLoading"
                         :virtualScrollerOptions="{ itemSize: 38 }"
@@ -1393,7 +1581,7 @@ const c1Tabs = ref([
                         forceSelection
                         @on-true-value-computed="
                           (value: WbAutoCompleteOptionTrueValue) =>
-                            useWbAutoCompleteHandleTrueValue(value, toRef(payload.individual_address, 'permanent_brgy_id'))
+                            useWbAutoCompleteHandleTrueValue(value, toRef(payload.individual_address_init, 'permanent_brgy_id'))
                         "
                         :loading="publicStore.barangayOptionsIsLoading"
                         :virtualScrollerOptions="{ itemSize: 38 }"
@@ -1402,52 +1590,52 @@ const c1Tabs = ref([
                       >
                       </WbAutoComplete>
                       <WbInputText
-                        v-model="payload.individual_address.permanent_subdivision_village"
+                        v-model="payload.individual_address_init.permanent_subdivision_village"
                         label="Subdivision / Village"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         :readonly="isSameResidential"
-                        :invalid="validator.individual_address.permanent_subdivision_village.$invalid"
-                        :invalid-text="validator.individual_address.permanent_subdivision_village.$errors[0]?.$message"
-                        @blur="validator.individual_address.permanent_subdivision_village.$touch"
+                        :invalid="validator.individual_address_init.permanent_subdivision_village.$invalid"
+                        :invalid-text="validator.individual_address_init.permanent_subdivision_village.$errors[0]?.$message"
+                        @blur="validator.individual_address_init.permanent_subdivision_village.$touch"
                       >
                       </WbInputText>
                       <WbInputText
-                        v-model="payload.individual_address.permanent_street"
+                        v-model="payload.individual_address_init.permanent_street"
                         label="Street"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         :readonly="isSameResidential"
-                        :invalid="validator.individual_address.permanent_street.$invalid"
-                        :invalid-text="validator.individual_address.permanent_street.$errors[0]?.$message"
-                        @blur="validator.individual_address.permanent_street.$touch"
+                        :invalid="validator.individual_address_init.permanent_street.$invalid"
+                        :invalid-text="validator.individual_address_init.permanent_street.$errors[0]?.$message"
+                        @blur="validator.individual_address_init.permanent_street.$touch"
                       >
                       </WbInputText>
                       <WbInputText
-                        v-model="payload.individual_address.permanent_house_block_lot_no"
+                        v-model="payload.individual_address_init.permanent_house_block_lot_no"
                         label="House / Block / Lot No."
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         :readonly="isSameResidential"
-                        :invalid="validator.individual_address.permanent_house_block_lot_no.$invalid"
-                        :invalid-text="validator.individual_address.permanent_house_block_lot_no.$errors[0]?.$message"
-                        @blur="validator.individual_address.permanent_house_block_lot_no.$touch"
+                        :invalid="validator.individual_address_init.permanent_house_block_lot_no.$invalid"
+                        :invalid-text="validator.individual_address_init.permanent_house_block_lot_no.$errors[0]?.$message"
+                        @blur="validator.individual_address_init.permanent_house_block_lot_no.$touch"
                       >
                       </WbInputText>
                       <WbInputText
-                        v-model="payload.individual_address.permanent_zip_code"
+                        v-model="payload.individual_address_init.permanent_zip_code"
                         required
                         label="ZIP Code"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         :readonly="isSameResidential"
-                        :invalid="validator.individual_address.permanent_zip_code.$invalid"
-                        :invalid-text="validator.individual_address.permanent_zip_code.$errors[0]?.$message"
-                        @blur="validator.individual_address.permanent_zip_code.$touch"
+                        :invalid="validator.individual_address_init.permanent_zip_code.$invalid"
+                        :invalid-text="validator.individual_address_init.permanent_zip_code.$errors[0]?.$message"
+                        @blur="validator.individual_address_init.permanent_zip_code.$touch"
                       >
                       </WbInputText>
                     </div>
@@ -1625,7 +1813,7 @@ const c1Tabs = ref([
                   <span class="mt-2 flex flex-col justify-center font-medium text-primary-700">
                     <p class="text-lg italic md:text-xl">Children</p>
                   </span>
-                  <template v-for="(child, childIdx) in payload.individual_family_children" :key="childIdx">
+                  <template v-for="childIdx in payload.individual_family_children.length" :key="childIdx">
                     <TransitionRoot
                       appear
                       :show="true"
@@ -1643,9 +1831,6 @@ const c1Tabs = ref([
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                          :invalid="validator.individual_family_children[childIdx].last_name.$invalid"
-                          :invalid-text="validator.individual_family_children[childIdx].last_name.$errors[0]?.$message"
-                          @blur="validator.individual_family_children[childIdx].last_name.$touch"
                         />
 
                         <WbInputText
@@ -1654,9 +1839,6 @@ const c1Tabs = ref([
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                          :invalid="validator.individual_family_children[childIdx].first_name.$invalid"
-                          :invalid-text="validator.individual_family_children[childIdx].first_name.$errors[0]?.$message"
-                          @blur="validator.individual_family_children[childIdx].first_name.$touch"
                         />
 
                         <WbInputText
@@ -1665,9 +1847,6 @@ const c1Tabs = ref([
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                          :invalid="validator.individual_family_children[childIdx].middle_name.$invalid"
-                          :invalid-text="validator.individual_family_children[childIdx].middle_name.$errors[0]?.$message"
-                          @blur="validator.individual_family_children[childIdx].middle_name.$touch"
                         />
 
                         <WbInputText
@@ -1676,9 +1855,6 @@ const c1Tabs = ref([
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                          :invalid="validator.individual_family_children[childIdx].ext_name.$invalid"
-                          :invalid-text="validator.individual_family_children[childIdx].ext_name.$errors[0]?.$message"
-                          @blur="validator.individual_family_children[childIdx].ext_name.$touch"
                         />
 
                         <WbCalendar
@@ -1734,6 +1910,7 @@ const c1Tabs = ref([
                 leaveTo="opacity-0"
               >
                 <div class="flex flex-col gap-4">
+                  <!-- START ELEM -->
                   <span class="flex flex-col justify-center space-y-2 font-medium text-primary-700">
                     <p class="text-lg italic md:text-xl">Elementary</p>
                   </span>
@@ -1792,7 +1969,6 @@ const c1Tabs = ref([
 
                         <WbInputText
                           v-model="payload.educations.elementary.highest_level_units_earned"
-                          required
                           label="Highest Level / Units Earned "
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
@@ -1818,7 +1994,6 @@ const c1Tabs = ref([
 
                         <WbInputText
                           v-model="payload.educations.elementary.scholarship_academic_honors_received"
-                          required
                           label="Scholarship / Academic Honors Received "
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
@@ -1832,6 +2007,389 @@ const c1Tabs = ref([
                       </div>
                     </div>
                   </div>
+                  <!-- END ELEM -->
+
+                  <!-- START SECONDARY -->
+                  <span class="mt-4 flex flex-col justify-center space-y-2 font-medium text-primary-700">
+                    <p class="text-lg italic md:text-xl">Secondary</p>
+                  </span>
+                  <div class="flex flex-col gap-x-12 gap-y-4">
+                    <div class="flex w-full flex-col gap-x-12 gap-y-4 md:flex-row">
+                      <WbInputText
+                        v-model="payload.educations.high_school.schools_name"
+                        required
+                        label="Name of School"
+                        label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                        validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                        :invalid="validator.educations.high_school.schools_name.$invalid"
+                        :invalid-text="validator.educations.high_school.schools_name.$errors[0]?.$message"
+                        @blur="validator.educations.high_school.schools_name.$touch"
+                      />
+
+                      <WbInputText
+                        v-model="payload.educations.high_school.education_description"
+                        required
+                        label="Basic Education / Degree / Course "
+                        label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                        validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                        :invalid="validator.educations.high_school.education_description.$invalid"
+                        :invalid-text="validator.educations.high_school.education_description.$errors[0]?.$message"
+                        @blur="validator.educations.high_school.education_description.$touch"
+                      />
+                    </div>
+
+                    <div class="bg-light-black-600 flex w-full flex-col gap-x-12 gap-y-4 md:flex-row">
+                      <div class="flex w-full flex-col gap-x-6 gap-y-4 md:flex-row">
+                        <WbInputText
+                          v-model="payload.educations.high_school.period_of_attendance_from"
+                          required
+                          label="From"
+                          label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                          validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                          :invalid="validator.educations.high_school.period_of_attendance_from.$invalid"
+                          :invalid-text="validator.educations.high_school.period_of_attendance_from.$errors[0]?.$message"
+                          @blur="validator.educations.high_school.period_of_attendance_from.$touch"
+                        />
+
+                        <WbInputText
+                          v-model="payload.educations.high_school.period_of_attendance_to"
+                          required
+                          label="To "
+                          label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                          validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                          :invalid="validator.educations.high_school.period_of_attendance_to.$invalid"
+                          :invalid-text="validator.educations.high_school.period_of_attendance_to.$errors[0]?.$message"
+                          @blur="validator.educations.high_school.period_of_attendance_to.$touch"
+                        />
+
+                        <WbInputText
+                          v-model="payload.educations.high_school.highest_level_units_earned"
+                          label="Highest Level / Units Earned "
+                          label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                          validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                          :invalid="validator.educations.high_school.highest_level_units_earned.$invalid"
+                          :invalid-text="validator.educations.high_school.highest_level_units_earned.$errors[0]?.$message"
+                          @blur="validator.educations.high_school.highest_level_units_earned.$touch"
+                        />
+                      </div>
+
+                      <div class="flex w-full flex-col gap-x-6 gap-y-4 md:flex-row">
+                        <WbInputText
+                          v-model="payload.educations.high_school.year_graduated"
+                          required
+                          label="Year Graduated"
+                          label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                          validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                          :invalid="validator.educations.high_school.year_graduated.$invalid"
+                          :invalid-text="validator.educations.high_school.year_graduated.$errors[0]?.$message"
+                          @blur="validator.educations.high_school.year_graduated.$touch"
+                        />
+
+                        <WbInputText
+                          v-model="payload.educations.high_school.scholarship_academic_honors_received"
+                          label="Scholarship / Academic Honors Received "
+                          label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                          validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                          :invalid="validator.educations.high_school.scholarship_academic_honors_received.$invalid"
+                          :invalid-text="
+                            validator.educations.high_school.scholarship_academic_honors_received.$errors[0]?.$message
+                          "
+                          @blur="validator.educations.high_school.scholarship_academic_honors_received.$touch"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <!-- END SECONDARY -->
+
+                  <!-- START VOCATINOAL -->
+                  <span class="mt-4 flex flex-col justify-center space-y-2 font-medium text-primary-700">
+                    <p class="text-lg italic md:text-xl">Vocational / Trade Course</p>
+                  </span>
+                  <div class="flex flex-col gap-x-12 gap-y-4">
+                    <div class="flex w-full flex-col gap-x-12 gap-y-4 md:flex-row">
+                      <WbInputText
+                        v-model="payload.educations.vocational.schools_name"
+                        label="Name of School"
+                        label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                        validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                        :invalid="validator.educations.vocational.schools_name.$invalid"
+                        :invalid-text="validator.educations.vocational.schools_name.$errors[0]?.$message"
+                        @blur="validator.educations.vocational.schools_name.$touch"
+                      />
+
+                      <WbInputText
+                        v-model="payload.educations.vocational.education_description"
+                        label="Basic Education / Degree / Course "
+                        label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                        validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                        :invalid="validator.educations.vocational.education_description.$invalid"
+                        :invalid-text="validator.educations.vocational.education_description.$errors[0]?.$message"
+                        @blur="validator.educations.vocational.education_description.$touch"
+                      />
+                    </div>
+
+                    <div class="bg-light-black-600 flex w-full flex-col gap-x-12 gap-y-4 md:flex-row">
+                      <div class="flex w-full flex-col gap-x-6 gap-y-4 md:flex-row">
+                        <WbInputText
+                          v-model="payload.educations.vocational.period_of_attendance_from"
+                          label="From"
+                          label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                          validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                          :invalid="validator.educations.vocational.period_of_attendance_from.$invalid"
+                          :invalid-text="validator.educations.vocational.period_of_attendance_from.$errors[0]?.$message"
+                          @blur="validator.educations.vocational.period_of_attendance_from.$touch"
+                        />
+
+                        <WbInputText
+                          v-model="payload.educations.vocational.period_of_attendance_to"
+                          label="To "
+                          label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                          validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                          :invalid="validator.educations.vocational.period_of_attendance_to.$invalid"
+                          :invalid-text="validator.educations.vocational.period_of_attendance_to.$errors[0]?.$message"
+                          @blur="validator.educations.vocational.period_of_attendance_to.$touch"
+                        />
+
+                        <WbInputText
+                          v-model="payload.educations.vocational.highest_level_units_earned"
+                          label="Highest Level / Units Earned "
+                          label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                          validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                          :invalid="validator.educations.vocational.highest_level_units_earned.$invalid"
+                          :invalid-text="validator.educations.vocational.highest_level_units_earned.$errors[0]?.$message"
+                          @blur="validator.educations.vocational.highest_level_units_earned.$touch"
+                        />
+                      </div>
+
+                      <div class="flex w-full flex-col gap-x-6 gap-y-4 md:flex-row">
+                        <WbInputText
+                          v-model="payload.educations.vocational.year_graduated"
+                          label="Year Graduated"
+                          label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                          validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                          :invalid="validator.educations.vocational.year_graduated.$invalid"
+                          :invalid-text="validator.educations.vocational.year_graduated.$errors[0]?.$message"
+                          @blur="validator.educations.vocational.year_graduated.$touch"
+                        />
+
+                        <WbInputText
+                          v-model="payload.educations.vocational.scholarship_academic_honors_received"
+                          label="Scholarship / Academic Honors Received "
+                          label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                          validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                          :invalid="validator.educations.vocational.scholarship_academic_honors_received.$invalid"
+                          :invalid-text="
+                            validator.educations.vocational.scholarship_academic_honors_received.$errors[0]?.$message
+                          "
+                          @blur="validator.educations.vocational.scholarship_academic_honors_received.$touch"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <!-- END VOCATINOAL -->
+
+                  <!-- START COLLEGE -->
+                  <span class="mt-4 flex flex-col justify-center space-y-2 font-medium text-primary-700">
+                    <p class="text-lg italic md:text-xl">College</p>
+                  </span>
+                  <div class="flex flex-col gap-x-12 gap-y-4">
+                    <div class="flex w-full flex-col gap-x-12 gap-y-4 md:flex-row">
+                      <WbInputText
+                        v-model="payload.educations.college.schools_name"
+                        required
+                        label="Name of School"
+                        label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                        validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                        :invalid="validator.educations.college.schools_name.$invalid"
+                        :invalid-text="validator.educations.college.schools_name.$errors[0]?.$message"
+                        @blur="validator.educations.college.schools_name.$touch"
+                      />
+
+                      <WbInputText
+                        v-model="payload.educations.college.education_description"
+                        required
+                        label="Basic Education / Degree / Course "
+                        label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                        validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                        :invalid="validator.educations.college.education_description.$invalid"
+                        :invalid-text="validator.educations.college.education_description.$errors[0]?.$message"
+                        @blur="validator.educations.college.education_description.$touch"
+                      />
+                    </div>
+
+                    <div class="bg-light-black-600 flex w-full flex-col gap-x-12 gap-y-4 md:flex-row">
+                      <div class="flex w-full flex-col gap-x-6 gap-y-4 md:flex-row">
+                        <WbInputText
+                          v-model="payload.educations.college.period_of_attendance_from"
+                          required
+                          label="From"
+                          label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                          validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                          :invalid="validator.educations.college.period_of_attendance_from.$invalid"
+                          :invalid-text="validator.educations.college.period_of_attendance_from.$errors[0]?.$message"
+                          @blur="validator.educations.college.period_of_attendance_from.$touch"
+                        />
+
+                        <WbInputText
+                          v-model="payload.educations.college.period_of_attendance_to"
+                          required
+                          label="To "
+                          label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                          validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                          :invalid="validator.educations.college.period_of_attendance_to.$invalid"
+                          :invalid-text="validator.educations.college.period_of_attendance_to.$errors[0]?.$message"
+                          @blur="validator.educations.college.period_of_attendance_to.$touch"
+                        />
+
+                        <WbInputText
+                          v-model="payload.educations.college.highest_level_units_earned"
+                          label="Highest Level / Units Earned "
+                          label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                          validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                          :invalid="validator.educations.college.highest_level_units_earned.$invalid"
+                          :invalid-text="validator.educations.college.highest_level_units_earned.$errors[0]?.$message"
+                          @blur="validator.educations.college.highest_level_units_earned.$touch"
+                        />
+                      </div>
+
+                      <div class="flex w-full flex-col gap-x-6 gap-y-4 md:flex-row">
+                        <WbInputText
+                          v-model="payload.educations.college.year_graduated"
+                          required
+                          label="Year Graduated"
+                          label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                          validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                          :invalid="validator.educations.college.year_graduated.$invalid"
+                          :invalid-text="validator.educations.college.year_graduated.$errors[0]?.$message"
+                          @blur="validator.educations.college.year_graduated.$touch"
+                        />
+
+                        <WbInputText
+                          v-model="payload.educations.college.scholarship_academic_honors_received"
+                          label="Scholarship / Academic Honors Received "
+                          label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                          validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                          :invalid="validator.educations.college.scholarship_academic_honors_received.$invalid"
+                          :invalid-text="validator.educations.college.scholarship_academic_honors_received.$errors[0]?.$message"
+                          @blur="validator.educations.college.scholarship_academic_honors_received.$touch"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <!-- END COLLEGE -->
+
+                  <!-- START GRADUATE -->
+                  <span class="mt-4 flex flex-col justify-center space-y-2 font-medium text-primary-700">
+                    <p class="text-lg italic md:text-xl">Graduate Studies</p>
+                  </span>
+                  <div class="flex flex-col gap-x-12 gap-y-4">
+                    <div class="flex w-full flex-col gap-x-12 gap-y-4 md:flex-row">
+                      <WbInputText
+                        v-model="payload.educations.graduate.schools_name"
+                        label="Name of School"
+                        label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                        validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                        :invalid="validator.educations.graduate.schools_name.$invalid"
+                        :invalid-text="validator.educations.graduate.schools_name.$errors[0]?.$message"
+                        @blur="validator.educations.graduate.schools_name.$touch"
+                      />
+
+                      <WbInputText
+                        v-model="payload.educations.graduate.education_description"
+                        label="Basic Education / Degree / Course "
+                        label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                        validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                        :invalid="validator.educations.graduate.education_description.$invalid"
+                        :invalid-text="validator.educations.graduate.education_description.$errors[0]?.$message"
+                        @blur="validator.educations.graduate.education_description.$touch"
+                      />
+                    </div>
+
+                    <div class="bg-light-black-600 flex w-full flex-col gap-x-12 gap-y-4 md:flex-row">
+                      <div class="flex w-full flex-col gap-x-6 gap-y-4 md:flex-row">
+                        <WbInputText
+                          v-model="payload.educations.graduate.period_of_attendance_from"
+                          label="From"
+                          label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                          validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                          :invalid="validator.educations.graduate.period_of_attendance_from.$invalid"
+                          :invalid-text="validator.educations.graduate.period_of_attendance_from.$errors[0]?.$message"
+                          @blur="validator.educations.graduate.period_of_attendance_from.$touch"
+                        />
+
+                        <WbInputText
+                          v-model="payload.educations.graduate.period_of_attendance_to"
+                          label="To "
+                          label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                          validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                          :invalid="validator.educations.graduate.period_of_attendance_to.$invalid"
+                          :invalid-text="validator.educations.graduate.period_of_attendance_to.$errors[0]?.$message"
+                          @blur="validator.educations.graduate.period_of_attendance_to.$touch"
+                        />
+
+                        <WbInputText
+                          v-model="payload.educations.graduate.highest_level_units_earned"
+                          label="Highest Level / Units Earned "
+                          label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                          validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                          :invalid="validator.educations.graduate.highest_level_units_earned.$invalid"
+                          :invalid-text="validator.educations.graduate.highest_level_units_earned.$errors[0]?.$message"
+                          @blur="validator.educations.graduate.highest_level_units_earned.$touch"
+                        />
+                      </div>
+
+                      <div class="flex w-full flex-col gap-x-6 gap-y-4 md:flex-row">
+                        <WbInputText
+                          v-model="payload.educations.graduate.year_graduated"
+                          label="Year Graduated"
+                          label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                          validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                          :invalid="validator.educations.graduate.year_graduated.$invalid"
+                          :invalid-text="validator.educations.graduate.year_graduated.$errors[0]?.$message"
+                          @blur="validator.educations.graduate.year_graduated.$touch"
+                        />
+
+                        <WbInputText
+                          v-model="payload.educations.graduate.scholarship_academic_honors_received"
+                          label="Scholarship / Academic Honors Received "
+                          label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                          validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                          :invalid="validator.educations.graduate.scholarship_academic_honors_received.$invalid"
+                          :invalid-text="validator.educations.graduate.scholarship_academic_honors_received.$errors[0]?.$message"
+                          @blur="validator.educations.graduate.scholarship_academic_honors_received.$touch"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <!-- END GRADUATE -->
                 </div>
               </TransitionRoot>
             </TabPanel>
@@ -1842,7 +2400,7 @@ const c1Tabs = ref([
         <Button
           label="Save C1 Info"
           :loading="isC1Loading"
-          @click="handleSaveC1Form"
+          type="submit"
           size="large"
           class="dark:text-secondary-100 bottom-0 right-0 mt-4 w-full border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
           text
