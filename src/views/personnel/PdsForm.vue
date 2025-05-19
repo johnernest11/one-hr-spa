@@ -31,9 +31,6 @@ onBeforeMount(async () => {
   }
 })
 
-onMounted(() => {
-  console.info('Mounted')
-})
 </script>
 
 <template>
