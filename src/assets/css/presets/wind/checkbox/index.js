@@ -86,6 +86,7 @@ export default {
 
       // Misc
       'appearance-none',
+      'cursor-pointer',
     ],
   },
   icon: {

@@ -58,6 +58,7 @@ export type ItemNumberResponse = {
   date_filled_up: string | null
   fund_source_id: FundSourceResponse | null
   employment_status: string | null
+  position: PositionResponse | null
   position_id: PositionResponse | null
 } & ApiResponseData
 
@@ -172,11 +173,20 @@ export type PersonnelContactInfo = {
 }
 
 export type PersonnelEmployee = {
-  id: number
+  id: number | null
   individual_basic_detail_id: number | null
   id_number: string | null
   item_id: number | null
+  salary_grade_id: number | null
+  position?: string | null
+  fund_source?: {
+    id: number | null
+    name: string | null
+  }
   agency_employee_no: string | null
+  office_id: number | null
+  division_id: number | null
+  section_or_unit_id: number | null
 }
 
 /** Role (HTTP Responses) */

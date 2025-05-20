@@ -82,6 +82,7 @@ export const useEmployeeEntryStore = defineStore('personnel', () => {
   const auth = storeToRefs(useAuthStore())
   const employees = ref<PersonnelResponse[]>([])
   const isEmployeesLoading = ref(true)
+  const pdsMode = ref('')
 
   const fetchEmployees = () => {
     employees.value = []
@@ -133,5 +134,6 @@ export const useEmployeeEntryStore = defineStore('personnel', () => {
     fetchEmployees,
     employees,
     isEmployeesLoading,
+    pdsMode,
   }
 })

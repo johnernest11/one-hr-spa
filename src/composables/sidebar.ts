@@ -107,7 +107,7 @@ export const useSidebarNavLinks = () => {
                 case 'accomplishment-reports':
                   childNavLink.icon = 'fas fa-check-double'
                   break
-                case 'employees':
+                case 'employment':
                   childNavLink.icon = 'fas fa-circle-user'
                   break
                 case 'create-employee':
@@ -117,6 +117,9 @@ export const useSidebarNavLinks = () => {
                   childNavLink.icon = 'fas fa-check-double' // Example icon
                   break
                 case 'item-numbers':
+                  childNavLink.icon = 'fas fa-sitemap' // Example icon
+                  break
+                case 'recruitment-dashboard':
                   childNavLink.icon = 'fas fa-sitemap' // Example icon
                   break
                 // ... other child route icon assignments

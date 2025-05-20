@@ -55,3 +55,58 @@ export const checkIfValidMobileNumber = (value: string, country: CountryCode = '
 
   return isValidPhoneNumber(value, country)
 }
+
+export const usePrependOrAppendOnce = (affix: string, type = 'append') => {
+  if (!['append', 'prepend'].includes(type)) {
+    throw new Error('Valid values are `prepend` and `append`')
+  }
+  return (value: string) => {
+    return type === 'append' ? `${value}-${affix}` : `${affix}-${value}`
+  }
+}
+
+/**
+ * @description Generates URL with params (e.g. url?search=query&term=query)
+ *
+ * @param {string} url Base URL
+ * @param {T} obj Parameters to append in the URL
+ */
+export const createUrlWithParams = <T>(url: string | undefined, obj: T) => {
+  const params = []
+
+  for (const key in obj) {
+    params.push(`${encodeURIComponent(key)}=${encodeURIComponent(`${obj[key]}`)}`)
+  }
+
+  const urlParams = params.join('&')
+
+  return `${url}?${urlParams}`
+}
+
+export const getObjectValueUsingPath = <T>(obj: T, path: string) => {
+  /* eslint-disable  @typescript-eslint/no-explicit-any */
+  return path.split('.').reduce((a: any, b: any) => a[b], obj)
+}
+
+/**
+ * Lower Case the first character in a string
+ *
+ * e.g.
+ * lcFirst('ABC') outputs 'aBC'
+ * lcFirst('A BC') outputs 'a BC'
+ *
+ *
+ * @param string
+ * @returns
+ */
+export const lcFirst = (string: string) => {
+  if (typeof string !== 'string') {
+    return ''
+  }
+
+  if (string.length === 0) {
+    return string
+  }
+
+  return string[0].toLowerCase() + string.slice(1)
+}

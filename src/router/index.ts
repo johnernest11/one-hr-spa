@@ -122,8 +122,8 @@ const routes = [
   },
   /* HUMAN RESOURCES  ROUTE*/
   {
-    path: '/recruitments',
-    name: 'recruitments',
+    path: '/recruitment',
+    name: 'recruitment',
     meta: <RouteMeta>{
       group: RouteGroup.HUMAN_RESOURCES,
       label: 'Recruitment',
@@ -131,18 +131,18 @@ const routes = [
     },
     children: [
       {
-        path: '/item-numbers/:id?',
+        path: '/items/:id?',
         name: 'item-numbers',
         component: ItemNumberPage,
         meta: <RouteMeta>{
-          label: 'Item Number',
+          label: 'Items',
           isSidebarMenu: true,
           authType: AuthType.AUTHENTICATED,
           roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
         },
       },
       {
-        path: '/item-numbers/store',
+        path: '/items/store',
         name: 'item-numbers/store',
         component: ItemNumberForm,
         meta: <RouteMeta>{
@@ -161,54 +161,12 @@ const routes = [
           roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
         },
       },
-    ],
-  },
-  /* SUPPORT  ROUTE*/
-  {
-    path: '/recruitment',
-    name: 'recruitment',
-    component: AnnouncementsPage,
-    meta: <RouteMeta>{
-      group: RouteGroup.HUMAN_RESOURCES,
-      label: 'Recruitment',
-      isSidebarMenu: true,
-      authType: AuthType.AUTHENTICATED,
-      roles: [
-        AuthRole.STANDARD_USER,
-        AuthRole.EMPLOYEE,
-        AuthRole.HR_PPMS_ADMIN,
-        AuthRole.HR_PPMS_ADMIN,
-        AuthRole.ADMIN,
-        AuthRole.SYSTEM_SUPPORT,
-        AuthRole.SUPER_USER,
-      ],
-    },
-  },
-  {
-    path: '/personnel',
-    name: 'personnel',
-    meta: <RouteMeta>{
-      group: RouteGroup.HUMAN_RESOURCES,
-      label: 'Personnel Management',
-      isSidebarMenu: true,
-      authType: AuthType.AUTHENTICATED,
-      roles: [
-        AuthRole.STANDARD_USER,
-        AuthRole.EMPLOYEE,
-        AuthRole.HR_PPMS_ADMIN,
-        AuthRole.HR_PPMS_ADMIN,
-        AuthRole.ADMIN,
-        AuthRole.SYSTEM_SUPPORT,
-        AuthRole.SUPER_USER,
-      ],
-    },
-    children: [
       {
         path: '',
-        name: 'employees',
+        name: 'employment',
         component: () => import('@/views/personnel/EmployeesPage.vue'),
         meta: <RouteMeta>{
-          label: 'Employees',
+          label: 'Employment',
           isSidebarMenu: true,
           authType: AuthType.AUTHENTICATED,
           roles: [
@@ -224,7 +182,7 @@ const routes = [
       {
         path: ':id?/editor',
         name: 'create-personnel',
-        component: () => import('@/components/employee-entry/CreateEmployeeC1Form.vue'),
+        component: () => import('@/views/personnel/PdsForm.vue'),
         meta: <RouteMeta>{
           label: 'Create Personnel',
           isSidebarMenu: false,
@@ -234,7 +192,6 @@ const routes = [
       },
     ],
   },
-
   {
     path: '/support',
     name: 'support',

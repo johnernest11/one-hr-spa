@@ -12,6 +12,7 @@ defineOptions({
 /** Props */
 type WbDropdownProps = {
   label: string
+  required?: boolean
   invalid?: boolean
   invalidText?: string
   success?: boolean
@@ -20,11 +21,11 @@ type WbDropdownProps = {
   labelClass?: string
   validationErrorMessageClass?: string
   validationSuccessMessageClass?: string
-  required?: boolean
 }
 
 const props = withDefaults(defineProps<WbDropdownProps>(), {
   invalid: false,
+  required: false,
   invalidText: '',
   success: false,
   successText: '',
@@ -32,7 +33,6 @@ const props = withDefaults(defineProps<WbDropdownProps>(), {
   labelClass: '',
   validationErrorMessageClass: '',
   validationSuccessMessageClass: '',
-  required: false,
 })
 </script>
 

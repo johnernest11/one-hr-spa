@@ -12,6 +12,7 @@ defineOptions({
 /** Props */
 type WbInputTextProps = {
   label: string
+  required?: boolean
   invalid?: boolean
   invalidText?: string
   success?: boolean
@@ -20,11 +21,11 @@ type WbInputTextProps = {
   labelClass?: string
   validationErrorMessageClass?: string
   validationSuccessMessageClass?: string
-  required?: boolean
 }
 
 const props = withDefaults(defineProps<WbInputTextProps>(), {
   invalid: false,
+  required: false,
   invalidText: '',
   success: false,
   successText: '',
@@ -32,7 +33,6 @@ const props = withDefaults(defineProps<WbInputTextProps>(), {
   labelClass: '',
   validationErrorMessageClass: '',
   validationSuccessMessageClass: '',
-  required: false,
 })
 </script>
 
@@ -58,7 +58,7 @@ const props = withDefaults(defineProps<WbInputTextProps>(), {
       <InputText
         v-bind="$attrs"
         :aria-describedby="`${$.uid.toString()}-help`"
-        :class="`h-12 w-full ${$slots['prepend-icon'] ? 'pl-10' : ''} ${
+        :class="`h-12 w-full transition-all duration-300 ease-in-out focus:text-surface-900 ${$slots['prepend-icon'] ? 'pl-10' : ''} ${
           props.invalid ? '!ring-error-500 dark:!ring-error-300' : ''
         } ${$attrs.disabled ? 'dark:!text-surface-0/70' : ''}`"
       />
