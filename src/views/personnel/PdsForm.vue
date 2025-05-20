@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeMount, onMounted, ref, shallowRef } from 'vue'
+import { onBeforeMount, ref, shallowRef } from 'vue'
 import { useProfileStore } from '@/stores/profile.store.ts'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { TabGroup, TabList, Tab, TabPanels, TabPanel } from '@headlessui/vue'
@@ -30,7 +30,6 @@ onBeforeMount(async () => {
     personnelStore.pdsMode = route.query.mode.replace(/-/g, ' ').replace(/(?:^|\s)\S/g, (a: string) => a.toUpperCase())
   }
 })
-
 </script>
 
 <template>
