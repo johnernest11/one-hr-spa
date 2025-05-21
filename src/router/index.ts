@@ -9,7 +9,6 @@ import ViewAccomplishmentReport from '@/components/accomplishment-report/ViewAcc
 import ItemNumberPage from '@/views/ItemNumberPage.vue'
 import ItemNumberForm from '@/components/item-number/ItemNumberForm.vue'
 import AboutUsPage from '@/views/AboutUsPage.vue'
-import AnnouncementsPage from '@/views/AnnouncementsPage.vue'
 import { AuthRole, AuthType } from '@/typings/auth.types.ts'
 import { useAuthStore } from '@/stores/auth.store.ts'
 import ProfilePage from '@/views/ProfilePage.vue'
@@ -47,7 +46,6 @@ const routes = [
   {
     path: '/requests',
     name: 'requests',
-    component: AnnouncementsPage,
     meta: <RouteMeta>{
       group: RouteGroup.MAIN,
       label: 'Request',
@@ -66,7 +64,7 @@ const routes = [
       {
         path: '/request-documents',
         name: 'request-documents',
-        component: EmptyPage,
+        component: () => import('@/views/request/DocumentsPage.vue'),
         meta: <RouteMeta>{
           label: 'Documents',
           isSidebarMenu: true,
@@ -84,7 +82,7 @@ const routes = [
       {
         path: '/request-overtimes',
         name: 'request-overtimes',
-        component: EmptyPage,
+        component: () => import('@/views/request/OvertimesPage.vue'),
         meta: <RouteMeta>{
           label: 'Overtime',
           isSidebarMenu: true,
@@ -150,7 +148,7 @@ const routes = [
       {
         path: '/my-WES',
         name: 'my-WES',
-        component: EmptyPage,
+        component: () => import('@/views/personnel/WorkExperienceSheetPage.vue'),
         meta: <RouteMeta>{
           label: 'Work Experience Sheet',
           isSidebarMenu: true,
@@ -161,7 +159,7 @@ const routes = [
       {
         path: '/my-LeaveApplications',
         name: 'my-Leave-Applications',
-        component: EmptyPage,
+        component: () => import('@/views/personnel/LeaveApplicationPage.vue'),
         meta: <RouteMeta>{
           label: 'Leave Application',
           isSidebarMenu: true,
@@ -172,7 +170,7 @@ const routes = [
       {
         path: '/my-Payslips',
         name: 'my-Payslips',
-        component: EmptyPage,
+        component: () => import('@/views/personnel/PayslipPage.vue'),
         meta: <RouteMeta>{
           label: 'Payslip',
           isSidebarMenu: true,
@@ -194,7 +192,7 @@ const routes = [
       {
         path: '/my-COCs',
         name: 'my-COCs',
-        component: EmptyPage,
+        component: () => import('@/views/personnel/CompensatoryPage.vue'),
         meta: <RouteMeta>{
           label: 'Compensatory Overtime Credit',
           isSidebarMenu: true,
@@ -205,7 +203,7 @@ const routes = [
       {
         path: '/my-LeaveCredits',
         name: 'my-LeaveCredits',
-        component: EmptyPage,
+        component: () => import('@/views/personnel/LeaveCreditsPage.vue'),
         meta: <RouteMeta>{
           label: 'Leave Credits',
           isSidebarMenu: true,
