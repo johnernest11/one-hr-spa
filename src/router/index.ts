@@ -1,7 +1,6 @@
 import { createRouter, createWebHistory, RouteMeta } from 'vue-router'
 import { vueApp } from '@/app.ts'
 import Dashboard from '@/views/DashboardPage.vue'
-import ProfilePage from '@/views/ProfilePage.vue'
 import EmptyPage from '@/views/EmptyPage.vue'
 import SupportPage from '@/views/SupportPage.vue'
 import AccomplishmentReportPage from '@/views/AccomplishmentReportPage.vue'
@@ -13,6 +12,7 @@ import AboutUsPage from '@/views/AboutUsPage.vue'
 import AnnouncementsPage from '@/views/AnnouncementsPage.vue'
 import { AuthRole, AuthType } from '@/typings/auth.types.ts'
 import { useAuthStore } from '@/stores/auth.store.ts'
+import ProfilePage from '@/views/ProfilePage.vue'
 
 const enum RouteGroup {
   MAIN = 'Main',
@@ -62,11 +62,65 @@ const routes = [
         AuthRole.SYSTEM_SUPPORT,
       ],
     },
+    children: [
+      {
+        path: '/request-documents',
+        name: 'request-documents',
+        component: EmptyPage,
+        meta: <RouteMeta>{
+          label: 'Documents',
+          isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [
+            AuthRole.STANDARD_USER,
+            AuthRole.HR_PPMS_ADMIN,
+            AuthRole.HR_PAS_ADMIN,
+            AuthRole.ADMIN,
+            AuthRole.SYSTEM_SUPPORT,
+            AuthRole.SUPER_USER,
+          ],
+        },
+      },
+      {
+        path: '/request-overtimes',
+        name: 'request-overtimes',
+        component: EmptyPage,
+        meta: <RouteMeta>{
+          label: 'Overtime',
+          isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [
+            AuthRole.STANDARD_USER,
+            AuthRole.HR_PPMS_ADMIN,
+            AuthRole.HR_PAS_ADMIN,
+            AuthRole.ADMIN,
+            AuthRole.SYSTEM_SUPPORT,
+            AuthRole.SUPER_USER,
+          ],
+        },
+      },
+      {
+        path: '/accomplishment-reports/:id/editor',
+        name: 'accomplishment-reports/editor',
+        component: ViewAccomplishmentReport,
+        meta: <RouteMeta>{
+          isSidebarMenu: false,
+          authType: AuthType.AUTHENTICATED,
+          roles: [
+            AuthRole.STANDARD_USER,
+            AuthRole.HR_PPMS_ADMIN,
+            AuthRole.HR_PAS_ADMIN,
+            AuthRole.ADMIN,
+            AuthRole.SYSTEM_SUPPORT,
+            AuthRole.SUPER_USER,
+          ],
+        },
+      },
+    ],
   },
   {
     path: '/my-profile',
     name: 'my-profile',
-    component: ProfilePage,
     meta: <RouteMeta>{
       group: RouteGroup.MAIN,
       label: 'My Profile',
@@ -82,6 +136,17 @@ const routes = [
       ],
     },
     children: [
+      {
+        path: '/my-PDS',
+        name: 'my-PDS',
+        component: ProfilePage,
+        meta: <RouteMeta>{
+          label: 'Personal Data Sheet',
+          isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
       {
         path: '/my-WES',
         name: 'my-WES',
@@ -212,6 +277,24 @@ const routes = [
           ],
         },
       },
+      {
+        path: '/ctdo-reports',
+        name: 'ctdo-reports',
+        component: EmptyPage,
+        meta: <RouteMeta>{
+          label: 'CTDos',
+          isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [
+            AuthRole.STANDARD_USER,
+            AuthRole.HR_PPMS_ADMIN,
+            AuthRole.HR_PAS_ADMIN,
+            AuthRole.ADMIN,
+            AuthRole.SYSTEM_SUPPORT,
+            AuthRole.SUPER_USER,
+          ],
+        },
+      },
     ],
   },
   /* Human Resources  Routes*/
@@ -224,6 +307,7 @@ const routes = [
       group: RouteGroup.HUMAN_RESOURCES,
       label: 'Recruitment',
       isSidebarMenu: true,
+      roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
     },
     children: [
       {
@@ -301,6 +385,7 @@ const routes = [
       group: RouteGroup.HUMAN_RESOURCES,
       label: 'Personnel Management',
       isSidebarMenu: true,
+      roles: [AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
     },
     children: [
       {

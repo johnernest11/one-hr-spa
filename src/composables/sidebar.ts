@@ -102,6 +102,9 @@ export const useSidebarNavLinks = () => {
                 case 'accomplishment-reports':
                   childNavLink.icon = 'fas fa-check-double'
                   break
+                case 'ctdo-reports':
+                  childNavLink.icon = 'fas fa-list-check'
+                  break
 
                 /*Request Routes */
                 case 'request-documents':
@@ -112,6 +115,9 @@ export const useSidebarNavLinks = () => {
                   break
 
                 /*Profile Routes */
+                case 'my-PDS':
+                  childNavLink.icon = 'fas fa-sheet-plastic'
+                  break
                 case 'my-WES':
                   childNavLink.icon = 'fas fa-sheet-plastic'
                   break
