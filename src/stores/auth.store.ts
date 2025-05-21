@@ -176,7 +176,7 @@ export const useAuthStore = defineStore('auth', () => {
   /** Actions */
   const login = async (payload: LoginPayload) => {
     payload.with_user = true
-    payload.client_name = 'Web Browser'
+    payload.client_name = 'HR CARES'
 
     const { data } = await useApiCall('auth/tokens').post(payload).json()
     const responseData: ApiResponseBody = data.value
@@ -199,15 +199,29 @@ export const useAuthStore = defineStore('auth', () => {
     return responseData
   }
 
+  const ssoLogin = async (token: string): Promise<ApiResponseBody> => {
+    const { data } = await useApiCall('auth/sso').post({ token }).json()
+    const responseBody: ApiResponseBody = data.value
+
+    if (responseBody.success) {
+      const authResponse = responseBody.data as AuthResponse
+      authenticationToken.value = authResponse.token
+      authenticatedUser.value = authResponse.user
+      authExpired.value = false
+      return responseBody
+    }
+
+    return responseBody
+  }
+
   const register = async (payload: RegistrationPayload) => {
     const unWrappedPayload = {
       ...payload.credentials,
       ...payload.personal_info,
       ...payload.address,
-      client_name: 'Web Browser',
+      client_name: 'HR-CARES',
     }
 
-    // The API only accepts Y-m-d format (2024-01-31)
     if (unWrappedPayload.birthday) {
       unWrappedPayload.birthday = useDateFormat(unWrappedPayload.birthday, 'YYYY-MM-DD').value.toString()
     }
@@ -357,6 +371,7 @@ export const useAuthStore = defineStore('auth', () => {
     authFullName,
     authFullAddress,
     login,
+    ssoLogin,
     register,
     logout,
     requestForgotPassword,

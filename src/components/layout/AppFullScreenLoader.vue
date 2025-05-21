@@ -9,7 +9,7 @@ const props = defineProps<{ isOpen: boolean }>()
 
 <template>
   <MainDialog as="div" class="relative z-20" :open="props.isOpen" :initial-focus="focusableEl">
-    <div class="fixed inset-0 bg-surface-900 bg-opacity-90 backdrop-blur-sm dark:bg-opacity-80" aria-hidden="true" />
+    <div class="fixed inset-0 bg-surface-900 bg-opacity-100 backdrop-blur-sm dark:bg-opacity-80" aria-hidden="true" />
     <div class="fixed inset-0 flex items-center justify-center p-4">
       <!-- The actual dialog panel -->
       <DialogPanel class="w-full max-w-md">
