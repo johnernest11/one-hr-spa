@@ -22,7 +22,7 @@ const navigateToCreate = () => {
                     class="my-6 flex w-full flex-col items-center justify-between gap-4 rounded-lg bg-surface-0 px-6 py-6 dark:bg-surface-800 md:my-4 md:flex-row md:px-4 md:py-4"
                   ></div>
                   <div class="flex justify-center">
-                    <img src="@/assets/image/undraw_receipt.svg" class="w-96 pt-12" />
+                    <img src="@/assets/image/undraw_receipt.svg" class="w-80 pt-24" />
                   </div>
                   <h2
                     class="mb-2 mt-4 flex w-full justify-center text-center text-xl font-semibold text-surface-800 dark:text-primary-100 sm:text-2xl"
