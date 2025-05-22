@@ -12,7 +12,6 @@ import AboutUsPage from '@/views/AboutUsPage.vue'
 import AnnouncementsPage from '@/views/AnnouncementsPage.vue'
 import { AuthRole, AuthType } from '@/typings/auth.types.ts'
 import { useAuthStore } from '@/stores/auth.store.ts'
-import ProfilePage from '@/views/ProfilePage.vue'
 
 const enum RouteGroup {
   MAIN = 'Main',
@@ -64,7 +63,7 @@ const routes = [
     },
     children: [
       {
-        path: '/request-documents',
+        path: '/request_documents/:id?',
         name: 'request-documents',
         component: EmptyPage,
         meta: <RouteMeta>{
@@ -82,7 +81,7 @@ const routes = [
         },
       },
       {
-        path: '/request-overtimes',
+        path: '/request_overtimes/:id?',
         name: 'request-overtimes',
         component: EmptyPage,
         meta: <RouteMeta>{
@@ -99,27 +98,10 @@ const routes = [
           ],
         },
       },
-      {
-        path: '/accomplishment-reports/:id/editor',
-        name: 'accomplishment-reports/editor',
-        component: ViewAccomplishmentReport,
-        meta: <RouteMeta>{
-          isSidebarMenu: false,
-          authType: AuthType.AUTHENTICATED,
-          roles: [
-            AuthRole.STANDARD_USER,
-            AuthRole.HR_PPMS_ADMIN,
-            AuthRole.HR_PAS_ADMIN,
-            AuthRole.ADMIN,
-            AuthRole.SYSTEM_SUPPORT,
-            AuthRole.SUPER_USER,
-          ],
-        },
-      },
     ],
   },
   {
-    path: '/my-profile',
+    path: '/my_profile',
     name: 'my-profile',
     meta: <RouteMeta>{
       group: RouteGroup.MAIN,
@@ -137,19 +119,8 @@ const routes = [
     },
     children: [
       {
-        path: '/my-PDS',
-        name: 'my-PDS',
-        component: ProfilePage,
-        meta: <RouteMeta>{
-          label: 'Personal Data Sheet',
-          isSidebarMenu: true,
-          authType: AuthType.AUTHENTICATED,
-          roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
-        },
-      },
-      {
-        path: '/my-WES',
-        name: 'my-WES',
+        path: '/my_wes/:id?',
+        name: 'my-wes',
         component: EmptyPage,
         meta: <RouteMeta>{
           label: 'Work Experience Sheet',
@@ -159,8 +130,8 @@ const routes = [
         },
       },
       {
-        path: '/my-LeaveApplications',
-        name: 'my-Leave-Applications',
+        path: '/my_leaveapplications/:id?',
+        name: 'my-leave-applications',
         component: EmptyPage,
         meta: <RouteMeta>{
           label: 'Leave Application',
@@ -170,8 +141,8 @@ const routes = [
         },
       },
       {
-        path: '/my-Payslips',
-        name: 'my-Payslips',
+        path: '/my_payslips/:id?',
+        name: 'my-payslips',
         component: EmptyPage,
         meta: <RouteMeta>{
           label: 'Payslip',
@@ -181,8 +152,8 @@ const routes = [
         },
       },
       {
-        path: '/my-DTRs',
-        name: 'my-DTRs',
+        path: '/my_dtrs/:id?',
+        name: 'my-dtrs',
         component: EmptyPage,
         meta: <RouteMeta>{
           label: 'Daily Time Record',
@@ -191,9 +162,10 @@ const routes = [
           roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
         },
       },
+
       {
-        path: '/my-COCs',
-        name: 'my-COCs',
+        path: '/my_cocs/:id?',
+        name: 'my-cocs',
         component: EmptyPage,
         meta: <RouteMeta>{
           label: 'Compensatory Overtime Credit',
@@ -203,8 +175,8 @@ const routes = [
         },
       },
       {
-        path: '/my-LeaveCredits',
-        name: 'my-LeaveCredits',
+        path: '/my_leavecredits/:id?',
+        name: 'my-leavecredits',
         component: EmptyPage,
         meta: <RouteMeta>{
           label: 'Leave Credits',
@@ -278,7 +250,7 @@ const routes = [
         },
       },
       {
-        path: '/ctdo-reports',
+        path: '/ctdo_reports/:id?',
         name: 'ctdo-reports',
         component: EmptyPage,
         meta: <RouteMeta>{
@@ -311,9 +283,9 @@ const routes = [
     },
     children: [
       {
-        path: '/hrppms-dashboard',
+        path: '/hrppms_dashboard',
         name: 'hrppms-dashboard',
-        component: ItemNumberPage,
+        component: EmptyPage,
         meta: <RouteMeta>{
           label: 'Dashboard',
           isSidebarMenu: true,
@@ -353,9 +325,9 @@ const routes = [
         },
       },
       {
-        path: '',
+        path: 'employment/:id?',
         name: 'employment',
-        component: ItemNumberPage,
+        component: EmptyPage,
         meta: <RouteMeta>{
           label: 'Employment',
           isSidebarMenu: true,
@@ -379,7 +351,7 @@ const routes = [
 
   /*PAS*/
   {
-    path: '/personnel-managements',
+    path: '/personnel_managements',
     name: 'personnel-managements',
     meta: <RouteMeta>{
       group: RouteGroup.HUMAN_RESOURCES,
@@ -389,7 +361,7 @@ const routes = [
     },
     children: [
       {
-        path: '/hrpas-dashboard',
+        path: '/hrpas_dashboard',
         name: 'hrpas-dashboard',
         component: EmptyPage,
         meta: <RouteMeta>{
@@ -400,7 +372,7 @@ const routes = [
         },
       },
       {
-        path: '/employees',
+        path: '/employees/:id?',
         name: 'employees',
         component: EmptyPage,
         meta: <RouteMeta>{
@@ -411,7 +383,7 @@ const routes = [
         },
       },
       {
-        path: '/daily-time-records',
+        path: '/daily_time_records/:id?',
         name: 'daily-time-records',
         component: EmptyPage,
         meta: <RouteMeta>{
@@ -422,7 +394,7 @@ const routes = [
         },
       },
       {
-        path: '/leave-applications',
+        path: '/leave_applications/:id?',
         name: 'leave-applications',
         component: EmptyPage,
         meta: <RouteMeta>{
@@ -433,7 +405,7 @@ const routes = [
         },
       },
       {
-        path: '/payrolls',
+        path: '/payrolls/:id?',
         name: 'payrolls',
         component: EmptyPage,
         meta: <RouteMeta>{
@@ -444,7 +416,7 @@ const routes = [
         },
       },
       {
-        path: '/staff-ctdos',
+        path: '/staff_ctdos/:id?',
         name: 'staff-ctdos',
         component: EmptyPage,
         meta: <RouteMeta>{
@@ -455,7 +427,7 @@ const routes = [
         },
       },
       {
-        path: '/staff-cocs',
+        path: '/staff_cocs/:id?',
         name: 'staff-cocs',
         component: EmptyPage,
         meta: <RouteMeta>{
@@ -482,7 +454,7 @@ const routes = [
     },
   },
   {
-    path: '/about-us',
+    path: '/about_us',
     name: 'about-us',
     component: AboutUsPage,
     meta: <RouteMeta>{
