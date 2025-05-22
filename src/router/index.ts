@@ -63,7 +63,7 @@ const routes = [
     },
     children: [
       {
-        path: '/request_documents/:id?',
+        path: '/request-documents/:id?',
         name: 'request-documents',
         component: EmptyPage,
         meta: <RouteMeta>{
@@ -81,7 +81,7 @@ const routes = [
         },
       },
       {
-        path: '/request_overtimes/:id?',
+        path: '/request-overtimes/:id?',
         name: 'request-overtimes',
         component: EmptyPage,
         meta: <RouteMeta>{
@@ -101,7 +101,7 @@ const routes = [
     ],
   },
   {
-    path: '/my_profile',
+    path: '/my-profile',
     name: 'my-profile',
     meta: <RouteMeta>{
       group: RouteGroup.MAIN,
@@ -119,7 +119,7 @@ const routes = [
     },
     children: [
       {
-        path: '/my_wes/:id?',
+        path: '/my-wes/:id?',
         name: 'my-wes',
         component: EmptyPage,
         meta: <RouteMeta>{
@@ -130,7 +130,7 @@ const routes = [
         },
       },
       {
-        path: '/my_leaveapplications/:id?',
+        path: '/my-leaveapplications/:id?',
         name: 'my-leave-applications',
         component: EmptyPage,
         meta: <RouteMeta>{
@@ -141,7 +141,7 @@ const routes = [
         },
       },
       {
-        path: '/my_payslips/:id?',
+        path: '/my-payslips/:id?',
         name: 'my-payslips',
         component: EmptyPage,
         meta: <RouteMeta>{
@@ -152,7 +152,7 @@ const routes = [
         },
       },
       {
-        path: '/my_dtrs/:id?',
+        path: '/my-dtrs/:id?',
         name: 'my-dtrs',
         component: EmptyPage,
         meta: <RouteMeta>{
@@ -164,7 +164,7 @@ const routes = [
       },
 
       {
-        path: '/my_cocs/:id?',
+        path: '/my-cocs/:id?',
         name: 'my-cocs',
         component: EmptyPage,
         meta: <RouteMeta>{
@@ -175,7 +175,7 @@ const routes = [
         },
       },
       {
-        path: '/my_leavecredits/:id?',
+        path: '/my-leavecredits/:id?',
         name: 'my-leavecredits',
         component: EmptyPage,
         meta: <RouteMeta>{
@@ -250,7 +250,7 @@ const routes = [
         },
       },
       {
-        path: '/ctdo_reports/:id?',
+        path: '/ctdo-reports/:id?',
         name: 'ctdo-reports',
         component: EmptyPage,
         meta: <RouteMeta>{
@@ -283,7 +283,7 @@ const routes = [
     },
     children: [
       {
-        path: '/hrppms_dashboard',
+        path: '/hrppms-dashboard',
         name: 'hrppms-dashboard',
         component: EmptyPage,
         meta: <RouteMeta>{
@@ -351,7 +351,7 @@ const routes = [
 
   /*PAS*/
   {
-    path: '/personnel_managements',
+    path: '/personnel-managements',
     name: 'personnel-managements',
     meta: <RouteMeta>{
       group: RouteGroup.HUMAN_RESOURCES,
@@ -361,7 +361,7 @@ const routes = [
     },
     children: [
       {
-        path: '/hrpas_dashboard',
+        path: '/hrpas-dashboard',
         name: 'hrpas-dashboard',
         component: EmptyPage,
         meta: <RouteMeta>{
@@ -383,7 +383,7 @@ const routes = [
         },
       },
       {
-        path: '/daily_time_records/:id?',
+        path: '/daily-time-records/:id?',
         name: 'daily-time-records',
         component: EmptyPage,
         meta: <RouteMeta>{
@@ -394,7 +394,7 @@ const routes = [
         },
       },
       {
-        path: '/leave_applications/:id?',
+        path: '/leave-applications/:id?',
         name: 'leave-applications',
         component: EmptyPage,
         meta: <RouteMeta>{
@@ -416,7 +416,7 @@ const routes = [
         },
       },
       {
-        path: '/staff_ctdos/:id?',
+        path: '/staff-ctdos/:id?',
         name: 'staff-ctdos',
         component: EmptyPage,
         meta: <RouteMeta>{
@@ -427,7 +427,7 @@ const routes = [
         },
       },
       {
-        path: '/staff_cocs/:id?',
+        path: '/staff-cocs/:id?',
         name: 'staff-cocs',
         component: EmptyPage,
         meta: <RouteMeta>{
@@ -454,7 +454,7 @@ const routes = [
     },
   },
   {
-    path: '/about_us',
+    path: '/about-us',
     name: 'about-us',
     component: AboutUsPage,
     meta: <RouteMeta>{
