@@ -1,8 +1,10 @@
 import { createRouter, createWebHistory, RouteMeta } from 'vue-router'
 import { vueApp } from '@/app.ts'
 import Dashboard from '@/views/DashboardPage.vue'
+import ProfilePage from '@/views/ProfilePage.vue'
 import EmptyPage from '@/views/EmptyPage.vue'
 import SupportPage from '@/views/SupportPage.vue'
+import ProfilePage from '@/views/ProfilePage.vue'
 import AccomplishmentReportPage from '@/views/AccomplishmentReportPage.vue'
 import CreateAccomplishmentReportForm from '@/components/accomplishment-report/CreateAccomplishmentReportForm.vue'
 import ViewAccomplishmentReport from '@/components/accomplishment-report/ViewAccomplishmentReport.vue'
@@ -117,8 +119,8 @@ const routes = [
     },
     children: [
       {
-        path: '/my-PDS',
-        name: 'my-PDS',
+        path: '/my-pds',
+        name: 'my-pds',
         component: ProfilePage,
         meta: <RouteMeta>{
           label: 'Personal Data Sheet',
@@ -128,8 +130,8 @@ const routes = [
         },
       },
       {
-        path: '/my-WES',
-        name: 'my-WES',
+        path: '/my-wes',
+        name: 'my-wes',
         component: () => import('@/views/personnel/WorkExperienceSheetPage.vue'),
         meta: <RouteMeta>{
           label: 'Work Experience Sheet',
@@ -139,8 +141,8 @@ const routes = [
         },
       },
       {
-        path: '/my-LeaveApplications',
-        name: 'my-Leave-Applications',
+        path: '/my-leaveapplications',
+        name: 'my-leaveapplications',
         component: () => import('@/views/personnel/LeaveApplicationPage.vue'),
         meta: <RouteMeta>{
           label: 'Leave Application',
@@ -150,8 +152,8 @@ const routes = [
         },
       },
       {
-        path: '/my-Payslips',
-        name: 'my-Payslips',
+        path: '/my-payslips',
+        name: 'my-payslips',
         component: () => import('@/views/personnel/PayslipPage.vue'),
         meta: <RouteMeta>{
           label: 'Payslip',
@@ -173,8 +175,8 @@ const routes = [
       },
 
       {
-        path: '/my-COCs',
-        name: 'my-COCs',
+        path: '/my-cocs',
+        name: 'my-cocs',
         component: () => import('@/views/personnel/CompensatoryPage.vue'),
         meta: <RouteMeta>{
           label: 'Compensatory Overtime Credit',
@@ -184,8 +186,8 @@ const routes = [
         },
       },
       {
-        path: '/my-LeaveCredits',
-        name: 'my-LeaveCredits',
+        path: '/my-leavecredits',
+        name: 'my-leavecredits',
         component: () => import('@/views/personnel/LeaveCreditsPage.vue'),
         meta: <RouteMeta>{
           label: 'Leave Credits',
@@ -345,7 +347,7 @@ const routes = [
       {
         path: 'employment/:id?',
         name: 'employment',
-        component: EmptyPage,
+        component: () => import('@/views/personnel/EmployeesPage.vue'),
         meta: <RouteMeta>{
           label: 'Employment',
           isSidebarMenu: true,
