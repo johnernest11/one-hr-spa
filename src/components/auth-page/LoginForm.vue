@@ -229,7 +229,12 @@ const manageIfEmailIsPhoneNumber = (payload: LoginPayload) => {
       </WbPassword>
       <div>
         <Button @click="handleLogin" label="Sign in" size="large" class="mt-3 w-full" :loading="formIsSubmitting"></Button>
-        <Button @click="handleSSO" label="Sign in using your Active Directory (AD) account" size="large" class="mt-3 w-full"></Button>
+        <Button
+          @click="handleSSO"
+          label="Sign in using your Active Directory (AD) account"
+          size="large"
+          class="mt-3 w-full"
+        ></Button>
       </div>
       <p class="flex justify-between pt-3 text-center">
         <Button

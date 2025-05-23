@@ -74,9 +74,6 @@ export const useSidebarNavLinks = () => {
           case 'user-management':
             navLink.icon = 'pi pi-users'
             break
-          case 'recruitment':
-            navLink.icon = 'pi pi-briefcase'
-            break
           case 'personnel-managements':
             navLink.icon = 'pi pi-users'
             break
@@ -127,7 +124,7 @@ export const useSidebarNavLinks = () => {
                 case 'my-wes':
                   childNavLink.icon = 'fas fa-sheet-plastic'
                   break
-                case 'my-leave-applications':
+                case 'my-leaveapplications':
                   childNavLink.icon = 'fas fa-file-signature'
                   break
                 case 'my-payslips':
