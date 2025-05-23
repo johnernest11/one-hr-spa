@@ -56,6 +56,12 @@ export const useSidebarNavLinks = () => {
           case 'commitments':
             navLink.icon = 'pi pi-clock'
             break
+          case 'recruitment':
+            navLink.icon = 'pi pi-briefcase'
+            break
+          case 'personnel':
+            navLink.icon = 'pi pi-users'
+            break
           case 'settings':
             navLink.icon = 'pi pi-cog'
             break
@@ -115,25 +121,25 @@ export const useSidebarNavLinks = () => {
                   break
 
                 /*Profile Routes */
-                case 'my-PDS':
+                case 'my-pds':
                   childNavLink.icon = 'fas fa-sheet-plastic'
                   break
-                case 'my-WES':
+                case 'my-wes':
                   childNavLink.icon = 'fas fa-sheet-plastic'
                   break
-                case 'my-Leave-Applications':
+                case 'my-leave-applications':
                   childNavLink.icon = 'fas fa-file-signature'
                   break
-                case 'my-Payslips':
+                case 'my-payslips':
                   childNavLink.icon = 'fas fa-receipt'
                   break
-                case 'my-DTRs':
+                case 'my-dtrs':
                   childNavLink.icon = 'fas fa-clipboard'
                   break
-                case 'my-COCs':
+                case 'my-cocs':
                   childNavLink.icon = 'fas fa-file-circle-exclamation'
                   break
-                case 'my-LeaveCredits':
+                case 'my-leavecredits':
                   childNavLink.icon = 'fas fa-box-archive'
                   break
 
@@ -148,7 +154,7 @@ export const useSidebarNavLinks = () => {
                   childNavLink.icon = 'fas fa-circle-user'
                   break
                 case 'item-numbers':
-                  childNavLink.icon = 'fas fa-file-circle-xmark'
+                  childNavLink.icon = 'fas fa-sitemap'
                   break
 
                 /*Personnel Management Routes */

@@ -5,6 +5,7 @@ import { ItemNumberResponse } from '@/typings/models.types.ts'
 import { ApiResponseBody } from '@/typings/http-resources.types.ts'
 import { useDateFormat } from '@vueuse/core'
 import { ref } from 'vue'
+import { WbAutoCompleteOption } from '@/components/webkit/WbAutoComplete.vue'
 /** Typings for Creating & Fecthing  Item Number */
 export type ItemNumberPayload = {
   number: string | null
@@ -20,7 +21,8 @@ export const useItemNumberStore = defineStore('item-number', () => {
   const auth = useAuthStore()
   const itemNumber = ref<ItemNumberResponse[]>([])
   /** States */
-  const ItemNumberArray = ref<ItemNumberResponse[]>([])
+  const itemNumbers = ref<ItemNumberResponse[]>([])
+  const itemNumbersSuggestions = ref<WbAutoCompleteOption[]>([])
   const selectedItemNumber = ref<ItemNumberResponse | null>(null)
   const fetchItemNumber = async (limit: number = 10, page: number | null = null) => {
     let uri = `/items?limit=${limit}&sort=asc&`
@@ -29,11 +31,17 @@ export const useItemNumberStore = defineStore('item-number', () => {
     const responseBody: ApiResponseBody = data.value
     if (responseBody.success) {
       const ItemNumbersList = Array.isArray(responseBody.data) ? (responseBody.data as ItemNumberResponse[]) : []
-      ItemNumberArray.value = [...ItemNumbersList]
+      itemNumbers.value = [...ItemNumbersList]
+      ItemNumbersList.map((el) => {
+        itemNumbersSuggestions.value.push({
+          value: el.id,
+          label: el.number ?? 'null',
+        })
+      })
     }
     return responseBody
   }
-  const fetchItemNumberById = async (id: string) => {
+  const fetchItemNumberById = async (id: string | number) => {
     const url = `/items/${id}`
     const { data } = await useApiCall(url, auth.authenticationToken).get().json()
     const responseBody: ApiResponseBody = data.value
@@ -43,9 +51,12 @@ export const useItemNumberStore = defineStore('item-number', () => {
     return responseBody
   }
   const createItemNumber = async (item: Partial<ItemNumberPayload>) => {
-    if (item.date_of_creation) {
-      item.date_of_creation = useDateFormat(item.date_of_creation, 'YYYY-MM-DD').value.toString()
+    const formatDate = (date: Date | string | null | undefined): string | undefined => {
+      return date ? useDateFormat(date, 'YYYY-MM-DD').value.toString() : undefined
     }
+
+    item.date_of_creation = formatDate(item.date_of_creation)
+    item.date_filled_up = formatDate(item.date_filled_up)
     const { data } = await useApiCall('/items/', auth.authenticationToken).post(item).json()
     const responseBody: ApiResponseBody = data.value
 
@@ -62,15 +73,18 @@ export const useItemNumberStore = defineStore('item-number', () => {
     const responseBody: ApiResponseBody = data.value
     if (responseBody.success) {
       const itemNumbersList = responseBody.data as ItemNumberResponse[]
-      ItemNumberArray.value = [...itemNumbersList]
+      itemNumbers.value = [...itemNumbersList]
     }
     return responseBody
   }
 
   const updateItemNumber = async (item: Partial<ItemNumberPayload>, id: string | number) => {
-    if (item.date_of_creation) {
-      item.date_of_creation = useDateFormat(item.date_of_creation, 'YYYY-MM-DD').value.toString()
+    const formatDate = (date: Date | string | null | undefined): string | undefined => {
+      return date ? useDateFormat(date, 'YYYY-MM-DD').value.toString() : undefined
     }
+
+    item.date_of_creation = formatDate(item.date_of_creation)
+    item.date_filled_up = formatDate(item.date_filled_up)
     const { data } = await useApiCall(`/items/${id}`, auth.authenticationToken).put(item).json()
     const responseBody: ApiResponseBody = data.value
     if (responseBody.success) {
@@ -82,11 +96,12 @@ export const useItemNumberStore = defineStore('item-number', () => {
   }
 
   return {
-    ItemNumberArray,
+    itemNumbers,
     createItemNumber,
     fetchItemNumber,
     fetchItemNumberById,
     updateItemNumber,
     searchItemNumber,
+    itemNumbersSuggestions,
   }
 })

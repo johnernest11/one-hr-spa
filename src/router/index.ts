@@ -11,7 +11,6 @@ import ItemNumberForm from '@/components/item-number/ItemNumberForm.vue'
 import AboutUsPage from '@/views/AboutUsPage.vue'
 import { AuthRole, AuthType } from '@/typings/auth.types.ts'
 import { useAuthStore } from '@/stores/auth.store.ts'
-import ProfilePage from '@/views/ProfilePage.vue'
 
 const enum RouteGroup {
   MAIN = 'Main',
@@ -48,7 +47,7 @@ const routes = [
     name: 'requests',
     meta: <RouteMeta>{
       group: RouteGroup.MAIN,
-      label: 'Request',
+      label: 'Requests',
       isSidebarMenu: true,
       authType: AuthType.AUTHENTICATED,
       roles: [
@@ -62,7 +61,7 @@ const routes = [
     },
     children: [
       {
-        path: '/request-documents',
+        path: '/request-documents/:id?',
         name: 'request-documents',
         component: () => import('@/views/request/DocumentsPage.vue'),
         meta: <RouteMeta>{
@@ -80,29 +79,12 @@ const routes = [
         },
       },
       {
-        path: '/request-overtimes',
+        path: '/request-overtimes/:id?',
         name: 'request-overtimes',
         component: () => import('@/views/request/OvertimesPage.vue'),
         meta: <RouteMeta>{
           label: 'Overtime',
           isSidebarMenu: true,
-          authType: AuthType.AUTHENTICATED,
-          roles: [
-            AuthRole.STANDARD_USER,
-            AuthRole.HR_PPMS_ADMIN,
-            AuthRole.HR_PAS_ADMIN,
-            AuthRole.ADMIN,
-            AuthRole.SYSTEM_SUPPORT,
-            AuthRole.SUPER_USER,
-          ],
-        },
-      },
-      {
-        path: '/accomplishment-reports/:id/editor',
-        name: 'accomplishment-reports/editor',
-        component: ViewAccomplishmentReport,
-        meta: <RouteMeta>{
-          isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
           roles: [
             AuthRole.STANDARD_USER,
@@ -179,8 +161,8 @@ const routes = [
         },
       },
       {
-        path: '/my-DTRs',
-        name: 'my-DTRs',
+        path: '/my-dtrs/:id?',
+        name: 'my-dtrs',
         component: EmptyPage,
         meta: <RouteMeta>{
           label: 'Daily Time Record',
@@ -189,6 +171,7 @@ const routes = [
           roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
         },
       },
+
       {
         path: '/my-COCs',
         name: 'my-COCs',
@@ -221,10 +204,19 @@ const routes = [
       group: RouteGroup.MAIN,
       label: 'Commitments',
       isSidebarMenu: true,
+      authType: AuthType.AUTHENTICATED,
+      roles: [
+        AuthRole.STANDARD_USER,
+        AuthRole.EMPLOYEE,
+        AuthRole.HR_PPMS_ADMIN,
+        AuthRole.ADMIN,
+        AuthRole.SYSTEM_SUPPORT,
+        AuthRole.SUPER_USER,
+      ],
     },
     children: [
       {
-        path: '/accomplishment-reports',
+        path: 'accomplishment-reports',
         name: 'accomplishment-reports',
         component: AccomplishmentReportPage,
         meta: <RouteMeta>{
@@ -242,7 +234,7 @@ const routes = [
         },
       },
       {
-        path: '/accomplishment-reports/store',
+        path: 'accomplishment-reports/store',
         name: 'accomplishment-reports/store',
         component: CreateAccomplishmentReportForm,
         meta: <RouteMeta>{
@@ -259,7 +251,7 @@ const routes = [
         },
       },
       {
-        path: '/accomplishment-reports/:id/editor',
+        path: 'accomplishment-reports/:id/editor',
         name: 'accomplishment-reports/editor',
         component: ViewAccomplishmentReport,
         meta: <RouteMeta>{
@@ -276,7 +268,7 @@ const routes = [
         },
       },
       {
-        path: '/ctdo-reports',
+        path: '/ctdo-reports/:id?',
         name: 'ctdo-reports',
         component: EmptyPage,
         meta: <RouteMeta>{
@@ -311,7 +303,7 @@ const routes = [
       {
         path: '/hrppms-dashboard',
         name: 'hrppms-dashboard',
-        component: ItemNumberPage,
+        component: EmptyPage,
         meta: <RouteMeta>{
           label: 'Dashboard',
           isSidebarMenu: true,
@@ -351,20 +343,27 @@ const routes = [
         },
       },
       {
-        path: '',
+        path: 'employment/:id?',
         name: 'employment',
-        component: ItemNumberPage,
+        component: EmptyPage,
         meta: <RouteMeta>{
           label: 'Employment',
           isSidebarMenu: true,
           authType: AuthType.AUTHENTICATED,
-          roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+          roles: [
+            AuthRole.STANDARD_USER,
+            AuthRole.EMPLOYEE,
+            AuthRole.HR_PPMS_ADMIN,
+            AuthRole.ADMIN,
+            AuthRole.SYSTEM_SUPPORT,
+            AuthRole.SUPER_USER,
+          ],
         },
       },
       {
         path: ':id?/editor',
         name: 'create-personnel',
-        component: ItemNumberPage,
+        component: () => import('@/views/personnel/PdsForm.vue'),
         meta: <RouteMeta>{
           label: 'Create Personnel',
           isSidebarMenu: false,
@@ -398,7 +397,7 @@ const routes = [
         },
       },
       {
-        path: '/employees',
+        path: '/employees/:id?',
         name: 'employees',
         component: EmptyPage,
         meta: <RouteMeta>{
@@ -409,7 +408,7 @@ const routes = [
         },
       },
       {
-        path: '/daily-time-records',
+        path: '/daily-time-records/:id?',
         name: 'daily-time-records',
         component: EmptyPage,
         meta: <RouteMeta>{
@@ -420,7 +419,7 @@ const routes = [
         },
       },
       {
-        path: '/leave-applications',
+        path: '/leave-applications/:id?',
         name: 'leave-applications',
         component: EmptyPage,
         meta: <RouteMeta>{
@@ -431,7 +430,7 @@ const routes = [
         },
       },
       {
-        path: '/payrolls',
+        path: '/payrolls/:id?',
         name: 'payrolls',
         component: EmptyPage,
         meta: <RouteMeta>{
@@ -442,7 +441,7 @@ const routes = [
         },
       },
       {
-        path: '/staff-ctdos',
+        path: '/staff-ctdos/:id?',
         name: 'staff-ctdos',
         component: EmptyPage,
         meta: <RouteMeta>{
@@ -453,7 +452,7 @@ const routes = [
         },
       },
       {
-        path: '/staff-cocs',
+        path: '/staff-cocs/:id?',
         name: 'staff-cocs',
         component: EmptyPage,
         meta: <RouteMeta>{
@@ -476,7 +475,7 @@ const routes = [
       label: 'Support',
       isSidebarMenu: true,
       authType: AuthType.AUTHENTICATED,
-      roles: [AuthRole.STANDARD_USER, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+      roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
     },
   },
   {
@@ -488,7 +487,7 @@ const routes = [
       label: 'About Us',
       isSidebarMenu: true,
       authType: AuthType.AUTHENTICATED,
-      roles: [AuthRole.STANDARD_USER, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+      roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
     },
   },
   /* ADMIN ROUTE*/
