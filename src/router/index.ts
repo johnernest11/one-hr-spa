@@ -9,7 +9,6 @@ import ViewAccomplishmentReport from '@/components/accomplishment-report/ViewAcc
 import ItemNumberPage from '@/views/ItemNumberPage.vue'
 import ItemNumberForm from '@/components/item-number/ItemNumberForm.vue'
 import AboutUsPage from '@/views/AboutUsPage.vue'
-import AnnouncementsPage from '@/views/AnnouncementsPage.vue'
 import { AuthRole, AuthType } from '@/typings/auth.types.ts'
 import { useAuthStore } from '@/stores/auth.store.ts'
 
@@ -46,7 +45,6 @@ const routes = [
   {
     path: '/requests',
     name: 'requests',
-    component: AnnouncementsPage,
     meta: <RouteMeta>{
       group: RouteGroup.MAIN,
       label: 'Requests',
@@ -65,7 +63,7 @@ const routes = [
       {
         path: '/request-documents/:id?',
         name: 'request-documents',
-        component: EmptyPage,
+        component: () => import('@/views/request/DocumentsPage.vue'),
         meta: <RouteMeta>{
           label: 'Documents',
           isSidebarMenu: true,
@@ -83,7 +81,7 @@ const routes = [
       {
         path: '/request-overtimes/:id?',
         name: 'request-overtimes',
-        component: EmptyPage,
+        component: () => import('@/views/request/OvertimesPage.vue'),
         meta: <RouteMeta>{
           label: 'Overtime',
           isSidebarMenu: true,
@@ -119,9 +117,20 @@ const routes = [
     },
     children: [
       {
-        path: '/my-wes/:id?',
-        name: 'my-wes',
-        component: EmptyPage,
+        path: '/my-PDS',
+        name: 'my-PDS',
+        component: ProfilePage,
+        meta: <RouteMeta>{
+          label: 'Personal Data Sheet',
+          isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+      {
+        path: '/my-WES',
+        name: 'my-WES',
+        component: () => import('@/views/personnel/WorkExperienceSheetPage.vue'),
         meta: <RouteMeta>{
           label: 'Work Experience Sheet',
           isSidebarMenu: true,
@@ -130,9 +139,9 @@ const routes = [
         },
       },
       {
-        path: '/my-leaveapplications/:id?',
-        name: 'my-leave-applications',
-        component: EmptyPage,
+        path: '/my-LeaveApplications',
+        name: 'my-Leave-Applications',
+        component: () => import('@/views/personnel/LeaveApplicationPage.vue'),
         meta: <RouteMeta>{
           label: 'Leave Application',
           isSidebarMenu: true,
@@ -141,9 +150,9 @@ const routes = [
         },
       },
       {
-        path: '/my-payslips/:id?',
-        name: 'my-payslips',
-        component: EmptyPage,
+        path: '/my-Payslips',
+        name: 'my-Payslips',
+        component: () => import('@/views/personnel/PayslipPage.vue'),
         meta: <RouteMeta>{
           label: 'Payslip',
           isSidebarMenu: true,
@@ -164,9 +173,9 @@ const routes = [
       },
 
       {
-        path: '/my-cocs/:id?',
-        name: 'my-cocs',
-        component: EmptyPage,
+        path: '/my-COCs',
+        name: 'my-COCs',
+        component: () => import('@/views/personnel/CompensatoryPage.vue'),
         meta: <RouteMeta>{
           label: 'Compensatory Overtime Credit',
           isSidebarMenu: true,
@@ -175,9 +184,9 @@ const routes = [
         },
       },
       {
-        path: '/my-leavecredits/:id?',
-        name: 'my-leavecredits',
-        component: EmptyPage,
+        path: '/my-LeaveCredits',
+        name: 'my-LeaveCredits',
+        component: () => import('@/views/personnel/LeaveCreditsPage.vue'),
         meta: <RouteMeta>{
           label: 'Leave Credits',
           isSidebarMenu: true,
