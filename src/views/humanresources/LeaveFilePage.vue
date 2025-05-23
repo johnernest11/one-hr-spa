@@ -7,7 +7,7 @@ import Card from 'primevue/card'
       <template #content>
         <div>
           <div class="mx-auto flex h-full w-full flex-col">
-            <Card class="w-full p-0 shadow-none">
+            <Card class="w-full !p-0 shadow-none">
               <template #content>
                 <div class="flex flex-col items-center sm:flex-col md:flex-col">
                   <div
