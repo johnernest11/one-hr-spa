@@ -11,7 +11,7 @@ export default {
       'w-4 h-4',
 
       // Misc
-      'cursor-default',
+      'cursor-pointer',
       'select-none',
     ],
   },
@@ -26,7 +26,7 @@ export default {
       'font-medium',
 
       // Shape
-      'border-2',
+      'border-4',
       'rounded-full',
 
       // Transition
@@ -38,7 +38,7 @@ export default {
         'bg-surface-0 dark:bg-surface-900': props.value !== props.modelValue && props.value !== undefined,
         'border-surface-300 dark:border-surface-700':
           props.value !== props.modelValue && props.value !== undefined && !props.invalid,
-        'border-primary-500 dark:border-primary-400': props.value == props.modelValue && props.value !== undefined,
+        'border-primary-500  dark:border-primary-400': props.value == props.modelValue && props.value !== undefined,
       },
 
       // Invalid State
@@ -78,7 +78,7 @@ export default {
 
       // Misc
       'appearance-none',
-      'cursor-default',
+      'cursor-pointer',
     ],
   },
   icon: {
