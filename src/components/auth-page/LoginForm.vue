@@ -62,8 +62,7 @@ const ssoToken = async (token: string) => {
   if (res.success) {
     await router.push({ name: 'dashboard' })
   } else {
-    credsErrorMessage.value = 'Auto-login failed. Please log in manually.'
-    showCredsErrorAlert.value = true
+    await router.push({ name: 'login' })
   }
 }
 
@@ -94,7 +93,7 @@ const handleLogin = async () => {
         break
       case ApiErrorCode.FORBIDDEN_ERROR:
         credsErrorMessage.value =
-          "We're sorry, but your account login is currently disabled. To reactivate your account, please contact support."
+          "We're Sorry, only Super Admin accounts can log in here, use the Sign in using your Active Directory(AD) Account."
         break
       case ApiErrorCode.TOO_MANY_REQUESTS_ERROR:
         credsErrorMessage.value = "We've received too many attempts from you. Please try again after a few minutes."

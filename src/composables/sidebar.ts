@@ -47,9 +47,6 @@ export const useSidebarNavLinks = () => {
           case 'dashboard':
             navLink.icon = 'pi pi-home'
             break
-          case 'announcements':
-            navLink.icon = 'pi pi-bookmark'
-            break
           case 'requests':
             navLink.icon = 'pi pi-bookmark'
             break
@@ -77,9 +74,13 @@ export const useSidebarNavLinks = () => {
           case 'user-management':
             navLink.icon = 'pi pi-users'
             break
-          case 'recruitments':
+          case 'recruitment':
             navLink.icon = 'pi pi-briefcase'
             break
+          case 'personnel-managements':
+            navLink.icon = 'pi pi-users'
+            break
+
           default:
             navLink.icon = 'fa-solid fa-circle-question'
             break
@@ -107,22 +108,77 @@ export const useSidebarNavLinks = () => {
                 case 'accomplishment-reports':
                   childNavLink.icon = 'fas fa-check-double'
                   break
+                case 'ctdo-reports':
+                  childNavLink.icon = 'fas fa-list-check'
+                  break
+
+                /*Request Routes */
+                case 'request-documents':
+                  childNavLink.icon = 'fas fa-file-lines'
+                  break
+                case 'request-overtimes':
+                  childNavLink.icon = 'fas fa-hourglass-end'
+                  break
+
+                /*Profile Routes */
+                case 'my-pds':
+                  childNavLink.icon = 'fas fa-sheet-plastic'
+                  break
+                case 'my-wes':
+                  childNavLink.icon = 'fas fa-sheet-plastic'
+                  break
+                case 'my-leave-applications':
+                  childNavLink.icon = 'fas fa-file-signature'
+                  break
+                case 'my-payslips':
+                  childNavLink.icon = 'fas fa-receipt'
+                  break
+                case 'my-dtrs':
+                  childNavLink.icon = 'fas fa-clipboard'
+                  break
+                case 'my-cocs':
+                  childNavLink.icon = 'fas fa-file-circle-exclamation'
+                  break
+                case 'my-leavecredits':
+                  childNavLink.icon = 'fas fa-box-archive'
+                  break
+
+                /*Recruitment Routes */
+                case 'hrppms-dashboard':
+                  childNavLink.icon = 'fas fa-file-circle-xmark'
+                  break
                 case 'employment':
                   childNavLink.icon = 'fas fa-circle-user'
                   break
                 case 'create-employee':
                   childNavLink.icon = 'fas fa-circle-user'
                   break
-                case 'view-ipc-ccef/index':
-                  childNavLink.icon = 'fas fa-check-double' // Example icon
-                  break
                 case 'item-numbers':
-                  childNavLink.icon = 'fas fa-sitemap' // Example icon
+                  childNavLink.icon = 'fas fa-sitemap'
                   break
-                case 'recruitment-dashboard':
-                  childNavLink.icon = 'fas fa-sitemap' // Example icon
+
+                /*Personnel Management Routes */
+                case 'hrpas-dashboard':
+                  childNavLink.icon = 'fas fa-file-circle-xmark'
                   break
-                // ... other child route icon assignments
+                case 'employees':
+                  childNavLink.icon = 'fas fa-user-tie'
+                  break
+                case 'leave-applications':
+                  childNavLink.icon = 'fas fa-clipboard'
+                  break
+                case 'daily-time-records':
+                  childNavLink.icon = 'fas fa-file-signature'
+                  break
+                case 'payrolls':
+                  childNavLink.icon = 'fas fa-piggy-bank'
+                  break
+                case 'staff-ctdos':
+                  childNavLink.icon = 'fas fa-file-circle-xmark'
+                  break
+                case 'staff-cocs':
+                  childNavLink.icon = 'fas fa-file-circle-xmark'
+                  break
               }
               navLink.children.push(childNavLink) // Now safe to push
 

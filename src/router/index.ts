@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory, RouteMeta } from 'vue-router'
 import { vueApp } from '@/app.ts'
 import Dashboard from '@/views/DashboardPage.vue'
+import EmptyPage from '@/views/EmptyPage.vue'
 import SupportPage from '@/views/SupportPage.vue'
 import AccomplishmentReportPage from '@/views/AccomplishmentReportPage.vue'
 import CreateAccomplishmentReportForm from '@/components/accomplishment-report/CreateAccomplishmentReportForm.vue'
@@ -31,9 +32,17 @@ const routes = [
       label: 'Home',
       isSidebarMenu: true,
       authType: AuthType.AUTHENTICATED,
-      roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+      roles: [
+        AuthRole.STANDARD_USER,
+        AuthRole.HR_PPMS_ADMIN,
+        AuthRole.HR_PAS_ADMIN,
+        AuthRole.ADMIN,
+        AuthRole.SUPER_USER,
+        AuthRole.SYSTEM_SUPPORT,
+      ],
     },
   },
+  /*Request Routes */
   {
     path: '/requests',
     name: 'requests',
@@ -43,21 +52,142 @@ const routes = [
       label: 'Requests',
       isSidebarMenu: true,
       authType: AuthType.AUTHENTICATED,
-      roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+      roles: [
+        AuthRole.STANDARD_USER,
+        AuthRole.HR_PPMS_ADMIN,
+        AuthRole.HR_PAS_ADMIN,
+        AuthRole.ADMIN,
+        AuthRole.SUPER_USER,
+        AuthRole.SYSTEM_SUPPORT,
+      ],
     },
+    children: [
+      {
+        path: '/request-documents/:id?',
+        name: 'request-documents',
+        component: EmptyPage,
+        meta: <RouteMeta>{
+          label: 'Documents',
+          isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [
+            AuthRole.STANDARD_USER,
+            AuthRole.HR_PPMS_ADMIN,
+            AuthRole.HR_PAS_ADMIN,
+            AuthRole.ADMIN,
+            AuthRole.SYSTEM_SUPPORT,
+            AuthRole.SUPER_USER,
+          ],
+        },
+      },
+      {
+        path: '/request-overtimes/:id?',
+        name: 'request-overtimes',
+        component: EmptyPage,
+        meta: <RouteMeta>{
+          label: 'Overtime',
+          isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [
+            AuthRole.STANDARD_USER,
+            AuthRole.HR_PPMS_ADMIN,
+            AuthRole.HR_PAS_ADMIN,
+            AuthRole.ADMIN,
+            AuthRole.SYSTEM_SUPPORT,
+            AuthRole.SUPER_USER,
+          ],
+        },
+      },
+    ],
   },
   {
     path: '/my-profile',
     name: 'my-profile',
-    component: AnnouncementsPage,
     meta: <RouteMeta>{
       group: RouteGroup.MAIN,
       label: 'My Profile',
       isSidebarMenu: true,
       authType: AuthType.AUTHENTICATED,
-      roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+      roles: [
+        AuthRole.STANDARD_USER,
+        AuthRole.HR_PPMS_ADMIN,
+        AuthRole.HR_PAS_ADMIN,
+        AuthRole.ADMIN,
+        AuthRole.SUPER_USER,
+        AuthRole.SYSTEM_SUPPORT,
+      ],
     },
+    children: [
+      {
+        path: '/my-wes/:id?',
+        name: 'my-wes',
+        component: EmptyPage,
+        meta: <RouteMeta>{
+          label: 'Work Experience Sheet',
+          isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+      {
+        path: '/my-leaveapplications/:id?',
+        name: 'my-leave-applications',
+        component: EmptyPage,
+        meta: <RouteMeta>{
+          label: 'Leave Application',
+          isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+      {
+        path: '/my-payslips/:id?',
+        name: 'my-payslips',
+        component: EmptyPage,
+        meta: <RouteMeta>{
+          label: 'Payslip',
+          isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+      {
+        path: '/my-dtrs/:id?',
+        name: 'my-dtrs',
+        component: EmptyPage,
+        meta: <RouteMeta>{
+          label: 'Daily Time Record',
+          isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+
+      {
+        path: '/my-cocs/:id?',
+        name: 'my-cocs',
+        component: EmptyPage,
+        meta: <RouteMeta>{
+          label: 'Compensatory Overtime Credit',
+          isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+      {
+        path: '/my-leavecredits/:id?',
+        name: 'my-leavecredits',
+        component: EmptyPage,
+        meta: <RouteMeta>{
+          label: 'Leave Credits',
+          isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+    ],
   },
+  /*Commitments Routes */
   {
     path: '/commitments',
     name: 'commitments',
@@ -84,7 +214,14 @@ const routes = [
           label: 'ARs',
           isSidebarMenu: true,
           authType: AuthType.AUTHENTICATED,
-          roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+          roles: [
+            AuthRole.STANDARD_USER,
+            AuthRole.HR_PPMS_ADMIN,
+            AuthRole.HR_PAS_ADMIN,
+            AuthRole.ADMIN,
+            AuthRole.SYSTEM_SUPPORT,
+            AuthRole.SUPER_USER,
+          ],
         },
       },
       {
@@ -94,7 +231,14 @@ const routes = [
         meta: <RouteMeta>{
           isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
-          roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+          roles: [
+            AuthRole.STANDARD_USER,
+            AuthRole.HR_PPMS_ADMIN,
+            AuthRole.HR_PAS_ADMIN,
+            AuthRole.ADMIN,
+            AuthRole.SYSTEM_SUPPORT,
+            AuthRole.SUPER_USER,
+          ],
         },
       },
       {
@@ -104,23 +248,39 @@ const routes = [
         meta: <RouteMeta>{
           isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
-          roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+          roles: [
+            AuthRole.STANDARD_USER,
+            AuthRole.HR_PPMS_ADMIN,
+            AuthRole.HR_PAS_ADMIN,
+            AuthRole.ADMIN,
+            AuthRole.SYSTEM_SUPPORT,
+            AuthRole.SUPER_USER,
+          ],
         },
       },
       {
-        path: 'ipcipc-ccef/',
-        name: 'view-ipc-ccef/index',
-        component: ViewAccomplishmentReport,
+        path: '/ctdo-reports/:id?',
+        name: 'ctdo-reports',
+        component: EmptyPage,
         meta: <RouteMeta>{
-          label: 'IPC/CCEF',
+          label: 'CTDos',
           isSidebarMenu: true,
           authType: AuthType.AUTHENTICATED,
-          roles: [AuthRole.STANDARD_USER, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+          roles: [
+            AuthRole.STANDARD_USER,
+            AuthRole.HR_PPMS_ADMIN,
+            AuthRole.HR_PAS_ADMIN,
+            AuthRole.ADMIN,
+            AuthRole.SYSTEM_SUPPORT,
+            AuthRole.SUPER_USER,
+          ],
         },
       },
     ],
   },
-  /* HUMAN RESOURCES  ROUTE*/
+  /* Human Resources  Routes*/
+  /*HRPPMS*/
+
   {
     path: '/recruitment',
     name: 'recruitment',
@@ -128,8 +288,20 @@ const routes = [
       group: RouteGroup.HUMAN_RESOURCES,
       label: 'Recruitment',
       isSidebarMenu: true,
+      roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
     },
     children: [
+      {
+        path: '/hrppms-dashboard',
+        name: 'hrppms-dashboard',
+        component: EmptyPage,
+        meta: <RouteMeta>{
+          label: 'Dashboard',
+          isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
       {
         path: '/items/:id?',
         name: 'item-numbers',
@@ -162,9 +334,9 @@ const routes = [
         },
       },
       {
-        path: '',
+        path: 'employment/:id?',
         name: 'employment',
-        component: () => import('@/views/personnel/EmployeesPage.vue'),
+        component: EmptyPage,
         meta: <RouteMeta>{
           label: 'Employment',
           isSidebarMenu: true,
@@ -187,11 +359,104 @@ const routes = [
           label: 'Create Personnel',
           isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
-          roles: [AuthRole.EMPLOYEE, AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+          roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
         },
       },
     ],
   },
+
+  /*PAS*/
+  {
+    path: '/personnel-managements',
+    name: 'personnel-managements',
+    meta: <RouteMeta>{
+      group: RouteGroup.HUMAN_RESOURCES,
+      label: 'Personnel Management',
+      isSidebarMenu: true,
+      roles: [AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+    },
+    children: [
+      {
+        path: '/hrpas-dashboard',
+        name: 'hrpas-dashboard',
+        component: EmptyPage,
+        meta: <RouteMeta>{
+          label: 'Dashboard',
+          isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+      {
+        path: '/employees/:id?',
+        name: 'employees',
+        component: EmptyPage,
+        meta: <RouteMeta>{
+          label: 'Employee',
+          isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+      {
+        path: '/daily-time-records/:id?',
+        name: 'daily-time-records',
+        component: EmptyPage,
+        meta: <RouteMeta>{
+          label: 'Daily Time Record',
+          isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+      {
+        path: '/leave-applications/:id?',
+        name: 'leave-applications',
+        component: EmptyPage,
+        meta: <RouteMeta>{
+          label: 'Leave Application',
+          isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+      {
+        path: '/payrolls/:id?',
+        name: 'payrolls',
+        component: EmptyPage,
+        meta: <RouteMeta>{
+          label: 'Payroll',
+          isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+      {
+        path: '/staff-ctdos/:id?',
+        name: 'staff-ctdos',
+        component: EmptyPage,
+        meta: <RouteMeta>{
+          label: 'Staff CTDO`s',
+          isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+      {
+        path: '/staff-cocs/:id?',
+        name: 'staff-cocs',
+        component: EmptyPage,
+        meta: <RouteMeta>{
+          label: 'Staff COC`s',
+          isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+    ],
+  },
+
+  /* SUPPORT  ROUTE*/
   {
     path: '/support',
     name: 'support',
