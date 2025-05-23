@@ -9,7 +9,7 @@ import Card from 'primevue/card'
           <div class="mx-auto flex h-full w-full flex-col">
             <Card class="w-full p-0 shadow-none">
               <template #content>
-                <div class="flex flex-col items-center sm:flex-col md:flex-col">
+                <div class="flex flex-col items-center">
                   <div
                     class="my-6 flex w-full flex-col items-center justify-between gap-4 rounded-lg bg-surface-0 px-6 py-6 dark:bg-surface-800 md:my-4 md:flex-row md:px-4 md:py-4"
                   ></div>

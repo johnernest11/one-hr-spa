@@ -146,7 +146,7 @@ setInterval(() => {
 </script>
 
 <template>
-  <div v-if="mountCharts" class="mx-auto h-[100%] w-[100%] px-2 md:px-0">
+  <div v-if="mountCharts" class="mx-auto h-full w-full px-2 md:px-0">
     <!-- Start General Report Cards -->
     <p class="mb-4 mt-2 text-xs font-semibold uppercase text-surface-600 dark:text-surface-400 md:mt-1">General Reports</p>
     <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
