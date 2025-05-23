@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { onBeforeMount, ref } from 'vue'
+import { onBeforeMount, ref, computed } from 'vue'
 import { useEmployeeEntryStore } from '@/stores/employee-entry.store.ts'
 import { TransitionRoot } from '@headlessui/vue'
 import Button from 'primevue/button'
 import Menu from 'primevue/menu'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { sleep } from '@/utils/helpers.ts'
-
+import { useAuthStore } from '@/stores/auth.store.ts'
 const personnelStore = useEmployeeEntryStore()
 
 const columnWidths = ['w-32', 'w-24', 'w-64', 'w-24', 'w-40', 'w-32', 'w-48']
@@ -36,6 +36,11 @@ onBeforeMount(async () => {
   await sleep(1)
   personnelStore.isEmployeesLoading = false
 })
+const authStore = useAuthStore()
+
+const canCreateNewEmployee = computed(() => {
+  return authStore.authHasRequiredRole(['hr_ppms_admin'])
+})
 </script>
 
 <template>
@@ -61,7 +66,7 @@ onBeforeMount(async () => {
                 <h1 class="text-xl font-bold text-surface-600 lg:text-2xl">No Employees</h1>
                 <p class="text-md text-surface-600 lg:text-lg">List of employees shall appear here.</p>
 
-                <div class="mt-4">
+                <div v-if="canCreateNewEmployee" class="mt-4">
                   <Button size="large" outlined severity="info" class="rounded-sm" @click="toggleAddingList">
                     <template #icon>
                       <FontAwesomeIcon icon="fa-solid fa-plus" class="mr-1.5 h-4 w-4" />
