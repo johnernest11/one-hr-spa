@@ -4,10 +4,10 @@ import Dashboard from '@/views/DashboardPage.vue'
 import ProfilePage from '@/views/ProfilePage.vue'
 import EmptyPage from '@/views/EmptyPage.vue'
 import SupportPage from '@/views/SupportPage.vue'
-import AccomplishmentReportPage from '@/views/AccomplishmentReportPage.vue'
+import AccomplishmentReportPage from '@/views/commitment/AccomplishmentReportPage.vue'
 import CreateAccomplishmentReportForm from '@/components/accomplishment-report/CreateAccomplishmentReportForm.vue'
 import ViewAccomplishmentReport from '@/components/accomplishment-report/ViewAccomplishmentReport.vue'
-import ItemNumberPage from '@/views/ItemNumberPage.vue'
+import ItemNumberPage from '@/views/human-resources/ItemNumberPage.vue'
 import ItemNumberForm from '@/components/item-number/ItemNumberForm.vue'
 import AboutUsPage from '@/views/AboutUsPage.vue'
 import { AuthRole, AuthType } from '@/typings/auth.types.ts'
@@ -271,7 +271,7 @@ const routes = [
       {
         path: '/ctdo-reports/:id?',
         name: 'ctdo-reports',
-        component: EmptyPage,
+        component: () => import('@/views/commitment/CompensatoryTimeOffPage.vue'),
         meta: <RouteMeta>{
           label: 'CTDos',
           isSidebarMenu: true,
@@ -304,7 +304,7 @@ const routes = [
       {
         path: '/hrppms-dashboard',
         name: 'hrppms-dashboard',
-        component: EmptyPage,
+        component: () => import('@/views/human-resources/PPMSDashboardPage.vue'),
         meta: <RouteMeta>{
           label: 'Dashboard',
           isSidebarMenu: true,
@@ -346,7 +346,7 @@ const routes = [
       {
         path: 'employment/:id?',
         name: 'employment',
-        component: () => import('@/views/personnel/EmployeesPage.vue'),
+        component: () => import('@/views/human-resources/EmployeesPage.vue'),
         meta: <RouteMeta>{
           label: 'Employment',
           isSidebarMenu: true,
@@ -389,7 +389,7 @@ const routes = [
       {
         path: '/hrpas-dashboard',
         name: 'hrpas-dashboard',
-        component: EmptyPage,
+        component: () => import('@/views/human-resources/PASDashboardPage.vue'),
         meta: <RouteMeta>{
           label: 'Dashboard',
           isSidebarMenu: true,
@@ -400,7 +400,7 @@ const routes = [
       {
         path: '/employees/:id?',
         name: 'employees',
-        component: EmptyPage,
+        component: () => import('@/views/human-resources/EmployeesPage.vue'),
         meta: <RouteMeta>{
           label: 'Employee',
           isSidebarMenu: true,
@@ -411,7 +411,7 @@ const routes = [
       {
         path: '/daily-time-records/:id?',
         name: 'daily-time-records',
-        component: EmptyPage,
+        component: () => import('@/views/human-resources/DTRPage.vue'),
         meta: <RouteMeta>{
           label: 'Daily Time Record',
           isSidebarMenu: true,
@@ -422,7 +422,7 @@ const routes = [
       {
         path: '/leave-applications/:id?',
         name: 'leave-applications',
-        component: EmptyPage,
+        component: () => import('@/views/human-resources/LeaveFilePage.vue'),
         meta: <RouteMeta>{
           label: 'Leave Application',
           isSidebarMenu: true,
@@ -433,7 +433,7 @@ const routes = [
       {
         path: '/payrolls/:id?',
         name: 'payrolls',
-        component: EmptyPage,
+        component: () => import('@/views/human-resources/PayrollPage.vue'),
         meta: <RouteMeta>{
           label: 'Payroll',
           isSidebarMenu: true,
@@ -444,7 +444,7 @@ const routes = [
       {
         path: '/staff-ctdos/:id?',
         name: 'staff-ctdos',
-        component: EmptyPage,
+        component: () => import('@/views/human-resources/CTDOPage.vue'),
         meta: <RouteMeta>{
           label: 'Staff CTDO`s',
           isSidebarMenu: true,
@@ -455,7 +455,7 @@ const routes = [
       {
         path: '/staff-cocs/:id?',
         name: 'staff-cocs',
-        component: EmptyPage,
+        component: () => import('@/views/human-resources/COCPage.vue'),
         meta: <RouteMeta>{
           label: 'Staff COC`s',
           isSidebarMenu: true,
@@ -488,7 +488,14 @@ const routes = [
       label: 'About Us',
       isSidebarMenu: true,
       authType: AuthType.AUTHENTICATED,
-      roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+      roles: [
+        AuthRole.STANDARD_USER,
+        AuthRole.HR_PPMS_ADMIN,
+        AuthRole.HR_PPMS_ADMIN,
+        AuthRole.ADMIN,
+        AuthRole.SYSTEM_SUPPORT,
+        AuthRole.SUPER_USER,
+      ],
     },
   },
   /* ADMIN ROUTE*/

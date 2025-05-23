@@ -19,22 +19,21 @@ import { RouterLink } from 'vue-router'
                     class="my-6 flex w-full flex-col items-center justify-between gap-4 rounded-lg bg-surface-0 px-6 py-6 dark:bg-surface-800 md:my-4 md:flex-row md:px-4 md:py-4"
                   ></div>
                   <div class="flex justify-center">
-                    <img src="@/assets/image/undraw_WES.svg" class="w-80 pt-12" />
+                    <img src="@/assets/image/undraw_time-management.svg" class="w-80 pt-12" />
                   </div>
                   <h2
                     class="mb-2 mt-4 flex w-full justify-center text-center text-xl font-semibold text-surface-800 dark:text-primary-100 sm:text-2xl"
                   >
-                    You have not filled out your WES
+                    No Daily Time Record available
                   </h2>
                   <h1 class="mb-4 text-center text-base text-gray-600 dark:text-gray-400 sm:text-lg">
-                    You can start filling out your WES by clicking the button below <br />
-                    or by importing using the prescribed template
+                    Daily Time Record shall appear here.
                   </h1>
                   <div class="mt-4 flex w-full justify-center">
-                    <RouterLink :to="{ name: 'my-leaveapplications' }">
+                    <RouterLink to=" name:'DTRPage' ">
                       <Button
                         icon="pi pi-plus"
-                        label="Fill out my WES"
+                        label="Import from excel file"
                         severity="info"
                         size="large"
                         class="border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100 sm:text-primary-400 md:text-primary-400 lg:text-primary-400 dark:lg:text-primary-400"

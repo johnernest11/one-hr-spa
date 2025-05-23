@@ -14,16 +14,17 @@ import Card from 'primevue/card'
                     class="my-6 flex w-full flex-col items-center justify-between gap-4 rounded-lg bg-surface-0 px-6 py-6 dark:bg-surface-800 md:my-4 md:flex-row md:px-4 md:py-4"
                   ></div>
                   <div class="flex justify-center">
-                    <img src="@/assets/image/undraw_payments.svg" class="w-96 pt-44" />
+                    <img src="@/assets/image/undraw_terms.svg" class="w-80 pt-24" />
                   </div>
                   <h2
                     class="mb-2 mt-4 flex w-full justify-center text-center text-xl font-semibold text-surface-800 dark:text-primary-100 sm:text-2xl"
                   >
-                    You have no Payslip
+                    You have no CTDO
                   </h2>
                   <h1 class="mb-4 text-center text-base text-surface-600 dark:text-surface-400 sm:text-lg">
-                    Payroll Payslip created by HR-PAS shall appear here.
+                    Compensatory Day Time Off created by employee shall appear here.
                   </h1>
+                  <div class="mt-4 flex w-full justify-center"></div>
                 </div>
               </template>
             </Card>
