@@ -259,10 +259,25 @@ const formatDate = (dateString: string | null | undefined): string => {
                 v-if="pagination && pagination.total > 0"
                 :rows="pagination.per_page"
                 :total-records="pagination.total"
-                template="FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink"
+                template="CurrentPageReport FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink"
                 currentPageReportTemplate="Showing {first} to {last} of {totalRecords}"
                 @page="(event: PageState) => handlePaginationPageChange(event)"
-                class="text-xs md:text-sm"
+                class="text-s md:text-sm"
+                :pt="{
+                  pageButton: ({ context }) => ({
+                    class: [
+                      'rounded-md', // Tailwind: Basic rounded corners
+                      {
+                        'bg-primary-500 text-surface-50': context.active, // Tailwind: Blue background and white text for active
+                      },
+                      'transition-colors', // Tailwind: Smooth color transitions
+                      'duration-200',
+                      'ease-in-out',
+                      'px-5', // Tailwind: Horizontal padding
+                      'py-3', // Tailwind: Vertical padding
+                    ],
+                  }),
+                }"
               />
             </div>
             <!-- End Pagination -->
