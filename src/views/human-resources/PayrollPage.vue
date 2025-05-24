@@ -26,7 +26,7 @@ import { RouterLink } from 'vue-router'
                     Employee Payroll Records created by you shall appear here.
                   </h1>
                   <div class="mt-4 flex w-full justify-center">
-                    <RouterLink :to="{ name: 'my-payroll' }">
+                    <RouterLink :to="{ name: 'payrolls' }">
                       <Button
                         icon="pi pi-plus"
                         label="New Application for Leave"
