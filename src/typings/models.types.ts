@@ -111,6 +111,22 @@ export type PersonnelAccomplishmentReportDetialsResponse = {
   highlights: string | null
 } & ApiResponseData
 
+export type PersonnelCompensatoryDayOffResponse = {
+  period: string
+  supervisor_notes: string
+  status: string
+  rows: Array<PersonnelCompensatoryDayOffDetailsResponse> | null | undefined
+} & ApiResponseData
+
+export type PersonnelCompensatoryDayOffDetailsResponse = {
+  days_of_the_week: string
+  work_date: string
+  time_start: string | null
+  time_end: string | null
+  accomplishment: string | null
+  authorized_claim: string | null
+} & ApiResponseData
+
 export type PersonnelResponse = {
   id: number
   first_name: string

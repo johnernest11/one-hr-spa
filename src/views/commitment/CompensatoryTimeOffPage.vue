@@ -27,7 +27,7 @@ import { RouterLink } from 'vue-router'
                     Compensatory Day Time Offs Accomplishment created by you shall appear here.
                   </h1>
                   <div class="mt-4 flex w-full justify-center">
-                    <RouterLink :to="{ name: 'my-leaveapplications' }">
+                    <RouterLink :to="{ name: 'ctdo-reports/store' }">
                       <Button
                         icon="pi pi-plus"
                         label="New CTDO  Accomplishment"
