@@ -157,41 +157,36 @@ export default {
   }),
   pagebutton: ({ context }) => ({
     class: [
+      // Existing classes
       'relative',
-
-      // Font
       'text-sm font-medium',
-
-      // Flex & Alignment
       'inline-flex items-center justify-center',
-
-      // Shape
       'border-t-2',
-
-      // Size
       'min-w-[3rem] h-12 -mt-px',
-
-      // Color
       {
         'text-surface-500 dark:text-white/60 border-transparent': !context.active,
         'border-primary-500 dark:border-primary-400 text-primary-500 dark:text-surface-0': context.active,
       },
-
-      // State
       {
         'hover:border-surface-300 dark:hover:border-surface-200/30': !context.disabled && !context.active,
         'focus-visible:outline-none focus-visible:outline-offset-0 focus-visible:ring-2 focus-visible:ring-primary-500 dark:focus-visible:ring-primary-400':
           !context.disabled,
       },
-
-      // Transition
       'transition duration-200',
-
-      // Misc
       'user-none overflow-hidden',
       { 'cursor-default pointer-events-none opacity-60': context.disabled },
+
+      // Additional classes from your first array
+      'rounded-md', // Tailwind: Basic rounded corners
+      { 'bg-primary-500 text-surface-50': context.active }, // Conditional active styles
+      'transition-colors', // Smooth transition
+      'duration-200',
+      'ease-in-out',
+      'px-5',
+      'py-3',
     ],
   }),
+
   rowperpagedropdown: {
     root: ({ props, state }) => ({
       class: [

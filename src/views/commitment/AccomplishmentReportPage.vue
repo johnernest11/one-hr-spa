@@ -263,21 +263,7 @@ const formatDate = (dateString: string | null | undefined): string => {
                 currentPageReportTemplate="Showing {first} to {last} of {totalRecords}"
                 @page="(event: PageState) => handlePaginationPageChange(event)"
                 class="text-s md:text-sm"
-                :pt="{
-                  pageButton: ({ context }) => ({
-                    class: [
-                      'rounded-md', // Tailwind: Basic rounded corners
-                      {
-                        'bg-primary-500 text-surface-50': context.active, // Tailwind: Blue background and white text for active
-                      },
-                      'transition-colors', // Tailwind: Smooth color transitions
-                      'duration-200',
-                      'ease-in-out',
-                      'px-5', // Tailwind: Horizontal padding
-                      'py-3', // Tailwind: Vertical padding
-                    ],
-                  }),
-                }"
+                :pt="{ pageButton: {} }"
               />
             </div>
             <!-- End Pagination -->
