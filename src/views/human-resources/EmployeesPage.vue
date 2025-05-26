@@ -39,7 +39,7 @@ onBeforeMount(async () => {
 const authStore = useAuthStore()
 
 const canCreateNewEmployee = computed(() => {
-  return authStore.authHasRequiredRole(['hr_ppms_admin'])
+  return authStore.authHasRequiredRole(['hr_ppms_admin', 'admin', 'super_user'])
 })
 </script>
 

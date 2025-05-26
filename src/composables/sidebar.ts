@@ -59,6 +59,9 @@ export const useSidebarNavLinks = () => {
           case 'recruitment':
             navLink.icon = 'pi pi-briefcase'
             break
+          case 'responsibility':
+            navLink.icon = 'pi pi-briefcase'
+            break
           case 'personnel':
             navLink.icon = 'pi pi-users'
             break
@@ -152,6 +155,14 @@ export const useSidebarNavLinks = () => {
                   break
                 case 'item-numbers':
                   childNavLink.icon = 'fas fa-sitemap'
+                  break
+
+                /*Responsibility Routes */
+                case 'accomplishment-report-list':
+                  childNavLink.icon = 'fas fa-check-double'
+                  break
+                case 'ctdo-report-list':
+                  childNavLink.icon = 'fas fa-list-check'
                   break
 
                 /*Personnel Management Routes */

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref, watch, onMounted } from 'vue'
+import { reactive, ref, watch, onMounted, computed } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import { PersonnelAccomplishmentReportResponse } from '@/typings/models.types.ts'
 import { parseApiResponseError } from '@/utils/error-handle.ts'
@@ -14,6 +14,8 @@ import { PersonnelAccomplishmentReportPayload } from '@/stores/personnel-accompl
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { useRoute } from 'vue-router'
 import Dialog from 'primevue/dialog'
+import { useAuthStore } from '@/stores/auth.store.ts'
+const authStore = useAuthStore()
 const route = useRoute()
 const accomplishmentReportStore = useAccomplishmentReportStore()
 const isLoading = ref(true)
@@ -134,7 +136,7 @@ const editHighlights = () => {
 }
 
 /** Open a dialog with a specified type (export, markDone, or saveDraft) */
-const openDialog = (type: 'export' | 'markDone' | 'saveDraft') => {
+const openDialog = (type: 'export' | 'markDone' | 'saveDraft' | 'approved' | 'revisedAccomplishment') => {
   dialogType.value = type
   visible.value = true
 
@@ -150,6 +152,14 @@ const openDialog = (type: 'export' | 'markDone' | 'saveDraft') => {
     dialogTitle.value = 'Are you sure you want to save this accomplishment as Draft?'
     dialogMessage.value = 'Saving your accomplishment as draft will allow you to edit it later.'
     confirmButtonLabel.value = 'Yes, Save as Draft'
+  } else if (type === 'approved') {
+    dialogTitle.value = 'Are you sure you want to approve this accomplishment?'
+    dialogMessage.value = 'Approved  accomplishment.'
+    confirmButtonLabel.value = 'Yes, Approved'
+  } else if (type === 'revisedAccomplishment') {
+    dialogTitle.value = 'Are you sure you want to revise this accomplishment?'
+    dialogMessage.value = 'Revise  accomplishment.'
+    confirmButtonLabel.value = 'Yes, Resive'
   }
 }
 
@@ -160,6 +170,10 @@ const confirmAction = () => {
   } else if (dialogType.value === 'markDone') {
     handleMarkDone()
   } else if (dialogType.value === 'saveDraft') {
+    handleUpdated()
+  } else if (dialogType.value === 'approved') {
+    handleUpdated()
+  } else if (dialogType.value === 'reviseAccomplishment') {
     handleUpdated()
   }
   visible.value = false
@@ -277,6 +291,14 @@ const handleMarkDone = async () => {
 
   emit('accomplishment-report-updated', true)
 }
+
+const showbuttonApprover = computed(() => {
+  return authStore.authHasRequiredRole(['section_head', 'admin', 'super_user'])
+})
+
+const showbuttonStandardUsers = computed(() => {
+  return authStore.authHasRequiredRole(['standard_user', 'admin', 'super_user'])
+})
 </script>
 
 <template>
@@ -321,6 +343,7 @@ const handleMarkDone = async () => {
 
               <div class="mt-2 flex w-64 flex-initial justify-end gap-2 md:ml-auto md:w-auto md:items-center md:justify-start">
                 <Button
+                  v-if="showbuttonStandardUsers"
                   label="Export to MS Word"
                   class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
                   text
@@ -332,12 +355,27 @@ const handleMarkDone = async () => {
                 </Button>
 
                 <Button
+                  v-if="showbuttonStandardUsers"
                   label="Mark as Done"
                   :loading="formIsSubmitting"
                   :disabled="payload && payload.status === 'done'"
                   class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
                   text
                   @click="openDialog('markDone')"
+                >
+                  <template #icon>
+                    <i class="pi pi-save mr-2"></i>
+                  </template>
+                </Button>
+
+                <Button
+                  v-if="showbuttonApprover"
+                  label="Approved Accomplishment"
+                  :loading="formIsSubmitting"
+                  :disabled="payload && payload.status === 'done'"
+                  class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+                  text
+                  @click="openDialog('approved')"
                 >
                   <template #icon>
                     <i class="pi pi-save mr-2"></i>
@@ -446,10 +484,25 @@ const handleMarkDone = async () => {
                 </Button>
               </RouterLink>
               <Button
+                v-if="showbuttonStandardUsers"
                 @click="openDialog('saveDraft')"
                 label="Save Draft"
                 :loading="formIsSubmitting"
                 :disabled="payload && payload.status === 'done'"
+                class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+                text
+              >
+                <template #icon>
+                  <i class="pi pi-save mr-2"></i>
+                </template>
+              </Button>
+
+              <Button
+                v-if="showbuttonApprover"
+                @click="openDialog('revisedAccomplishment')"
+                label="Resived Accomplishment"
+                :loading="formIsSubmitting"
+                :disabled="payload && payload.status === 'draft'"
                 class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
                 text
               >
