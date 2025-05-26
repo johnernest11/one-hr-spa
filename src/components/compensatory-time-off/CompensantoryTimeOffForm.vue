@@ -267,7 +267,7 @@ const handleSaveSubmissionif = async (ctdo_status: string) => {
     <div class="flex w-full flex-col gap-4 pb-4 pl-4 pt-8">
       <Card class="h-full">
         <template #content>
-          <div class="flex w-full flex-col items-start md:flex-row">
+          <div class="flex w-full flex-col items-start md:flex-row md:items-center">
             <Button
               icon="pi pi-angle-left"
               severity="secondary"
@@ -277,7 +277,7 @@ const handleSaveSubmissionif = async (ctdo_status: string) => {
               size="small"
               class="mb-2 ml-4 md:mb-0 md:ml-0"
             />
-            <h2 class="mb-2 ml-4 text-3xl font-semibold text-primary-800 dark:text-primary-100 md:ml-4">
+            <h2 class="mb-2 ml-4 text-2xl font-semibold text-primary-800 dark:text-primary-100 md:ml-4 md:text-3xl">
               <font-awesome-icon :icon="['fas', 'check-double']" /> New Compensatory Day Time Offs (CTDO)
             </h2>
           </div>
@@ -315,7 +315,7 @@ const handleSaveSubmissionif = async (ctdo_status: string) => {
 
           <div v-for="(compensatories, index) in compensatory" :key="index" class="mb-4 flex flex-col md:flex-row">
             <div class="mb-4 ml-0 flex w-full flex-col items-start justify-center gap-2 py-2 pt-8 md:ml-12 md:w-2/12">
-              <div class="flex w-full flex-col">
+              <div class="flex w-full flex-col gap-2">
                 <WbDropdown
                   :id="'week-' + index"
                   label="Day of the Week"
