@@ -286,6 +286,26 @@ const routes = [
           ],
         },
       },
+      {
+        path: '/ctdo-reports/store',
+        name: 'ctdo-reports/store',
+        component: () => import('@/components/compensatory-time-off/CompensantoryTimeOffForm.vue'),
+        meta: <RouteMeta>{
+          isSidebarMenu: false,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+      {
+        path: '/ctdo-reports/:id/editor',
+        name: 'ctdo-reports/editor',
+        component: ItemNumberForm,
+        meta: <RouteMeta>{
+          isSidebarMenu: false,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
     ],
   },
   /* Human Resources  Routes*/

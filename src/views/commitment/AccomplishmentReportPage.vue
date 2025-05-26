@@ -259,10 +259,11 @@ const formatDate = (dateString: string | null | undefined): string => {
                 v-if="pagination && pagination.total > 0"
                 :rows="pagination.per_page"
                 :total-records="pagination.total"
-                template="FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink"
+                template="CurrentPageReport FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink"
                 currentPageReportTemplate="Showing {first} to {last} of {totalRecords}"
                 @page="(event: PageState) => handlePaginationPageChange(event)"
-                class="text-xs md:text-sm"
+                class="text-s md:text-sm"
+                :pt="{ pageButton: {} }"
               />
             </div>
             <!-- End Pagination -->
