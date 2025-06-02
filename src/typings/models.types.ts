@@ -127,6 +127,16 @@ export type PersonnelCompensatoryDayOffDetailsResponse = {
   authorized_claim: string | null
 } & ApiResponseData
 
+export type WorkExperienceSheetResponse = {
+  duration: string
+  position: string
+  name_office_unit: string
+  immediate_supervisor: string
+  name_agency: string | null
+  list_accomplishment: string | null
+  summary_duties: string | null
+} & ApiResponseData
+
 export type PersonnelResponse = {
   id: number
   first_name: string

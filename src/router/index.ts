@@ -169,6 +169,25 @@ const routes = [
         },
       },
       {
+        path: '/my-wes/store',
+        name: 'my-wes/store',
+        component: () => import('@/components/wes/WorkExperienceSheetForm.vue'),
+        meta: <RouteMeta>{
+          isSidebarMenu: false,
+          authType: AuthType.AUTHENTICATED,
+          roles: [
+            AuthRole.STANDARD_USER,
+            AuthRole.SECTION_HEAD,
+            AuthRole.DIVISION_HEAD,
+            AuthRole.HR_PPMS_ADMIN,
+            AuthRole.HR_PAS_ADMIN,
+            AuthRole.ADMIN,
+            AuthRole.SUPER_USER,
+            AuthRole.SYSTEM_SUPPORT,
+          ],
+        },
+      },
+      {
         path: '/my-leaveapplications',
         name: 'my-leaveapplications',
         component: () => import('@/views/personnel/LeaveApplicationPage.vue'),

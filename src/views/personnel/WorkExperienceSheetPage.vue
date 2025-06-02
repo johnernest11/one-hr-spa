@@ -31,7 +31,7 @@ import { RouterLink } from 'vue-router'
                     or by importing using the prescribed template
                   </h1>
                   <div class="mt-4 flex w-full justify-center">
-                    <RouterLink :to="{ name: 'my-leaveapplications' }">
+                    <RouterLink :to="{ name: 'my-wes/store' }">
                       <Button
                         icon="pi pi-plus"
                         label="Fill out my WES"
