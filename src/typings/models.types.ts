@@ -72,7 +72,7 @@ export type PositionResponse = {
   level: '1st' | '2nd' | '3rd' | null
 } & ApiResponseData
 
-export type TypeLeaveResponse = {
+export type LeaveTypeResponse = {
   title: string
   description: string | number | null
 } & ApiResponseData
@@ -229,7 +229,7 @@ export type LeaveApplicationResponse = {
   disapproved_notes: string | null
   dates: Array<LeaveApplicationDateResponse> | null | undefined
   employee_id: PersonnelResponse | null
-  leave_type_id: TypeLeaveResponse | null
+  leave_type_id: LeaveTypeResponse | null
 } & ApiResponseData
 
 export type LeaveApplicationDateResponse = {

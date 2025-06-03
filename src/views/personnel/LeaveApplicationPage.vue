@@ -14,6 +14,7 @@ import { useLeaveApplicationStore } from '@/stores/leave-application.store'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
+import { formatDateRanges, formatDate } from '@/utils/helpers.ts'
 
 const router = useRouter()
 const navigateToDetails = (applicationLeave: LeaveApplicationResponse) => {
@@ -120,49 +121,6 @@ const exportPdf = async (leaveApplication: LeaveApplicationResponse) => {
       detail: `The Leave Application from ${leaveApplication.date_of_filing} was successfully exported.`,
       life: 5000,
     })
-  }
-}
-
-const formatDateRanges = (ranges: { start_date: string; end_date: string }[]): string => {
-  if (!ranges || !Array.isArray(ranges)) return ''
-
-  return ranges
-    .map(({ start_date, end_date }) => {
-      const start = new Date(start_date)
-      const end = new Date(end_date)
-
-      const sameMonthYear = start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()
-
-      const formatDay = (date: Date) => date.getDate().toString().padStart(2, '0')
-      const formatMonthYear = (date: Date) => date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
-
-      if (sameMonthYear) {
-        return `${formatDay(start)} - ${formatDay(end)} ${formatMonthYear(end)}`
-      } else {
-        return `${formatDay(start)} ${formatMonthYear(start)} - ${formatDay(end)} ${formatMonthYear(end)}`
-      }
-    })
-    .join(', ')
-}
-
-const formatDate = (dateString: string | null | undefined): string => {
-  if (!dateString) return ''
-  try {
-    const date = new Date(dateString)
-    if (isNaN(date.getTime())) {
-      console.error('Invalid date string:', dateString)
-      return 'Invalid Date'
-    }
-    const options: Intl.DateTimeFormatOptions = {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    }
-    const formattedDate = date.toLocaleDateString(undefined, options)
-    return formattedDate.replace(/^(\w+)\s(\d+),\s(\d+)$/, '$2 $1 $3')
-  } catch (error) {
-    console.error('Error formatting date:', error)
-    return 'Invalid Date'
   }
 }
 </script>
