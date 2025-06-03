@@ -224,20 +224,20 @@ const formatDate = (dateString: string | null | undefined): string => {
                     <template v-if="props.data.ctdo_status === 'For Revision'">
                       <Chip
                         label="For Revision"
-                        class="flex items-center justify-center bg-warn-400 px-4 py-1 font-semibold text-clear-500"
+                        class="flex items-center justify-center bg-warn-400 px-4 py-1 font-semibold text-clear-900"
                       >
                       </Chip>
                     </template>
                     <template v-else-if="props.data.ctdo_status === 'For Review'">
                       <Chip
                         label="For Review"
-                        class="flex items-center justify-center bg-success-900 px-4 py-1 font-semibold text-clear-500"
+                        class="flex items-center justify-center bg-success-800 px-4 py-1 font-semibold text-clear-900"
                       />
                     </template>
                     <template v-else-if="props.data.ctdo_status === 'Approved'">
                       <Chip
                         label="Approved"
-                        class="flex items-center justify-center bg-info-900 px-4 py-1 font-semibold text-clear-500"
+                        class="flex items-center justify-center bg-info-800 px-4 py-1 font-semibold text-clear-900"
                       />
                     </template>
                   </template>
