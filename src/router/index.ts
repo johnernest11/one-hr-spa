@@ -299,7 +299,7 @@ const routes = [
       {
         path: '/ctdo-reports/:id/editor',
         name: 'ctdo-reports/editor',
-        component: ItemNumberForm,
+        component: () => import('@/components/compensatory-time-off/CompensantoryTimeOffForm.vue'),
         meta: <RouteMeta>{
           isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
