@@ -1,6 +1,6 @@
 import { ApiResponseData } from '@/typings/http-resources.types.ts'
 
-/** Address (HTTP Responses) */
+/** Libraries (HTTP Responses) */
 export type RegionResponse = {
   code_correspondence: string
   code: string
@@ -72,6 +72,11 @@ export type PositionResponse = {
   level: '1st' | '2nd' | '3rd' | null
 } & ApiResponseData
 
+export type TypeLeaveResponse = {
+  title: string
+  description: string | number | null
+} & ApiResponseData
+
 /** User (HTTP Responses) */
 export type UserResponse = {
   email: string
@@ -97,6 +102,7 @@ export type UserProfileResponse = {
   personnel_accomplishment_report?: Array<PersonnelAccomplishmentReportResponse> | null | undefined
 } & ApiResponseData
 
+/** Accomplishment Report (HTTP Responses) */
 export type PersonnelAccomplishmentReportResponse = {
   period: string
   supervisor_notes: string
@@ -111,6 +117,7 @@ export type PersonnelAccomplishmentReportDetialsResponse = {
   highlights: string | null
 } & ApiResponseData
 
+/** Compensatory Time Day Off (HTTP Responses) */
 export type PersonnelCompensatoryDayOffResponse = {
   period: string
   supervisor_notes: string
@@ -127,6 +134,7 @@ export type PersonnelCompensatoryDayOffDetailsResponse = {
   authorized_claim: string | null
 } & ApiResponseData
 
+/** Personnel Data Sheet (HTTP Responses) */
 export type PersonnelResponse = {
   id: number
   first_name: string
@@ -204,6 +212,31 @@ export type PersonnelEmployee = {
   division_id: number | null
   section_or_unit_id: number | null
 }
+
+/** Leave Application (HTTP Responses) */
+export type LeaveApplicationResponse = {
+  id: number | null
+  date_of_filing: string | null
+  others_notes: string | null
+  number_of_days: number
+  detail_of_leave: string | null
+  specific_detail: string | null
+  commutation: string | null
+  status: string | null
+  division_head_disapproval_notes: string | null
+  days_with_pay: string | null
+  days_without_pay: string | null
+  disapproved_notes: string | null
+  dates: Array<LeaveApplicationDateResponse> | null | undefined
+  employee_id: PersonnelResponse | null
+  leave_type_id: TypeLeaveResponse | null
+} & ApiResponseData
+
+export type LeaveApplicationDateResponse = {
+  leave_application_id: LeaveApplicationResponse | null
+  start_date: string | null
+  end_date: string | null
+} & ApiResponseData
 
 /** Role (HTTP Responses) */
 export type RoleResponse = {
