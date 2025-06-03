@@ -270,7 +270,7 @@ const formatDate = (dateString: string | null | undefined): string => {
                     <template v-if="props.data.status === 'Draft'">
                       <Chip
                         label="Draft"
-                        class="flex items-center justify-center bg-error-800 px-4 py-1 font-semibold text-clear-500"
+                        class="flex items-center justify-center bg-surface-600 px-4 py-1 font-semibold text-clear-500"
                       >
                       </Chip>
                     </template>
