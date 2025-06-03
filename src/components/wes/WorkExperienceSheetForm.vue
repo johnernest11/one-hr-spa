@@ -184,35 +184,51 @@ const handleSaveSubmissionif = async () => {
     <div class="flex h-full w-full flex-col shadow-md">
       <div class="h-full w-full rounded-md bg-surface-0 p-6">
         <div
-          class="flex flex-row items-center space-x-4 font-medium text-surface-700 dark:text-surface-100 md:ml-4 md:mt-2 md:flex-row"
+          class="flex items-center justify-between space-x-4 font-medium text-surface-700 dark:text-surface-100 md:ml-4 md:mt-2 md:flex-row"
         >
-          <span class="flex flex-col justify-center pb-4">
-            <p class="text-xl md:text-3xl">My Work Experience Sheet</p>
-          </span>
+          <h1 class="mb-2 mr-4 whitespace-nowrap text-xl text-surface-700 dark:text-primary-100 md:text-xl lg:text-3xl">
+            My Work Experience Sheet
+          </h1>
+          <!-- Button aligned to the end -->
+          <div class="flex w-full justify-end">
+            <Button
+              label="Export to word file"
+              type="submit"
+              size="large"
+              class="dark:text-secondary-100 bottom-0 right-0 mt-4 border border-primary-500 text-base text-primary-700 dark:border-surface-700 lg:text-primary-600 dark:lg:text-surface-400"
+              text
+            >
+              <template #icon>
+                <i class="pi pi-save mr-2"></i>
+              </template>
+            </Button>
+          </div>
         </div>
         <div
           class="flex flex-row items-center space-x-4 font-medium text-primary-900 dark:text-primary-100 md:ml-4 md:mt-2 md:flex-row"
         >
           <span class="flex flex-col justify-center pl-4">
-            <p class="text-xl md:text-3xl">Instructions:</p>
+            <p class="text-xl italic md:text-2xl">Instructions:</p>
           </span>
         </div>
         <div
-          class="flex flex-row items-center space-x-4 font-medium text-surface-600 dark:text-primary-100 md:ml-4 md:mt-2 md:flex-row"
+          class="flex flex-row items-center space-x-4 font-medium text-surface-700 dark:text-primary-100 md:ml-4 md:mt-2 md:flex-row"
         >
-          <span class="flex flex-col justify-center pl-48">
-            <p class="text-md md:text-lg">1.Include only the work experiences relevant to the position being applied to.</p>
-            <p class="text-md md:text-lg">
+          <span class="flex flex-col justify-center pl-36">
+            <p class="text-md italic md:text-lg">
+              1. Include only the work experiences relevant to the position being applied to.
+            </p>
+            <p class="text-md italic md:text-lg">
               2. The duration should include start and finish dates, if known, month in abbreviated form, if known, and year in
               full. For the
             </p>
-            <p class="text-md md:text-lg">
+            <p class="text-md italic md:text-lg">
               current position, use the word Present, e.g., 1998-Present. Work experience should be listed from most recent first.
             </p>
           </span>
         </div>
 
-        <div class="mt-6 flex flex-col">
+        <div class="mt-2 flex flex-col">
           <div class="w-full">
             <div class="w-full">
               <div class="flex flex-col gap-4">
@@ -251,7 +267,7 @@ const handleSaveSubmissionif = async () => {
                     >
                     </WbInputText>
                   </div>
-                  <div class="flex flex-row items-center justify-center gap-4">
+                  <div class="mt-6 flex flex-row items-center justify-center gap-4">
                     <WbInputText
                       label="Position"
                       required
@@ -266,7 +282,7 @@ const handleSaveSubmissionif = async () => {
                     >
                     </WbInputText>
                   </div>
-                  <div class="flex flex-row items-center justify-center gap-4">
+                  <div class="mt-6 flex flex-row items-center justify-center gap-4">
                     <WbInputText
                       label="Name of Office/Unit"
                       required
@@ -281,7 +297,7 @@ const handleSaveSubmissionif = async () => {
                     >
                     </WbInputText>
                   </div>
-                  <div class="flex flex-row items-center justify-center gap-4">
+                  <div class="mt-6 flex flex-row items-center justify-center gap-4">
                     <WbInputText
                       label="Immediate Supervisor"
                       required
@@ -296,7 +312,7 @@ const handleSaveSubmissionif = async () => {
                     >
                     </WbInputText>
                   </div>
-                  <div class="flex flex-row items-center justify-center gap-4">
+                  <div class="mt-6 flex flex-row items-center justify-center gap-4">
                     <WbInputText
                       label="Name of Agency/Organization and Location"
                       required
@@ -311,7 +327,7 @@ const handleSaveSubmissionif = async () => {
                     >
                     </WbInputText>
                   </div>
-                  <div class="flex flex-row items-center justify-center gap-4">
+                  <div class="mt-6 flex flex-row items-center justify-center gap-4">
                     <WbTextarea
                       v-model="workexperiencesheet.list_accomplishment"
                       label="List of Accomplishments and Contributions (if any)"
@@ -321,7 +337,7 @@ const handleSaveSubmissionif = async () => {
                     >
                     </WbTextarea>
                   </div>
-                  <div class="flex flex-row items-center justify-center gap-4">
+                  <div class="mt-6 flex flex-row items-center justify-center gap-4">
                     <WbTextarea
                       v-model="workexperiencesheet.summary_duties"
                       label="Summary of Actual Duties"
@@ -340,7 +356,7 @@ const handleSaveSubmissionif = async () => {
                     type="submit"
                     @click="addWorkExperienceSheet"
                     size="large"
-                    class="dark:text-secondary-100 bottom-0 right-0 mt-4 w-full border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+                    class="dark:text-secondary-100 bottom-0 right-0 mt-4 w-full border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-600 dark:lg:text-surface-600"
                     text
                   >
                   </Button>
@@ -353,7 +369,7 @@ const handleSaveSubmissionif = async () => {
                     label="Save WES"
                     type="submit"
                     size="large"
-                    class="dark:text-secondary-100 bottom-0 right-0 mt-4 w-full border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+                    class="dark:text-secondary-100 bottom-0 right-0 mt-4 w-full border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-600 dark:lg:text-surface-600"
                     text
                   >
                     <template #icon>
@@ -388,7 +404,7 @@ const handleSaveSubmissionif = async () => {
                     label="Cancel"
                     :loading="formIsSubmitting"
                     :disabled="formIsSubmitting"
-                    class="dark:text-secondary-100 border border-surface-400 text-xs text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
+                    class="dark:text-secondary-100 border border-surface-400 text-xs text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-600"
                     text
                     @click="visible = false"
                   >
@@ -401,7 +417,7 @@ const handleSaveSubmissionif = async () => {
                     :label="confirmButtonLabel"
                     :loading="formIsSubmitting"
                     :disabled="formIsSubmitting"
-                    class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+                    class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-600"
                     text
                   >
                     <template #icon>
