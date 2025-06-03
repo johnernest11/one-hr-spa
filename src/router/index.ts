@@ -16,7 +16,7 @@ import { useAuthStore } from '@/stores/auth.store.ts'
 const enum RouteGroup {
   MAIN = 'Main',
   HUMAN_RESOURCES = 'Human Resources',
-  IMMEDIATE_SUPERVISOR = 'Unit Head/Division Head',
+  IMMEDIATE_SUPERVISOR = 'Unit / Section / Division Head',
   ADMIN_TOOLS = 'Admin Tools',
   MISC = 'Misc',
   AUTH = 'Auth',
