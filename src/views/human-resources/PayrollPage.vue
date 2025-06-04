@@ -1,6 +1,94 @@
 <script setup lang="ts">
+import { onBeforeMount, ref, watch } from 'vue'
+import Button from 'primevue/button'
 import Card from 'primevue/card'
-import { RouterLink } from 'vue-router'
+import Column from 'primevue/column'
+import DataTable from 'primevue/datatable'
+import InputText from 'primevue/inputtext'
+import InputGroup from 'primevue/inputgroup'
+import Paginator, { PageState } from 'primevue/paginator'
+import { ApiResponsePagination } from '@/typings/http-resources.types.ts'
+import { PayrollResponse } from '@/typings/models.types.ts'
+import { usePayRollStore } from '@/stores/payroll.store'
+import { useRouter } from 'vue-router'
+import { formatDateRangeObject, snakeCaseToTitleCase } from '@/utils/helpers.ts'
+
+const router = useRouter()
+const navigateToDetails = (paySlip: PayrollResponse) => {
+  if (!paySlip || !paySlip.id) {
+    console.error('Cannot navigate to details: Pay Slip or ID is undefined', paySlip)
+    return
+  }
+  router.push({
+    name: 'my-paySlips/editor',
+    params: {
+      id: paySlip.id,
+    },
+  })
+}
+
+const paySlipsStore = usePayRollStore()
+
+const paySlipsIsLoading = ref(false)
+const paginationLimit = 5
+onBeforeMount(async () => {
+  paySlipsIsLoading.value = true
+  const response = await paySlipsStore.fetchPayRoll(paginationLimit)
+  if (response.success && response.pagination) {
+    pagination.value = response.pagination
+  }
+  paySlipsIsLoading.value = false
+})
+
+const pagination = ref<ApiResponsePagination | null>(null)
+const handlePaginationPageChange = async (event: PageState) => {
+  const pageSelected = event.page + 1
+  paySlipsIsLoading.value = true
+  const response = await paySlipsStore.fetchPayRoll(paginationLimit, pageSelected)
+  if (response.success && response.pagination) {
+    pagination.value = response.pagination
+  }
+  paySlipsIsLoading.value = false
+}
+
+const roleFilter = ref<number | null>(null)
+const searchQuery = ref<string | null>(null)
+const isSearching = ref(false)
+watch(
+  () => roleFilter.value,
+  async () => {
+    paySlipsIsLoading.value = true
+    searchQuery.value = null
+    isSearching.value = false
+    const response = await paySlipsStore.fetchPayRoll(paginationLimit)
+    if (response.success && response.pagination) {
+      pagination.value = response.pagination
+    }
+    paySlipsIsLoading.value = false
+  }
+)
+const searchSubmitted = ref(false)
+const handleSearchPaySlip = async () => {
+  paySlipsIsLoading.value = true
+  searchSubmitted.value = true
+
+  if (!searchQuery.value) {
+    const response = await paySlipsStore.fetchPayRoll(paginationLimit)
+    if (response.success && response.pagination) {
+      pagination.value = response.pagination
+    }
+    paySlipsIsLoading.value = false
+    return
+  }
+
+  const response = await paySlipsStore.searchPayRoll(searchQuery.value)
+  if (response.success && response.pagination) {
+    pagination.value = response.pagination
+
+    searchQuery.value = null
+  }
+  paySlipsIsLoading.value = false
+}
 </script>
 <template>
   <div class="mx-auto flex h-full w-full flex-col pl-4 pt-8">
@@ -8,6 +96,124 @@ import { RouterLink } from 'vue-router'
       <template #content>
         <div>
           <div class="mx-auto flex h-full w-full flex-col">
+            <div class="flex w-full items-center justify-end gap-4">
+              <div
+                class="my-6 flex w-full flex-col items-center justify-between gap-4 rounded-lg bg-surface-0 px-6 py-6 dark:bg-surface-800 md:my-4 md:flex-row md:px-4 md:py-4"
+              >
+                <h1
+                  class="mb-2 mr-4 whitespace-nowrap text-xl font-semibold text-surface-600 dark:text-primary-100 md:text-xl lg:text-4xl"
+                >
+                  Generated Payroll
+                </h1>
+              </div>
+              <div class="flex w-full items-center justify-end gap-4">
+                <div class="gap-4 whitespace-nowrap md:w-auto">
+                  <Button
+                    icon="pi pi-filter-fill"
+                    v-tooltip.top="'Filter'"
+                    severity="info"
+                    size="large"
+                    class="mr-2 border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100 sm:text-primary-400 md:text-primary-400 lg:text-primary-400 dark:lg:text-primary-400"
+                    text
+                  />
+                  <Button
+                    icon="pi pi-money-bill"
+                    v-tooltip.top="'Generate Payroll'"
+                    severity="info"
+                    size="large"
+                    class="border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100 sm:text-primary-400 md:text-primary-400 lg:text-primary-400 dark:lg:text-primary-400"
+                    text
+                  />
+                </div>
+                <div class="flex w-full md:w-auto lg:w-1/2">
+                  <InputGroup v-model="searchQuery" class="w-full">
+                    <InputText
+                      v-model="searchQuery"
+                      placeholder="Search via Name or Division/Section"
+                      class="w-full"
+                      :disabled="paySlipsIsLoading"
+                      @keyup.enter="handleSearchPaySlip"
+                    />
+                    <Button icon="pi pi-search" @click="handleSearchPaySlip" />
+                  </InputGroup>
+                </div>
+              </div>
+            </div>
+            <div class="mx-auto flex h-full w-full flex-col">
+              <DataTable :value="paySlipsStore.payRoll" class="mt-6" dataKey="id">
+                <Column
+                  field="period"
+                  header="Payroll Period"
+                  headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
+                >
+                  <template #body="props">
+                    <p class="font-semibold uppercase text-surface-600">
+                      {{ formatDateRangeObject(props.data.period_from, props.data.period_to).toUpperCase() }}
+                    </p>
+                  </template>
+                </Column>
+                <Column
+                  field="edited_at"
+                  header="Funding"
+                  headerClass=" w-80 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
+                >
+                  <template #body="props">
+                    <p class="uppercase text-surface-600">{{ props.data.employee_id.employee.fund_source?.name ?? 'N/A' }}</p>
+                  </template>
+                </Column>
+                <Column
+                  field="edited_at"
+                  header="Generated by"
+                  headerClass=" w-80 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
+                >
+                  <template #body="props">
+                    <p class="uppercase text-surface-600">
+                      {{ snakeCaseToTitleCase(props.data.employee_id.first_name) }}
+                      {{ snakeCaseToTitleCase(props.data.employee_id.middle_name ?? '') }}
+                      {{ snakeCaseToTitleCase(props.data.employee_id.last_name) }}
+                    </p>
+                  </template>
+                </Column>
+                <Column field="action" header="Actions" headerClass="w-64 bg-surface-100 opacity-70 font-bold py-2">
+                  <template #body="props">
+                    <div class="flex gap-4 whitespace-nowrap md:w-auto">
+                      <Button
+                        icon="pi pi-eye"
+                        v-tooltip.top="'View PaySlip'"
+                        severity="info"
+                        class="border-none text-lg font-semibold text-primary-600 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
+                        text
+                        @click="navigateToDetails(props.data)"
+                      />
+                    </div>
+                  </template>
+                </Column>
+              </DataTable>
+            </div>
+            <div class="mt-6 flex w-full justify-center md:mt-10">
+              <Paginator
+                v-if="pagination && pagination.total > 0"
+                :rows="pagination.per_page"
+                :total-records="pagination.total"
+                template="CurrentPageReport FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink"
+                currentPageReportTemplate="Showing {first} to {last} of {totalRecords}"
+                @page="(event: PageState) => handlePaginationPageChange(event)"
+                class="text-s md:text-sm"
+                :pt="{ pageButton: {} }"
+              />
+            </div>
+          </div>
+          <div
+            v-if="searchSubmitted && !paySlipsIsLoading && !paySlipsStore.payRoll.length"
+            class="flex h-full w-full flex-col items-center justify-center font-menu text-lg dark:text-surface-300"
+          >
+            <i class="pi pi-exclamation-triangle mb-2 text-2xl"></i>
+            <p>No PaySlip found</p>
+          </div>
+          <div
+            v-if="!paySlipsIsLoading && !paySlipsStore.payRoll.length && !searchSubmitted"
+            class="mx-auto flex h-full w-full flex-col"
+          >
             <Card class="w-full p-0 shadow-none">
               <template #content>
                 <div class="flex flex-col items-center">
