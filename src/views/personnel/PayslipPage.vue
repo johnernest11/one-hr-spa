@@ -21,7 +21,7 @@ const navigateToDetails = (paySlip: PayrollResponse) => {
     return
   }
   router.push({
-    name: 'my-paySlips/editor',
+    name: 'my-payslips/editor',
     params: {
       id: paySlip.id,
     },
