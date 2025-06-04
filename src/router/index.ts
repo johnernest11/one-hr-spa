@@ -189,6 +189,23 @@ const routes = [
         },
       },
       {
+        path: '/my-leaveapplications/store',
+        name: 'my-leaveapplications/store',
+        component: () => import('@/views/personnel/LeaveApplicationPage.vue'),
+        meta: <RouteMeta>{
+          isSidebarMenu: false,
+          authType: AuthType.AUTHENTICATED,
+          roles: [
+            AuthRole.STANDARD_USER,
+            AuthRole.HR_PPMS_ADMIN,
+            AuthRole.HR_PAS_ADMIN,
+            AuthRole.ADMIN,
+            AuthRole.SYSTEM_SUPPORT,
+            AuthRole.SUPER_USER,
+          ],
+        },
+      },
+      {
         path: '/my-payslips',
         name: 'my-payslips',
         component: () => import('@/views/personnel/PayslipPage.vue'),
