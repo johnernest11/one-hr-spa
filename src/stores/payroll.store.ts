@@ -20,7 +20,7 @@ export type PayRollPayload = {
   payroll_deduction_id?: string | number | null
 }
 
-export const usePayRollStore = defineStore('leave-application', () => {
+export const usePayRollStore = defineStore('pay-roll', () => {
   const auth = useAuthStore()
   const payRoll = ref<PayrollResponse[]>([])
   const selectedpaySlip = ref<PayrollResponse | null>(null)
