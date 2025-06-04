@@ -130,7 +130,7 @@ const exportPdf = async (paySlips: PayrollResponse) => {
           <div class="mx-auto flex h-full w-full flex-col">
             <div class="flex w-full items-center justify-end gap-4">
               <div
-                class="my-6 flex w-full flex-col items-center justify-between gap-4 rounded-lg bg-surface-0 px-6 py-6 dark:bg-surface-800 md:my-4 md:flex-row md:px-4 md:py-4"
+                class="my-6 flex w-full flex-col items-center justify-between gap-4 rounded-lg bg-surface-0 p-6 dark:bg-surface-800 md:my-4 md:flex-row md:px-4 md:py-4"
               >
                 <h1
                   class="mb-2 mr-4 whitespace-nowrap text-xl font-semibold text-surface-600 dark:text-primary-100 md:text-xl lg:text-4xl"
