@@ -208,7 +208,7 @@ const exportPdf = async (documentRequest: DocumentRequestResponse) => {
               <template v-if="props.data.status === 'Draft'">
                 <Chip
                   label="Draft"
-                  class="flex items-center justify-center !bg-surface-600 px-4 py-1 font-semibold !text-surface-0"
+                  class="flex items-center justify-center !bg-surface-500 px-4 py-1 font-semibold !text-surface-0"
                 >
                 </Chip>
               </template>
