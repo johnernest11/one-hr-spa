@@ -133,13 +133,9 @@ const exportPdf = async (locatorSlips: LocatorSlipResponse) => {
       <div
         class="flex flex-row items-center space-x-4 font-medium text-primary-700 dark:text-primary-100 md:ml-4 md:mt-2 md:flex-row"
       >
-        
-         <h1
-          class="mb-2 mr-4 whitespace-nowrap text-xl text-surface-600 dark:text-primary-100 md:text-xl lg:text-4xl"
-        >
-          {{  !RoleAssignView ? 'My Locator Slips' : 'Locator Slips' }}
+        <h1 class="mb-2 mr-4 whitespace-nowrap text-xl text-surface-600 dark:text-primary-100 md:text-xl lg:text-4xl">
+          {{ !RoleAssignView ? 'My Locator Slips' : 'Locator Slips' }}
         </h1>
-        
 
         <div class="flex w-full items-center justify-end gap-4">
           <div class="gap-4 whitespace-nowrap md:w-auto">
@@ -153,7 +149,7 @@ const exportPdf = async (locatorSlips: LocatorSlipResponse) => {
             />
             <Button
               icon="pi pi-file-excel"
-              v-tooltip.top="'Reques Locator Slip'"
+              v-tooltip.top="'Request Locator Slip'"
               severity="info"
               size="large"
               class="border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100 sm:text-primary-400 md:text-primary-400 lg:text-primary-400 dark:lg:text-primary-400"
@@ -182,7 +178,7 @@ const exportPdf = async (locatorSlips: LocatorSlipResponse) => {
               <Column
                 field="period"
                 header="Period Request"
-                headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
+                headerClass="w-1/2 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
               >
                 <template #body="props">
                   <p class="font-semibold uppercase text-surface-600">
