@@ -244,6 +244,20 @@ export type LeaveApplicationDateResponse = {
   end_date: string | null
 } & ApiResponseData
 
+/** Document Request (HTTP Responses) */
+export type DocumentRequestResponse = {
+  id: number | null
+  request_date: string | null
+  certificate_type: string | null
+  others_type: string | null
+  additional_info: string | null
+  others_additional_info: string | null
+  purpose: string | null
+  mode_of_receipt: string | null
+  status: string | null
+  employee_id: PersonnelResponse | null
+} & ApiResponseData
+
 /** Locator Slip (HTTP Responses) */
 export type LocatorSlipResponse = {
   id: number | null

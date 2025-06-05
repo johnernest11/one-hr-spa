@@ -479,11 +479,22 @@ const routes = [
         },
       },
       {
-        path: '/my-locator-slips/:id?',
+        path: '/locator-slips/:id?',
         name: 'locator-slips',
         component: () => import('@/views/personnel/LocatorSlipsPage.vue'),
         meta: <RouteMeta>{
           label: 'Locator Slip',
+          isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+      {
+        path: '/document-requests/:id?',
+        name: 'document-requests',
+        component: () => import('@/views/request/DocumentsPage.vue'),
+        meta: <RouteMeta>{
+          label: 'Document Request',
           isSidebarMenu: true,
           authType: AuthType.AUTHENTICATED,
           roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
