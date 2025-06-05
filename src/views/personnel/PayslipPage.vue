@@ -154,7 +154,7 @@ const exportPdf = async (paySlips: PayrollResponse) => {
               <Column
                 field="period"
                 header="Payslip Period"
-                headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
+                headerClass="w-1/2 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
               >
                 <template #body="props">
                   <p class="font-semibold uppercase text-surface-600">{{ getMonthAndYear(props.data.period_to) }}</p>
