@@ -133,6 +133,22 @@ export const formatDateRanges = (ranges: { start_date: string; end_date: string 
     .join(', ')
 }
 
+export const formatDateRangeObject = (start_date: string, end_date: string): string => {
+  const start = new Date(start_date)
+  const end = new Date(end_date)
+
+  const sameMonthYear = start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()
+
+  const formatDay = (date: Date) => date.getDate().toString().padStart(2, '0')
+  const formatMonthYear = (date: Date) => date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+
+  if (sameMonthYear) {
+    return `${formatDay(start)} - ${formatDay(end)} ${formatMonthYear(end)}`
+  } else {
+    return `${formatDay(start)} ${formatMonthYear(start)} - ${formatDay(end)} ${formatMonthYear(end)}`
+  }
+}
+
 export const formatDate = (dateString: string | null | undefined): string => {
   if (!dateString) return ''
   try {
@@ -148,6 +164,28 @@ export const formatDate = (dateString: string | null | undefined): string => {
     }
     const formattedDate = date.toLocaleDateString(undefined, options)
     return formattedDate.replace(/^(\w+)\s(\d+),\s(\d+)$/, '$2 $1 $3')
+  } catch (error) {
+    console.error('Error formatting date:', error)
+    return 'Invalid Date'
+  }
+}
+
+export const getMonthAndYear = (dateString: string | null | undefined): string => {
+  if (!dateString) return ''
+  try {
+    const date = new Date(dateString)
+    if (isNaN(date.getTime())) {
+      console.error('Invalid date string:', dateString)
+      return 'Invalid Date'
+    }
+    const options: Intl.DateTimeFormatOptions = {
+      month: 'short', // 'long' for full month name
+      year: 'numeric',
+    }
+    // Format date with month and year
+    const formatted = date.toLocaleDateString(undefined, options)
+    // Example output: "Jul 2025"
+    return formatted
   } catch (error) {
     console.error('Error formatting date:', error)
     return 'Invalid Date'
