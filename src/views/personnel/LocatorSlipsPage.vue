@@ -133,19 +133,13 @@ const exportPdf = async (locatorSlips: LocatorSlipResponse) => {
       <div
         class="flex flex-row items-center space-x-4 font-medium text-primary-700 dark:text-primary-100 md:ml-4 md:mt-2 md:flex-row"
       >
-        <h1
-          v-if="!RoleAssignView"
+        
+         <h1
           class="mb-2 mr-4 whitespace-nowrap text-xl text-surface-600 dark:text-primary-100 md:text-xl lg:text-4xl"
         >
-          My Locator Slips
+          {{  !RoleAssignView ? 'My Locator Slips' : 'Locator Slips' }}
         </h1>
-
-        <h1
-          v-if="RoleAssignView"
-          class="mb-2 mr-4 whitespace-nowrap text-xl text-surface-600 dark:text-primary-100 md:text-xl lg:text-4xl"
-        >
-          Locator Slips
-        </h1>
+        
 
         <div class="flex w-full items-center justify-end gap-4">
           <div class="gap-4 whitespace-nowrap md:w-auto">
