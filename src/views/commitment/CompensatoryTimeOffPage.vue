@@ -144,187 +144,173 @@ const formatDate = (dateString: string | null | undefined): string => {
 }
 </script>
 <template>
-  <div class="mx-auto flex h-full w-full flex-col pl-4 pt-8">
-    <Card class="h-full">
-      <template #content>
-        <div>
-          <div class="mx-auto flex h-full w-full flex-col">
-            <div class="flex w-full items-center justify-end gap-4">
-              <div
-                class="my-6 flex w-full flex-col items-center justify-between gap-4 rounded-lg bg-surface-0 px-6 py-6 dark:bg-surface-800 md:my-4 md:flex-row md:px-4 md:py-4"
-              >
-                <h1
-                  class="mb-2 mr-4 whitespace-nowrap text-xl font-semibold text-primary-800 dark:text-primary-100 md:text-xl lg:text-4xl"
-                >
-                  Compensatory Day Time Offs (CTDO)
-                </h1>
-              </div>
-              <div class="flex w-full items-center justify-end gap-4">
-                <div class="flex space-x-2 whitespace-nowrap md:w-auto">
-                  <Button
-                    icon="pi pi-filter-fill"
-                    v-tooltip.top="'Filter Leave Application'"
-                    severity="info"
-                    size="large"
-                    class="border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100"
-                    text
-                    @click="$router.push({ name: 'sign-up' })"
-                  />
-                  <RouterLink :to="{ name: 'ctdo-reports/store' }">
-                    <Button
-                      icon="pi pi-plus"
-                      v-tooltip.top="'Create Compensatory Day Time Offs (CTDO)'"
-                      severity="info"
-                      size="large"
-                      class="border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100"
-                      text
-                    />
-                  </RouterLink>
-                </div>
-                <div class="flex w-full md:w-auto lg:w-1/2">
-                  <InputGroup v-model="searchQuery" class="w-full">
-                    <InputText
-                      v-model="searchQuery"
-                      placeholder="Search via Status or Compensatory"
-                      class="w-full"
-                      :disabled="compensatoryDayTimeOffIsLoading"
-                      @keyup.enter="handleSearchApplicationLeave"
-                    />
-                    <Button icon="pi pi-search" @click="handleSearchApplicationLeave" />
-                  </InputGroup>
-                </div>
-              </div>
-            </div>
-            <div class="mx-auto flex h-full w-full flex-col">
-              <DataTable :value="compensatoryDayTimeOffStore.compensatory" class="mt-6" dataKey="id">
-                <Column
-                  field="period"
-                  header="Leave Period"
-                  headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
-                >
-                  <template #body="props">
-                    <p class="font-semibold uppercase text-surface-600">{{ props.data.ctdo_period }}</p>
-                  </template>
-                </Column>
-                <Column
-                  field="edited_at"
-                  header="Last Edited"
-                  headerClass=" w-80 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
-                >
-                  <template #body="props">
-                    <p class="uppercase text-surface-600">{{ formatDate(props.data.updated_at) }}</p>
-                  </template>
-                </Column>
-                <Column
-                  field="status"
-                  header="Status"
-                  headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
-                >
-                  <template #body="props">
-                    <template v-if="props.data.ctdo_status === 'For Revision'">
-                      <Chip
-                        label="For Revision"
-                        class="flex items-center justify-center bg-warn-400 px-4 py-1 font-semibold text-clear-900"
-                      >
-                      </Chip>
-                    </template>
-                    <template v-else-if="props.data.ctdo_status === 'For Review'">
-                      <Chip
-                        label="For Review"
-                        class="flex items-center justify-center bg-success-800 px-4 py-1 font-semibold text-clear-900"
-                      />
-                    </template>
-                    <template v-else-if="props.data.ctdo_status === 'Approved'">
-                      <Chip
-                        label="Approved"
-                        class="flex items-center justify-center bg-info-800 px-4 py-1 font-semibold text-clear-900"
-                      />
-                    </template>
-                  </template>
-                </Column>
-                <Column field="action" header="Actions" headerClass="w-64 bg-surface-100 opacity-70 font-bold py-2">
-                  <template #body="props">
-                    <div class="flex gap-4 whitespace-nowrap md:w-auto">
-                      <Button
-                        icon="pi pi-eye"
-                        v-tooltip.top="'View Leave Application'"
-                        severity="info"
-                        class="border-none text-lg font-semibold text-primary-600 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
-                        text
-                        @click="navigateToDetails(props.data)"
-                      />
-                      <Button
-                        icon="pi pi-file-pdf"
-                        v-tooltip.top="'View Leave Application'"
-                        severity="info"
-                        class="border-none text-lg font-semibold text-primary-600 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
-                        text
-                        @click="exportPdf(props.data)"
-                      />
-                    </div>
-                  </template>
-                </Column>
-              </DataTable>
-            </div>
-            <div class="mt-6 flex w-full justify-center md:mt-10">
-              <Paginator
-                v-if="pagination && pagination.total > 0"
-                :rows="pagination.per_page"
-                :total-records="pagination.total"
-                template="CurrentPageReport FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink"
-                currentPageReportTemplate="Showing {first} to {last} of {totalRecords}"
-                @page="(event: PageState) => handlePaginationPageChange(event)"
-                class="text-s md:text-sm"
-                :pt="{ pageButton: {} }"
+  <div class="flex h-full w-full flex-col shadow-md">
+    <div class="h-full w-full rounded-md bg-surface-0 p-6">
+      <div
+        class="flex flex-row items-center space-x-4 font-medium text-primary-700 dark:text-primary-100 md:ml-4 md:mt-2 md:flex-row"
+      >
+        <h1 class="mb-2 mr-4 whitespace-nowrap text-xl text-surface-600 dark:text-primary-100 md:text-xl lg:text-4xl">
+          Compensatory Day Time Offs (CTDO)
+        </h1>
+        <div class="flex w-full items-center justify-end gap-4">
+          <div class="flex space-x-2 whitespace-nowrap md:w-auto">
+            <Button
+              icon="pi pi-filter-fill"
+              v-tooltip.top="'Filter Leave Application'"
+              severity="info"
+              size="large"
+              class="border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100"
+              text
+              @click="$router.push({ name: 'sign-up' })"
+            />
+            <RouterLink :to="{ name: 'ctdo-reports/store' }">
+              <Button
+                icon="pi pi-plus"
+                v-tooltip.top="'Create Compensatory Day Time Offs (CTDO)'"
+                severity="info"
+                size="large"
+                class="border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100"
+                text
               />
-            </div>
+            </RouterLink>
           </div>
-          <div
-            v-if="searchSubmitted && !compensatoryDayTimeOffIsLoading && !compensatoryDayTimeOffStore.compensatory.length"
-            class="flex h-full w-full flex-col items-center justify-center font-menu text-lg dark:text-surface-300"
-          >
-            <i class="pi pi-exclamation-triangle mb-2 text-2xl"></i>
-            <p>No Leave Applications found</p>
-          </div>
-          <div
-            v-if="!compensatoryDayTimeOffIsLoading && !compensatoryDayTimeOffStore.compensatory.length && !searchSubmitted"
-            class="mx-auto flex h-full w-full flex-col"
-          >
-            <Card class="w-full p-0 shadow-none">
-              <template #content>
-                <div class="flex flex-col items-center">
-                  <div
-                    class="my-6 flex w-full flex-col items-center justify-between gap-4 rounded-lg bg-surface-0 px-6 py-6 dark:bg-surface-800 md:my-4 md:flex-row md:px-4 md:py-4"
-                  ></div>
-                  <div class="flex justify-center">
-                    <img src="@/assets/image/undraw_terms.svg" class="w-80 pt-24" />
-                  </div>
-                  <h2
-                    class="mb-2 mt-4 flex w-full justify-center text-center text-xl font-semibold text-surface-800 dark:text-primary-100 sm:text-2xl"
-                  >
-                    You have no CTDO Accomplishment
-                  </h2>
-                  <h1 class="mb-4 text-center text-base text-surface-600 dark:text-surface-400 sm:text-lg">
-                    Compensatory Day Time Offs Accomplishment created by you shall appear here.
-                  </h1>
-                  <div class="mt-4 flex w-full justify-center">
-                    <RouterLink :to="{ name: 'ctdo-reports/store' }">
-                      <Button
-                        icon="pi pi-plus"
-                        label="New CTDO  Accomplishment"
-                        severity="info"
-                        size="large"
-                        class="border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100 sm:text-primary-400 md:text-primary-400 lg:text-primary-400 dark:lg:text-primary-400"
-                        text
-                      />
-                    </RouterLink>
-                  </div>
-                </div>
-              </template>
-            </Card>
+          <div class="flex w-full md:w-auto lg:w-1/2">
+            <InputGroup v-model="searchQuery" class="w-full">
+              <InputText
+                v-model="searchQuery"
+                placeholder="Search via Status or Compensatory"
+                class="w-full"
+                :disabled="compensatoryDayTimeOffIsLoading"
+                @keyup.enter="handleSearchApplicationLeave"
+              />
+              <Button icon="pi pi-search" @click="handleSearchApplicationLeave" />
+            </InputGroup>
           </div>
         </div>
-      </template>
-    </Card>
+      </div>
+      <div class="mx-auto flex h-full w-full flex-col">
+        <DataTable :value="compensatoryDayTimeOffStore.compensatory" class="mt-6" dataKey="id">
+          <Column
+            field="period"
+            header="Leave Period"
+            headerClass="w-1/2 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
+          >
+            <template #body="props">
+              <p class="font-semibold uppercase text-surface-600">{{ props.data.ctdo_period }}</p>
+            </template>
+          </Column>
+          <Column
+            field="edited_at"
+            header="Last Edited"
+            headerClass=" w-80 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
+          >
+            <template #body="props">
+              <p class="uppercase text-surface-600">{{ formatDate(props.data.updated_at) }}</p>
+            </template>
+          </Column>
+          <Column field="status" header="Status" headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2">
+            <template #body="props">
+              <template v-if="props.data.ctdo_status === 'For Revision'">
+                <Chip
+                  label="For Revision"
+                  class="flex items-center justify-center !bg-warn-400 px-4 py-1 font-semibold !text-surface-0"
+                >
+                </Chip>
+              </template>
+              <template v-else-if="props.data.ctdo_status === 'For Review'">
+                <Chip
+                  label="For Review"
+                  class="flex items-center justify-center !bg-success-800 px-4 py-1 font-semibold !text-surface-0"
+                />
+              </template>
+              <template v-else-if="props.data.ctdo_status === 'Approved'">
+                <Chip
+                  label="Approved"
+                  class="flex items-center justify-center !bg-info-900 px-4 py-1 font-semibold !text-surface-0"
+                />
+              </template>
+            </template>
+          </Column>
+          <Column field="action" header="Actions" headerClass="w-64 bg-surface-100 opacity-70 font-bold py-2">
+            <template #body="props">
+              <div class="flex gap-4 whitespace-nowrap md:w-auto">
+                <Button
+                  icon="pi pi-eye"
+                  v-tooltip.top="'View Leave Application'"
+                  severity="info"
+                  class="border-none text-lg font-semibold text-primary-600 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
+                  text
+                  @click="navigateToDetails(props.data)"
+                />
+                <Button
+                  icon="pi pi-file-pdf"
+                  v-tooltip.top="'View Leave Application'"
+                  severity="info"
+                  class="border-none text-lg font-semibold text-primary-600 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
+                  text
+                  @click="exportPdf(props.data)"
+                />
+              </div>
+            </template>
+          </Column>
+        </DataTable>
+      </div>
+      <div class="mt-6 flex w-full justify-center md:mt-10">
+        <Paginator
+          v-if="pagination && pagination.total > 0"
+          :rows="pagination.per_page"
+          :total-records="pagination.total"
+          template="CurrentPageReport FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink"
+          currentPageReportTemplate="Showing {first} to {last} of {totalRecords}"
+          @page="(event: PageState) => handlePaginationPageChange(event)"
+          class="text-s md:text-sm"
+          :pt="{ pageButton: {} }"
+        />
+      </div>
+    </div>
+    <div
+      v-if="searchSubmitted && !compensatoryDayTimeOffIsLoading && !compensatoryDayTimeOffStore.compensatory.length"
+      class="flex h-full w-full flex-col items-center justify-center font-menu text-lg dark:text-surface-300"
+    >
+      <i class="pi pi-exclamation-triangle mb-2 text-2xl"></i>
+      <p>No Leave Applications found</p>
+    </div>
+    <div
+      v-if="!compensatoryDayTimeOffIsLoading && !compensatoryDayTimeOffStore.compensatory.length && !searchSubmitted"
+      class="mx-auto flex h-full w-full flex-col"
+    >
+      <Card class="w-full p-0 shadow-none">
+        <template #content>
+          <div class="flex flex-col items-center">
+            <div
+              class="my-6 flex w-full flex-col items-center justify-between gap-4 rounded-lg bg-surface-0 px-6 py-6 dark:bg-surface-800 md:my-4 md:flex-row md:px-4 md:py-4"
+            ></div>
+            <div class="flex justify-center">
+              <img src="@/assets/image/undraw_terms.svg" class="w-80 pt-24" />
+            </div>
+            <h2
+              class="mb-2 mt-4 flex w-full justify-center text-center text-xl font-semibold text-surface-800 dark:text-primary-100 sm:text-2xl"
+            >
+              You have no CTDO Accomplishment
+            </h2>
+            <h1 class="mb-4 text-center text-base text-surface-600 dark:text-surface-400 sm:text-lg">
+              Compensatory Day Time Offs Accomplishment created by you shall appear here.
+            </h1>
+            <div class="mt-4 flex w-full justify-center">
+              <RouterLink :to="{ name: 'ctdo-reports/store' }">
+                <Button
+                  icon="pi pi-plus"
+                  label="New CTDO  Accomplishment"
+                  severity="info"
+                  size="large"
+                  class="border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100 sm:text-primary-400 md:text-primary-400 lg:text-primary-400 dark:lg:text-primary-400"
+                  text
+                />
+              </RouterLink>
+            </div>
+          </div>
+        </template>
+      </Card>
+    </div>
   </div>
 </template>
