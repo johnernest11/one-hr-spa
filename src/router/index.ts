@@ -16,7 +16,7 @@ import { useAuthStore } from '@/stores/auth.store.ts'
 const enum RouteGroup {
   MAIN = 'Main',
   HUMAN_RESOURCES = 'Human Resources',
-  IMMEDIATE_SUPERVISOR = 'Unit Head/Division Head',
+  IMMEDIATE_SUPERVISOR = 'Unit / Section / Division Head',
   ADMIN_TOOLS = 'Admin Tools',
   MISC = 'Misc',
   AUTH = 'Auth',
@@ -205,6 +205,34 @@ const routes = [
             AuthRole.SUPER_USER,
             AuthRole.SYSTEM_SUPPORT,
           ],
+        },
+      },
+      {
+        path: '/my-leaveapplications/store',
+        name: 'my-leaveapplications/store',
+        component: () => import('@/views/personnel/LeaveApplicationPage.vue'),
+        meta: <RouteMeta>{
+          isSidebarMenu: false,
+          authType: AuthType.AUTHENTICATED,
+          roles: [
+            AuthRole.STANDARD_USER,
+            AuthRole.HR_PPMS_ADMIN,
+            AuthRole.HR_PAS_ADMIN,
+            AuthRole.ADMIN,
+            AuthRole.SYSTEM_SUPPORT,
+            AuthRole.SUPER_USER,
+          ],
+        },
+      },
+      {
+        path: '/my-locator-slips',
+        name: 'my-locator-slips',
+        component: () => import('@/views/personnel/LocatorSlipsPage.vue'),
+        meta: <RouteMeta>{
+          label: 'My Locator Slip',
+          isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
         },
       },
       {
@@ -411,7 +439,7 @@ const routes = [
       {
         path: '/ctdo-reports/:id/editor',
         name: 'ctdo-reports/editor',
-        component: ItemNumberForm,
+        component: () => import('@/components/compensatory-time-off/CompensantoryTimeOffForm.vue'),
         meta: <RouteMeta>{
           isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
@@ -625,6 +653,17 @@ const routes = [
           isSidebarMenu: true,
           authType: AuthType.AUTHENTICATED,
           roles: [AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+      {
+        path: '/my-locator-slips/:id?',
+        name: 'locator-slips',
+        component: () => import('@/views/personnel/LocatorSlipsPage.vue'),
+        meta: <RouteMeta>{
+          label: 'Locator Slip',
+          isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
         },
       },
       {
