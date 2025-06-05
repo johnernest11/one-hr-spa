@@ -134,10 +134,7 @@ const exportPdf = async (documentRequest: DocumentRequestResponse) => {
       <div
         class="flex flex-row items-center space-x-4 font-medium text-primary-700 dark:text-primary-100 md:ml-4 md:mt-2 md:flex-row"
       >
-        <h1
-          v-if="!RoleAssignView"
-          class="mb-2 mr-4 whitespace-nowrap text-xl text-surface-600 dark:text-primary-100 md:text-xl lg:text-4xl"
-        >
+        <h1 class="mb-2 mr-4 whitespace-nowrap text-xl text-surface-600 dark:text-primary-100 md:text-xl lg:text-4xl">
           {{ !RoleAssignView ? ' My Document Request' : 'Document Request' }}
           My Document Request
         </h1>
