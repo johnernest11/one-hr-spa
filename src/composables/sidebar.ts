@@ -181,6 +181,9 @@ export const useSidebarNavLinks = () => {
                 case 'locator-slips':
                   childNavLink.icon = 'fas fa-location-dot'
                   break
+                case 'document-requests':
+                  childNavLink.icon = 'fas fa-file-lines'
+                  break
                 case 'daily-time-records':
                   childNavLink.icon = 'fas fa-file-signature'
                   break
