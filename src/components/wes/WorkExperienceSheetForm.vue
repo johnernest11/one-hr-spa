@@ -195,7 +195,7 @@ const handleSaveSubmissionif = async () => {
               label="Export to word file"
               type="submit"
               size="large"
-              class="dark:text-secondary-100 bottom-0 right-0 mt-4 border border-primary-500 text-base text-primary-700 dark:border-surface-700 lg:text-primary-600 dark:lg:text-surface-400"
+              class="dark:text-secondary-100 bottom-0 right-0 mr-8 mt-4 border border-primary-500 text-base text-primary-700 dark:border-surface-700 lg:text-primary-600 dark:lg:text-surface-400"
               text
             >
               <template #icon>
@@ -233,7 +233,7 @@ const handleSaveSubmissionif = async () => {
             <div class="w-full">
               <div class="flex flex-col gap-4">
                 <!-- START ITEM NUMBER Fields as HR PPMS -->
-                <div v-for="(workexperiencesheet, index) in workexperiencesheets" :key="index" class="mb-4 flex flex-col">
+                <div v-for="(workexperiencesheet, index) in workexperiencesheets" :key="index" class="mx-8 mb-4 flex flex-col">
                   <div class="flex flex-row items-center justify-end gap-4">
                     <div>
                       <Button
@@ -349,7 +349,7 @@ const handleSaveSubmissionif = async () => {
                   </div>
                 </div>
               </div>
-              <div class="flex flex-row items-center justify-start gap-4">
+              <div class="ml-8 flex flex-row items-center justify-start gap-4">
                 <div>
                   <Button
                     label="+ Add additional Work Experience field"
@@ -362,7 +362,7 @@ const handleSaveSubmissionif = async () => {
                   </Button>
                 </div>
               </div>
-              <div class="flex flex-row items-center justify-end gap-4">
+              <div class="mr-8 flex flex-row items-center justify-end gap-4">
                 <div>
                   <Button
                     @click="openDialog('save')"
