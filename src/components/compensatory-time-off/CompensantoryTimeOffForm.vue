@@ -15,7 +15,7 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { useRolesStore } from '@/stores/roles.store.ts'
 import {
   PersonnelCompensatoryTimeOffPayload,
-  PersonnelCompensatoryTimeOffDetailsPayload,
+  PersonnelCompensatoryTimeDayOffDetailsPayload,
   useCompensatoryTimeOffStore,
 } from '@/stores/personnel-compensatory-time-off.store'
 
@@ -37,7 +37,7 @@ const payload = reactive<PersonnelCompensatoryTimeOffPayload>({
 })
 
 /** Payload details for each Compensatory Day Off entry */
-const payloadDetails = reactive<Partial<PersonnelCompensatoryTimeOffDetailsPayload>>({
+const payloadDetails = reactive<Partial<PersonnelCompensatoryTimeDayOffDetailsPayload>>({
   days_of_the_week: '',
   work_date: '',
   time_start: null,
@@ -229,7 +229,9 @@ const handleSaveSubmissionif = async (ctdo_status: string) => {
       }))
     const fullPayload = { ...periodData, rows }
 
-    const periodResponse = await compensatoryTimeOffStore.createCompensatory(fullPayload as PersonnelCompensatoryTimeOffPayload) // No need for "as PersonnelCompensatoryTimeOffPayload" if types are correct
+    const periodResponse = await compensatoryTimeOffStore.createCompensatoryDayTimeOff(
+      fullPayload as PersonnelCompensatoryTimeOffPayload
+    ) // No need for "as PersonnelCompensatoryTimeOffPayload" if types are correct
 
     if (!periodResponse.success) {
       const result = parseApiResponseError(periodResponse)

@@ -124,14 +124,14 @@ export type PersonnelAccomplishmentReportDetialsResponse = {
 } & ApiResponseData
 
 /** Compensatory Time Day Off (HTTP Responses) */
-export type PersonnelCompensatoryDayOffResponse = {
-  period: string
-  supervisor_notes: string
-  status: string
-  rows: Array<PersonnelCompensatoryDayOffDetailsResponse> | null | undefined
+export type PersonnelCompensatoryDayTimeOffResponse = {
+  ctdo_period: string
+  ctdo_supervisor_notes: string
+  ctdo_status: string
+  rows: Array<PersonnelCompensatoryDayTimeOffDetailsResponse> | null | undefined
 } & ApiResponseData
 
-export type PersonnelCompensatoryDayOffDetailsResponse = {
+export type PersonnelCompensatoryDayTimeOffDetailsResponse = {
   days_of_the_week: string
   work_date: string
   time_start: string | null
