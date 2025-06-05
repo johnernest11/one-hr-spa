@@ -304,7 +304,7 @@ const exportPdf = async (leaveApplication: LeaveApplicationResponse) => {
                   You have no Application for Leave
                 </h2>
                 <h1 class="mb-4 text-center text-base text-surface-600 dark:text-surface-400 sm:text-lg">
-                  Application for Leave created by you shall appear here.
+                  Application for Leave created by you shall appear here
                 </h1>
                 <div class="mt-4 flex w-full justify-center">
                   <RouterLink :to="{ name: 'my-leaveapplications/store' }">
