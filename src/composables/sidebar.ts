@@ -59,6 +59,9 @@ export const useSidebarNavLinks = () => {
           case 'recruitment':
             navLink.icon = 'pi pi-briefcase'
             break
+          case 'responsibility':
+            navLink.icon = 'pi pi-briefcase'
+            break
           case 'personnel':
             navLink.icon = 'pi pi-users'
             break
@@ -127,6 +130,9 @@ export const useSidebarNavLinks = () => {
                 case 'my-leaveapplications':
                   childNavLink.icon = 'fas fa-file-signature'
                   break
+                case 'my-locator-slips':
+                  childNavLink.icon = 'fas fa-location-dot'
+                  break
                 case 'my-payslips':
                   childNavLink.icon = 'fas fa-receipt'
                   break
@@ -154,6 +160,14 @@ export const useSidebarNavLinks = () => {
                   childNavLink.icon = 'fas fa-sitemap'
                   break
 
+                /*Responsibility Routes */
+                case 'accomplishment-report-list':
+                  childNavLink.icon = 'fas fa-check-double'
+                  break
+                case 'ctdo-report-list':
+                  childNavLink.icon = 'fas fa-list-check'
+                  break
+
                 /*Personnel Management Routes */
                 case 'hrpas-dashboard':
                   childNavLink.icon = 'fas fa-file-circle-xmark'
@@ -163,6 +177,9 @@ export const useSidebarNavLinks = () => {
                   break
                 case 'leave-applications':
                   childNavLink.icon = 'fas fa-clipboard'
+                  break
+                case 'locator-slips':
+                  childNavLink.icon = 'fas fa-location-dot'
                   break
                 case 'daily-time-records':
                   childNavLink.icon = 'fas fa-file-signature'

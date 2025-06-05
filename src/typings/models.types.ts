@@ -1,6 +1,6 @@
 import { ApiResponseData } from '@/typings/http-resources.types.ts'
 
-/** Address (HTTP Responses) */
+/** Libraries (HTTP Responses) */
 export type RegionResponse = {
   code_correspondence: string
   code: string
@@ -72,6 +72,17 @@ export type PositionResponse = {
   level: '1st' | '2nd' | '3rd' | null
 } & ApiResponseData
 
+export type LeaveTypeResponse = {
+  title: string
+  description: string | number | null
+} & ApiResponseData
+
+export type DeductionResponse = {
+  name: string
+  code: string | number | null
+  details: string | number | null
+} & ApiResponseData
+
 /** User (HTTP Responses) */
 export type UserResponse = {
   email: string
@@ -97,6 +108,7 @@ export type UserProfileResponse = {
   personnel_accomplishment_report?: Array<PersonnelAccomplishmentReportResponse> | null | undefined
 } & ApiResponseData
 
+/** Accomplishment Report (HTTP Responses) */
 export type PersonnelAccomplishmentReportResponse = {
   period: string
   supervisor_notes: string
@@ -128,6 +140,7 @@ export type PersonnelCompensatoryDayTimeOffDetailsResponse = {
   authorized_claim: string | null
 } & ApiResponseData
 
+/** Personnel Data Sheet (HTTP Responses) */
 export type PersonnelResponse = {
   id: number
   first_name: string
@@ -205,6 +218,75 @@ export type PersonnelEmployee = {
   division_id: number | null
   section_or_unit_id: number | null
 }
+
+/** Leave Application (HTTP Responses) */
+export type LeaveApplicationResponse = {
+  id: number | null
+  date_of_filing: string | null
+  others_notes: string | null
+  number_of_days: number
+  detail_of_leave: string | null
+  specific_detail: string | null
+  commutation: string | null
+  status: string | null
+  division_head_disapproval_notes: string | null
+  days_with_pay: string | null
+  days_without_pay: string | null
+  disapproved_notes: string | null
+  dates: Array<LeaveApplicationDateResponse> | null | undefined
+  employee_id: PersonnelResponse | null
+  leave_type_id: LeaveTypeResponse | null
+} & ApiResponseData
+
+export type LeaveApplicationDateResponse = {
+  leave_application_id: LeaveApplicationResponse | null
+  start_date: string | null
+  end_date: string | null
+} & ApiResponseData
+
+/** Locator Slip (HTTP Responses) */
+export type LocatorSlipResponse = {
+  id: number | null
+  period_covered_from: string | null
+  period_covered_to: string | null
+  destination: string | null
+  purpose: string | null
+  employee_id: PersonnelResponse | null
+} & ApiResponseData
+
+/** PayRoll (HTTP Responses) */
+export type PayrollResponse = {
+  id: number | null
+  period_from: string | null
+  period_to: string | null
+  gross_monthly_salary: number
+  net_pay: string | null
+  total_deductions_1st_half: string | null
+  amount_earned_1st_half: string | null
+  total_deductions_2nd_half: string | null
+  amount_earned_2nd_half: string | null
+  total_deductions_whole: string | null
+  amount_earned_whole: string | null
+  payroll_deduction_id: Array<PayrollDeductionResponse> | null | undefined
+  employee_id: PersonnelResponse | null
+  generate_employee_id: PersonnelResponse | null
+} & ApiResponseData
+
+export type PayrollDeductionResponse = {
+  amount: string | null
+  range: string | null
+  employee_id: PersonnelResponse | null
+  deduction_id: DeductionResponse | null
+  payroll_id: PayrollResponse | null
+  employee_deduction_setting_id: PayrollDeductionSettingResponse | null
+} & ApiResponseData
+
+export type PayrollDeductionSettingResponse = {
+  amount: string | null
+  range: string | null
+  employee_id: PersonnelResponse | null
+  deduction_id: DeductionResponse | null
+} & ApiResponseData
 
 /** Role (HTTP Responses) */
 export type RoleResponse = {
