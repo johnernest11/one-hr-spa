@@ -244,6 +244,16 @@ export type LeaveApplicationDateResponse = {
   end_date: string | null
 } & ApiResponseData
 
+/** Locator Slip (HTTP Responses) */
+export type LocatorSlipResponse = {
+  id: number | null
+  period_covered_from: string | null
+  period_covered_to: string | null
+  destination: string | null
+  purpose: string | null
+  employee_id: PersonnelResponse | null
+} & ApiResponseData
+
 /** PayRoll (HTTP Responses) */
 export type PayrollResponse = {
   id: number | null
