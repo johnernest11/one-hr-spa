@@ -136,7 +136,6 @@ const exportPdf = async (documentRequest: DocumentRequestResponse) => {
       >
         <h1 class="mb-2 mr-4 whitespace-nowrap text-xl text-surface-600 dark:text-primary-100 md:text-xl lg:text-4xl">
           {{ !RoleAssignView ? ' My Document Request' : 'Document Request' }}
-          My Document Request
         </h1>
         <div class="flex w-full items-center justify-end gap-4">
           <div class="flex space-x-2 whitespace-nowrap md:w-auto">
@@ -149,7 +148,7 @@ const exportPdf = async (documentRequest: DocumentRequestResponse) => {
               text
               @click="$router.push({ name: 'sign-up' })"
             />
-            <RouterLink :to="{ name: 'my-leaveapplications/store' }">
+            <RouterLink :to="{ name: 'request-documents/store' }">
               <Button
                 icon="pi pi-plus"
                 v-tooltip.top="'Create Document Request'"
