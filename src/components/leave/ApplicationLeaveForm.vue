@@ -402,7 +402,7 @@ const handleSaveSubmissionif = async () => {
             <div
               :class="[
                 'mx-4 flex flex-row items-center justify-center gap-2',
-                { 'mt-10': index === 0, 'mt-1': index > 0 }, // Adjust top margin based on row
+                { 'mt-0': index === 0, 'mt-1': index > 0 }, // Adjust top margin based on row
               ]"
             >
               <WbCalendar
@@ -418,7 +418,7 @@ const handleSaveSubmissionif = async () => {
             <div
               :class="[
                 'mx-4 flex flex-row items-center justify-center gap-2',
-                { 'mt-10': index === 0, 'mt-1': index > 0 }, // Keep mt-2 for consistency, adjust if needed
+                { 'mt-0': index === 0, 'mt-1': index > 0 }, // Keep mt-2 for consistency, adjust if needed
               ]"
             >
               <WbCalendar
@@ -432,8 +432,8 @@ const handleSaveSubmissionif = async () => {
               />
               <div
                 :class="[
-                  'mx-0 flex flex-row items-center justify-center gap-2',
-                  { 'mt-10': index === 0, 'mt-1': index > 0 }, // Keep mt-2 for consistency, adjust if needed
+                  'flex justify-center',
+                  { 'mt-2': index === 0, 'mt-1': index > 0 }, // Keep mt-2 for consistency, adjust if needed
                 ]"
               >
                 <Button
@@ -441,7 +441,7 @@ const handleSaveSubmissionif = async () => {
                   severity="danger"
                   rounded
                   @click="removeInclusiveDates(index)"
-                  v-if="inclusiveDates.length > 1"
+                  v-if="inclusiveDates.length > 1 && index !== 0"
                   class="mt-2"
                 />
               </div>
@@ -450,7 +450,7 @@ const handleSaveSubmissionif = async () => {
               v-if="index === 0"
               :class="[
                 'mx-6 flex flex-row items-center justify-center gap-4',
-                { 'mt-12': index === 0, 'mt-0': index > 0 }, // Adjust top margin if needed, but only for first row now
+                { 'mt-2': index === 0, 'mt-0': index > 0 }, // Adjust top margin if needed, but only for first row now
               ]"
             >
               <WbDropdown
