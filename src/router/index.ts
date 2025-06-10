@@ -87,7 +87,24 @@ const routes = [
         },
       },
       {
-        path: '/request-overtimes/:id?',
+        path: '/request-documents/store',
+        name: 'request-documents/store',
+        component: () => import('@/components/request/DocumentRequestForm.vue'),
+        meta: <RouteMeta>{
+          isSidebarMenu: false,
+          authType: AuthType.AUTHENTICATED,
+          roles: [
+            AuthRole.STANDARD_USER,
+            AuthRole.HR_PPMS_ADMIN,
+            AuthRole.HR_PAS_ADMIN,
+            AuthRole.ADMIN,
+            AuthRole.SYSTEM_SUPPORT,
+            AuthRole.SUPER_USER,
+          ],
+        },
+      },
+      {
+        path: '/request-overtimes',
         name: 'request-overtimes',
         component: () => import('@/views/request/OvertimesPage.vue'),
         meta: <RouteMeta>{

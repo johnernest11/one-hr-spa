@@ -191,3 +191,37 @@ export const getMonthAndYear = (dateString: string | null | undefined): string =
     return 'Invalid Date'
   }
 }
+
+/**
+ * @description Formats the current date into a string like "Monday 24 March, 2025".
+ * @returns {string} The formatted date string for today.
+ */
+export const dateToday = (): string => {
+  const dateObj = new Date() // Get the current date
+
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+  const months = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ]
+
+  const dayOfWeek = days[dateObj.getDay()]
+  const dayOfMonth = dateObj.getDate()
+  const monthName = months[dateObj.getMonth()]
+  const year = dateObj.getFullYear()
+
+  // Changed from single space to double space after dayOfWeek
+  return `${dayOfWeek}  ${dayOfMonth} ${monthName}, ${year}`
+}
+
+export const DateToday = dateToday()

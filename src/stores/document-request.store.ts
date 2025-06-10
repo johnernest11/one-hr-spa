@@ -8,7 +8,6 @@ import { useFetchBlob } from '@/composables/fetch.blob'
 import { useDateFormat } from '@vueuse/core'
 
 export type DocumentRequestPayload = {
-  id: number | null
   request_date: string | null
   certificate_type: string | null
   others_type: string | null
