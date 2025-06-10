@@ -227,7 +227,7 @@ const routes = [
       {
         path: '/my-leaveapplications/store',
         name: 'my-leaveapplications/store',
-        component: () => import('@/views/personnel/LeaveApplicationPage.vue'),
+        component: () => import('@/components/leave/ApplicationLeaveForm.vue'),
         meta: <RouteMeta>{
           isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
