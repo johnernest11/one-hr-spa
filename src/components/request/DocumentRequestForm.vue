@@ -212,18 +212,18 @@ const handleSaveSubmissionif = async () => {
           <div class="justify-center gap-2 border-b-2 bg-surface-100 px-2 py-2 md:gap-4 md:px-0">
             <div class="text-center font-semibold text-surface-500">TYPE OF REQUEST TO BE AVAILED</div>
           </div>
-          <div class="max-w-screen- my-4 grid grid-cols-1 gap-2 border-b-2 px-4 py-2 sm:grid-cols-2 md:gap-4 md:px-0 lg:mx-24">
+          <div class="max-w-screen- my-4 grid grid-cols-1 gap-2 px-4 py-2 sm:grid-cols-2 md:gap-4 md:px-0 lg:mx-24">
             <Card
               v-for="item in typeofRequest"
               :key="item.id"
-              class="mx-auto h-20 w-full cursor-pointer rounded-3xl transition-colors"
+              class="h-18 mx-auto w-full cursor-pointer rounded-md transition-colors"
               :class="!isRequestSelected(item.id) ? '!bg-surface-0 !text-surface-900' : '!bg-primary-400 !text-surface-0'"
               @click="selectRequest(item.id)"
             >
               <template #content>
                 <div class="relative h-full w-full">
                   <p
-                    class="absolute left-1/2 top-1/2 m-0 w-[70%] -translate-x-1/2 -translate-y-1/2 overflow-hidden text-center text-sm sm:text-base md:w-[60%] lg:text-lg"
+                    class="absolute left-1/2 top-1/2 m-0 w-[70%] -translate-x-1/2 -translate-y-1/2 overflow-hidden text-center text-sm sm:text-center sm:text-base md:w-[60%] lg:text-lg"
                   >
                     {{ item.label }}
                   </p>
@@ -231,7 +231,7 @@ const handleSaveSubmissionif = async () => {
                     v-if="isRequestSelected(item.id)"
                     class="absolute right-2 top-1/2 -translate-y-1/2 text-xl !text-surface-200 sm:right-4 sm:text-2xl md:text-3xl lg:right-6 lg:text-4xl"
                   >
-                    <font-awesome-icon :icon="['fas', 'check-circle']" />
+                    <font-awesome-icon :icon="['fas', 'check-circle']" class="text-surface-0" />
                   </p>
                 </div>
               </template>
@@ -256,7 +256,7 @@ const handleSaveSubmissionif = async () => {
             <Card
               v-for="request in additionalInformationofRequest"
               :key="request.id"
-              class="mx-auto h-20 w-full cursor-pointer rounded-3xl transition-colors"
+              class="h-18 mx-auto w-full cursor-pointer rounded-md transition-colors"
               :class="
                 !isAdditionalRequestRequestSelected(request.id)
                   ? '!bg-surface-0 !text-surface-700'
@@ -275,7 +275,7 @@ const handleSaveSubmissionif = async () => {
                     v-if="isAdditionalRequestRequestSelected(request.id)"
                     class="absolute right-2 top-1/2 -translate-y-1/2 text-xl !text-surface-200 sm:right-4 sm:text-2xl md:text-3xl lg:right-6 lg:text-4xl"
                   >
-                    <font-awesome-icon :icon="['fas', 'check-circle']" />
+                    <font-awesome-icon :icon="['fas', 'check-circle']" class="text-surface-0" />
                   </p>
                 </div>
               </template>
