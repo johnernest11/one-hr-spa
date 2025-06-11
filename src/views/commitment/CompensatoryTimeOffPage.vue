@@ -107,21 +107,23 @@ const handleSearchCompensatoryTimeOff = async () => {
 
 const toast = useToast()
 const exportPdf = async (compensatoryDayTimeOff: PersonnelCompensatoryDayTimeOffResponse) => {
+  const { ctdo_period, id } = compensatoryDayTimeOff
   toast.add({
     severity: 'info',
     summary: 'Exporting...',
-    detail: `Exporting ${compensatoryDayTimeOff.ctdo_period || 'the Compensatory Time Day Off '}...`,
+    detail: `Exporting ${ctdo_period} of  Compensatory Time Day Off '...`,
     life: 5000,
   })
-  const reportResponse = await compensatoryDayTimeOffStore.generateCompensatoryDayTimeOff(String(compensatoryDayTimeOff.id))
+  const reportResponse = await compensatoryDayTimeOffStore.generateCompensatoryDayTimeOff(String(id))
 
-  const blob = reportResponse.data.value // Get the Blob
+  const blob = reportResponse.data.value
+  const fileName = reportResponse.fileNameHeader?.value || `Compensatory-Form-${id}.docx`
 
   if (blob) {
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `${reportResponse.fileNameHeader.value}`
+    a.download = fileName
     document.body.appendChild(a)
     a.click()
     window.URL.revokeObjectURL(url)
@@ -177,7 +179,7 @@ const formatDate = (dateString: string | null | undefined): string => {
               text
               @click="$router.push({ name: 'sign-up' })"
             />
-            <RouterLink :to="{ name: 'ctdo-reports/store' }">
+            <RouterLink v-if="!RoleAssignView" :to="{ name: 'ctdo-reports/store' }">
               <Button
                 icon="pi pi-plus"
                 v-tooltip.top="'Create Compensatory Day Time Offs (CTDO)'"

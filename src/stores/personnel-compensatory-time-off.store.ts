@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia'
 import { useApiCall } from '@/composables/network'
-import { useFetchBlob } from '@/composables/fetch.blob'
 import { useAuthStore } from '@/stores/auth.store.ts'
 import { PersonnelCompensatoryDayTimeOffResponse } from '@/typings/models.types.ts'
 import { ApiResponseBody } from '@/typings/http-resources.types.ts'
@@ -144,26 +143,14 @@ export const useCompensatoryTimeOffStore = defineStore('personnel-compensatory-t
     }
   }
 
-  // const fetchCompensatoryDayTimeOffById = async (id: string) => {
-  //   const url = `/compensatory-day-time-offs/${id}`
-  //   const { data } = await useApiCall(url, auth.authenticationToken).get().json()
-  //   const responseBody: ApiResponseBody = data.value
-  //   if (responseBody.success) {
-  //     selectedCompensatoryDayOff.value = responseBody.data as PersonnelCompensatoryDayTimeOffResponse
-  //   }
-  //   return responseBody
-  // }
-
   const fetchCompensatoryDayTimeOffById = async (id: string) => {
-    // Simulate network delay
     await new Promise((resolve) => setTimeout(resolve, 300))
 
     const foundData = mockData.find((item) => item.id === parseInt(id))
 
-    // Construct a mock response body similar to your API's structure
     const responseBody = {
-      success: !!foundData, // true if data is found, false otherwise
-      data: foundData || null, // null if not found
+      success: !!foundData,
+      data: foundData || null,
       message: foundData ? 'Data fetched successfully.' : 'Record not found.',
     }
 
@@ -212,10 +199,14 @@ export const useCompensatoryTimeOffStore = defineStore('personnel-compensatory-t
   }
 
   const generateCompensatoryDayTimeOff = async (id: string) => {
-    const api_url = `/compensatory-day-time-offs/${id}/generate`
+    const response = await fetch('/mock/Compensatory-Form.docx')
+    const blob = await response.blob()
+    const fileNameHeader = `Compensatory-Form-${id}.docx`
 
-    const { data, fileNameHeader } = await useFetchBlob(api_url, auth.authenticationToken)
-    return { data, fileNameHeader }
+    return {
+      data: ref(blob),
+      fileNameHeader: ref(fileNameHeader),
+    }
   }
 
   return {

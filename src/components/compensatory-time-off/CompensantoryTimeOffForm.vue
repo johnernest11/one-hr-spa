@@ -21,7 +21,6 @@ import {
 import { useRoute } from 'vue-router'
 import { PersonnelCompensatoryDayTimeOffResponse } from '@/typings/models.types'
 
-/** Payload for the Personnel Compensatory Day Off  */
 const payload = reactive<PersonnelCompensatoryTimeOffPayload>({
   ctdo_period: '',
   ctdo_supervisor_notes: '',
@@ -38,7 +37,17 @@ const payload = reactive<PersonnelCompensatoryTimeOffPayload>({
   ],
 })
 
-/** Payload details for each Compensatory Day Off entry */
+payload.rows = reactive([
+  {
+    days_of_the_week: '',
+    work_date: '',
+    time_start: null,
+    time_end: null,
+    accomplishment: null,
+    authorized_claim: null,
+  },
+])
+
 const payloadDetails = reactive<Partial<PersonnelCompensatoryTimeDayOffDetailsPayload>>({
   days_of_the_week: '',
   work_date: '',
@@ -48,7 +57,6 @@ const payloadDetails = reactive<Partial<PersonnelCompensatoryTimeDayOffDetailsPa
   authorized_claim: null,
 })
 
-/** Options for selecting the week number */
 const weekOptions = ref([
   { label: 'Monday', value: 'Monday' },
   { label: 'Tuesday', value: 'Tuesday' },
@@ -61,14 +69,13 @@ const weekOptions = ref([
 
 const claimOptions = ref([{ label: 'COC', value: 'COC' }])
 
-/** Controls the visibility */
 const compensatoryBtn = ref(false)
 const addcompensatoryFiledBtn = ref(false)
 const showTextAreaActivity = ref(false)
 const showTextAreaHighlights = ref(false)
 
 const visible = ref(false)
-const dialogType = ref('') // Add empty string for initial value
+const dialogType = ref('')
 const dialogTitle = ref('')
 const dialogMessage = ref('')
 const confirmButtonLabel = ref('')
@@ -78,19 +85,7 @@ const buttonLabel = computed(() => (isUpdateMode.value ? 'Approve' : 'Save'))
 const buttonsLabel = computed(() => (isUpdateMode.value ? 'Disapproved' : 'Draft'))
 const buttonIcon = computed(() => (isUpdateMode.value ? ['fas', 'check-to-slot'] : ['fas', 'floppy-disk']))
 const buttonsIcon = computed(() => (isUpdateMode.value ? ['fas', 'square-xmark'] : ['fas', 'file']))
-/** Array to store the Compensatory Day Off entries */
-payload.rows = reactive([
-  {
-    days_of_the_week: '',
-    work_date: '',
-    time_start: null,
-    time_end: null,
-    accomplishment: null,
-    authorized_claim: null,
-  },
-])
 
-/** Watcher to update the week number of all existing compensatory when the selectedWeek changes */
 watch(
   () => payloadDetails.days_of_the_week,
   (newWeekDayNum) => {
@@ -101,7 +96,6 @@ watch(
   }
 )
 
-/** Function to add a new Compensatory Day Off entry */
 const addCompensatory = (newFields = {}) => {
   const defaultCompensatory = {
     days_of_the_week: '',
@@ -287,7 +281,7 @@ const handleSaveSubmissionif = async (ctdo_status: string) => {
 
     const periodResponse = await compensatoryTimeOffStore.createCompensatoryDayTimeOff(
       fullPayload as PersonnelCompensatoryTimeOffPayload
-    ) // No need for "as PersonnelCompensatoryTimeOffPayload" if types are correct
+    )
 
     if (!periodResponse.success) {
       const result = parseApiResponseError(periodResponse)
@@ -300,7 +294,7 @@ const handleSaveSubmissionif = async (ctdo_status: string) => {
       errorDetails.value = result.errors
       formIsSubmitting.value = false
       document.querySelector('.create-user-creds-section')?.scrollIntoView({ behavior: 'smooth' })
-      return // Ensure you return after handling the error
+      return
     }
 
     toast.add({
@@ -312,10 +306,10 @@ const handleSaveSubmissionif = async (ctdo_status: string) => {
     emit('ctdo-created', true)
 
     setTimeout(() => {
-      window.location.reload() // Consider alternative approaches if full reload isn't necessary
+      window.location.reload()
     }, 1000)
   } finally {
-    formIsSubmitting.value = false // Ensure formIsSubmitting is always set to false
+    formIsSubmitting.value = false
   }
 }
 </script>
