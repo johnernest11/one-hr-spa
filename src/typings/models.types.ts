@@ -272,8 +272,7 @@ export type LocatorSlipResponse = {
   id: number | null
   period_covered_from: string | null
   period_covered_to: string | null
-  destination: string | null
-  purpose: string | null
+  period_request: string | null
   employee_id: PersonnelResponse | null
 } & ApiResponseData
 

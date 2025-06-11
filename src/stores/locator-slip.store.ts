@@ -4,14 +4,11 @@ import { useAuthStore } from '@/stores/auth.store.ts'
 import { useApiCall } from '@/composables/network'
 import { ApiResponseBody } from '@/typings/http-resources.types.ts'
 import { LocatorSlipResponse } from '@/typings/models.types'
-import { useFetchBlob } from '@/composables/fetch.blob'
 
 export type LocatorSlipPayload = {
-  id: number | null
   period_covered_from: string | null
   period_covered_to: string | null
-  destination: string | null
-  purpose: string | null
+  period_request: string | null
 }
 
 export const useLocatorSlipStore = defineStore('locator-slip', () => {
@@ -84,8 +81,7 @@ export const useLocatorSlipStore = defineStore('locator-slip', () => {
       id: mockId++,
       period_covered_from: '2025-05-01',
       period_covered_to: '2025-05-15',
-      destination: 'San Fernando',
-      purpose: 'Wellness Activity',
+      period_request: '1st request for this period',
       employee_id: employee,
       created_at: '2025-07-06',
       updated_at: '2025-07-06',
@@ -94,8 +90,7 @@ export const useLocatorSlipStore = defineStore('locator-slip', () => {
       id: mockId++,
       period_covered_from: '2025-06-01',
       period_covered_to: '2025-06-15',
-      destination: 'San Fernando',
-      purpose: 'Wellness Activity',
+      period_request: '2nd request for this period',
       employee_id: employee,
       created_at: '2025-08-01',
       updated_at: '2025-08-01',
@@ -104,8 +99,7 @@ export const useLocatorSlipStore = defineStore('locator-slip', () => {
       id: mockId++,
       period_covered_from: '2025-07-01',
       period_covered_to: '2025-07-15',
-      destination: 'San Fernando',
-      purpose: 'Wellness Activity',
+      period_request: '2nd request for this period',
       employee_id: employee,
       created_at: '2025-09-01',
       updated_at: '2025-09-01',
@@ -178,10 +172,14 @@ export const useLocatorSlipStore = defineStore('locator-slip', () => {
   }
 
   const generateLocatorSlip = async (id: string) => {
-    const api_url = `/locator-slips/${id}/generate`
-    const authenticationToken = ''
-    const { data, fileNameHeader } = await useFetchBlob(api_url, authenticationToken)
-    return { data, fileNameHeader }
+    const response = await fetch('/mock/Locator-Slip-Form.docx')
+    const blob = await response.blob()
+    const fileNameHeader = `locator-slip-${id}.docx`
+
+    return {
+      data: ref(blob),
+      fileNameHeader: ref(fileNameHeader),
+    }
   }
 
   return {
