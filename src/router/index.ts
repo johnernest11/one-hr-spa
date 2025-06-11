@@ -1,7 +1,6 @@
 import { createRouter, createWebHistory, RouteMeta } from 'vue-router'
 import { vueApp } from '@/app.ts'
 import Dashboard from '@/views/DashboardPage.vue'
-import ProfilePage from '@/views/ProfilePage.vue'
 import EmptyPage from '@/views/EmptyPage.vue'
 import SupportPage from '@/views/SupportPage.vue'
 import AccomplishmentReportPage from '@/views/commitment/AccomplishmentReportPage.vue'
@@ -131,7 +130,7 @@ const routes = [
       {
         path: '/my-pds',
         name: 'my-pds',
-        component: ProfilePage,
+        component: () => import('@/views/personnel/PdsForm.vue'),
         meta: <RouteMeta>{
           label: 'Personal Data Sheet',
           isSidebarMenu: true,
@@ -647,7 +646,7 @@ const routes = [
       {
         path: '/leave-applications/:id?',
         name: 'leave-applications',
-        component: () => import('@/views/human-resources/LeaveFilePage.vue'),
+        component: () => import('@/views/personnel/LeaveApplicationPage.vue'),
         meta: <RouteMeta>{
           label: 'Leave Application',
           isSidebarMenu: true,
@@ -691,7 +690,7 @@ const routes = [
       {
         path: '/staff-ctdos/:id?',
         name: 'staff-ctdos',
-        component: () => import('@/views/human-resources/CTDOPage.vue'),
+        component: () => import('@/views/commitment/CompensatoryTimeOffPage.vue'),
         meta: <RouteMeta>{
           label: 'Staff CTDO`s',
           isSidebarMenu: true,

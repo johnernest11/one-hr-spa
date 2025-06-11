@@ -18,7 +18,16 @@ import { formatDate } from '@/utils/helpers.ts'
 
 const authStore = useAuthStore()
 const RoleAssignView = computed(() => {
-  return authStore.authHasRequiredRole(['hr_pas_admin', 'admin', 'super_user'])
+  return authStore.authHasRequiredRole(['hr_pas_admin', 'admin'])
+})
+
+const filteredDocumentRequests = computed(() => {
+  if (RoleAssignView.value) {
+    // Show only approved if user has restricted roles
+    return documentRequestStore.documentRequest.filter((app) => ['In Progress', 'Released'].includes(app.status ?? ''))
+  }
+  // Otherwise show all
+  return documentRequestStore.documentRequest
 })
 const router = useRouter()
 const navigateToDetails = (documentRequest: DocumentRequestResponse) => {
@@ -191,7 +200,7 @@ const exportPdf = async (documentRequest: DocumentRequestResponse) => {
       <div class="mt-6 flex flex-col">
         <div class="w-full">
           <div class="mx-auto flex h-full w-full flex-col">
-            <DataTable :value="documentRequestStore.documentRequest" class="mt-6" dataKey="id">
+            <DataTable :value="filteredDocumentRequests" class="mt-6" dataKey="id">
               <Column
                 field="period"
                 header="Leave Period"

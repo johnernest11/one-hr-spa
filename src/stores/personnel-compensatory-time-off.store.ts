@@ -144,13 +144,33 @@ export const useCompensatoryTimeOffStore = defineStore('personnel-compensatory-t
     }
   }
 
+  // const fetchCompensatoryDayTimeOffById = async (id: string) => {
+  //   const url = `/compensatory-day-time-offs/${id}`
+  //   const { data } = await useApiCall(url, auth.authenticationToken).get().json()
+  //   const responseBody: ApiResponseBody = data.value
+  //   if (responseBody.success) {
+  //     selectedCompensatoryDayOff.value = responseBody.data as PersonnelCompensatoryDayTimeOffResponse
+  //   }
+  //   return responseBody
+  // }
+
   const fetchCompensatoryDayTimeOffById = async (id: string) => {
-    const url = `/compensatory-day-time-offs/${id}`
-    const { data } = await useApiCall(url, auth.authenticationToken).get().json()
-    const responseBody: ApiResponseBody = data.value
-    if (responseBody.success) {
-      selectedCompensatoryDayOff.value = responseBody.data as PersonnelCompensatoryDayTimeOffResponse
+    // Simulate network delay
+    await new Promise((resolve) => setTimeout(resolve, 300))
+
+    const foundData = mockData.find((item) => item.id === parseInt(id))
+
+    // Construct a mock response body similar to your API's structure
+    const responseBody = {
+      success: !!foundData, // true if data is found, false otherwise
+      data: foundData || null, // null if not found
+      message: foundData ? 'Data fetched successfully.' : 'Record not found.',
     }
+
+    if (responseBody.success) {
+      selectedCompensatoryDayOff.value = responseBody.data
+    }
+
     return responseBody
   }
 
