@@ -99,32 +99,47 @@ const handleSearchdocumentRequest = async () => {
 
 const toast = useToast()
 const exportPdf = async (documentRequest: DocumentRequestResponse) => {
+  const { request_date, certificate_type, id } = documentRequest
   toast.add({
     severity: 'info',
     summary: 'Exporting...',
-    detail: `Exporting ${documentRequest.request_date || 'the Leave Application '}...`,
+    detail: `Exporting ${certificate_type} -${request_date}'Document Request '}...`,
     life: 5000,
   })
-  const reportResponse = await documentRequestStore.generateDocumentRequest(String(documentRequest.id))
 
-  const blob = reportResponse.data.value // Get the Blob
+  try {
+    const reportResponse = await documentRequestStore.generateDocumentRequest(String(id))
 
-  if (blob) {
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${reportResponse.fileNameHeader.value}`
-    document.body.appendChild(a)
-    a.click()
-    window.URL.revokeObjectURL(url)
-    document.body.removeChild(a)
+    const blob = reportResponse.data.value
+    const fileName = reportResponse.fileNameHeader?.value || `Document-Request-${id}.docx`
 
+    if (blob) {
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = fileName
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+
+      toast.add({
+        severity: 'success',
+        summary: 'Document Request Details Exported',
+        detail: `The Document Request from ${documentRequest.request_date} was successfully exported.`,
+        life: 5000,
+      })
+    } else {
+      throw new Error('Failed to generate file.')
+    }
+  } catch (error) {
     toast.add({
-      severity: 'success',
-      summary: 'Leave Application Details Exported',
-      detail: `The Leave Application from ${documentRequest.request_date} was successfully exported.`,
+      severity: 'error',
+      summary: 'Export Failed',
+      detail: 'There was an issue exporting the locator slip. Please try again.',
       life: 5000,
     })
+    console.error(error)
   }
 }
 </script>
@@ -136,7 +151,6 @@ const exportPdf = async (documentRequest: DocumentRequestResponse) => {
       >
         <h1 class="mb-2 mr-4 whitespace-nowrap text-xl text-surface-600 dark:text-primary-100 md:text-xl lg:text-4xl">
           {{ !RoleAssignView ? ' My Document Request' : 'Document Request' }}
-          My Document Request
         </h1>
         <div class="flex w-full items-center justify-end gap-4">
           <div class="flex space-x-2 whitespace-nowrap md:w-auto">
@@ -202,22 +216,22 @@ const exportPdf = async (documentRequest: DocumentRequestResponse) => {
                 headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
               >
                 <template #body="props">
-                  <template v-if="props.data.status === 'Draft'">
+                  <template v-if="props.data.status === 'Pending'">
                     <Chip
-                      label="Draft"
-                      class="flex items-center justify-center !bg-surface-500 px-4 py-1 font-semibold !text-surface-0"
+                      label="Pending"
+                      class="flex items-center justify-center !bg-warn-500 px-4 py-1 font-semibold !text-surface-0"
                     >
                     </Chip>
                   </template>
-                  <template v-else-if="props.data.status === 'Disapproved'">
+                  <template v-else-if="props.data.status === 'In Progress'">
                     <Chip
-                      label="Disapproved"
-                      class="flex items-center justify-center !bg-error-800 px-4 py-1 font-semibold !text-surface-0"
+                      label="In Progress"
+                      class="flex items-center justify-center !bg-success-800 px-4 py-1 font-semibold !text-surface-0"
                     />
                   </template>
-                  <template v-else-if="props.data.status === 'Approved'">
+                  <template v-else-if="props.data.status === 'Released'">
                     <Chip
-                      label="Approved"
+                      label="Released"
                       class="flex items-center justify-center !bg-info-800 px-4 py-1 font-semibold !text-surface-0"
                     />
                   </template>
@@ -228,7 +242,7 @@ const exportPdf = async (documentRequest: DocumentRequestResponse) => {
                   <div class="flex gap-4 whitespace-nowrap md:w-auto">
                     <Button
                       icon="pi pi-eye"
-                      v-tooltip.top="'View Leave Application'"
+                      v-tooltip.top="'View Document Request'"
                       severity="info"
                       class="border-none text-lg font-semibold text-primary-600 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
                       text
@@ -236,7 +250,7 @@ const exportPdf = async (documentRequest: DocumentRequestResponse) => {
                     />
                     <Button
                       icon="pi pi-file-pdf"
-                      v-tooltip.top="'View Leave Application'"
+                      v-tooltip.top="'Export Document Request'"
                       severity="info"
                       class="border-none text-lg font-semibold text-primary-600 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
                       text

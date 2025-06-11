@@ -4,7 +4,6 @@ import { useAuthStore } from '@/stores/auth.store.ts'
 import { useApiCall } from '@/composables/network'
 import { ApiResponseBody } from '@/typings/http-resources.types.ts'
 import { DocumentRequestResponse } from '@/typings/models.types'
-import { useFetchBlob } from '@/composables/fetch.blob'
 import { useDateFormat } from '@vueuse/core'
 
 export type DocumentRequestPayload = {
@@ -92,7 +91,7 @@ export const useDocumentRequestStore = defineStore('document-request', () => {
       additional_info: 'N/A',
       others_additional_info: 'yes',
       purpose: 'Draft',
-      status: 'Draft',
+      status: 'Pending',
       mode_of_receipt: 'Draft',
       created_at: '2025-06-01',
       updated_at: '2025-06-01',
@@ -161,7 +160,7 @@ export const useDocumentRequestStore = defineStore('document-request', () => {
       additional_info: 'N/A',
       others_additional_info: 'yes',
       purpose: 'Draft',
-      status: 'Approved',
+      status: 'In Progress',
       mode_of_receipt: 'Draft',
       created_at: '2025-06-01',
       updated_at: '2025-06-01',
@@ -230,7 +229,7 @@ export const useDocumentRequestStore = defineStore('document-request', () => {
       additional_info: 'N/A',
       others_additional_info: 'yes',
       purpose: 'Draft',
-      status: 'Disapproved',
+      status: 'Released',
       mode_of_receipt: 'Draft',
       created_at: '2025-06-01',
       updated_at: '2025-06-01',
@@ -313,10 +312,14 @@ export const useDocumentRequestStore = defineStore('document-request', () => {
   }
 
   const generateDocumentRequest = async (id: string) => {
-    const api_url = `/document-requests/${id}/generate`
-    const authenticationToken = ''
-    const { data, fileNameHeader } = await useFetchBlob(api_url, authenticationToken)
-    return { data, fileNameHeader }
+    const response = await fetch('/mock/Request-Form.docx')
+    const blob = await response.blob()
+    const fileNameHeader = `Request-Form-${id}.docx`
+
+    return {
+      data: ref(blob),
+      fileNameHeader: ref(fileNameHeader),
+    }
   }
 
   return {
