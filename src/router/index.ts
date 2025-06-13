@@ -4,8 +4,6 @@ import Dashboard from '@/views/DashboardPage.vue'
 import EmptyPage from '@/views/EmptyPage.vue'
 import SupportPage from '@/views/SupportPage.vue'
 import AccomplishmentReportPage from '@/views/commitment/AccomplishmentReportPage.vue'
-import CreateAccomplishmentReportForm from '@/components/accomplishment-report/CreateAccomplishmentReportForm.vue'
-import ViewAccomplishmentReport from '@/components/accomplishment-report/ViewAccomplishmentReport.vue'
 import ItemNumberPage from '@/views/human-resources/ItemNumberPage.vue'
 import ItemNumberForm from '@/components/item-number/ItemNumberForm.vue'
 import AboutUsPage from '@/views/AboutUsPage.vue'
@@ -22,7 +20,7 @@ const enum RouteGroup {
 }
 
 const routes = [
-  /* MAIN  ROUTE*/
+  /* Main Routes*/
   {
     path: '',
     name: 'dashboard',
@@ -378,7 +376,7 @@ const routes = [
       {
         path: 'accomplishment-reports/store',
         name: 'accomplishment-reports/store',
-        component: CreateAccomplishmentReportForm,
+        component: () => import('@/components/accomplishment-report/AccomplishmentReportForm.vue'),
         meta: <RouteMeta>{
           isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
@@ -397,7 +395,7 @@ const routes = [
       {
         path: 'accomplishment-reports/:id/editor',
         name: 'accomplishment-reports/editor',
-        component: ViewAccomplishmentReport,
+        component: () => import('@/components/accomplishment-report/AccomplishmentReportForm.vue'),
         meta: <RouteMeta>{
           isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
@@ -498,13 +496,13 @@ const routes = [
         },
       },
       {
-        path: 'accomplishment-report-list/:id/editor',
+        path: '/accomplishment-report-list/:id/editor',
         name: 'accomplishment-report-list/editor',
-        component: ViewAccomplishmentReport,
+        component: () => import('@/components/accomplishment-report/AccomplishmentReportForm.vue'),
         meta: <RouteMeta>{
           isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
-          roles: [AuthRole.DIVISION_HEAD, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+          roles: [AuthRole.SECTION_HEAD, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
         },
       },
       {

@@ -1,46 +1,42 @@
 <script setup lang="ts">
-import { ref, reactive, onBeforeMount, watch } from 'vue'
+import { ref, reactive, onBeforeMount, watch, onMounted, computed } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import { parseApiResponseError } from '@/utils/error-handle.ts'
 import useVuelidate from '@vuelidate/core'
 import { helpers, maxLength, required } from '@vuelidate/validators'
 import WbInputText from '@/components/webkit/WbInputText.vue'
+import WbTextArea from '../webkit/WbTextArea.vue'
 import Button from 'primevue/button'
 import Divider from 'primevue/divider'
 import Card from 'primevue/card'
 import Dialog from 'primevue/dialog'
+import WbDropdown from '@/components/webkit/WbDropdown.vue'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-import Dropdown from 'primevue/dropdown'
 import { useRolesStore } from '@/stores/roles.store.ts'
+import { useRoute } from 'vue-router'
 import {
   PersonnelAccomplishmentReportPayload,
-  PersonnelAccomplishmentReportDetailsPayload,
   useAccomplishmentReportStore,
 } from '@/stores/personnel-accomplishment-report.store'
+import { PersonnelAccomplishmentReportResponse } from '@/typings/models.types'
+import { useAuthStore } from '@/stores/auth.store'
 
 /** Payload for the Personnel Accomplishment Report */
 const payload = reactive<PersonnelAccomplishmentReportPayload>({
   period: null,
   supervisor_notes: '',
   status: '',
-  rows: [
-    {
-      // Initialize with at least one row
-      week_num: '',
-      dates_in_week: '',
-      specific_activity: null,
-      highlights: null,
-    },
-  ],
+  rows: [],
 })
 
-/** Payload details for each accomplishment entry */
-const payloadDetails = reactive<Partial<PersonnelAccomplishmentReportDetailsPayload>>({
-  week_num: '',
-  dates_in_week: '',
-  specific_activity: null,
-  highlights: null,
-})
+payload.rows = reactive([
+  {
+    week_num: '',
+    dates_in_week: '',
+    specific_activity: null,
+    highlights: null,
+  },
+])
 
 /** Options for selecting the week number */
 const weekOptions = ref([
@@ -51,38 +47,24 @@ const weekOptions = ref([
   { label: 'Week 5', value: 'Week 5' },
 ])
 
-/** Controls the visibility */
+/** Controls  */
 const accomplishmentBtn = ref(false)
 const addAccomplishmentFieldBtn = ref(false)
 const showTextAreaActivity = ref(false)
 const showTextAreaHighlights = ref(false)
-
+const rolesOptionsIsLoading = ref(false)
+const isLoading = ref(true)
 const visible = ref(false)
-const dialogType = ref('') // Add empty string for initial value
+const dialogType = ref('')
 const dialogTitle = ref('')
 const dialogMessage = ref('')
 const confirmButtonLabel = ref('')
-
-/** Array to store the accomplishment entries */
-const accomplishments = ref([
-  {
-    week_num: payloadDetails.week_num,
-    dates_in_week: payloadDetails.dates_in_week,
-    specific_activity: payloadDetails.specific_activity,
-    highlights: payloadDetails.highlights,
-  },
-])
-
-/** Watcher to update the week number of all existing accomplishments when the selectedWeek changes */
-watch(
-  () => payloadDetails.week_num,
-  (newWeekNum) => {
-    accomplishments.value = accomplishments.value.map((item) => ({
-      ...item,
-      week_num: newWeekNum,
-    }))
-  }
-)
+const route = useRoute()
+const rolesStore = useRolesStore()
+const authStore = useAuthStore()
+const isUpdateMode = computed(() => !!route.params.id)
+const accomplishmentReportExportFile = ref<PersonnelAccomplishmentReportResponse | null>(null)
+const props = defineProps<AccomplishmentReportFormProps>()
 
 /** Function to add a new accomplishment entry */
 const addAccomplishment = (newFields = {}) => {
@@ -94,35 +76,84 @@ const addAccomplishment = (newFields = {}) => {
   }
 
   const newAccomplishment = { ...defaultAccomplishment, ...newFields }
-  accomplishments.value.push(newAccomplishment)
-  validator.value.accomplishment.$touch()
+  payload.rows.push(newAccomplishment)
 }
 
 /** Function to remove an accomplishment entry */
 const removeAccomplishment = (index: number) => {
-  if (index >= 0 && index < accomplishments.value.length) {
-    accomplishments.value.splice(index, 1)
+  if (index >= 0 && index < payload.rows.length) {
+    payload.rows.splice(index, 1)
   }
 }
 
 /** Function to handle changes in the selected week */
 const handleWeekChange = () => {
-  showTextAreaActivity.value = accomplishments.value.some((item) => item.week_num !== '') // Check if ANY week is selected
-  showTextAreaHighlights.value = accomplishments.value.some((item) => item.week_num !== '') // Check if ANY week is selected
+  const hasWeekNum = payload.rows.some((item) => item.week_num !== '')
 
-  accomplishmentBtn.value = accomplishments.value.some((item) => item.week_num !== '') // Check if ANY week is selected
-  addAccomplishmentFieldBtn.value = accomplishments.value.some((item) => item.week_num !== '') // Check if ANY week is selected
+  showTextAreaActivity.value = hasWeekNum
+  showTextAreaHighlights.value = hasWeekNum
+  accomplishmentBtn.value = hasWeekNum
+  addAccomplishmentFieldBtn.value = hasWeekNum
 }
 
-/** Roles Options */
-const rolesStore = useRolesStore()
-const rolesOptionsIsLoading = ref(false)
+type AccomplishmentReportFormProps = {
+  accomplishmentReport?: PersonnelAccomplishmentReportResponse
+}
+
+const updatePayloadFromReport = (accomplishmentReport: PersonnelAccomplishmentReportResponse | null) => {
+  payload.period = accomplishmentReport?.period ?? null
+  payload.supervisor_notes = accomplishmentReport?.supervisor_notes ?? ''
+  payload.status = accomplishmentReport?.status ?? ''
+  payload.rows = accomplishmentReport?.rows ?? []
+}
+
+onMounted(async () => {
+  const id = route.params.id as string
+  if (id) {
+    const response = await accomplishmentReportStore.fetchAccomplishmentById(id)
+    if (response && response.success) {
+      accomplishmentReportExportFile.value = response.data as PersonnelAccomplishmentReportResponse // Directly update the ref
+      updatePayloadFromReport(response.data as PersonnelAccomplishmentReportResponse)
+    }
+  }
+  handleWeekChange()
+  isLoading.value = false
+})
 
 onBeforeMount(async () => {
   rolesOptionsIsLoading.value = true
   await rolesStore.fetchRoles()
   rolesOptionsIsLoading.value = false
 })
+
+watch(
+  () => props.accomplishmentReport,
+  (newValue) => {
+    if (newValue) {
+      updatePayloadFromReport(newValue)
+    } else {
+      payload.period = ''
+      payload.supervisor_notes = ''
+      payload.status = 'Unfilled'
+      payload.rows = [
+        {
+          week_num: '',
+          dates_in_week: '',
+          specific_activity: null,
+          highlights: null,
+        },
+      ]
+    }
+  },
+  { immediate: true }
+)
+
+/** Watcher to update the week number of all existing accomplishments when the selectedWeek changes */
+watch(
+  () => payload.rows.map((row) => row.week_num),
+  () => {}
+)
+
 /** Validation */
 const globalStringMaxLength = import.meta.env.VITE_GLOBAL_STRING_MAX_LENGTH
 const globalStringMaxLengthRule = helpers.withMessage(
@@ -145,24 +176,42 @@ const errorMessage = ref<string | null>(null)
 const errorDetails = ref<string[]>([])
 const accomplishmentReportStore = useAccomplishmentReportStore()
 const toast = useToast()
+const IsBeingUpdated = ref(false)
 
+/** Check if the page should be reloaded after the update */
+const shouldReloadPageAfterUpdate = (): boolean => {
+  return true
+}
 /** Emits */
 const emit = defineEmits<{
   (e: 'ar-created', value: boolean): void
+  (e: 'ar-updated', value: boolean): void
 }>()
 /** Open a dialog with a specified type (export, markDone, or saveDraft) */
-const openDialog = (type: 'draft' | 'done') => {
+const openDialog = (type: 'draft' | 'done' | 'export' | 'markDone' | 'saveDraft') => {
   dialogType.value = type
   visible.value = true
 
   if (type === 'draft') {
-    dialogTitle.value = 'Save Accomplishment as Draft ?'
-    dialogMessage.value = 'Saving as draft allows you to continue editing later.'
-    confirmButtonLabel.value = 'Save as Draft'
+    dialogTitle.value = 'Are you sure you want to save this accomplishment as Draft?'
+    dialogMessage.value = 'Saving your accomplishment as draft will allow you to edit it later.'
+    confirmButtonLabel.value = 'Yes, Save as Draft'
   } else if (type === 'done') {
     dialogTitle.value = 'Save and Finalize Accomplishment ?'
     dialogMessage.value = 'Finalizing will save the accomplishment and prevent further edits.'
     confirmButtonLabel.value = 'Save and Finalize'
+  } else if (type === 'export') {
+    dialogTitle.value = 'Are you sure you want to export this accomplishment as File?'
+    dialogMessage.value = 'Exporting your accomplishment will download an Word File.'
+    confirmButtonLabel.value = 'Yes, Export this Document'
+  } else if (type === 'markDone') {
+    dialogTitle.value = 'Are you sure you want to mark this accomplishment as Done?'
+    dialogMessage.value = 'Marking your accomplishment as done will make it uneditable.'
+    confirmButtonLabel.value = 'Yes, Archive this Document'
+  } else if (type === 'saveDraft') {
+    dialogTitle.value = 'Are you sure you want to save this accomplishment as Draft?'
+    dialogMessage.value = 'Saving your accomplishment as draft will allow you to edit it later.'
+    confirmButtonLabel.value = 'Yes, Save as Draft'
   }
 }
 
@@ -170,11 +219,20 @@ const openDialog = (type: 'draft' | 'done') => {
 const confirmAction = () => {
   if (dialogType.value === 'draft') {
     handleSaveSubmissionif('draft')
+  } else if (dialogType.value === 'saveDraft') {
+    handleUpdated()
   } else if (dialogType.value === 'done') {
     handleSaveSubmissionif('done')
+  } else if (dialogType.value === 'markDone') {
+    handleMarkDone()
+  } else if (dialogType.value === 'export') {
+    if (accomplishmentReportExportFile.value) {
+      exportToFile(accomplishmentReportExportFile.value)
+    }
   }
   visible.value = false
 }
+
 const handleSaveSubmissionif = async (status: string) => {
   const valid = await validator.value.$validate()
   if (!valid) {
@@ -197,7 +255,7 @@ const handleSaveSubmissionif = async (status: string) => {
       status: status,
     }
 
-    const rows = accomplishments.value
+    const rows = payload.rows
       .filter(
         (accomplishment) =>
           accomplishment.week_num && accomplishment.dates_in_week && accomplishment.specific_activity && accomplishment.highlights
@@ -212,7 +270,7 @@ const handleSaveSubmissionif = async (status: string) => {
 
     const periodResponse = await accomplishmentReportStore.createAccomplishment(
       fullPayload as PersonnelAccomplishmentReportPayload
-    ) // No need for "as PersonnelAccomplishmentReportPayload" if types are correct
+    )
 
     if (!periodResponse.success) {
       const result = parseApiResponseError(periodResponse)
@@ -225,9 +283,8 @@ const handleSaveSubmissionif = async (status: string) => {
       errorDetails.value = result.errors
       formIsSubmitting.value = false
       document.querySelector('.create-user-creds-section')?.scrollIntoView({ behavior: 'smooth' })
-      return // Ensure you return after handling the error
+      return
     }
-
     toast.add({
       severity: 'success',
       summary: 'Success',
@@ -237,12 +294,112 @@ const handleSaveSubmissionif = async (status: string) => {
     emit('ar-created', true)
 
     setTimeout(() => {
-      window.location.reload() // Consider alternative approaches if full reload isn't necessary
+      window.location.reload()
     }, 1000)
   } finally {
-    formIsSubmitting.value = false // Ensure formIsSubmitting is always set to false
+    formIsSubmitting.value = false
   }
 }
+
+/** Handle exporting the report to MS Word */
+const exportToFile = async (accomplishmentReport: PersonnelAccomplishmentReportResponse) => {
+  toast.add({
+    severity: 'info',
+    summary: 'Exporting...',
+    detail: `Exporting ${accomplishmentReport.period || 'the Accomplishment Report '}...`,
+    life: 5000,
+  })
+  const reportResponse = await accomplishmentReportStore.generateAccomplishmentReport(accomplishmentReport.id as string)
+
+  const blob = reportResponse.data.value
+
+  if (blob) {
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${reportResponse.fileNameHeader.value}`
+    document.body.appendChild(a)
+    a.click()
+    window.URL.revokeObjectURL(url)
+    document.body.removeChild(a)
+
+    toast.add({
+      severity: 'success',
+      summary: 'Accomplishment Report Details Exported',
+      detail: `The Accomplishment Report from ${accomplishmentReport.period} was successfully exported.`,
+      life: 5000,
+    })
+  }
+}
+
+/** Handle updating the accomplishment report */
+const handleUpdated = async () => {
+  IsBeingUpdated.value = true
+  const id = route.params.id as string
+
+  const response = await accomplishmentReportStore.updateAccomplishment(payload, id)
+
+  if (!response.success) {
+    const result = parseApiResponseError(response)
+    if (!result) return (formIsSubmitting.value = false)
+
+    showErrorAlert.value = true
+    errorMessage.value = result.message
+    errorDetails.value = result.errors
+    IsBeingUpdated.value = false
+    return document.getElementsByClassName('update-ar-creds-section')[0]?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  toast.add({
+    severity: 'success',
+    summary: 'Accomplishment Report Details update',
+    detail: `${id || 'The Accomplishment Report '} was successfully updated`,
+    life: 3000,
+  })
+
+  if (shouldReloadPageAfterUpdate()) {
+    setTimeout(() => {
+      window.location.reload()
+    }, 2000)
+  }
+
+  emit('ar-updated', true)
+}
+/** Handle marking the accomplishment report as done */
+const handleMarkDone = async () => {
+  IsBeingUpdated.value = true
+  const id = route.params.id as string
+  payload.status = 'done'
+  const response = await accomplishmentReportStore.updateAccomplishment(payload, id)
+
+  if (!response.success) {
+    const result = parseApiResponseError(response)
+    if (!result) return (formIsSubmitting.value = false)
+
+    showErrorAlert.value = true
+    errorMessage.value = result.message
+    errorDetails.value = result.errors
+    IsBeingUpdated.value = false
+    return document.getElementsByClassName('update-ar-creds-section')[0]?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  toast.add({
+    severity: 'success',
+    summary: 'Accomplishment Report Marked as Done',
+    detail: `${id || 'The Accomplishment Report '} was successfully marked as done`,
+    life: 3000,
+  })
+
+  if (shouldReloadPageAfterUpdate()) {
+    setTimeout(() => {
+      window.location.reload()
+    }, 2000)
+  }
+
+  emit('ar-updated', true)
+}
+
+const isSupervisorView = computed(() => route.name === 'accomplishment-report-list/editor')
 </script>
 
 <template>
@@ -261,7 +418,18 @@ const handleSaveSubmissionif = async (status: string) => {
               class="mb-2 ml-4 md:mb-0 md:ml-0"
             />
             <h2 class="mb-2 ml-4 text-3xl font-semibold text-primary-800 dark:text-primary-100 md:ml-4">
-              <font-awesome-icon :icon="['fas', 'check-double']" /> New Accomplishment Report
+              <font-awesome-icon :icon="['fas', isSupervisorView ? 'magnifying-glass' : 'check-double']" />
+              {{
+                isSupervisorView
+                  ? 'Viewing Accomplishment Report'
+                  : route.params.id
+                    ? 'Update Accomplishment Report'
+                    : 'New Accomplishment Report'
+              }}
+              <br />
+              <span class="ml-10 text-lg text-surface-600 md:text-xl lg:text-2xl">
+                {{ isSupervisorView && authStore.authFullName ? authStore.authFullName : '' }}
+              </span>
             </h2>
           </div>
           <br />
@@ -270,21 +438,59 @@ const handleSaveSubmissionif = async (status: string) => {
           <div class="flex flex-col md:flex-row">
             <div class="mb-4 ml-0 flex w-full flex-col items-start justify-center gap-2 py-2 md:ml-6 md:w-2/6">
               <div class="flex w-full flex-col">
-                <label for="period" class="mb-0 text-sm text-surface-600">
-                  Period of Accomplishment <span class="text-error-500">*</span>
-                </label>
                 <WbInputText
                   v-model="payload.period"
-                  label=""
+                  label="Period of Accomplishment"
+                  required
                   placeholder="Period of Accomplishment"
                   :invalid="validator.period.$invalid"
                   :invalid-text="validator.period.$errors[0]?.$message"
                   @blur="validator.period.$touch"
                   @focusin="validator.period.$dirty = false"
-                  class="w-full"
-                >
-                </WbInputText>
+                  label-class="text-sm text-surface-600"
+                />
               </div>
+            </div>
+            <div
+              v-if="isUpdateMode"
+              class="mt-2 flex w-64 flex-initial justify-end gap-2 md:ml-auto md:w-auto md:items-center md:justify-start"
+            >
+              <Button
+                label="Export to MS Word"
+                v-if="!isSupervisorView"
+                class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+                text
+                @click="openDialog('export')"
+              >
+                <template #icon>
+                  <i class="pi pi-file-word mr-2"></i>
+                </template>
+              </Button>
+
+              <Button
+                label="Mark as Done"
+                v-if="!isSupervisorView"
+                :loading="formIsSubmitting"
+                :disabled="payload && payload.status === 'done'"
+                class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+                text
+                @click="openDialog('markDone')"
+              >
+                <template #icon>
+                  <i class="pi pi-save mr-2"></i>
+                </template>
+              </Button>
+
+              <Button
+                @click="openDialog('saveDraft')"
+                v-if="isSupervisorView"
+                label="Approved Accomplishment"
+                :loading="formIsSubmitting"
+                class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+                text
+              >
+                <template #icon> <i class="pi pi-save mr-2"></i> </template
+              ></Button>
             </div>
           </div>
 
@@ -296,11 +502,10 @@ const handleSaveSubmissionif = async (status: string) => {
           </div>
           <p class="create-ar-creds-section text-xs font-medium uppercase"></p>
 
-          <div v-for="(accomplishment, index) in accomplishments" :key="index" class="mb-4 flex flex-col md:flex-row">
+          <div v-for="(accomplishment, index) in payload.rows" :key="index" class="mb-4 flex flex-col md:flex-row">
             <div class="mb-4 ml-0 flex w-full flex-col items-start justify-center gap-2 py-2 pt-8 md:ml-12 md:w-2/12">
               <div class="flex w-full flex-col">
-                <label for="week" class="mb-0 text-sm text-surface-600">Week <span class="text-error-500">*</span></label>
-                <Dropdown
+                <WbDropdown
                   :id="'week-' + index"
                   v-model="accomplishment.week_num"
                   v-tooltip.top="'Choose a Week'"
@@ -309,9 +514,11 @@ const handleSaveSubmissionif = async (status: string) => {
                   optionValue="value"
                   @change="handleWeekChange()"
                   class="mb-4 w-full"
+                  label-class="text-sm text-surface-600"
+                  label="Week"
+                  required
                   placeholder="Choose a week"
-                >
-                </Dropdown>
+                />
                 <label for="converage" class="mb-0 text-sm text-surface-600">
                   Date/s or Converage <span class="text-error-500">*</span>
                 </label>
@@ -352,20 +559,41 @@ const handleSaveSubmissionif = async (status: string) => {
                 severity="danger"
                 rounded
                 @click="removeAccomplishment(index)"
-                v-if="accomplishments.length > 1"
+                v-if="payload.status !== 'done' && payload.rows.length > 1"
                 class="mt-2"
               />
             </div>
-            <Divider layout="horizontal" class="mt-4 md:hidden" v-if="index < accomplishments.length - 1" />
+            <Divider layout="horizontal" class="mt-4 md:hidden" v-if="index < payload.rows.length - 1" />
           </div>
 
-          <Divider layout="horizontal" class="hidden md:block"></Divider>
+          <Divider layout="horizontal" class="mb-14 hidden md:block"></Divider>
+          <div class="flex w-full flex-col">
+            <WbTextArea
+              v-if="isSupervisorView"
+              label="Comments"
+              required
+              label-class="text-md text-surface-600 dark:lg:text-surface-200"
+              class="lg:text-md lg:placeholder:text-md mb-4 w-full text-sm placeholder:text-sm"
+              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+            />
+          </div>
+          <div class="flex w-full flex-col">
+            <WbInputText
+              v-if="isSupervisorView"
+              label="Supervisor`s Notes"
+              required
+              label-class="text-md text-surface-600 dark:lg:text-surface-200"
+              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+            />
+          </div>
           <div class="flex w-full flex-col gap-4 pb-4">
             <hr />
             <Button
-              v-if="addAccomplishmentFieldBtn"
+              v-if="addAccomplishmentFieldBtn && payload.status !== 'done'"
               label="+ Add Additional Week"
               @click="addAccomplishment"
+              :disabled="payload && payload.status === 'done'"
               class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
               text
             />
@@ -387,9 +615,35 @@ const handleSaveSubmissionif = async (status: string) => {
             </RouterLink>
             <Button
               @click="openDialog('draft')"
-              label="Save as Draft"
+              label="Draft"
+              v-if="!isUpdateMode"
+              :disabled="payload && payload.status === 'done'"
               :loading="formIsSubmitting"
-              :disabled="formIsSubmitting"
+              class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+              text
+            >
+              <template #icon>
+                <i class="pi pi-file mr-2"></i>
+              </template>
+            </Button>
+            <Button
+              @click="openDialog('saveDraft')"
+              v-if="isUpdateMode && !isSupervisorView"
+              label="Save as Draft"
+              :disabled="payload && payload.status === 'done'"
+              :loading="formIsSubmitting"
+              class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+              text
+            >
+              <template #icon>
+                <i class="pi pi-file mr-2"></i>
+              </template>
+            </Button>
+            <Button
+              @click="openDialog('saveDraft')"
+              v-if="isSupervisorView"
+              label="Revised Accomplishment"
+              :loading="formIsSubmitting"
               class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
               text
             >
@@ -399,6 +653,7 @@ const handleSaveSubmissionif = async (status: string) => {
             </Button>
             <Button
               @click="openDialog('done')"
+              v-if="!isUpdateMode"
               label="Save Accomplishment"
               :loading="formIsSubmitting"
               :disabled="formIsSubmitting"
