@@ -100,6 +100,17 @@ const routes = [
           ],
         },
       },
+      {
+        path: '/my-locator-slips',
+        name: 'my-locator-slips',
+        component: () => import('@/views/personnel/LocatorSlipsPage.vue'),
+        meta: <RouteMeta>{
+          label: 'My Locator Slip',
+          isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
     ],
   },
   {
@@ -216,17 +227,6 @@ const routes = [
             AuthRole.SYSTEM_SUPPORT,
             AuthRole.SUPER_USER,
           ],
-        },
-      },
-      {
-        path: '/my-locator-slips',
-        name: 'my-locator-slips',
-        component: () => import('@/views/personnel/LocatorSlipsPage.vue'),
-        meta: <RouteMeta>{
-          label: 'My Locator Slip',
-          isSidebarMenu: true,
-          authType: AuthType.AUTHENTICATED,
-          roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
         },
       },
       {

@@ -1,4 +1,5 @@
 import { CountryCode, isValidPhoneNumber, parsePhoneNumber } from 'libphonenumber-js'
+import { helpers } from '@vuelidate/validators'
 
 /**
  * @description Halt code execution for x seconds
@@ -225,3 +226,18 @@ export const dateToday = (): string => {
 }
 
 export const DateToday = dateToday()
+
+export const isAfterOrEqualFromDate = (fromField: () => string | Date) =>
+  helpers.withMessage('Period Covered To must be after or equal to  From', (toValue: string | Date) => {
+    const fromValue = fromField()
+
+    // Convert to Date objects
+    const toDate = new Date(toValue)
+    const fromDate = new Date(fromValue)
+
+    // Skip validation if either date is invalid
+    if (isNaN(toDate.getTime()) || isNaN(fromDate.getTime())) return true
+
+    // Validate that toDate >= fromDate
+    return toDate >= fromDate
+  })
