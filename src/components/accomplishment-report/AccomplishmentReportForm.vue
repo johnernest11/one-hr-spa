@@ -77,7 +77,6 @@ const addAccomplishment = (newFields = {}) => {
 
   const newAccomplishment = { ...defaultAccomplishment, ...newFields }
   payload.rows.push(newAccomplishment)
-  // validator.value.accomplishment.$touch()
 }
 
 /** Function to remove an accomplishment entry */
@@ -167,10 +166,6 @@ const formRules = {
     required: helpers.withMessage('Period of Accomplishment is required', required),
     maxLength: helpers.withMessage('', globalStringMaxLengthRule),
   },
-  // dates_in_week: {
-  //   required: helpers.withMessage('dates_in_week is required', required),
-  //   maxLength: helpers.withMessage('', globalStringMaxLengthRule),
-  // }
 }
 
 /** Handle Form Submission */
