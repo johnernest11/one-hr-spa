@@ -461,7 +461,7 @@ const routes = [
       label: 'Responsibility',
       isSidebarMenu: true,
       authType: AuthType.AUTHENTICATED,
-      roles: [AuthRole.SECTION_HEAD, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+      roles: [AuthRole.SECTION_HEAD, AuthRole.DIVISION_HEAD, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
     },
     children: [
       {
@@ -503,7 +503,7 @@ const routes = [
         meta: <RouteMeta>{
           isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
-          roles: [AuthRole.SECTION_HEAD, AuthRole.DIVISION_HEAD, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+          roles: [AuthRole.DIVISION_HEAD, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
         },
       },
     ],
