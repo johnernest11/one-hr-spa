@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeMount, ref, watch } from 'vue'
+import { onBeforeMount, ref, watch, computed } from 'vue'
 import Button from 'primevue/button'
 import Chip from 'primevue/chip'
 import Card from 'primevue/card'
@@ -12,10 +12,24 @@ import { ApiResponsePagination } from '@/typings/http-resources.types.ts'
 import { LeaveApplicationResponse } from '@/typings/models.types.ts'
 import { useLeaveApplicationStore } from '@/stores/leave-application.store'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
+import { useAuthStore } from '@/stores/auth.store.ts'
 import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { formatDateRanges, formatDate } from '@/utils/helpers.ts'
 
+const authStore = useAuthStore()
+const RoleAssignView = computed(() => {
+  return authStore.authHasRequiredRole(['hr_pas_admin', 'admin'])
+})
+
+const filteredLeaveApplications = computed(() => {
+  if (RoleAssignView.value) {
+    // Show only approved if user has restricted roles
+    return applicationLeaveStore.leaveApplication.filter((app) => ['Approved', 'Review'].includes(app.status ?? ''))
+  }
+  // Otherwise show all
+  return applicationLeaveStore.leaveApplication
+})
 const router = useRouter()
 const navigateToDetails = (applicationLeave: LeaveApplicationResponse) => {
   if (!applicationLeave || !applicationLeave.id) {
@@ -131,7 +145,7 @@ const exportPdf = async (leaveApplication: LeaveApplicationResponse) => {
         class="flex flex-row items-center space-x-4 font-medium text-primary-700 dark:text-primary-100 md:ml-4 md:mt-2 md:flex-row"
       >
         <h1 class="mb-2 mr-4 whitespace-nowrap text-xl text-surface-600 dark:text-primary-100 md:text-xl lg:text-4xl">
-          My Application for Leave
+          {{ !RoleAssignView ? ' My Application for Leave' : 'Application for Leave' }}
         </h1>
         <div class="flex w-full items-center justify-end gap-4">
           <div class="flex space-x-2 whitespace-nowrap md:w-auto">
@@ -172,7 +186,7 @@ const exportPdf = async (leaveApplication: LeaveApplicationResponse) => {
       <div class="mt-6 flex flex-col">
         <div class="w-full">
           <div class="mx-auto flex h-full w-full flex-col">
-            <DataTable :value="applicationLeaveStore.leaveApplication" class="mt-6" dataKey="id">
+            <DataTable :value="filteredLeaveApplications" class="mt-6" dataKey="id">
               <Column
                 field="period"
                 header="Leave Period"
