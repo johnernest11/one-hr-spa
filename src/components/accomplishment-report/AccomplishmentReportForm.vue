@@ -192,26 +192,31 @@ const openDialog = (type: 'draft' | 'done' | 'export' | 'markDone' | 'saveDraft'
   dialogType.value = type
   visible.value = true
 
-  if (type === 'draft') {
-    dialogTitle.value = 'Are you sure you want to save this accomplishment as Draft?'
-    dialogMessage.value = 'Saving your accomplishment as draft will allow you to edit it later.'
-    confirmButtonLabel.value = 'Yes, Save as Draft'
-  } else if (type === 'done') {
-    dialogTitle.value = 'Save and Finalize Accomplishment ?'
-    dialogMessage.value = 'Finalizing will save the accomplishment and prevent further edits.'
-    confirmButtonLabel.value = 'Save and Finalize'
-  } else if (type === 'export') {
-    dialogTitle.value = 'Are you sure you want to export this accomplishment as File?'
-    dialogMessage.value = 'Exporting your accomplishment will download an Word File.'
-    confirmButtonLabel.value = 'Yes, Export this Document'
-  } else if (type === 'markDone') {
-    dialogTitle.value = 'Are you sure you want to mark this accomplishment as Done?'
-    dialogMessage.value = 'Marking your accomplishment as done will make it uneditable.'
-    confirmButtonLabel.value = 'Yes, Archive this Document'
-  } else if (type === 'saveDraft') {
-    dialogTitle.value = 'Are you sure you want to save this accomplishment as Draft?'
-    dialogMessage.value = 'Saving your accomplishment as draft will allow you to edit it later.'
-    confirmButtonLabel.value = 'Yes, Save as Draft'
+  switch (type) {
+    case 'draft':
+    case 'saveDraft':
+      dialogTitle.value = 'Are you sure you want to save this accomplishment as Draft?'
+      dialogMessage.value = 'Saving your accomplishment as draft will allow you to edit it later.'
+      confirmButtonLabel.value = 'Yes, Save as Draft'
+      break
+
+    case 'done':
+      dialogTitle.value = 'Save and Finalize Accomplishment ?'
+      dialogMessage.value = 'Finalizing will save the accomplishment and prevent further edits.'
+      confirmButtonLabel.value = 'Save and Finalize'
+      break
+
+    case 'export':
+      dialogTitle.value = 'Are you sure you want to export this accomplishment as File?'
+      dialogMessage.value = 'Exporting your accomplishment will download a Word file.'
+      confirmButtonLabel.value = 'Yes, Export this Document'
+      break
+
+    case 'markDone':
+      dialogTitle.value = 'Are you sure you want to mark this accomplishment as Done?'
+      dialogMessage.value = 'Marking your accomplishment as done will make it uneditable.'
+      confirmButtonLabel.value = 'Yes, Archive this Document'
+      break
   }
 }
 

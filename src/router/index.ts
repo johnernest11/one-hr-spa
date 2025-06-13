@@ -100,26 +100,6 @@ const routes = [
           ],
         },
       },
-      {
-        path: '/request-overtimes',
-        name: 'request-overtimes',
-        component: () => import('@/views/request/OvertimesPage.vue'),
-        meta: <RouteMeta>{
-          label: 'Overtime',
-          isSidebarMenu: true,
-          authType: AuthType.AUTHENTICATED,
-          roles: [
-            AuthRole.STANDARD_USER,
-            AuthRole.SECTION_HEAD,
-            AuthRole.DIVISION_HEAD,
-            AuthRole.HR_PPMS_ADMIN,
-            AuthRole.HR_PAS_ADMIN,
-            AuthRole.ADMIN,
-            AuthRole.SYSTEM_SUPPORT,
-            AuthRole.SUPER_USER,
-          ],
-        },
-      },
     ],
   },
   {
@@ -481,7 +461,7 @@ const routes = [
       label: 'Responsibility',
       isSidebarMenu: true,
       authType: AuthType.AUTHENTICATED,
-      roles: [AuthRole.SECTION_HEAD, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+      roles: [AuthRole.SECTION_HEAD, AuthRole.DIVISION_HEAD, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
     },
     children: [
       {
@@ -523,7 +503,7 @@ const routes = [
         meta: <RouteMeta>{
           isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
-          roles: [AuthRole.SECTION_HEAD, AuthRole.DIVISION_HEAD, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+          roles: [AuthRole.DIVISION_HEAD, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
         },
       },
     ],
