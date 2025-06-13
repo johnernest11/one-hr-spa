@@ -226,6 +226,7 @@ export type PersonnelEmployee = {
   office_id: number | null
   division_id: number | null
   section_or_unit_id: number | null
+  item: ItemNumberResponse | null
 }
 
 /** Leave Application (HTTP Responses) */
