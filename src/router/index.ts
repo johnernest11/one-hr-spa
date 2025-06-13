@@ -100,26 +100,6 @@ const routes = [
           ],
         },
       },
-      {
-        path: '/request-overtimes',
-        name: 'request-overtimes',
-        component: () => import('@/views/request/OvertimesPage.vue'),
-        meta: <RouteMeta>{
-          label: 'Overtime',
-          isSidebarMenu: true,
-          authType: AuthType.AUTHENTICATED,
-          roles: [
-            AuthRole.STANDARD_USER,
-            AuthRole.SECTION_HEAD,
-            AuthRole.DIVISION_HEAD,
-            AuthRole.HR_PPMS_ADMIN,
-            AuthRole.HR_PAS_ADMIN,
-            AuthRole.ADMIN,
-            AuthRole.SYSTEM_SUPPORT,
-            AuthRole.SUPER_USER,
-          ],
-        },
-      },
     ],
   },
   {

@@ -7,34 +7,23 @@ import { helpers, maxLength, required } from '@vuelidate/validators'
 import WbInputText from '@/components/webkit/WbInputText.vue'
 import WbCalendar from '@/components/webkit/WbCalendar.vue'
 import WbDropdown from '@/components/webkit/WbDropdown.vue'
+import WbTextArea from '../webkit/WbTextArea.vue'
 import Button from 'primevue/button'
 import Divider from 'primevue/divider'
 import Card from 'primevue/card'
 import Dialog from 'primevue/dialog'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { useRolesStore } from '@/stores/roles.store.ts'
-import {
-  PersonnelCompensatoryTimeOffPayload,
-  PersonnelCompensatoryTimeDayOffDetailsPayload,
-  useCompensatoryTimeOffStore,
-} from '@/stores/personnel-compensatory-time-off.store'
+import { PersonnelCompensatoryTimeOffPayload, useCompensatoryTimeOffStore } from '@/stores/personnel-compensatory-time-off.store'
 import { useRoute } from 'vue-router'
 import { PersonnelCompensatoryDayTimeOffResponse } from '@/typings/models.types'
+import { useAuthStore } from '@/stores/auth.store'
 
 const payload = reactive<PersonnelCompensatoryTimeOffPayload>({
   ctdo_period: '',
   ctdo_supervisor_notes: '',
   ctdo_status: '',
-  rows: [
-    {
-      days_of_the_week: '',
-      work_date: '',
-      time_start: null,
-      time_end: null,
-      accomplishment: null,
-      authorized_claim: null,
-    },
-  ],
+  rows: [],
 })
 
 payload.rows = reactive([
@@ -47,15 +36,6 @@ payload.rows = reactive([
     authorized_claim: null,
   },
 ])
-
-const payloadDetails = reactive<Partial<PersonnelCompensatoryTimeDayOffDetailsPayload>>({
-  days_of_the_week: '',
-  work_date: '',
-  time_start: null,
-  time_end: null,
-  accomplishment: null,
-  authorized_claim: null,
-})
 
 const weekOptions = ref([
   { label: 'Monday', value: 'Monday' },
@@ -79,21 +59,11 @@ const dialogType = ref('')
 const dialogTitle = ref('')
 const dialogMessage = ref('')
 const confirmButtonLabel = ref('')
+const authStore = useAuthStore()
 const isUpdateMode = computed(() => !!route.params.id)
-
-const buttonLabel = computed(() => (isUpdateMode.value ? 'Approve' : 'Save'))
-const buttonsLabel = computed(() => (isUpdateMode.value ? 'Disapproved' : 'Draft'))
-const buttonIcon = computed(() => (isUpdateMode.value ? ['fas', 'check-to-slot'] : ['fas', 'floppy-disk']))
-const buttonsIcon = computed(() => (isUpdateMode.value ? ['fas', 'square-xmark'] : ['fas', 'file']))
-
 watch(
-  () => payloadDetails.days_of_the_week,
-  (newWeekDayNum) => {
-    payload.rows = payload.rows.map((row) => ({
-      ...row,
-      days_of_the_week: newWeekDayNum ?? '',
-    }))
-  }
+  () => payload.rows.map((row) => row.days_of_the_week),
+  () => {}
 )
 
 const addCompensatory = (newFields = {}) => {
@@ -212,19 +182,41 @@ const toast = useToast()
 const emit = defineEmits<{
   (e: 'ctdo-created', value: boolean): void
 }>()
-/** Open a dialog with a specified type (export, markDone, or saveDraft) */
-const openDialog = (type: 'draft' | 'done') => {
+
+const openDialog = (type: 'draft' | 'for review' | 'for revision' | 'approved' | 'export') => {
   dialogType.value = type
   visible.value = true
 
-  if (type === 'draft') {
-    dialogTitle.value = 'Save CTDO Accomplishment as Draft ?'
-    dialogMessage.value = 'Saving as draft allows you to continue editing later.'
-    confirmButtonLabel.value = 'Save as Draft'
-  } else if (type === 'done') {
-    dialogTitle.value = 'Save and Finalize CTDO Accomplishment ?'
-    dialogMessage.value = 'Finalizing will save the  CTDO accomplishment and prevent further edits.'
-    confirmButtonLabel.value = 'Save and Finalize'
+  switch (type) {
+    case 'draft':
+      dialogTitle.value = 'Save CTDO Accomplishment as Draft?'
+      dialogMessage.value = 'Saving this CTDO Accomplishment as draft will allow you to continue editing it later.'
+      confirmButtonLabel.value = 'Save as Draft'
+      break
+
+    case 'for review':
+      dialogTitle.value = 'Finalize CTDO Accomplishment?'
+      dialogMessage.value = 'Finalizing will save and lock the CTDO Accomplishment, preventing further edits.'
+      confirmButtonLabel.value = 'Save and Finalize'
+      break
+
+    case 'for revision':
+      dialogTitle.value = 'Return CTDO Accomplishment for Revision?'
+      dialogMessage.value = 'This will return the CTDO Accomplishment to the drafter for further editing.'
+      confirmButtonLabel.value = 'Return for Revision'
+      break
+
+    case 'approved':
+      dialogTitle.value = 'Approve CTDO Accomplishment?'
+      dialogMessage.value = 'Approving this CTDO Accomplishment will mark it as complete and archive it.'
+      confirmButtonLabel.value = 'Approve and Archive'
+      break
+
+    case 'export':
+      dialogTitle.value = 'Export CTDO Accomplishment?'
+      dialogMessage.value = 'This will download your CTDO Accomplishment as a Word file.'
+      confirmButtonLabel.value = 'Export as Word Document'
+      break
   }
 }
 
@@ -312,6 +304,8 @@ const handleSaveSubmissionif = async (ctdo_status: string) => {
     formIsSubmitting.value = false
   }
 }
+
+const isSupervisorActive = computed(() => route.name === 'ctdo-report-list/editor')
 </script>
 
 <template>
@@ -319,7 +313,7 @@ const handleSaveSubmissionif = async (ctdo_status: string) => {
     <div class="flex w-full flex-col gap-4 pb-4 pl-4 pt-8">
       <Card class="h-full">
         <template #content>
-          <div class="flex w-full flex-col items-start md:flex-row md:items-center">
+          <div class="flex w-full flex-col items-start md:flex-row">
             <Button
               icon="pi pi-angle-left"
               severity="secondary"
@@ -329,9 +323,19 @@ const handleSaveSubmissionif = async (ctdo_status: string) => {
               size="small"
               class="mb-2 ml-4 md:mb-0 md:ml-0"
             />
-            <h2 class="mb-2 ml-4 text-2xl font-semibold text-primary-800 dark:text-primary-100 md:ml-4 md:text-3xl">
-              <font-awesome-icon :icon="['fas', 'check-double']" />
-              {{ route.params.id ? 'Update Compensatory Time Day - Off' : 'New Compensatory Time Day - Off' }}
+            <h2 class="mb-2 ml-4 text-3xl font-semibold text-primary-800 dark:text-primary-100 md:ml-4">
+              <font-awesome-icon :icon="['fas', isSupervisorActive ? 'magnifying-glass' : 'check-double']" />
+              {{
+                isSupervisorActive
+                  ? 'Viewing Compensatory Time Day Offs (CTDO)'
+                  : route.params.id
+                    ? 'Update Compensatory Time Day Offs (CTDO)'
+                    : 'New Compensatory Time Day Offs (CTDO)'
+              }}
+              <br />
+              <span class="ml-10 text-lg text-surface-600 md:text-xl lg:text-2xl">
+                {{ isSupervisorActive && authStore.authFullName ? authStore.authFullName : '' }}
+              </span>
             </h2>
           </div>
           <br />
@@ -355,6 +359,48 @@ const handleSaveSubmissionif = async (ctdo_status: string) => {
                 >
                 </WbInputText>
               </div>
+            </div>
+            <div
+              v-if="isUpdateMode"
+              class="mt-2 flex w-64 flex-initial justify-end gap-2 md:ml-auto md:w-auto md:items-center md:justify-start"
+            >
+              <Button
+                label="Export to MS Word"
+                v-if="!isSupervisorActive"
+                class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+                text
+                @click="openDialog('export')"
+              >
+                <template #icon>
+                  <i class="pi pi-file-word mr-2"></i>
+                </template>
+              </Button>
+
+              <Button
+                label="Mark as Done"
+                v-if="!isSupervisorActive"
+                :loading="formIsSubmitting"
+                :disabled="payload && payload.ctdo_status === 'for review'"
+                class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+                text
+                @click="openDialog('for review')"
+              >
+                <template #icon>
+                  <i class="pi pi-save mr-2"></i>
+                </template>
+              </Button>
+
+              <Button
+                @click="openDialog('approved')"
+                v-if="isSupervisorActive"
+                label="Approved CTDO Accomplishment"
+                :disabled="payload && payload.ctdo_status === 'approved'"
+                :loading="formIsSubmitting"
+                class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+                text
+              >
+                <template #icon> <i class="pi pi-save mr-2"></i> </template
+              ></Button>
             </div>
           </div>
 
@@ -442,7 +488,7 @@ const handleSaveSubmissionif = async (ctdo_status: string) => {
                 severity="danger"
                 rounded
                 @click="removeCompensatory(index)"
-                v-if="payload.rows.length > 1"
+                v-if="!['for review', 'approved'].includes(payload.ctdo_status) && payload.rows.length > 1"
                 class="mt-2"
               />
             </div>
@@ -450,19 +496,40 @@ const handleSaveSubmissionif = async (ctdo_status: string) => {
           </div>
 
           <Divider layout="horizontal" class="hidden md:block"></Divider>
+          <div class="flex w-full flex-col">
+            <WbTextArea
+              v-if="isSupervisorActive || (!isSupervisorActive && payload.ctdo_status === 'for revision')"
+              label="Comments"
+              required
+              label-class="text-md text-surface-600 dark:lg:text-surface-200"
+              class="lg:text-md lg:placeholder:text-md mb-4 w-full text-sm placeholder:text-sm"
+              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+            />
+          </div>
+          <div class="flex w-full flex-col">
+            <WbInputText
+              v-if="isSupervisorActive || (!isSupervisorActive && payload.ctdo_status === 'for revision')"
+              label="Supervisor`s Notes"
+              required
+              label-class="text-md text-surface-600 dark:lg:text-surface-200"
+              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+            />
+          </div>
           <div class="flex w-full flex-col gap-4 pb-4">
             <hr />
             <Button
-              v-if="addcompensatoryFiledBtn"
+              v-if="addcompensatoryFiledBtn && !['for review', 'approved'].includes(payload.ctdo_status)"
               label="+ Add Additional Date / Accomplishment"
               @click="addCompensatory"
+              :disabled="payload && ['for review', 'approved'].includes(payload.ctdo_status)"
               class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
               text
             />
           </div>
           <!-- Other content -->
           <div v-if="compensatoryBtn" class="mt-2 flex justify-end gap-2">
-            <RouterLink :to="{ name: 'accomplishment-reports' }">
+            <RouterLink :to="{ name: 'ctdo-reports' }">
               <Button
                 label="Cancel"
                 :loading="formIsSubmitting"
@@ -477,26 +544,53 @@ const handleSaveSubmissionif = async (ctdo_status: string) => {
             </RouterLink>
             <Button
               @click="openDialog('draft')"
-              :label="buttonsLabel"
-              :loading="formIsSubmitting"
-              :disabled="formIsSubmitting"
+              label="Draft"
+              v-if="!isUpdateMode"
+              :disabled="payload && payload.ctdo_status === 'done'"
               class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
               text
             >
               <template #icon>
-                <font-awesome-icon :icon="buttonsIcon" class="mr-2" />
+                <i class="pi pi-file mr-2"></i>
               </template>
             </Button>
             <Button
-              @click="openDialog('done')"
-              :label="buttonLabel"
+              @click="openDialog('draft')"
+              v-if="isUpdateMode && !isSupervisorActive"
+              label="Save as Draft"
+              :disabled="payload && payload.ctdo_status === 'done'"
+              :loading="formIsSubmitting"
+              class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+              text
+            >
+              <template #icon>
+                <i class="pi pi-file mr-2"></i>
+              </template>
+            </Button>
+            <Button
+              @click="openDialog('for revision')"
+              v-if="isSupervisorActive"
+              label="Revised Accomplishment"
+              :disabled="payload && payload.ctdo_status === 'approved'"
+              :loading="formIsSubmitting"
+              class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+              text
+            >
+              <template #icon>
+                <i class="pi pi-file mr-2"></i>
+              </template>
+            </Button>
+            <Button
+              @click="openDialog('for review')"
+              v-if="!isUpdateMode"
+              label="Save Accomplishment"
               :loading="formIsSubmitting"
               :disabled="formIsSubmitting"
               class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
               text
             >
               <template #icon>
-                <font-awesome-icon :icon="buttonIcon" class="mr-2" />
+                <i class="pi pi-save mr-2"></i>
               </template>
             </Button>
           </div>

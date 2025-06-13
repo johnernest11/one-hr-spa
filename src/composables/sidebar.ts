@@ -116,9 +116,6 @@ export const useSidebarNavLinks = () => {
                 case 'request-documents':
                   childNavLink.icon = 'fas fa-list-check'
                   break
-                case 'request-overtimes':
-                  childNavLink.icon = 'fas fa-hourglass-end'
-                  break
 
                 /*Profile Routes */
                 case 'my-pds':

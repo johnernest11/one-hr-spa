@@ -25,9 +25,10 @@ export const useAccomplishmentReportStore = defineStore('personnel-accomplishmen
   const accomplishmentReportArray = ref<PersonnelAccomplishmentReportResponse[]>([])
   const selectedAccomplishmentReport = ref<PersonnelAccomplishmentReportResponse | null>(null)
 
-  const fetchAccomplishment = async (limit: number = 10, page: number | null = null) => {
+  const fetchAccomplishment = async (limit: number = 10, page: number | null = null, status?: string) => {
     let uri = `/accomplishment-reports?limit=${limit}&sort=asc&`
     if (page) uri += `page=${page}`
+    if (status) uri += `&status=${encodeURIComponent(status)}`
     const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
     const responseBody: ApiResponseBody = data.value
     if (responseBody.success) {

@@ -39,7 +39,7 @@ export const useCompensatoryTimeOffStore = defineStore('personnel-compensatory-t
       id: mockId++,
       ctdo_period: '01-31 December 2025',
       ctdo_supervisor_notes: 'Reviewed and approved.',
-      ctdo_status: 'Approved',
+      ctdo_status: 'for revision',
       rows: [
         {
           id: 6,
@@ -67,7 +67,7 @@ export const useCompensatoryTimeOffStore = defineStore('personnel-compensatory-t
       id: mockId++,
       ctdo_period: '01-31 November 2025',
       ctdo_supervisor_notes: 'Pending approval.',
-      ctdo_status: 'For Revision',
+      ctdo_status: 'for review',
       rows: [
         {
           id: 2,
@@ -95,7 +95,7 @@ export const useCompensatoryTimeOffStore = defineStore('personnel-compensatory-t
       id: mockId++,
       ctdo_period: '01-30 October 2025',
       ctdo_supervisor_notes: 'Requires additional documentation.',
-      ctdo_status: 'For Review',
+      ctdo_status: 'approved',
       rows: [
         {
           id: 4,
@@ -120,18 +120,30 @@ export const useCompensatoryTimeOffStore = defineStore('personnel-compensatory-t
       updated_at: '2025-07-06',
     },
   ]
-  const fetchCompensatoryDayTimeOff = async (limit = 10, page = 1) => {
+  const fetchCompensatoryDayTimeOff = async (limit = 10, page = 1, status?: string | string[]) => {
+    let filteredData = [...mockData]
+
+    // Normalize status filter
+    if (status) {
+      const statuses = Array.isArray(status) ? status.map((s) => s.toLowerCase()) : [status.toLowerCase()]
+
+      filteredData = filteredData.filter((item) => statuses.includes(item.ctdo_status.toLowerCase()))
+    }
+
+    const total = filteredData.length
     const start = (page - 1) * limit
-    const paginated = mockData.slice(start, start + limit)
+    const paginated = filteredData.slice(start, start + limit)
+
     compensatory.value = [...paginated]
+
     return {
       success: true,
       data: paginated,
       pagination: {
         current_page: page,
-        last_page: Math.ceil(mockData.length / limit),
+        last_page: Math.ceil(total / limit),
         per_page: limit,
-        total: mockData.length,
+        total,
         from: start + 1,
         to: start + paginated.length,
         first_page_url: '',

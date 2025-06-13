@@ -22,6 +22,7 @@ const toast = useToast()
 const accomplishmentReportIsLoading = ref(false)
 const paginationLimit = 5
 
+const route = useRoute()
 const navigateToDetails = (accomplishmentReport: PersonnelAccomplishmentReportResponse) => {
   if (!accomplishmentReport || !accomplishmentReport.id) {
     console.error('Cannot navigate to details: accomplishmentRepor or ID is undefined', accomplishmentReport)
@@ -41,7 +42,6 @@ const navigateToDetails = (accomplishmentReport: PersonnelAccomplishmentReportRe
     },
   })
 }
-
 onBeforeMount(async () => {
   accomplishmentReportIsLoading.value = true
   const response = await accomplishmentReportStore.fetchAccomplishment(paginationLimit)
@@ -52,15 +52,22 @@ onBeforeMount(async () => {
 })
 /** Pagination */
 const pagination = ref<ApiResponsePagination | null>(null)
-const handlePaginationPageChange = async (event: PageState) => {
-  const pageSelected = event.page + 1
+const fetchAccomplishmentsBasedOnContext = async (page = 1) => {
   accomplishmentReportIsLoading.value = true
-  const response = await accomplishmentReportStore.fetchAccomplishment(paginationLimit, pageSelected)
+  const statusFilter = isSupervisorView.value ? 'done' : undefined
+  const response = await accomplishmentReportStore.fetchAccomplishment(paginationLimit, page, statusFilter)
   if (response.success && response.pagination) {
     pagination.value = response.pagination
   }
   accomplishmentReportIsLoading.value = false
 }
+
+onBeforeMount(() => fetchAccomplishmentsBasedOnContext())
+
+const handlePaginationPageChange = async (event: PageState) => {
+  await fetchAccomplishmentsBasedOnContext(event.page + 1)
+}
+
 /** Search and Filters */
 const roleFilter = ref<number | null>(null)
 const searchQuery = ref<string | null>(null)
@@ -125,16 +132,7 @@ const exportToFile = async (accomplishmentReport: PersonnelAccomplishmentReportR
   }
 }
 
-const route = useRoute()
 const isSupervisorView = computed(() => route.name === 'accomplishment-report-list')
-
-const filteredReports = computed(() => {
-  const reports = accomplishmentReportStore.accomplishmentReportArray
-  if (isSupervisorView.value) {
-    return reports.filter((report) => report.status.toLowerCase() === 'done')
-  }
-  return reports
-})
 </script>
 <template>
   <div class="flex h-full w-full flex-col shadow-md">
@@ -161,6 +159,7 @@ const filteredReports = computed(() => {
             />
             <RouterLink :to="{ name: 'accomplishment-reports/store' }">
               <Button
+                v-if="isSupervisorView"
                 icon="pi pi-plus"
                 v-tooltip.top="'Create Accomplishments'"
                 severity="info"
@@ -199,7 +198,7 @@ const filteredReports = computed(() => {
           "
           class="mx-auto flex h-full w-full flex-col"
         >
-          <DataTable :value="filteredReports" class="mt-6" dataKey="id">
+          <DataTable :value="accomplishmentReportStore.accomplishmentReportArray" class="mt-6" dataKey="id">
             <Column
               field="period"
               header="Accomplishment Period"
