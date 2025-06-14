@@ -208,7 +208,7 @@ const isHumanResourceActive = computed(() => route.name === 'document-requests')
             <DataTable :value="documentRequestStore.documentRequest" class="mt-6" dataKey="id">
               <Column
                 field="period"
-                header="Leave Period"
+                header="Document Request"
                 headerClass="w-1/2 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
               >
                 <template #body="props">
@@ -299,7 +299,7 @@ const isHumanResourceActive = computed(() => route.name === 'document-requests')
           class="flex h-full w-full flex-col items-center justify-center font-menu text-lg dark:text-surface-300"
         >
           <i class="pi pi-exclamation-triangle mb-2 text-2xl"></i>
-          <p>No Leave Applications found</p>
+          <p>No Document Request found</p>
         </div>
         <div
           v-if="!documentRequestIsLoading && !documentRequestStore.documentRequest.length && !searchSubmitted"
@@ -323,7 +323,7 @@ const isHumanResourceActive = computed(() => route.name === 'document-requests')
                   Requested Documents created by you shall appear here.
                 </h1>
                 <div class="mt-4 flex w-full justify-center">
-                  <RouterLink :to="{ name: 'my-leaveapplications/store' }">
+                  <RouterLink :to="{ name: 'request-documents/store' }">
                     <Button
                       icon="pi pi-plus"
                       label="Request Documents"
