@@ -171,6 +171,24 @@ export const formatDate = (dateString: string | null | undefined): string => {
   }
 }
 
+export const formatDateRequest = (dateInput: string | null | undefined): string => {
+  if (!dateInput) return ''
+
+  const date = new Date(dateInput)
+
+  if (isNaN(date.getTime())) return ''
+
+  const options: Intl.DateTimeFormatOptions = {
+    weekday: 'long', // Saturday
+    day: 'numeric', // 14
+    month: 'long', // June
+    year: 'numeric', // 2025
+  }
+
+  // Format the date using Intl.DateTimeFormat
+  return new Intl.DateTimeFormat('en-US', options).format(date)
+}
+
 export const getMonthAndYear = (dateString: string | null | undefined): string => {
   if (!dateString) return ''
   try {

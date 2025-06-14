@@ -101,6 +101,23 @@ const routes = [
         },
       },
       {
+        path: '/request-documents/:id/editor',
+        name: 'request-documents/editor',
+        component: () => import('@/components/request/DocumentRequestForm.vue'),
+        meta: <RouteMeta>{
+          isSidebarMenu: false,
+          authType: AuthType.AUTHENTICATED,
+          roles: [
+            AuthRole.STANDARD_USER,
+            AuthRole.HR_PPMS_ADMIN,
+            AuthRole.HR_PAS_ADMIN,
+            AuthRole.ADMIN,
+            AuthRole.SYSTEM_SUPPORT,
+            AuthRole.SUPER_USER,
+          ],
+        },
+      },
+      {
         path: '/my-locator-slips',
         name: 'my-locator-slips',
         component: () => import('@/views/personnel/LocatorSlipsPage.vue'),
@@ -667,6 +684,17 @@ const routes = [
         meta: <RouteMeta>{
           label: 'Document Request',
           isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+      {
+        path: '/document-requests/:id/editor',
+        name: 'document-requests/editor',
+        component: () => import('@/components/request/DocumentRequestForm.vue'),
+        meta: <RouteMeta>{
+          label: 'Document Request',
+          isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
           roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
         },

@@ -8,7 +8,7 @@ import { useDateFormat } from '@vueuse/core'
 
 export type DocumentRequestPayload = {
   request_date: string | null
-  certificate_type: string | null
+  certificate_type: string | number | null
   others_type: string | null
   additional_info: string | null
   others_additional_info: string | null
@@ -85,12 +85,12 @@ export const useDocumentRequestStore = defineStore('document-request', () => {
         employee: null,
       },
       request_date: '2025-06-01',
-      certificate_type: 'Duly Accomplished Office Clearance Certifate Form',
+      certificate_type: 'DULY ACCOMPLISHED OFFICE CLEARANCE CERTIFICATE FORM',
       others_type: 'N/A',
-      additional_info: 'N/A',
+      additional_info: 'SALARY/COST OF SERVICE',
       others_additional_info: 'yes',
-      purpose: 'Draft',
-      status: 'Pending',
+      purpose: 'Employment',
+      status: 'pending',
       mode_of_receipt: 'Draft',
       created_at: '2025-06-01',
       updated_at: '2025-06-01',
@@ -154,12 +154,12 @@ export const useDocumentRequestStore = defineStore('document-request', () => {
         employee: null,
       },
       request_date: '2025-06-01',
-      certificate_type: 'Certificate of Leave Without Pay',
+      certificate_type: 'CERTIFICATE OF LEAVE WITHOUT PAY',
       others_type: 'N/A',
-      additional_info: 'N/A',
+      additional_info: 'SERVICE/CONTRACT GAPS',
       others_additional_info: 'yes',
-      purpose: 'Draft',
-      status: 'In Progress',
+      purpose: 'Employment',
+      status: 'in progress',
       mode_of_receipt: 'Draft',
       created_at: '2025-06-01',
       updated_at: '2025-06-01',
@@ -223,30 +223,42 @@ export const useDocumentRequestStore = defineStore('document-request', () => {
         employee: null,
       },
       request_date: '2025-06-01',
-      certificate_type: 'Certifate of Employment',
+      certificate_type: 'CERTIFICATE OF EMPLOYMENT',
       others_type: 'N/A',
-      additional_info: 'N/A',
+      additional_info: 'SERVICE/CONTRACT GAPS',
       others_additional_info: 'yes',
-      purpose: 'Draft',
-      status: 'Released',
+      purpose: 'Employment',
+      status: 'released',
       mode_of_receipt: 'Draft',
       created_at: '2025-06-01',
       updated_at: '2025-06-01',
     },
   ]
 
-  const fetchDocumentRequest = async (limit = 10, page = 1) => {
+  const fetchDocumentRequest = async (limit = 10, page = 1, status?: string | string[]) => {
+    let filteredData = [...mockData]
+
+    // Normalize status filter
+    if (status) {
+      const statuses = Array.isArray(status) ? status.map((s) => s.toLowerCase()) : [status.toLowerCase()]
+
+      filteredData = filteredData.filter((item) => statuses.includes(item.status.toLowerCase()))
+    }
+
+    const total = filteredData.length
     const start = (page - 1) * limit
-    const paginated = mockData.slice(start, start + limit)
+    const paginated = filteredData.slice(start, start + limit)
+
     documentRequest.value = [...paginated]
+
     return {
       success: true,
       data: paginated,
       pagination: {
         current_page: page,
-        last_page: Math.ceil(mockData.length / limit),
+        last_page: Math.ceil(total / limit),
         per_page: limit,
-        total: mockData.length,
+        total,
         from: start + 1,
         to: start + paginated.length,
         first_page_url: '',
@@ -258,13 +270,21 @@ export const useDocumentRequestStore = defineStore('document-request', () => {
     }
   }
 
-  const fetchDocumentRequestById = async (id: string | number) => {
-    const url = `/document-requests/${id}`
-    const { data } = await useApiCall(url, auth.authenticationToken).get().json()
-    const responseBody: ApiResponseBody = data.value
-    if (responseBody.success) {
-      selectedDocumentRequest.value = responseBody.data as DocumentRequestResponse
+  const fetchDocumentRequestById = async (id: string) => {
+    await new Promise((resolve) => setTimeout(resolve, 300))
+
+    const foundData = mockData.find((item) => item.id === parseInt(id))
+
+    const responseBody = {
+      success: !!foundData,
+      data: foundData || null,
+      message: foundData ? 'Data fetched successfully.' : 'Record not found.',
     }
+
+    if (responseBody.success) {
+      selectedDocumentRequest.value = responseBody.data
+    }
+
     return responseBody
   }
 

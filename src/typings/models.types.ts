@@ -257,7 +257,7 @@ export type LeaveApplicationDateResponse = {
 export type DocumentRequestResponse = {
   id: number | null
   request_date: string | null
-  certificate_type: string | null
+  certificate_type: string | number | null
   others_type: string | null
   additional_info: string | null
   others_additional_info: string | null

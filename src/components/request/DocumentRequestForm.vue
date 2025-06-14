@@ -1,30 +1,35 @@
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import Button from 'primevue/button'
 import Divider from 'primevue/divider'
 import Card from 'primevue/card'
+import Dialog from 'primevue/dialog'
 import useVuelidate from '@vuelidate/core'
 import { helpers, maxLength, required } from '@vuelidate/validators'
 import WbInputText from '@/components/webkit/WbInputText.vue'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-import { DateToday } from '@/utils/helpers.ts'
+import { DateToday, formatDateRequest } from '@/utils/helpers.ts'
 import { useToast } from 'primevue/usetoast'
 import { parseApiResponseError } from '@/utils/error-handle.ts'
 import { DocumentRequestPayload, useDocumentRequestStore } from '@/stores/document-request.store'
+import { DocumentRequestResponse } from '@/typings/models.types'
+import { useAuthStore } from '@/stores/auth.store'
+import { useRoute } from 'vue-router'
 
-/** Payload for the Request Document */
-const payload = reactive<DocumentRequestPayload>({
-  request_date: DateToday,
-  certificate_type: '',
-  others_type: '',
-  additional_info: '',
-  others_additional_info: '',
-  purpose: '',
-  mode_of_receipt: '',
-  status: 'Draft',
-})
+const authStore = useAuthStore()
+const documentRequestStore = useDocumentRequestStore()
+const route = useRoute()
+const isLoading = ref(true)
+const visible = ref(false)
+const dialogType = ref('')
+const dialogTitle = ref('')
+const dialogMessage = ref('')
+const confirmButtonLabel = ref('')
+const compensatoryBtn = ref(false)
+const isUpdateMode = computed(() => !!route.params.id)
 
 const selectedtypeofRequestId = ref<number | null>(null)
+
 const selectedadditioninfoRequestId = ref<number | null>(null)
 
 const typeofRequest = [
@@ -32,23 +37,44 @@ const typeofRequest = [
   { id: 2, label: 'CERTIFICATE OF LEAVE CREDITS' },
   { id: 3, label: 'CERTIFICATE OF EMPLOYMENT' },
   { id: 4, label: 'DULY ACCOMPLISHED OFFICE CLEARANCE CERTIFICATE FORM' },
-  { id: 5, label: 'CERTIFICATE OF LEAVE WITHOUT PAY ' },
+  { id: 5, label: 'CERTIFICATE OF LEAVE WITHOUT PAY' },
   { id: 6, label: 'OTHERS (please specify)' },
 ]
 
 const additionalInformationofRequest = [
   { id: 1, label: 'SALARY/COST OF SERVICE' },
-  { id: 2, label: 'SERVICE/CONTRACT GAPS ' },
+  { id: 2, label: 'SERVICE/CONTRACT GAPS' },
   { id: 3, label: 'OTHERS (please specify) ' },
 ]
+/** Payload for the Request Document */
+const payload = reactive<DocumentRequestPayload>({
+  request_date: DateToday,
+  certificate_type: null,
+  others_type: '',
+  additional_info: null,
+  others_additional_info: '',
+  purpose: '',
+  mode_of_receipt: '',
+  status: 'Draft',
+})
 
-const isRequestSelected = (id: number): boolean => {
-  return selectedtypeofRequestId.value === id
-}
+watch(
+  () => payload.certificate_type,
+  (newVal) => {
+    const matched = typeofRequest.find((item) => item.label === newVal)
+    selectedtypeofRequestId.value = matched ? matched.id : null
+  },
+  { immediate: true }
+)
 
-const isAdditionalRequestRequestSelected = (id: number): boolean => {
-  return selectedadditioninfoRequestId.value === id
-}
+watch(
+  () => payload.additional_info,
+  (newVal) => {
+    const matched = additionalInformationofRequest.find((item) => item.label === newVal)
+    selectedadditioninfoRequestId.value = matched ? matched.id : null
+  },
+  { immediate: true }
+)
 
 const selectRequest = (id: number): void => {
   if (selectedtypeofRequestId.value === id) {
@@ -62,13 +88,11 @@ const selectRequest = (id: number): void => {
     if (selectedItem) {
       payload.certificate_type = selectedItem.label
       payload.others_type = ''
-      console.log('Action: Selected specific type:', payload)
-    } else {
-      payload.certificate_type = ''
-      payload.others_type = ''
     }
   }
 }
+
+const isRequestSelected = (id: number) => selectedtypeofRequestId.value === id
 
 const selectAdditionalInformationRequest = (id: number): void => {
   if (selectedadditioninfoRequestId.value === id) {
@@ -77,18 +101,65 @@ const selectAdditionalInformationRequest = (id: number): void => {
     payload.others_additional_info = ''
   } else {
     selectedadditioninfoRequestId.value = id
-    const selectedItem = typeofRequest.find((item) => item.id === id)
-
+    const selectedItem = additionalInformationofRequest.find((item) => item.id === id)
     if (selectedItem) {
       payload.additional_info = selectedItem.label
-      payload.others_additional_info = ''
-      console.log('Action: Selected specific type:', payload)
-    } else {
-      payload.additional_info = ''
       payload.others_additional_info = ''
     }
   }
 }
+watch(
+  () => payload.additional_info,
+  (newVal) => {
+    console.log('Selected Additional Info:', newVal)
+  }
+)
+const isAdditionalRequestRequestSelected = (id: number) => selectedadditioninfoRequestId.value === id
+
+type DocumentRequestFormProps = {
+  documentRequest?: DocumentRequestResponse
+}
+const props = defineProps<DocumentRequestFormProps>()
+onMounted(async () => {
+  const id = route.params.id as string
+  if (id) {
+    const response = await documentRequestStore.fetchDocumentRequestById(id)
+    if (response && response.success) {
+      updatePayloadFromReport(response.data as DocumentRequestResponse)
+    }
+  }
+  isLoading.value = false
+})
+
+const updatePayloadFromReport = (documentRequest: DocumentRequestResponse | null) => {
+  payload.request_date = documentRequest?.request_date ?? null
+  payload.certificate_type = documentRequest?.certificate_type ?? ''
+  payload.others_type = documentRequest?.others_type ?? ''
+  payload.additional_info = documentRequest?.additional_info ?? ''
+  payload.others_additional_info = documentRequest?.others_additional_info ?? ''
+  payload.purpose = documentRequest?.purpose ?? ''
+  payload.mode_of_receipt = documentRequest?.mode_of_receipt ?? ''
+  payload.status = documentRequest?.status ?? ''
+}
+
+watch(
+  () => props.documentRequest,
+  (newValue) => {
+    if (newValue) {
+      updatePayloadFromReport(newValue)
+    } else {
+      payload.request_date = ''
+      payload.certificate_type = ''
+      payload.others_type = ''
+      payload.additional_info = ''
+      payload.others_additional_info = ''
+      payload.purpose = ''
+      payload.mode_of_receipt = ''
+      payload.status = ''
+    }
+  },
+  { immediate: true }
+)
 
 /** Validation */
 const globalStringMaxLength = import.meta.env.VITE_GLOBAL_STRING_MAX_LENGTH
@@ -119,12 +190,51 @@ const showErrorAlert = ref(false)
 const errorMessage = ref<string | null>(null)
 const errorDetails = ref<string[]>([])
 const toast = useToast()
-const documentRequestStore = useDocumentRequestStore()
 
 /** Emits */
 const emit = defineEmits<{
   (e: 'request-created', value: boolean): void
 }>()
+
+const openDialog = (type: 'pending' | 'in progress' | 'released') => {
+  dialogType.value = type
+  visible.value = true
+
+  if (type === 'pending') {
+    dialogTitle.value = 'Save Document Request?'
+    dialogMessage.value = 'Saving this document request as draft allows you to return and complete it later.'
+    confirmButtonLabel.value = 'Submit'
+    payload.status = 'pending'
+  }
+
+  if (type === 'in progress') {
+    dialogTitle.value = 'Submit Document Request?'
+    dialogMessage.value = 'Submitting this request will send it for processing. You won’t be able to make further changes.'
+    confirmButtonLabel.value = 'Submit'
+    payload.status = 'in progress'
+  }
+
+  if (type === 'released') {
+    dialogTitle.value = 'Approve Document Request?'
+    dialogMessage.value = 'Approving this document request will mark it as completed and ready for release.'
+    confirmButtonLabel.value = 'Approve Request'
+    payload.status = 'released'
+  }
+}
+
+/** Confirm the action based on the dialog type */
+const confirmAction = () => {
+  if (dialogType.value === 'pending') {
+    handleSaveSubmissionif()
+  } else if (dialogType.value === 'in progress') {
+    handleSaveSubmissionif()
+  } else if (dialogType.value === 'released') {
+    handleSaveSubmissionif()
+  }
+
+  visible.value = false
+}
+
 /** Confirm the action based on the dialog type */
 const handleSaveSubmissionif = async () => {
   const valid = await validator.value.$validate()
@@ -184,6 +294,8 @@ const handleSaveSubmissionif = async () => {
     formIsSubmitting.value = false // Ensure formIsSubmitting is always set to false
   }
 }
+
+const isHumanResourceActive = computed(() => route.name === 'document-requests/editor')
 </script>
 
 <template>
@@ -202,12 +314,30 @@ const handleSaveSubmissionif = async () => {
               class="mb-2 ml-4 md:mb-0 md:ml-0"
             />
             <h2 class="mb-2 ml-4 text-3xl font-semibold text-primary-800 dark:text-primary-100 md:ml-4">
-              <font-awesome-icon :icon="['fas', 'check-double']" /> New Document Request
+              <font-awesome-icon :icon="['fas', isHumanResourceActive ? 'magnifying-glass' : 'check-double']" />
+              {{
+                isHumanResourceActive
+                  ? 'Viewing Document Request'
+                  : route.params.id
+                    ? 'Update Document Request'
+                    : 'New Document Request'
+              }}
+              <br />
+              <span class="ml-10 text-lg text-surface-600 md:text-xl lg:text-2xl">
+                {{ isHumanResourceActive && authStore.authFullName ? authStore.authFullName : '' }}
+              </span>
             </h2>
           </div>
           <br />
           <h1 class="mb-6 mr-4 flex justify-end text-lg font-semibold text-surface-600 dark:text-primary-100">
-            Date of Request: {{ DateToday }}
+            Date of Request:
+            {{
+              isUpdateMode
+                ? formatDateRequest(payload.request_date)
+                : isHumanResourceActive
+                  ? formatDateRequest(payload.request_date)
+                  : DateToday
+            }}
           </h1>
           <div class="justify-center gap-2 border-b-2 bg-surface-100 px-2 py-2 md:gap-4 md:px-0">
             <div class="text-center font-semibold text-surface-500">TYPE OF REQUEST TO BE AVAILED</div>
@@ -216,9 +346,16 @@ const handleSaveSubmissionif = async () => {
             <Card
               v-for="item in typeofRequest"
               :key="item.id"
-              class="h-18 mx-auto w-full cursor-pointer rounded-md transition-colors"
-              :class="!isRequestSelected(item.id) ? '!bg-surface-0 !text-surface-900' : '!bg-primary-400 !text-surface-0'"
-              @click="selectRequest(item.id)"
+              class="cursor-pointer"
+              :class="{
+                '!bg-primary-400 !text-white': item.id === selectedtypeofRequestId,
+                '!bg-surface-0 !text-black': item.id !== selectedtypeofRequestId,
+              }"
+              @click="
+                ['in progress', 'released'].includes(payload.status || '') || isHumanResourceActive
+                  ? null
+                  : selectRequest(item.id)
+              "
             >
               <template #content>
                 <div class="relative h-full w-full">
@@ -256,13 +393,16 @@ const handleSaveSubmissionif = async () => {
             <Card
               v-for="request in additionalInformationofRequest"
               :key="request.id"
-              class="h-18 mx-auto w-full cursor-pointer rounded-md transition-colors"
-              :class="
-                !isAdditionalRequestRequestSelected(request.id)
-                  ? '!bg-surface-0 !text-surface-700'
-                  : '!bg-primary-400 !text-surface-0'
+              class="cursor-pointer"
+              :class="{
+                '!bg-primary-400 !text-white': request.id === selectedadditioninfoRequestId,
+                '!bg-surface-0 !text-black': request.id !== selectedadditioninfoRequestId,
+              }"
+              @click="
+                ['in progress', 'released'].includes(payload.status || '') || isHumanResourceActive
+                  ? null
+                  : selectAdditionalInformationRequest(request.id)
               "
-              @click="selectAdditionalInformationRequest(request.id)"
             >
               <template #content>
                 <div class="relative h-full w-full">
@@ -280,11 +420,10 @@ const handleSaveSubmissionif = async () => {
                 </div>
               </template>
             </Card>
-
             <div v-if="selectedadditioninfoRequestId === 3" class="px-2 md:px-0">
               <WbInputText
                 label=""
-                v-model="payload.others_additional_info"
+                v-model="payload.additional_info"
                 placeholder=" Please Specify:"
                 label-class="text-md text-surface-600 dark:lg:text-surface-200"
                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
@@ -298,6 +437,7 @@ const handleSaveSubmissionif = async () => {
             <WbInputText
               label="Purpose"
               v-model="payload.purpose"
+              :disabled="['in progress', 'released'].includes(payload.status || '') || isHumanResourceActive"
               required
               placeholder="Purpose"
               label-class="text-md text-surface-600 dark:lg:text-surface-200"
@@ -310,6 +450,7 @@ const handleSaveSubmissionif = async () => {
               label="Mode of Receipt"
               v-model="payload.mode_of_receipt"
               required
+              :disabled="['in progress', 'released'].includes(payload.status || '') || isHumanResourceActive"
               placeholder="Mode of Receipt"
               label-class="text-md text-surface-600 dark:lg:text-surface-200"
               class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
@@ -317,9 +458,12 @@ const handleSaveSubmissionif = async () => {
             />
           </div>
           <Divider layout="horizontal" class="mb-12 ml-2 hidden md:block"></Divider>
-          <div class="mx-4 mt-2 flex justify-end gap-2">
+          <!-- Other content -->
+          <div v-if="!compensatoryBtn" class="mt-2 flex justify-end gap-2">
             <Button
               label="Cancel"
+              :loading="formIsSubmitting"
+              :disabled="formIsSubmitting"
               class="dark:text-secondary-100 border border-surface-400 text-base text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
               text
               @click="$router.go(-1)"
@@ -329,11 +473,37 @@ const handleSaveSubmissionif = async () => {
               </template>
             </Button>
             <Button
-              @click="handleSaveSubmissionif"
+              @click="openDialog('pending')"
+              v-if="isUpdateMode && !isHumanResourceActive"
+              label="Update Request Document"
               :loading="formIsSubmitting"
-              :disabled="formIsSubmitting"
-              label="Request Document"
-              size="large"
+              :disabled="payload && payload.status != 'pending'"
+              class="dark:text-secondary-100 border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+              text
+            >
+              <template #icon>
+                <i class="pi pi-file mr-2"></i>
+              </template>
+            </Button>
+            <Button
+              @click="openDialog('in progress')"
+              v-if="isHumanResourceActive"
+              label="On Hold Request"
+              :loading="formIsSubmitting"
+              :disabled="payload && payload.status == 'released'"
+              class="dark:text-secondary-100 border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+              text
+            >
+              <template #icon>
+                <i class="pi pi-file mr-2"></i>
+              </template>
+            </Button>
+            <Button
+              @click="openDialog('released')"
+              v-if="isHumanResourceActive"
+              label=" Release Document Request"
+              :loading="formIsSubmitting"
+              :disabled="payload && payload.status == 'released'"
               class="dark:text-secondary-100 border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
               text
             >
@@ -342,6 +512,56 @@ const handleSaveSubmissionif = async () => {
               </template>
             </Button>
           </div>
+          <!-- Start Dialog Confirmation Modal Action  -->
+          <Dialog v-model:visible="visible" modal :style="{ width: '25vw' }" :closable="false">
+            <template #header>
+              <div style="display: flex; justify-content: flex-end; width: 100%">
+                <Button
+                  :loading="formIsSubmitting"
+                  :disabled="formIsSubmitting"
+                  class="dark:text-secondary-100 border-none text-xs text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
+                  text
+                  @click="visible = false"
+                >
+                  <template #icon>
+                    <i class="pi pi pi-times mr-2"></i>
+                  </template>
+                </Button>
+              </div>
+            </template>
+            <h1 class="text-md font-bold">
+              {{ dialogTitle }}
+            </h1>
+            <p>{{ dialogMessage }}</p>
+            <template #footer>
+              <Button
+                label="Cancel"
+                :loading="formIsSubmitting"
+                :disabled="formIsSubmitting"
+                class="dark:text-secondary-100 border border-surface-400 text-xs text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
+                text
+                @click="visible = false"
+              >
+                <template #icon>
+                  <i class="pi pi-ban mr-2"></i>
+                </template>
+              </Button>
+              <Button
+                @click="confirmAction"
+                :label="confirmButtonLabel"
+                :loading="formIsSubmitting"
+                :disabled="formIsSubmitting"
+                class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+                text
+              >
+                <template #icon>
+                  <font-awesome-icon :icon="['fas', 'share']" class="mr-2" />
+                </template>
+              </Button>
+            </template>
+          </Dialog>
+          <!-- End Dialog Confirmation Modal Action -->
+          <!-- End Action Buttons -->
           <!-- End Action Buttons -->
         </template>
       </Card>
