@@ -472,12 +472,13 @@ const isHumanResourceActive = computed(() => route.name === 'document-requests/e
                 <i class="pi pi-ban mr-2"></i>
               </template>
             </Button>
+
             <Button
               @click="openDialog('pending')"
-              v-if="isUpdateMode && !isHumanResourceActive"
-              label="Update Request Document"
+              v-if="!isHumanResourceActive"
+              :label="isUpdateMode ? 'Update Request Document' : 'Request Document'"
               :loading="formIsSubmitting"
-              :disabled="payload && payload.status != 'pending'"
+              :disabled="['in progress', 'released'].includes(payload.status || '') || isHumanResourceActive"
               class="dark:text-secondary-100 border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
               text
             >
@@ -485,6 +486,7 @@ const isHumanResourceActive = computed(() => route.name === 'document-requests/e
                 <i class="pi pi-file mr-2"></i>
               </template>
             </Button>
+
             <Button
               @click="openDialog('in progress')"
               v-if="isHumanResourceActive"
