@@ -425,7 +425,7 @@ const isHumanResourceActive = computed(() => route.name === 'leave-applications/
                   v-model="payload.number_of_days"
                   required
                   placeholder="e.g. 2"
-                  :disabled="payload && (payload.status === 'for review' || payload.status === 'approved')"
+                  :disabled="isHumanResourceActive || payload.status === 'approved'"
                   label-class="text-md text-surface-600 dark:lg:text-surface-200"
                   class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                   validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -541,7 +541,7 @@ const isHumanResourceActive = computed(() => route.name === 'leave-applications/
                 :label="index === 0 ? 'Inclusive Dates From' : ''"
                 v-model="inclusiveDate.start_date"
                 :required="index === 0"
-                :disabled="payload && (payload.status === 'for review' || payload.status === 'approved')"
+                :disabled="isHumanResourceActive || payload.status === 'approved'"
                 placeholder="DD / MM / YYYY"
                 label-class="text-md text-surface-600 dark:lg:text-surface-200"
                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
@@ -558,7 +558,7 @@ const isHumanResourceActive = computed(() => route.name === 'leave-applications/
                 :label="index === 0 ? 'Inclusive Dates To' : ''"
                 v-model="inclusiveDate.end_date"
                 :required="index === 0"
-                :disabled="payload && (payload.status === 'for review' || payload.status === 'approved')"
+                :disabled="isHumanResourceActive || payload.status === 'approved'"
                 placeholder="DD / MM / YYYY"
                 label-class="text-md text-surface-600 dark:lg:text-surface-200"
                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
@@ -575,7 +575,7 @@ const isHumanResourceActive = computed(() => route.name === 'leave-applications/
                   severity="danger"
                   rounded
                   @click="removeInclusiveDates(index)"
-                  v-if="!['for review', 'approved'].includes(payload.status) && payload.dates.length > 1"
+                  v-if="!['approved'].includes(payload.status) && payload.dates.length > 1 && !isHumanResourceActive"
                   class="mt-2"
                 />
               </div>
@@ -597,14 +597,14 @@ const isHumanResourceActive = computed(() => route.name === 'leave-applications/
                 label="Commutation"
                 label-class="text-md text-surface-600 dark:lg:text-surface-200"
                 placeholder="Choose Commutation"
-                :disabled="payload && (payload.status === 'for review' || payload.status === 'approved')"
+                :disabled="isHumanResourceActive || payload.status === 'approved'"
               />
             </div>
           </div>
           <div class="mx-10 flex w-full gap-4 sm:mx-8 md:mx-4 md:py-4 lg:mx-28">
             <Button
               label="+ Add Additional Dates"
-              v-if="!['for review', 'approved'].includes(payload.status)"
+              v-if="!['approved'].includes(payload.status) && !isHumanResourceActive"
               @click="addInclusiveDates"
               class="dark:text-secondary-100 border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
               text
