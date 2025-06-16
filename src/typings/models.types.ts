@@ -233,7 +233,7 @@ export type LeaveApplicationResponse = {
   id: number | null
   date_of_filing: string | null
   others_notes: string | null
-  number_of_days: number
+  number_of_days: string | null
   detail_of_leave: string | null
   specific_detail: string | null
   commutation: string | null

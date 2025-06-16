@@ -247,6 +247,23 @@ const routes = [
         },
       },
       {
+        path: '/my-leaveapplications/:id/editor',
+        name: 'my-leaveapplications/editor',
+        component: () => import('@/components/leave/ApplicationLeaveForm.vue'),
+        meta: <RouteMeta>{
+          isSidebarMenu: false,
+          authType: AuthType.AUTHENTICATED,
+          roles: [
+            AuthRole.STANDARD_USER,
+            AuthRole.HR_PPMS_ADMIN,
+            AuthRole.HR_PAS_ADMIN,
+            AuthRole.ADMIN,
+            AuthRole.SYSTEM_SUPPORT,
+            AuthRole.SUPER_USER,
+          ],
+        },
+      },
+      {
         path: '/my-payslips',
         name: 'my-payslips',
         component: () => import('@/views/personnel/PayslipPage.vue'),
@@ -666,6 +683,17 @@ const routes = [
           roles: [AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
         },
       },
+      {
+        path: '/leave-applications/:id/editor',
+        name: 'leave-applications/editor',
+        component: () => import('@/components/leave/ApplicationLeaveForm.vue'),
+        meta: <RouteMeta>{
+          isSidebarMenu: false,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+
       {
         path: '/locator-slips/:id?',
         name: 'locator-slips',

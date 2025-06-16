@@ -4,7 +4,6 @@ import { useAuthStore } from '@/stores/auth.store.ts'
 import { useApiCall } from '@/composables/network'
 import { ApiResponseBody } from '@/typings/http-resources.types.ts'
 import { LeaveApplicationResponse } from '@/typings/models.types'
-import { useFetchBlob } from '@/composables/fetch.blob'
 import { useDateFormat } from '@vueuse/core'
 
 export type LeaveApplicationPayload = {
@@ -20,7 +19,10 @@ export type LeaveApplicationPayload = {
   days_without_pay: string | null
   disapproved_notes: string | null
   employee_id?: string | number | null
-  leave_type_id?: string | number | null
+  leave_type_id: {
+    title: string | null
+    description: string | null
+  }
   dates: {
     start_date: string | null
     end_date: string | null
@@ -94,17 +96,17 @@ export const useLeaveApplicationStore = defineStore('leave-application', () => {
         employee: null,
       },
       leave_type_id: {
-        id: 1,
-        title: 'Sick Leave',
-        description: 'Sick leave for medical reasons',
+        id: 3,
+        title: 'SICK LEAVE',
+        description: 'Sec. 43, Rule XVI, Omnibus Rules Implementing E.O. No. 292',
       },
       date_of_filing: '2025-06-01',
       others_notes: 'Medical leave',
-      number_of_days: 2,
+      number_of_days: '2',
       detail_of_leave: 'Fever',
       specific_detail: 'High fever and fatigue',
       commutation: 'yes',
-      status: 'Draft',
+      status: 'for review',
       division_head_disapproval_notes: null,
       days_with_pay: '2',
       days_without_pay: '0',
@@ -177,17 +179,17 @@ export const useLeaveApplicationStore = defineStore('leave-application', () => {
         employee: null,
       },
       leave_type_id: {
-        id: 2,
-        title: 'Vacation Leave',
-        description: 'Annual paid vacation',
+        id: 6,
+        title: 'SPECIAL PRIVILEGE LEAVE',
+        description: 'Sec. 21, Rule XVI, Omnibus Rules Implementing E.O. No. 292',
       },
       date_of_filing: '2025-05-15',
       others_notes: 'Family vacation',
-      number_of_days: 5,
+      number_of_days: '5',
       detail_of_leave: 'Family trip',
       specific_detail: 'Traveling to hometown',
       commutation: 'no',
-      status: 'Review',
+      status: 'for review',
       division_head_disapproval_notes: null,
       days_with_pay: '5',
       days_without_pay: '0',
@@ -195,6 +197,12 @@ export const useLeaveApplicationStore = defineStore('leave-application', () => {
       dates: [
         {
           id: 2,
+          leave_application_id: null,
+          start_date: '2025-06-10',
+          end_date: '2025-06-14',
+        },
+        {
+          id: 5,
           leave_application_id: null,
           start_date: '2025-06-10',
           end_date: '2025-06-14',
@@ -260,17 +268,17 @@ export const useLeaveApplicationStore = defineStore('leave-application', () => {
         employee: null,
       },
       leave_type_id: {
-        id: 1,
-        title: 'Study Leave',
-        description: 'Sick leave for medical reasons',
+        id: 7,
+        title: 'SOLO PARENT LEAVE',
+        description: 'Sec. 21, Rule XVI, Omnibus Rules Implementing E.O. No. 292',
       },
       date_of_filing: '2025-06-02',
       others_notes: 'Flu symptoms',
-      number_of_days: 3,
+      number_of_days: '3',
       detail_of_leave: 'Flu',
       specific_detail: 'Cough and fever',
       commutation: 'yes',
-      status: 'Approved',
+      status: 'approved',
       division_head_disapproval_notes: null,
       days_with_pay: '3',
       days_without_pay: '0',
@@ -286,18 +294,30 @@ export const useLeaveApplicationStore = defineStore('leave-application', () => {
     },
   ]
 
-  const fetchLeaveApplication = async (limit = 10, page = 1) => {
+  const fetchLeaveApplication = async (limit = 10, page = 1, status?: string | string[]) => {
+    let filteredData = [...mockData]
+
+    // Normalize status filter
+    if (status) {
+      const statuses = Array.isArray(status) ? status.map((s) => s.toLowerCase()) : [status.toLowerCase()]
+
+      filteredData = filteredData.filter((item) => statuses.includes(item.status.toLowerCase()))
+    }
+
+    const total = filteredData.length
     const start = (page - 1) * limit
-    const paginated = mockData.slice(start, start + limit)
+    const paginated = filteredData.slice(start, start + limit)
+
     leaveApplication.value = [...paginated]
+
     return {
       success: true,
       data: paginated,
       pagination: {
         current_page: page,
-        last_page: Math.ceil(mockData.length / limit),
+        last_page: Math.ceil(total / limit),
         per_page: limit,
-        total: mockData.length,
+        total,
         from: start + 1,
         to: start + paginated.length,
         first_page_url: '',
@@ -309,13 +329,21 @@ export const useLeaveApplicationStore = defineStore('leave-application', () => {
     }
   }
 
-  const fetchLeaveApplicationById = async (id: string | number) => {
-    const url = `/leave-applications/${id}`
-    const { data } = await useApiCall(url, auth.authenticationToken).get().json()
-    const responseBody: ApiResponseBody = data.value
-    if (responseBody.success) {
-      selectedLeaveApplication.value = responseBody.data as LeaveApplicationResponse
+  const fetchLeaveApplicationById = async (id: string) => {
+    await new Promise((resolve) => setTimeout(resolve, 300))
+
+    const foundData = mockData.find((item) => item.id === parseInt(id))
+
+    const responseBody = {
+      success: !!foundData,
+      data: foundData || null,
+      message: foundData ? 'Data fetched successfully.' : 'Record not found.',
     }
+
+    if (responseBody.success) {
+      selectedLeaveApplication.value = responseBody.data
+    }
+
     return responseBody
   }
 
@@ -362,10 +390,14 @@ export const useLeaveApplicationStore = defineStore('leave-application', () => {
   }
 
   const generateLeaveApplication = async (id: string) => {
-    const api_url = `/leave-applications/${id}/generate`
-    const authenticationToken = ''
-    const { data, fileNameHeader } = await useFetchBlob(api_url, authenticationToken)
-    return { data, fileNameHeader }
+    const response = await fetch('/mock/Application-for-Leave.xlsx')
+    const blob = await response.blob()
+    const fileNameHeader = `Application-for-Leave-${id}.xlsx`
+
+    return {
+      data: ref(blob),
+      fileNameHeader: ref(fileNameHeader),
+    }
   }
 
   return {
