@@ -529,19 +529,18 @@ const isSupervisorActive = computed(() => route.name === 'ctdo-report-list/edito
           </div>
           <!-- Other content -->
           <div v-if="compensatoryBtn" class="mt-2 flex justify-end gap-2">
-            <RouterLink :to="{ name: 'ctdo-reports' }">
-              <Button
-                label="Cancel"
-                :loading="formIsSubmitting"
-                :disabled="formIsSubmitting"
-                class="dark:text-secondary-100 border border-surface-400 text-xs text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
-                text
-              >
-                <template #icon>
-                  <i class="pi pi-ban mr-2"></i>
-                </template>
-              </Button>
-            </RouterLink>
+            <Button
+              label="Cancel"
+              :loading="formIsSubmitting"
+              :disabled="formIsSubmitting"
+              class="dark:text-secondary-100 border border-surface-400 text-xs text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
+              text
+              @click="$router.go(-1)"
+            >
+              <template #icon>
+                <i class="pi pi-ban mr-2"></i>
+              </template>
+            </Button>
             <Button
               @click="openDialog('draft')"
               label="Draft"

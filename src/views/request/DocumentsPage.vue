@@ -10,33 +10,28 @@ import InputGroup from 'primevue/inputgroup'
 import Paginator, { PageState } from 'primevue/paginator'
 import { ApiResponsePagination } from '@/typings/http-resources.types.ts'
 import { DocumentRequestResponse } from '@/typings/models.types.ts'
-import { useAuthStore } from '@/stores/auth.store.ts'
 import { useDocumentRequestStore } from '@/stores/document-request.store'
 import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
-import { formatDate } from '@/utils/helpers.ts'
+import { formatDate, snakeCaseToTitleCase } from '@/utils/helpers.ts'
+import { useRoute } from 'vue-router'
 
-const authStore = useAuthStore()
-const RoleAssignView = computed(() => {
-  return authStore.authHasRequiredRole(['hr_pas_admin', 'admin'])
-})
-
-const filteredDocumentRequests = computed(() => {
-  if (RoleAssignView.value) {
-    // Show only approved if user has restricted roles
-    return documentRequestStore.documentRequest.filter((app) => ['In Progress', 'Released'].includes(app.status ?? ''))
-  }
-  // Otherwise show all
-  return documentRequestStore.documentRequest
-})
+const route = useRoute()
 const router = useRouter()
 const navigateToDetails = (documentRequest: DocumentRequestResponse) => {
   if (!documentRequest || !documentRequest.id) {
-    console.error('Cannot navigate to details: Application  for Leave or ID is undefined', documentRequest)
+    console.error('Cannot navigate to details: Document Request or ID is undefined', documentRequest)
     return
   }
+  let targetRouteName
+  if (isHumanResourceActive.value) {
+    targetRouteName = 'document-requests/editor'
+  } else {
+    targetRouteName = 'request-documents/editor'
+  }
+
   router.push({
-    name: 'my-leaveapplications/editor',
+    name: targetRouteName,
     params: {
       id: documentRequest.id,
     },
@@ -57,14 +52,22 @@ onBeforeMount(async () => {
 })
 
 const pagination = ref<ApiResponsePagination | null>(null)
-const handlePaginationPageChange = async (event: PageState) => {
-  const pageSelected = event.page + 1
+
+const fetchDocumentRequestBasedOnContext = async (page = 1) => {
   documentRequestIsLoading.value = true
-  const response = await documentRequestStore.fetchDocumentRequest(paginationLimit, pageSelected)
+  const statusFilter = isHumanResourceActive.value ? ['Pending', 'For Review', 'Released'] : undefined
+
+  const response = await documentRequestStore.fetchDocumentRequest(paginationLimit, page, statusFilter)
   if (response.success && response.pagination) {
     pagination.value = response.pagination
   }
   documentRequestIsLoading.value = false
+}
+
+onBeforeMount(() => fetchDocumentRequestBasedOnContext())
+
+const handlePaginationPageChange = async (event: PageState) => {
+  await fetchDocumentRequestBasedOnContext(event.page + 1)
 }
 
 const roleFilter = ref<number | null>(null)
@@ -151,6 +154,7 @@ const exportPdf = async (documentRequest: DocumentRequestResponse) => {
     console.error(error)
   }
 }
+const isHumanResourceActive = computed(() => route.name === 'document-requests')
 </script>
 <template>
   <div class="flex h-full w-full flex-col shadow-md">
@@ -159,7 +163,7 @@ const exportPdf = async (documentRequest: DocumentRequestResponse) => {
         class="flex flex-row items-center space-x-4 font-medium text-primary-700 dark:text-primary-100 md:ml-4 md:mt-2 md:flex-row"
       >
         <h1 class="mb-2 mr-4 whitespace-nowrap text-xl text-surface-600 dark:text-primary-100 md:text-xl lg:text-4xl">
-          {{ !RoleAssignView ? ' My Document Request' : 'Document Request' }}
+          {{ !isHumanResourceActive ? '  My Document Request ' : 'Document Request' }}
         </h1>
         <div class="flex w-full items-center justify-end gap-4">
           <div class="flex space-x-2 whitespace-nowrap md:w-auto">
@@ -174,6 +178,7 @@ const exportPdf = async (documentRequest: DocumentRequestResponse) => {
             />
             <RouterLink :to="{ name: 'request-documents/store' }">
               <Button
+                v-if="!isHumanResourceActive"
                 icon="pi pi-plus"
                 v-tooltip.top="'Create Document Request'"
                 severity="info"
@@ -200,14 +205,19 @@ const exportPdf = async (documentRequest: DocumentRequestResponse) => {
       <div class="mt-6 flex flex-col">
         <div class="w-full">
           <div class="mx-auto flex h-full w-full flex-col">
-            <DataTable :value="filteredDocumentRequests" class="mt-6" dataKey="id">
+            <DataTable :value="documentRequestStore.documentRequest" class="mt-6" dataKey="id">
               <Column
                 field="period"
-                header="Leave Period"
+                header="Document Request"
                 headerClass="w-1/2 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
               >
                 <template #body="props">
                   <p class="font-semibold uppercase text-surface-600">{{ props.data.certificate_type }}</p>
+                  <p v-if="isHumanResourceActive" class="uppercase text-surface-600">
+                    {{ snakeCaseToTitleCase(props.data.employee_id.first_name) }}
+                    {{ snakeCaseToTitleCase(props.data.employee_id.middle_name ?? '') }}
+                    {{ snakeCaseToTitleCase(props.data.employee_id.last_name) }}
+                  </p>
                 </template>
               </Column>
               <Column
@@ -225,20 +235,20 @@ const exportPdf = async (documentRequest: DocumentRequestResponse) => {
                 headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
               >
                 <template #body="props">
-                  <template v-if="props.data.status === 'Pending'">
+                  <template v-if="props.data.status === 'pending'">
                     <Chip
                       label="Pending"
                       class="flex items-center justify-center !bg-warn-500 px-4 py-1 font-semibold !text-surface-0"
                     >
                     </Chip>
                   </template>
-                  <template v-else-if="props.data.status === 'In Progress'">
+                  <template v-else-if="props.data.status === 'in progress'">
                     <Chip
                       label="In Progress"
                       class="flex items-center justify-center !bg-success-800 px-4 py-1 font-semibold !text-surface-0"
                     />
                   </template>
-                  <template v-else-if="props.data.status === 'Released'">
+                  <template v-else-if="props.data.status === 'released'">
                     <Chip
                       label="Released"
                       class="flex items-center justify-center !bg-info-800 px-4 py-1 font-semibold !text-surface-0"
@@ -289,7 +299,7 @@ const exportPdf = async (documentRequest: DocumentRequestResponse) => {
           class="flex h-full w-full flex-col items-center justify-center font-menu text-lg dark:text-surface-300"
         >
           <i class="pi pi-exclamation-triangle mb-2 text-2xl"></i>
-          <p>No Leave Applications found</p>
+          <p>No Document Request found</p>
         </div>
         <div
           v-if="!documentRequestIsLoading && !documentRequestStore.documentRequest.length && !searchSubmitted"
@@ -313,7 +323,7 @@ const exportPdf = async (documentRequest: DocumentRequestResponse) => {
                   Requested Documents created by you shall appear here.
                 </h1>
                 <div class="mt-4 flex w-full justify-center">
-                  <RouterLink :to="{ name: 'my-leaveapplications/store' }">
+                  <RouterLink :to="{ name: 'request-documents/store' }">
                     <Button
                       icon="pi pi-plus"
                       label="Request Documents"

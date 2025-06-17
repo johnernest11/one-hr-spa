@@ -233,7 +233,7 @@ export type LeaveApplicationResponse = {
   id: number | null
   date_of_filing: string | null
   others_notes: string | null
-  number_of_days: number
+  number_of_days: string | null
   detail_of_leave: string | null
   specific_detail: string | null
   commutation: string | null
@@ -257,7 +257,7 @@ export type LeaveApplicationDateResponse = {
 export type DocumentRequestResponse = {
   id: number | null
   request_date: string | null
-  certificate_type: string | null
+  certificate_type: string | number | null
   others_type: string | null
   additional_info: string | null
   others_additional_info: string | null
