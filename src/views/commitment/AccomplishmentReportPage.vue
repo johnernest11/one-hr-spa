@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { onBeforeMount, ref, watch } from 'vue'
+import { onBeforeMount, ref, watch, computed } from 'vue'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
+import Chip from 'primevue/chip'
 import Column from 'primevue/column'
 import DataTable from 'primevue/datatable'
 import InputText from 'primevue/inputtext'
@@ -12,23 +13,95 @@ import { PersonnelAccomplishmentReportResponse } from '@/typings/models.types.ts
 import { useAccomplishmentReportStore } from '@/stores/personnel-accomplishment-report.store'
 import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
+import { formatDate } from '@/utils/helpers.ts'
+import { useRoute } from 'vue-router'
+
+const accomplishmentReportStore = useAccomplishmentReportStore()
 const router = useRouter()
+const toast = useToast()
+const accomplishmentReportIsLoading = ref(false)
+const paginationLimit = 5
+
+const route = useRoute()
 const navigateToDetails = (accomplishmentReport: PersonnelAccomplishmentReportResponse) => {
   if (!accomplishmentReport || !accomplishmentReport.id) {
     console.error('Cannot navigate to details: accomplishmentRepor or ID is undefined', accomplishmentReport)
     return
   }
+  let targetRouteName
+  if (isSupervisorView.value) {
+    targetRouteName = 'accomplishment-report-list/editor'
+  } else {
+    targetRouteName = 'accomplishment-reports/editor'
+  }
+
   router.push({
-    name: 'accomplishment-reports/editor',
+    name: targetRouteName,
     params: {
       id: accomplishmentReport.id,
     },
   })
 }
+onBeforeMount(async () => {
+  accomplishmentReportIsLoading.value = true
+  const response = await accomplishmentReportStore.fetchAccomplishment(paginationLimit)
+  if (response.success && response.pagination) {
+    pagination.value = response.pagination
+  }
+  accomplishmentReportIsLoading.value = false
+})
+/** Pagination */
+const pagination = ref<ApiResponsePagination | null>(null)
+const fetchAccomplishmentsBasedOnContext = async (page = 1) => {
+  accomplishmentReportIsLoading.value = true
+  const statusFilter = isSupervisorView.value ? 'done' : undefined
+  const response = await accomplishmentReportStore.fetchAccomplishment(paginationLimit, page, statusFilter)
+  if (response.success && response.pagination) {
+    pagination.value = response.pagination
+  }
+  accomplishmentReportIsLoading.value = false
+}
 
-const toast = useToast()
+onBeforeMount(() => fetchAccomplishmentsBasedOnContext())
 
-const accomplishmentReportStore = useAccomplishmentReportStore()
+const handlePaginationPageChange = async (event: PageState) => {
+  await fetchAccomplishmentsBasedOnContext(event.page + 1)
+}
+
+/** Search and Filters */
+const roleFilter = ref<number | null>(null)
+const searchQuery = ref<string | null>(null)
+watch(
+  () => roleFilter.value,
+  async () => {
+    accomplishmentReportIsLoading.value = true
+    searchQuery.value = null
+    const response = await accomplishmentReportStore.fetchAccomplishment(paginationLimit)
+    if (response.success && response.pagination) {
+      pagination.value = response.pagination
+    }
+    accomplishmentReportIsLoading.value = false
+  }
+)
+
+const handleSearchAccomplishmentReport = async () => {
+  accomplishmentReportIsLoading.value = true
+  if (!searchQuery.value) {
+    const response = await accomplishmentReportStore.fetchAccomplishment(paginationLimit)
+    if (response.success && response.pagination) {
+      pagination.value = response.pagination
+    }
+    return (accomplishmentReportIsLoading.value = false)
+  }
+
+  const response = await accomplishmentReportStore.searchAccomplishment(searchQuery.value)
+  if (response.success && response.pagination) {
+    pagination.value = response.pagination
+    searchQuery.value = null
+  }
+  accomplishmentReportIsLoading.value = false
+}
+
 const exportToFile = async (accomplishmentReport: PersonnelAccomplishmentReportResponse) => {
   toast.add({
     severity: 'info',
@@ -38,7 +111,7 @@ const exportToFile = async (accomplishmentReport: PersonnelAccomplishmentReportR
   })
   const reportResponse = await accomplishmentReportStore.generateAccomplishmentReport(accomplishmentReport.id as string)
 
-  const blob = reportResponse.data.value // Get the Blob
+  const blob = reportResponse.data.value
 
   if (blob) {
     const url = window.URL.createObjectURL(blob)
@@ -59,252 +132,192 @@ const exportToFile = async (accomplishmentReport: PersonnelAccomplishmentReportR
   }
 }
 
-const accomplishmentReportIsLoading = ref(false)
-const paginationLimit = 5
-onBeforeMount(async () => {
-  accomplishmentReportIsLoading.value = true
-  const response = await accomplishmentReportStore.fetchAccomplishment(paginationLimit)
-  if (response.success && response.pagination) {
-    pagination.value = response.pagination
-  }
-  accomplishmentReportIsLoading.value = false
-})
-/** Pagination */
-const pagination = ref<ApiResponsePagination | null>(null)
-const handlePaginationPageChange = async (event: PageState) => {
-  const pageSelected = event.page + 1
-  accomplishmentReportIsLoading.value = true
-  const response = await accomplishmentReportStore.fetchAccomplishment(paginationLimit, pageSelected)
-  if (response.success && response.pagination) {
-    pagination.value = response.pagination
-  }
-  accomplishmentReportIsLoading.value = false
-}
-/** Search and Filters */
-const roleFilter = ref<number | null>(null)
-const searchQuery = ref<string | null>(null)
-watch(
-  () => roleFilter.value,
-  async () => {
-    accomplishmentReportIsLoading.value = true
-    searchQuery.value = null
-    const response = await accomplishmentReportStore.fetchAccomplishment(paginationLimit)
-    if (response.success && response.pagination) {
-      pagination.value = response.pagination
-    }
-    accomplishmentReportIsLoading.value = false
-  }
-)
-const handleSearchAccomplishmentReport = async () => {
-  // We do regular fetch if the query is null / empty
-  accomplishmentReportIsLoading.value = true
-  if (!searchQuery.value) {
-    const response = await accomplishmentReportStore.fetchAccomplishment(paginationLimit)
-    if (response.success && response.pagination) {
-      pagination.value = response.pagination
-    }
-    return (accomplishmentReportIsLoading.value = false)
-  }
-  // Handle the search if the search query
-  const response = await accomplishmentReportStore.searchAccomplishment(searchQuery.value)
-  if (response.success && response.pagination) {
-    pagination.value = response.pagination
-    searchQuery.value = null
-  }
-  accomplishmentReportIsLoading.value = false
-}
-/** End of Search and Filters */
-const navigateToCreate = () => {
-  router.push({ name: 'accomplishment-reports/store' })
-}
-const formatDate = (dateString: string | null | undefined): string => {
-  if (!dateString) return ''
-  try {
-    const date = new Date(dateString)
-    if (isNaN(date.getTime())) {
-      console.error('Invalid date string:', dateString)
-      return 'Invalid Date'
-    }
-    const options: Intl.DateTimeFormatOptions = {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    }
-    const formattedDate = date.toLocaleDateString(undefined, options)
-    return formattedDate.replace(/^(\w+)\s(\d+),\s(\d+)$/, '$2 $1 $3') //Regex for month dd, yyyy
-  } catch (error) {
-    console.error('Error formatting date:', error)
-    return 'Invalid Date'
-  }
-}
+const isSupervisorView = computed(() => route.name === 'accomplishment-report-list')
 </script>
 <template>
-  <div class="mx-auto flex h-full w-full flex-col pl-4 pt-8">
-    <Card class="h-full">
-      <template #content>
-        <!-- Start Filter Create & Search Accomplishment Report Button -->
-        <div
-          class="my-6 flex w-full flex-col items-center justify-between gap-4 rounded-lg bg-surface-0 px-6 py-6 dark:bg-surface-800 md:my-4 md:flex-row md:px-4 md:py-4"
-        >
-          <h1
-            class="mb-2 mr-4 whitespace-nowrap text-xl font-semibold text-primary-800 dark:text-primary-100 md:text-xl lg:text-4xl"
-          >
-            Accomplishment Reports
-          </h1>
-          <div class="flex w-full items-center justify-end gap-4">
-            <div class="gap-4 whitespace-nowrap md:w-auto">
+  <div class="flex h-full w-full flex-col shadow-md">
+    <div class="h-full w-full rounded-md bg-surface-0 p-6">
+      <div
+        class="flex flex-row items-center space-x-4 font-medium text-primary-700 dark:text-primary-100 md:ml-4 md:mt-2 md:flex-row"
+      >
+        <h1 class="mb-2 mr-4 whitespace-nowrap text-xl text-surface-600 dark:text-primary-100 md:text-xl lg:text-4xl">
+          Accomplishment Reports
+          <br />
+          <span class="ml-2 text-lg text-surface-600 md:text-xl lg:text-2xl">{{ isSupervisorView ? 'For Review' : '' }}</span>
+        </h1>
+
+        <div class="flex w-full items-center justify-end gap-4">
+          <div class="gap-4 whitespace-nowrap md:w-auto">
+            <Button
+              icon="pi pi-filter-fill"
+              v-tooltip.top="'Filter Accomplishments'"
+              severity="info"
+              size="large"
+              class="mr-2 border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100 sm:text-primary-400 md:text-primary-400 lg:text-primary-400 dark:lg:text-primary-400"
+              text
+              @click="$router.push({ name: 'sign-up' })"
+            />
+            <RouterLink :to="{ name: 'accomplishment-reports/store' }">
               <Button
-                icon="pi pi-filter-fill"
-                v-tooltip.top="'Filter Accomplishments'"
-                severity="info"
-                size="large"
-                class="mr-2 border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100 sm:text-primary-400 md:text-primary-400 lg:text-primary-400 dark:lg:text-primary-400"
-                text
-                @click="$router.push({ name: 'sign-up' })"
-              />
-              <Button
+                v-if="isSupervisorView"
                 icon="pi pi-plus"
                 v-tooltip.top="'Create Accomplishments'"
                 severity="info"
                 size="large"
                 class="border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100 sm:text-primary-400 md:text-primary-400 lg:text-primary-400 dark:lg:text-primary-400"
                 text
-                @click="navigateToCreate"
               />
-            </div>
-            <div class="flex w-full md:w-auto lg:w-1/2">
-              <InputGroup v-model="searchQuery" class="w-full">
-                <InputText
-                  v-model="searchQuery"
-                  placeholder="Search via Period or Accomplishment"
-                  class="w-full"
-                  :disabled="accomplishmentReportIsLoading"
-                  @keyup.enter="handleSearchAccomplishmentReport"
-                />
-                <Button
-                  icon="pi pi-search"
-                  @click="handleSearchAccomplishmentReport"
-                  :loading="accomplishmentReportIsLoading"
-                  :disabled="accomplishmentReportIsLoading"
-                />
-              </InputGroup>
-            </div>
+            </RouterLink>
+          </div>
+          <div class="flex w-full md:w-auto lg:w-1/2">
+            <InputGroup v-model="searchQuery" class="w-full">
+              <InputText
+                v-model="searchQuery"
+                placeholder="Search via Period or Accomplishment"
+                class="w-full"
+                :disabled="accomplishmentReportIsLoading"
+                @keyup.enter="handleSearchAccomplishmentReport"
+              />
+              <Button
+                icon="pi pi-search"
+                @click="handleSearchAccomplishmentReport"
+                :loading="accomplishmentReportIsLoading"
+                :disabled="accomplishmentReportIsLoading"
+              />
+            </InputGroup>
           </div>
         </div>
-        <!-- End Filter Create & Search Accomplishment Report Button -->
-        <!-- Start Data Table (Conditional Rendering) -->
-        <div>
-          <!-- Show Table if tableData has items -->
-          <div
-            v-if="
-              accomplishmentReportStore.accomplishmentReportArray &&
-              accomplishmentReportStore.accomplishmentReportArray.length > 0
-            "
-            class="mx-auto flex h-full w-full flex-col"
-          >
-            <DataTable :value="accomplishmentReportStore.accomplishmentReportArray" class="mt-6" dataKey="id">
-              <Column
-                field="period"
-                header="Accomplishment Period"
-                headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
-              >
-                <template #body="props">
-                  <p class="font-semibold uppercase text-surface-600">{{ props.data.period }}</p>
-                </template>
-              </Column>
-              <Column
-                field="edited_at"
-                header="Last Edited"
-                headerClass=" w-80 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
-              >
-                <template #body="props">
-                  <p class="uppercase text-surface-600">{{ formatDate(props.data.updated_at) }}</p>
-                </template>
-              </Column>
-              <Column
-                field="status"
-                header="Status"
-                headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
-              >
-                <template #body="props">
-                  <span>{{ props.data.status.toUpperCase() }}</span>
-                </template>
-              </Column>
-              <Column field="action" header="Actions" headerClass="w-64 bg-surface-100 opacity-70 font-bold py-2">
-                <template #body="props">
-                  <div class="flex gap-4 whitespace-nowrap md:w-auto">
-                    <Button
-                      icon="pi pi-eye"
-                      v-tooltip.top="'View Accomplishment Report'"
-                      severity="info"
-                      class="border-none text-lg font-semibold text-primary-600 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
-                      text
-                      @click="navigateToDetails(props.data)"
-                    />
-                    <Button
-                      icon="pi pi-file-word"
-                      v-tooltip.top="'Export to MS Word'"
-                      severity="info"
-                      class="border-none text-lg font-semibold text-primary-700 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
-                      text
-                      @click="exportToFile(props.data)"
-                    />
-                  </div>
-                </template>
-              </Column>
-            </DataTable>
-            <!-- Start Pagination -->
-            <div class="mt-6 flex w-full justify-center md:mt-10">
-              <Paginator
-                v-if="pagination && pagination.total > 0"
-                :rows="pagination.per_page"
-                :total-records="pagination.total"
-                template="CurrentPageReport FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink"
-                currentPageReportTemplate="Showing {first} to {last} of {totalRecords}"
-                @page="(event: PageState) => handlePaginationPageChange(event)"
-                class="text-s md:text-sm"
-                :pt="{ pageButton: {} }"
-              />
-            </div>
-            <!-- End Pagination -->
-          </div>
-          <!-- End Data Table -->
-          <!-- Show "No Accomplishment Report" message if tableData is empty -->
-          <div v-if="!accomplishmentReportIsLoading && !pagination?.total" class="mx-auto flex h-full w-full flex-col">
-            <Card class="w-full p-0 shadow-none">
-              <template #content>
-                <div class="flex flex-col items-center sm:flex-col md:flex-col">
-                  <div><img src="@/assets/image/AR.png" class="mx-auto w-96 pt-12" /></div>
-                  <h2
-                    class="mb-2 mt-4 flex w-full justify-center text-xl font-semibold text-surface-800 dark:text-primary-100 sm:text-2xl"
+      </div>
+      <!-- End Filter Create & Search Accomplishment Report Button -->
+      <!-- Start Data Table (Conditional Rendering) -->
+      <div class="mt-6 flex flex-col">
+        <!-- Show Table if tableData has items -->
+        <div
+          v-if="
+            accomplishmentReportStore.accomplishmentReportArray && accomplishmentReportStore.accomplishmentReportArray.length > 0
+          "
+          class="mx-auto flex h-full w-full flex-col"
+        >
+          <DataTable :value="accomplishmentReportStore.accomplishmentReportArray" class="mt-6" dataKey="id">
+            <Column
+              field="period"
+              header="Accomplishment Period"
+              headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
+            >
+              <template #body="props">
+                <p class="font-semibold uppercase text-surface-600">{{ props.data.period }}</p>
+              </template>
+            </Column>
+            <Column
+              field="edited_at"
+              header="Last Edited"
+              headerClass=" w-80 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
+            >
+              <template #body="props">
+                <p class="uppercase text-surface-600">{{ formatDate(props.data.updated_at) }}</p>
+              </template>
+            </Column>
+            <Column field="status" header="Status" headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2">
+              <template #body="props">
+                <template v-if="props.data.status === 'draft'">
+                  <Chip
+                    label="Draft"
+                    class="flex items-center justify-center !bg-surface-500 px-4 py-1 font-semibold !text-surface-0"
                   >
-                    You have no accomplishments
-                  </h2>
-                  <h1 class="mb-4 text-base text-surface-600 dark:text-surface-400 sm:text-lg">
-                    Accomplishment Reports created by you shall appear here.
-                  </h1>
-                  <div class="mt-4 flex w-full justify-center">
-                    <!-- <RouterLink :to="{ name: 'create-accomplishment-report' }" custom v-slot="{ href, navigate }">
-                      <Button
-                        :href="href"
-                        label="New Accomplishment Report"
-                        severity="primary"
-                        outlined
-                        @click="navigate"
-                        class="border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100 sm:text-primary-400 md:text-primary-400 lg:text-primary-400 dark:lg:text-primary-400"
-                      >
-                        <template #icon>
-                          <i class="pi pi-plus mr-2" />
-                        </template>
-                      </Button>
-                    </RouterLink> -->
-                  </div>
+                  </Chip>
+                </template>
+                <template v-else-if="props.data.status === 'done'">
+                  <Chip
+                    label="For Review"
+                    class="flex items-center justify-center !bg-success-800 px-4 py-1 font-semibold !text-surface-0"
+                  />
+                </template>
+                <template v-else-if="props.data.status === 'for revision'">
+                  <Chip
+                    label="For Revision"
+                    class="flex items-center justify-center !bg-warn-800 px-4 py-1 font-semibold !text-surface-0"
+                  />
+                </template>
+                <template v-else-if="props.data.status === 'approved'">
+                  <Chip
+                    label="Approved"
+                    class="flex items-center justify-center !bg-info-800 px-4 py-1 font-semibold !text-surface-0"
+                  />
+                </template>
+              </template>
+            </Column>
+            <Column field="action" header="Actions" headerClass="w-64 bg-surface-100 opacity-70 font-bold py-2">
+              <template #body="props">
+                <div class="flex gap-4 whitespace-nowrap md:w-auto">
+                  <Button
+                    icon="pi pi-eye"
+                    v-tooltip.top="'View Accomplishment Report'"
+                    severity="info"
+                    class="border-none text-lg font-semibold text-primary-600 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
+                    text
+                    @click="navigateToDetails(props.data)"
+                  />
+                  <Button
+                    icon="pi pi-file-word"
+                    v-tooltip.top="'Export to MS Word'"
+                    severity="info"
+                    class="border-none text-lg font-semibold text-primary-700 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
+                    text
+                    @click="exportToFile(props.data)"
+                  />
                 </div>
               </template>
-            </Card>
+            </Column>
+          </DataTable>
+          <!-- Start Pagination -->
+          <div class="mt-6 flex w-full justify-center md:mt-10">
+            <Paginator
+              v-if="pagination && pagination.total > 0"
+              :rows="pagination.per_page"
+              :total-records="pagination.total"
+              template="CurrentPageReport FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink"
+              currentPageReportTemplate="Showing {first} to {last} of {totalRecords}"
+              @page="(event: PageState) => handlePaginationPageChange(event)"
+              class="text-s md:text-sm"
+              :pt="{ pageButton: {} }"
+            />
           </div>
+          <!-- End Pagination -->
         </div>
-      </template>
-    </Card>
+        <!-- End Data Table -->
+        <!-- Show "No Accomplishment Report" message if tableData is empty -->
+        <div v-if="!accomplishmentReportIsLoading && !pagination?.total" class="mx-auto flex h-full w-full flex-col">
+          <Card class="w-full p-0 shadow-none">
+            <template #content>
+              <div class="flex flex-col items-center sm:flex-col md:flex-col">
+                <div><img src="@/assets/image/AR.png" class="mx-auto w-96 pt-12" /></div>
+                <h2
+                  class="mb-2 mt-4 flex w-full justify-center text-xl font-semibold text-surface-800 dark:text-primary-100 sm:text-2xl"
+                >
+                  You have no accomplishments
+                </h2>
+                <h1 class="mb-4 text-base text-surface-600 dark:text-surface-400 sm:text-lg">
+                  Accomplishment Reports created by you shall appear here.
+                </h1>
+                <div class="mt-4 flex w-full justify-center">
+                  <RouterLink :to="{ name: 'accomplishment-reports/store' }">
+                    <Button
+                      label="New Accomplishment Report"
+                      severity="primary"
+                      outlined
+                      class="border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100 sm:text-primary-400 md:text-primary-400 lg:text-primary-400 dark:lg:text-primary-400"
+                    >
+                      <template #icon>
+                        <i class="pi pi-plus mr-2" />
+                      </template>
+                    </Button>
+                  </RouterLink>
+                </div>
+              </div>
+            </template>
+          </Card>
+        </div>
+      </div>
+    </div>
   </div>
 </template>

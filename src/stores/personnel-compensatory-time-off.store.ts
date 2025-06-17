@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia'
 import { useApiCall } from '@/composables/network'
-import { useFetchBlob } from '@/composables/fetch.blob'
 import { useAuthStore } from '@/stores/auth.store.ts'
 import { PersonnelCompensatoryDayTimeOffResponse } from '@/typings/models.types.ts'
 import { ApiResponseBody } from '@/typings/http-resources.types.ts'
@@ -40,7 +39,7 @@ export const useCompensatoryTimeOffStore = defineStore('personnel-compensatory-t
       id: mockId++,
       ctdo_period: '01-31 December 2025',
       ctdo_supervisor_notes: 'Reviewed and approved.',
-      ctdo_status: 'Approved',
+      ctdo_status: 'for revision',
       rows: [
         {
           id: 6,
@@ -68,7 +67,7 @@ export const useCompensatoryTimeOffStore = defineStore('personnel-compensatory-t
       id: mockId++,
       ctdo_period: '01-31 November 2025',
       ctdo_supervisor_notes: 'Pending approval.',
-      ctdo_status: 'For Revision',
+      ctdo_status: 'for review',
       rows: [
         {
           id: 2,
@@ -96,7 +95,7 @@ export const useCompensatoryTimeOffStore = defineStore('personnel-compensatory-t
       id: mockId++,
       ctdo_period: '01-30 October 2025',
       ctdo_supervisor_notes: 'Requires additional documentation.',
-      ctdo_status: 'For Review',
+      ctdo_status: 'approved',
       rows: [
         {
           id: 4,
@@ -121,18 +120,30 @@ export const useCompensatoryTimeOffStore = defineStore('personnel-compensatory-t
       updated_at: '2025-07-06',
     },
   ]
-  const fetchCompensatoryDayTimeOff = async (limit = 10, page = 1) => {
+  const fetchCompensatoryDayTimeOff = async (limit = 10, page = 1, status?: string | string[]) => {
+    let filteredData = [...mockData]
+
+    // Normalize status filter
+    if (status) {
+      const statuses = Array.isArray(status) ? status.map((s) => s.toLowerCase()) : [status.toLowerCase()]
+
+      filteredData = filteredData.filter((item) => statuses.includes(item.ctdo_status.toLowerCase()))
+    }
+
+    const total = filteredData.length
     const start = (page - 1) * limit
-    const paginated = mockData.slice(start, start + limit)
+    const paginated = filteredData.slice(start, start + limit)
+
     compensatory.value = [...paginated]
+
     return {
       success: true,
       data: paginated,
       pagination: {
         current_page: page,
-        last_page: Math.ceil(mockData.length / limit),
+        last_page: Math.ceil(total / limit),
         per_page: limit,
-        total: mockData.length,
+        total,
         from: start + 1,
         to: start + paginated.length,
         first_page_url: '',
@@ -145,12 +156,20 @@ export const useCompensatoryTimeOffStore = defineStore('personnel-compensatory-t
   }
 
   const fetchCompensatoryDayTimeOffById = async (id: string) => {
-    const url = `/compensatory-day-time-offs/${id}`
-    const { data } = await useApiCall(url, auth.authenticationToken).get().json()
-    const responseBody: ApiResponseBody = data.value
-    if (responseBody.success) {
-      selectedCompensatoryDayOff.value = responseBody.data as PersonnelCompensatoryDayTimeOffResponse
+    await new Promise((resolve) => setTimeout(resolve, 300))
+
+    const foundData = mockData.find((item) => item.id === parseInt(id))
+
+    const responseBody = {
+      success: !!foundData,
+      data: foundData || null,
+      message: foundData ? 'Data fetched successfully.' : 'Record not found.',
     }
+
+    if (responseBody.success) {
+      selectedCompensatoryDayOff.value = responseBody.data
+    }
+
     return responseBody
   }
 
@@ -192,10 +211,14 @@ export const useCompensatoryTimeOffStore = defineStore('personnel-compensatory-t
   }
 
   const generateCompensatoryDayTimeOff = async (id: string) => {
-    const api_url = `/compensatory-day-time-offs/${id}/generate`
+    const response = await fetch('/mock/Compensatory-Form.docx')
+    const blob = await response.blob()
+    const fileNameHeader = `Compensatory-Form-${id}.docx`
 
-    const { data, fileNameHeader } = await useFetchBlob(api_url, auth.authenticationToken)
-    return { data, fileNameHeader }
+    return {
+      data: ref(blob),
+      fileNameHeader: ref(fileNameHeader),
+    }
   }
 
   return {

@@ -234,7 +234,7 @@ export type LeaveApplicationResponse = {
   id: number | null
   date_of_filing: string | null
   others_notes: string | null
-  number_of_days: number
+  number_of_days: string | null
   detail_of_leave: string | null
   specific_detail: string | null
   commutation: string | null
@@ -258,7 +258,7 @@ export type LeaveApplicationDateResponse = {
 export type DocumentRequestResponse = {
   id: number | null
   request_date: string | null
-  certificate_type: string | null
+  certificate_type: string | number | null
   others_type: string | null
   additional_info: string | null
   others_additional_info: string | null
@@ -273,8 +273,9 @@ export type LocatorSlipResponse = {
   id: number | null
   period_covered_from: string | null
   period_covered_to: string | null
-  destination: string | null
-  purpose: string | null
+  period_request: string | null
+  locator_slip_no: string | null
+  status: string | null
   employee_id: PersonnelResponse | null
 } & ApiResponseData
 

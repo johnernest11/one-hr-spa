@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeMount, ref, watch } from 'vue'
+import { onBeforeMount, ref, watch, computed } from 'vue'
 import Button from 'primevue/button'
 import Chip from 'primevue/chip'
 import Card from 'primevue/card'
@@ -13,17 +13,25 @@ import { PersonnelCompensatoryDayTimeOffResponse } from '@/typings/models.types.
 import { useCompensatoryTimeOffStore } from '@/stores/personnel-compensatory-time-off.store.ts'
 import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
+import { useRoute } from 'vue-router'
 
 const router = useRouter()
-const navigateToDetails = (applicationLeave: PersonnelCompensatoryDayTimeOffResponse) => {
-  if (!applicationLeave || !applicationLeave.id) {
-    console.error('Cannot navigate to details: Application  for Leave or ID is undefined', applicationLeave)
+const navigateToDetails = (compensatoryTimeOff: PersonnelCompensatoryDayTimeOffResponse) => {
+  if (!compensatoryTimeOff || !compensatoryTimeOff.id) {
+    console.error('Cannot navigate to details: Compensatory Day Time Offs or ID is undefined', compensatoryTimeOff)
     return
   }
+  let targetRouteName
+  if (isSupervisorActive.value) {
+    targetRouteName = 'ctdo-report-list/editor'
+  } else {
+    targetRouteName = 'ctdo-reports/editor'
+  }
+
   router.push({
-    name: 'ctdo-reports/editor',
+    name: targetRouteName,
     params: {
-      id: applicationLeave.id,
+      id: compensatoryTimeOff.id,
     },
   })
 }
@@ -42,16 +50,23 @@ onBeforeMount(async () => {
 })
 
 const pagination = ref<ApiResponsePagination | null>(null)
-const handlePaginationPageChange = async (event: PageState) => {
-  const pageSelected = event.page + 1
+
+const fetchCompensatoryBasedOnContext = async (page = 1) => {
   compensatoryDayTimeOffIsLoading.value = true
-  const response = await compensatoryDayTimeOffStore.fetchCompensatoryDayTimeOff(paginationLimit, pageSelected)
+  const statusFilter = isSupervisorActive.value ? ['for review', 'approved'] : undefined
+
+  const response = await compensatoryDayTimeOffStore.fetchCompensatoryDayTimeOff(paginationLimit, page, statusFilter)
   if (response.success && response.pagination) {
     pagination.value = response.pagination
   }
   compensatoryDayTimeOffIsLoading.value = false
 }
 
+onBeforeMount(() => fetchCompensatoryBasedOnContext())
+
+const handlePaginationPageChange = async (event: PageState) => {
+  await fetchCompensatoryBasedOnContext(event.page + 1)
+}
 const roleFilter = ref<number | null>(null)
 const searchQuery = ref<string | null>(null)
 const isSearching = ref(false)
@@ -69,7 +84,7 @@ watch(
   }
 )
 const searchSubmitted = ref(false)
-const handleSearchApplicationLeave = async () => {
+const handleSearchCompensatoryTimeOff = async () => {
   compensatoryDayTimeOffIsLoading.value = true
   searchSubmitted.value = true
 
@@ -93,21 +108,23 @@ const handleSearchApplicationLeave = async () => {
 
 const toast = useToast()
 const exportPdf = async (compensatoryDayTimeOff: PersonnelCompensatoryDayTimeOffResponse) => {
+  const { ctdo_period, id } = compensatoryDayTimeOff
   toast.add({
     severity: 'info',
     summary: 'Exporting...',
-    detail: `Exporting ${compensatoryDayTimeOff.ctdo_period || 'the Compensatory Time Day Off '}...`,
+    detail: `Exporting ${ctdo_period} of  Compensatory Time Day Off '...`,
     life: 5000,
   })
-  const reportResponse = await compensatoryDayTimeOffStore.generateCompensatoryDayTimeOff(String(compensatoryDayTimeOff.id))
+  const reportResponse = await compensatoryDayTimeOffStore.generateCompensatoryDayTimeOff(String(id))
 
-  const blob = reportResponse.data.value // Get the Blob
+  const blob = reportResponse.data.value
+  const fileName = reportResponse.fileNameHeader?.value || `Compensatory-Form-${id}.docx`
 
   if (blob) {
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `${reportResponse.fileNameHeader.value}`
+    a.download = fileName
     document.body.appendChild(a)
     a.click()
     window.URL.revokeObjectURL(url)
@@ -142,6 +159,9 @@ const formatDate = (dateString: string | null | undefined): string => {
     return 'Invalid Date'
   }
 }
+
+const route = useRoute()
+const isSupervisorActive = computed(() => route.name === 'ctdo-report-list')
 </script>
 <template>
   <div class="flex h-full w-full flex-col shadow-md">
@@ -150,13 +170,15 @@ const formatDate = (dateString: string | null | undefined): string => {
         class="flex flex-row items-center space-x-4 font-medium text-primary-700 dark:text-primary-100 md:ml-4 md:mt-2 md:flex-row"
       >
         <h1 class="mb-2 mr-4 whitespace-nowrap text-xl text-surface-600 dark:text-primary-100 md:text-xl lg:text-4xl">
-          Compensatory Day Time Offs (CTDO)
+          Compensatory Time Day Offs (CTDO)
+          <br />
+          <span class="ml-4 text-lg text-surface-600 md:text-xl lg:text-2xl">{{ isSupervisorActive ? 'For Review' : '' }}</span>
         </h1>
         <div class="flex w-full items-center justify-end gap-4">
           <div class="flex space-x-2 whitespace-nowrap md:w-auto">
             <Button
               icon="pi pi-filter-fill"
-              v-tooltip.top="'Filter Leave Application'"
+              v-tooltip.top="'Filter Compensatory Day Time Off'"
               severity="info"
               size="large"
               class="border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100"
@@ -165,6 +187,7 @@ const formatDate = (dateString: string | null | undefined): string => {
             />
             <RouterLink :to="{ name: 'ctdo-reports/store' }">
               <Button
+                v-if="!isSupervisorActive"
                 icon="pi pi-plus"
                 v-tooltip.top="'Create Compensatory Day Time Offs (CTDO)'"
                 severity="info"
@@ -181,9 +204,9 @@ const formatDate = (dateString: string | null | undefined): string => {
                 placeholder="Search via Status or Compensatory"
                 class="w-full"
                 :disabled="compensatoryDayTimeOffIsLoading"
-                @keyup.enter="handleSearchApplicationLeave"
+                @keyup.enter="handleSearchCompensatoryTimeOff"
               />
-              <Button icon="pi pi-search" @click="handleSearchApplicationLeave" />
+              <Button icon="pi pi-search" @click="handleSearchCompensatoryTimeOff" />
             </InputGroup>
           </div>
         </div>
@@ -194,7 +217,7 @@ const formatDate = (dateString: string | null | undefined): string => {
             <DataTable :value="compensatoryDayTimeOffStore.compensatory" class="mt-6" dataKey="id">
               <Column
                 field="period"
-                header="Leave Period"
+                header="Period"
                 headerClass="w-1/2 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
               >
                 <template #body="props">
@@ -216,23 +239,29 @@ const formatDate = (dateString: string | null | undefined): string => {
                 headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
               >
                 <template #body="props">
-                  <template v-if="props.data.ctdo_status === 'For Revision'">
+                  <template v-if="props.data.ctdo_status === 'draft'">
                     <Chip
-                      label="For Revision"
-                      class="flex items-center justify-center !bg-warn-400 px-4 py-1 font-semibold !text-surface-0"
+                      label="Draft"
+                      class="flex items-center justify-center !bg-surface-500 px-4 py-1 font-semibold !text-surface-0"
                     >
                     </Chip>
                   </template>
-                  <template v-else-if="props.data.ctdo_status === 'For Review'">
+                  <template v-else-if="props.data.ctdo_status === 'for review'">
                     <Chip
                       label="For Review"
                       class="flex items-center justify-center !bg-success-800 px-4 py-1 font-semibold !text-surface-0"
                     />
                   </template>
-                  <template v-else-if="props.data.ctdo_status === 'Approved'">
+                  <template v-else-if="props.data.ctdo_status === 'for revision'">
+                    <Chip
+                      label="For Revision"
+                      class="flex items-center justify-center !bg-warn-800 px-4 py-1 font-semibold !text-surface-0"
+                    />
+                  </template>
+                  <template v-else-if="props.data.ctdo_status === 'approved'">
                     <Chip
                       label="Approved"
-                      class="flex items-center justify-center !bg-info-900 px-4 py-1 font-semibold !text-surface-0"
+                      class="flex items-center justify-center !bg-info-800 px-4 py-1 font-semibold !text-surface-0"
                     />
                   </template>
                 </template>
@@ -242,7 +271,7 @@ const formatDate = (dateString: string | null | undefined): string => {
                   <div class="flex gap-4 whitespace-nowrap md:w-auto">
                     <Button
                       icon="pi pi-eye"
-                      v-tooltip.top="'View Leave Application'"
+                      v-tooltip.top="'View Compensatory Day Time Off'"
                       severity="info"
                       class="border-none text-lg font-semibold text-primary-600 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
                       text
@@ -250,7 +279,7 @@ const formatDate = (dateString: string | null | undefined): string => {
                     />
                     <Button
                       icon="pi pi-file-pdf"
-                      v-tooltip.top="'View Leave Application'"
+                      v-tooltip.top="'View Compensatory Day Time Off'"
                       severity="info"
                       class="border-none text-lg font-semibold text-primary-600 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
                       text
@@ -279,7 +308,7 @@ const formatDate = (dateString: string | null | undefined): string => {
           class="flex h-full w-full flex-col items-center justify-center font-menu text-lg dark:text-surface-300"
         >
           <i class="pi pi-exclamation-triangle mb-2 text-2xl"></i>
-          <p>No Leave Applications found</p>
+          <p>No Compensatory Day Time Off found</p>
         </div>
         <div
           v-if="!compensatoryDayTimeOffIsLoading && !compensatoryDayTimeOffStore.compensatory.length && !searchSubmitted"

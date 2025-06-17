@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeMount, ref, watch } from 'vue'
+import { onBeforeMount, ref, watch, computed } from 'vue'
 import Button from 'primevue/button'
 import Chip from 'primevue/chip'
 import Card from 'primevue/card'
@@ -15,15 +15,24 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { formatDateRanges, formatDate } from '@/utils/helpers.ts'
-
+import { useRoute } from 'vue-router'
+const route = useRoute()
 const router = useRouter()
+
 const navigateToDetails = (applicationLeave: LeaveApplicationResponse) => {
   if (!applicationLeave || !applicationLeave.id) {
     console.error('Cannot navigate to details: Application  for Leave or ID is undefined', applicationLeave)
     return
   }
+  let targetRouteName
+  if (isHumanResourceActive.value) {
+    targetRouteName = 'leave-applications/editor'
+  } else {
+    targetRouteName = 'my-leaveapplications/editor'
+  }
+
   router.push({
-    name: 'my-leaveapplications/editor',
+    name: targetRouteName,
     params: {
       id: applicationLeave.id,
     },
@@ -44,14 +53,21 @@ onBeforeMount(async () => {
 })
 
 const pagination = ref<ApiResponsePagination | null>(null)
-const handlePaginationPageChange = async (event: PageState) => {
-  const pageSelected = event.page + 1
+const fetchDocumentRequestBasedOnContext = async (page = 1) => {
   applicationLeaveIsLoading.value = true
-  const response = await applicationLeaveStore.fetchLeaveApplication(paginationLimit, pageSelected)
+  const statusFilter = isHumanResourceActive.value ? ['for review', 'approved'] : undefined
+
+  const response = await applicationLeaveStore.fetchLeaveApplication(paginationLimit, page, statusFilter)
   if (response.success && response.pagination) {
     pagination.value = response.pagination
   }
   applicationLeaveIsLoading.value = false
+}
+
+onBeforeMount(() => fetchDocumentRequestBasedOnContext())
+
+const handlePaginationPageChange = async (event: PageState) => {
+  await fetchDocumentRequestBasedOnContext(event.page + 1)
 }
 
 const roleFilter = ref<number | null>(null)
@@ -95,34 +111,50 @@ const handleSearchApplicationLeave = async () => {
 
 const toast = useToast()
 const exportPdf = async (leaveApplication: LeaveApplicationResponse) => {
+  const { date_of_filing, id } = leaveApplication
   toast.add({
     severity: 'info',
     summary: 'Exporting...',
-    detail: `Exporting ${leaveApplication.date_of_filing || 'the Leave Application '}...`,
+    detail: `Exporting ${date_of_filing}'Document Request '}...`,
     life: 5000,
   })
-  const reportResponse = await applicationLeaveStore.generateLeaveApplication(String(leaveApplication.id))
 
-  const blob = reportResponse.data.value // Get the Blob
+  try {
+    const reportResponse = await applicationLeaveStore.generateLeaveApplication(String(id))
 
-  if (blob) {
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${reportResponse.fileNameHeader.value}`
-    document.body.appendChild(a)
-    a.click()
-    window.URL.revokeObjectURL(url)
-    document.body.removeChild(a)
+    const blob = reportResponse.data.value
+    const fileName = reportResponse.fileNameHeader?.value || `Application-for-Leave-${id}.xlsx`
 
+    if (blob) {
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = fileName
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+
+      toast.add({
+        severity: 'success',
+        summary: 'Document Request Details Exported',
+        detail: `The Document Request from ${leaveApplication.date_of_filing} was successfully exported.`,
+        life: 5000,
+      })
+    } else {
+      throw new Error('Failed to generate file.')
+    }
+  } catch (error) {
     toast.add({
-      severity: 'success',
-      summary: 'Leave Application Details Exported',
-      detail: `The Leave Application from ${leaveApplication.date_of_filing} was successfully exported.`,
+      severity: 'error',
+      summary: 'Export Failed',
+      detail: 'There was an issue exporting the locator slip. Please try again.',
       life: 5000,
     })
+    console.error(error)
   }
 }
+const isHumanResourceActive = computed(() => route.name === 'leave-applications')
 </script>
 <template>
   <div class="flex h-full w-full flex-col shadow-md">
@@ -131,7 +163,7 @@ const exportPdf = async (leaveApplication: LeaveApplicationResponse) => {
         class="flex flex-row items-center space-x-4 font-medium text-primary-700 dark:text-primary-100 md:ml-4 md:mt-2 md:flex-row"
       >
         <h1 class="mb-2 mr-4 whitespace-nowrap text-xl text-surface-600 dark:text-primary-100 md:text-xl lg:text-4xl">
-          My Application for Leave
+          {{ !isHumanResourceActive ? ' My Application for Leave' : 'Application for Leave' }}
         </h1>
         <div class="flex w-full items-center justify-end gap-4">
           <div class="flex space-x-2 whitespace-nowrap md:w-auto">
@@ -146,6 +178,7 @@ const exportPdf = async (leaveApplication: LeaveApplicationResponse) => {
             />
             <RouterLink :to="{ name: 'my-leaveapplications/store' }">
               <Button
+                v-if="!isHumanResourceActive"
                 icon="pi pi-plus"
                 v-tooltip.top="'Create Application Leave Form'"
                 severity="info"
@@ -220,20 +253,20 @@ const exportPdf = async (leaveApplication: LeaveApplicationResponse) => {
                 headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
               >
                 <template #body="props">
-                  <template v-if="props.data.status === 'Draft'">
+                  <template v-if="props.data.status === 'draft'">
                     <Chip
                       label="Draft"
                       class="flex items-center justify-center !bg-surface-600 px-4 py-1 font-semibold !text-surface-0"
                     >
                     </Chip>
                   </template>
-                  <template v-else-if="props.data.status === 'Review'">
+                  <template v-else-if="props.data.status === 'for review'">
                     <Chip
                       label="For Review"
                       class="flex items-center justify-center !bg-success-800 px-4 py-1 font-semibold !text-surface-0"
                     />
                   </template>
-                  <template v-else-if="props.data.status === 'Approved'">
+                  <template v-else-if="props.data.status === 'approved'">
                     <Chip
                       label="Approved"
                       class="flex items-center justify-center !bg-info-800 px-4 py-1 font-semibold !text-surface-0"

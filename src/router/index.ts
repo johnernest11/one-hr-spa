@@ -1,12 +1,9 @@
 import { createRouter, createWebHistory, RouteMeta } from 'vue-router'
 import { vueApp } from '@/app.ts'
 import Dashboard from '@/views/DashboardPage.vue'
-import ProfilePage from '@/views/ProfilePage.vue'
 import EmptyPage from '@/views/EmptyPage.vue'
 import SupportPage from '@/views/SupportPage.vue'
 import AccomplishmentReportPage from '@/views/commitment/AccomplishmentReportPage.vue'
-import CreateAccomplishmentReportForm from '@/components/accomplishment-report/CreateAccomplishmentReportForm.vue'
-import ViewAccomplishmentReport from '@/components/accomplishment-report/ViewAccomplishmentReport.vue'
 import ItemNumberPage from '@/views/human-resources/ItemNumberPage.vue'
 import ItemNumberForm from '@/components/item-number/ItemNumberForm.vue'
 import AboutUsPage from '@/views/AboutUsPage.vue'
@@ -23,7 +20,7 @@ const enum RouteGroup {
 }
 
 const routes = [
-  /* MAIN  ROUTE*/
+  /* Main Routes*/
   {
     path: '',
     name: 'dashboard',
@@ -87,23 +84,48 @@ const routes = [
         },
       },
       {
-        path: '/request-overtimes/:id?',
-        name: 'request-overtimes',
-        component: () => import('@/views/request/OvertimesPage.vue'),
+        path: '/request-documents/store',
+        name: 'request-documents/store',
+        component: () => import('@/components/request/DocumentRequestForm.vue'),
         meta: <RouteMeta>{
-          label: 'Overtime',
-          isSidebarMenu: true,
+          isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
           roles: [
             AuthRole.STANDARD_USER,
-            AuthRole.SECTION_HEAD,
-            AuthRole.DIVISION_HEAD,
             AuthRole.HR_PPMS_ADMIN,
             AuthRole.HR_PAS_ADMIN,
             AuthRole.ADMIN,
             AuthRole.SYSTEM_SUPPORT,
             AuthRole.SUPER_USER,
           ],
+        },
+      },
+      {
+        path: '/request-documents/:id/editor',
+        name: 'request-documents/editor',
+        component: () => import('@/components/request/DocumentRequestForm.vue'),
+        meta: <RouteMeta>{
+          isSidebarMenu: false,
+          authType: AuthType.AUTHENTICATED,
+          roles: [
+            AuthRole.STANDARD_USER,
+            AuthRole.HR_PPMS_ADMIN,
+            AuthRole.HR_PAS_ADMIN,
+            AuthRole.ADMIN,
+            AuthRole.SYSTEM_SUPPORT,
+            AuthRole.SUPER_USER,
+          ],
+        },
+      },
+      {
+        path: '/my-locator-slips',
+        name: 'my-locator-slips',
+        component: () => import('@/views/personnel/LocatorSlipsPage.vue'),
+        meta: <RouteMeta>{
+          label: 'My Locator Slip',
+          isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
         },
       },
     ],
@@ -131,7 +153,7 @@ const routes = [
       {
         path: '/my-pds',
         name: 'my-pds',
-        component: ProfilePage,
+        component: () => import('@/views/personnel/PdsForm.vue'),
         meta: <RouteMeta>{
           label: 'Personal Data Sheet',
           isSidebarMenu: true,
@@ -210,7 +232,7 @@ const routes = [
       {
         path: '/my-leaveapplications/store',
         name: 'my-leaveapplications/store',
-        component: () => import('@/views/personnel/LeaveApplicationPage.vue'),
+        component: () => import('@/components/leave/ApplicationLeaveForm.vue'),
         meta: <RouteMeta>{
           isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
@@ -225,14 +247,20 @@ const routes = [
         },
       },
       {
-        path: '/my-locator-slips',
-        name: 'my-locator-slips',
-        component: () => import('@/views/personnel/LocatorSlipsPage.vue'),
+        path: '/my-leaveapplications/:id/editor',
+        name: 'my-leaveapplications/editor',
+        component: () => import('@/components/leave/ApplicationLeaveForm.vue'),
         meta: <RouteMeta>{
-          label: 'My Locator Slip',
-          isSidebarMenu: true,
+          isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
-          roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+          roles: [
+            AuthRole.STANDARD_USER,
+            AuthRole.HR_PPMS_ADMIN,
+            AuthRole.HR_PAS_ADMIN,
+            AuthRole.ADMIN,
+            AuthRole.SYSTEM_SUPPORT,
+            AuthRole.SUPER_USER,
+          ],
         },
       },
       {
@@ -362,7 +390,7 @@ const routes = [
       {
         path: 'accomplishment-reports/store',
         name: 'accomplishment-reports/store',
-        component: CreateAccomplishmentReportForm,
+        component: () => import('@/components/accomplishment-report/AccomplishmentReportForm.vue'),
         meta: <RouteMeta>{
           isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
@@ -381,7 +409,7 @@ const routes = [
       {
         path: 'accomplishment-reports/:id/editor',
         name: 'accomplishment-reports/editor',
-        component: ViewAccomplishmentReport,
+        component: () => import('@/components/accomplishment-report/AccomplishmentReportForm.vue'),
         meta: <RouteMeta>{
           isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
@@ -467,7 +495,7 @@ const routes = [
       label: 'Responsibility',
       isSidebarMenu: true,
       authType: AuthType.AUTHENTICATED,
-      roles: [AuthRole.SECTION_HEAD, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+      roles: [AuthRole.SECTION_HEAD, AuthRole.DIVISION_HEAD, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
     },
     children: [
       {
@@ -482,13 +510,13 @@ const routes = [
         },
       },
       {
-        path: 'accomplishment-report-list/:id/editor',
+        path: '/accomplishment-report-list/:id/editor',
         name: 'accomplishment-report-list/editor',
-        component: ViewAccomplishmentReport,
+        component: () => import('@/components/accomplishment-report/AccomplishmentReportForm.vue'),
         meta: <RouteMeta>{
           isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
-          roles: [AuthRole.DIVISION_HEAD, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+          roles: [AuthRole.SECTION_HEAD, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
         },
       },
       {
@@ -509,7 +537,7 @@ const routes = [
         meta: <RouteMeta>{
           isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
-          roles: [AuthRole.SECTION_HEAD, AuthRole.DIVISION_HEAD, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+          roles: [AuthRole.DIVISION_HEAD, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
         },
       },
     ],
@@ -647,7 +675,7 @@ const routes = [
       {
         path: '/leave-applications/:id?',
         name: 'leave-applications',
-        component: () => import('@/views/human-resources/LeaveFilePage.vue'),
+        component: () => import('@/views/personnel/LeaveApplicationPage.vue'),
         meta: <RouteMeta>{
           label: 'Leave Application',
           isSidebarMenu: true,
@@ -655,6 +683,17 @@ const routes = [
           roles: [AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
         },
       },
+      {
+        path: '/leave-applications/:id/editor',
+        name: 'leave-applications/editor',
+        component: () => import('@/components/leave/ApplicationLeaveForm.vue'),
+        meta: <RouteMeta>{
+          isSidebarMenu: false,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+
       {
         path: '/locator-slips/:id?',
         name: 'locator-slips',
@@ -678,6 +717,17 @@ const routes = [
         },
       },
       {
+        path: '/document-requests/:id/editor',
+        name: 'document-requests/editor',
+        component: () => import('@/components/request/DocumentRequestForm.vue'),
+        meta: <RouteMeta>{
+          label: 'Document Request',
+          isSidebarMenu: false,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+      {
         path: '/payrolls/:id?',
         name: 'payrolls',
         component: () => import('@/views/human-resources/PayrollPage.vue'),
@@ -691,7 +741,7 @@ const routes = [
       {
         path: '/staff-ctdos/:id?',
         name: 'staff-ctdos',
-        component: () => import('@/views/human-resources/CTDOPage.vue'),
+        component: () => import('@/views/commitment/CompensatoryTimeOffPage.vue'),
         meta: <RouteMeta>{
           label: 'Staff CTDO`s',
           isSidebarMenu: true,

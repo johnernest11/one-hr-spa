@@ -1,4 +1,5 @@
 import { CountryCode, isValidPhoneNumber, parsePhoneNumber } from 'libphonenumber-js'
+import { helpers } from '@vuelidate/validators'
 
 /**
  * @description Halt code execution for x seconds
@@ -170,6 +171,24 @@ export const formatDate = (dateString: string | null | undefined): string => {
   }
 }
 
+export const formatDateRequest = (dateInput: string | null | undefined): string => {
+  if (!dateInput) return ''
+
+  const date = new Date(dateInput)
+
+  if (isNaN(date.getTime())) return ''
+
+  const options: Intl.DateTimeFormatOptions = {
+    weekday: 'long', // Saturday
+    day: 'numeric', // 14
+    month: 'long', // June
+    year: 'numeric', // 2025
+  }
+
+  // Format the date using Intl.DateTimeFormat
+  return new Intl.DateTimeFormat('en-US', options).format(date)
+}
+
 export const getMonthAndYear = (dateString: string | null | undefined): string => {
   if (!dateString) return ''
   try {
@@ -191,3 +210,52 @@ export const getMonthAndYear = (dateString: string | null | undefined): string =
     return 'Invalid Date'
   }
 }
+
+/**
+ * @description Formats the current date into a string like "Monday 24 March, 2025".
+ * @returns {string} The formatted date string for today.
+ */
+export const dateToday = (): string => {
+  const dateObj = new Date() // Get the current date
+
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+  const months = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ]
+
+  const dayOfWeek = days[dateObj.getDay()]
+  const dayOfMonth = dateObj.getDate()
+  const monthName = months[dateObj.getMonth()]
+  const year = dateObj.getFullYear()
+
+  // Changed from single space to double space after dayOfWeek
+  return `${dayOfWeek}  ${dayOfMonth} ${monthName}, ${year}`
+}
+
+export const DateToday = dateToday()
+
+export const isAfterOrEqualFromDate = (fromField: () => string | Date) =>
+  helpers.withMessage('Period Covered To must be after or equal to  From', (toValue: string | Date) => {
+    const fromValue = fromField()
+
+    // Convert to Date objects
+    const toDate = new Date(toValue)
+    const fromDate = new Date(fromValue)
+
+    // Skip validation if either date is invalid
+    if (isNaN(toDate.getTime()) || isNaN(fromDate.getTime())) return true
+
+    // Validate that toDate >= fromDate
+    return toDate >= fromDate
+  })
