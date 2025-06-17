@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { onBeforeMount, ref, watch, computed, reactive } from 'vue'
+import { onBeforeMount, ref, watch, computed, reactive, onMounted } from 'vue'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
+import Chip from 'primevue/chip'
 import Column from 'primevue/column'
 import DataTable from 'primevue/datatable'
 import Dialog from 'primevue/dialog'
@@ -10,24 +11,21 @@ import InputGroup from 'primevue/inputgroup'
 import WbCalendar from '@/components/webkit/WbCalendar.vue'
 import WbDropdown from '@/components/webkit/WbDropdown.vue'
 import Paginator, { PageState } from 'primevue/paginator'
-import { useAuthStore } from '@/stores/auth.store.ts'
 import { LocatorSlipResponse } from '@/typings/models.types.ts'
 import { useLocatorSlipStore, LocatorSlipPayload } from '@/stores/locator-slip.store'
 import useVuelidate from '@vuelidate/core'
 import { ApiResponsePagination } from '@/typings/http-resources.types.ts'
 import { parseApiResponseError } from '@/utils/error-handle.ts'
 import { helpers, maxLength, required } from '@vuelidate/validators'
-import { getMonthAndYear, formatDateRanges, snakeCaseToTitleCase } from '@/utils/helpers.ts'
+import { getMonthAndYear, formatDateRanges, snakeCaseToTitleCase, isAfterOrEqualFromDate } from '@/utils/helpers.ts'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { useToast } from 'primevue/usetoast'
+import { useRoute } from 'vue-router'
 
-const authStore = useAuthStore()
-const RoleAssignView = computed(() => {
-  return authStore.authHasRequiredRole(['hr_pas_admin', 'admin', 'super_user'])
-})
-
+const route = useRoute()
 const locatorSlipsStore = useLocatorSlipStore()
 const locatorSlipsIsLoading = ref(false)
+const isLoading = ref(true)
 const paginationLimit = 5
 onBeforeMount(async () => {
   locatorSlipsIsLoading.value = true
@@ -140,11 +138,81 @@ const payload = reactive<LocatorSlipPayload>({
   period_covered_from: '',
   period_covered_to: '',
   period_request: '',
+  locator_slip_no: '',
+  status: '',
 })
 
+const openLocatorSlipDialog = (slip: LocatorSlipResponse | null = null) => {
+  if (!slip || !slip.id) {
+    console.error('Cannot navigate to details: accomplishmentRepor or ID is undefined', slip)
+    return
+  }
+  if (slip) {
+    updatePayloadFromReport(slip)
+  }
+  RequestLocatorSlip.value = true
+}
+
+const openNewLocatorSlipForm = () => {
+  resetPayload()
+  RequestLocatorSlip.value = true
+}
+
+const resetPayload = () => {
+  payload.period_covered_from = ''
+  payload.period_covered_to = ''
+  payload.period_request = ''
+  payload.locator_slip_no = ''
+  payload.status = ''
+  // initialize other fields to default if needed
+}
+
+type LocatorSlipDetailsFormProps = {
+  locatorSlip?: LocatorSlipResponse
+}
+const props = defineProps<LocatorSlipDetailsFormProps>()
+onMounted(async () => {
+  const id = route.params.id as string
+  if (id) {
+    const response = await locatorSlipsStore.fetchLocatorSlipById(id)
+    if (response && response.success) {
+      updatePayloadFromReport(response.data as LocatorSlipResponse)
+    }
+  }
+  isLoading.value = false
+})
+
+const updatePayloadFromReport = (locatorSlip: LocatorSlipResponse | null) => {
+  payload.period_covered_from = locatorSlip?.period_covered_from ?? null
+  payload.period_covered_to = locatorSlip?.period_covered_to ?? ''
+  payload.period_request = locatorSlip?.period_request ?? ''
+  payload.locator_slip_no = locatorSlip?.locator_slip_no ?? ''
+  payload.status = locatorSlip?.status ?? ''
+}
+
+watch(
+  () => props.locatorSlip,
+  (newValue) => {
+    if (newValue) {
+      updatePayloadFromReport(newValue)
+    } else {
+      payload.period_covered_from = ''
+      payload.period_covered_to = ''
+      payload.period_request = ''
+      payload.locator_slip_no = ''
+      payload.status = ''
+    }
+  },
+  { immediate: true }
+)
 const requestOptions = ref([
   { label: '1st request for this period', value: '1st request for this period' },
   { label: '2nd request for this period', value: '2nd request for this period' },
+])
+
+const statusOptions = ref([
+  { label: 'In Progress', value: 'in progress' },
+  { label: 'Released', value: 'released' },
 ])
 
 /** Validation */
@@ -162,6 +230,7 @@ const formRules = () => ({
   period_covered_to: {
     required: helpers.withMessage('Period Covered To is required', required),
     maxLength: helpers.withMessage('', globalStringMaxLengthRule),
+    isAfterOrEqualFromDate: isAfterOrEqualFromDate(() => payload.period_covered_from ?? ''),
   },
   period_request: {
     required: helpers.withMessage('Period Request is required', required),
@@ -234,6 +303,8 @@ const handleSaveSubmissionif = async () => {
     formIsSubmitting.value = false // Ensure formIsSubmitting is always set to false
   }
 }
+
+const isHumanResourceActive = computed(() => route.name === 'locator-slips')
 </script>
 <template>
   <div class="flex h-full w-full flex-col shadow-md">
@@ -242,7 +313,7 @@ const handleSaveSubmissionif = async () => {
         class="flex flex-row items-center space-x-4 font-medium text-primary-700 dark:text-primary-100 md:ml-4 md:mt-2 md:flex-row"
       >
         <h1 class="mb-2 mr-4 whitespace-nowrap text-xl text-surface-600 dark:text-primary-100 md:text-xl lg:text-4xl">
-          {{ !RoleAssignView ? 'My Locator Slips' : 'Locator Slips' }}
+          {{ !isHumanResourceActive ? '  My Locator Slip ' : 'Locator Slip' }}
         </h1>
 
         <div class="flex w-full items-center justify-end gap-4">
@@ -256,13 +327,14 @@ const handleSaveSubmissionif = async () => {
               text
             />
             <Button
-              icon="pi pi-file-excel"
+              v-if="!isHumanResourceActive"
+              icon="pi pi-plus"
               v-tooltip.top="'Request Locator Slip'"
               severity="info"
               size="large"
               class="border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100 sm:text-primary-400 md:text-primary-400 lg:text-primary-400 dark:lg:text-primary-400"
               text
-              @click="RequestLocatorSlip = true"
+              @click="openNewLocatorSlipForm"
             />
             <Dialog v-model:visible="RequestLocatorSlip" modal header="Request Locator Slip" :style="{ width: '90vw' }">
               <template #header>
@@ -285,6 +357,7 @@ const handleSaveSubmissionif = async () => {
                       label="Period Covered From"
                       required
                       placeholder="DD / MM / YYYY"
+                      :disabled="isHumanResourceActive"
                       class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                     />
                   </div>
@@ -299,12 +372,13 @@ const handleSaveSubmissionif = async () => {
                       label="Period Covered to"
                       required
                       placeholder="DD / MM / YYYY"
+                      :disabled="isHumanResourceActive"
                       class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                     />
                   </div>
                 </div>
 
-                <div class="mb-6">
+                <div class="mb-2">
                   <WbDropdown
                     v-model="payload.period_request"
                     label="Number of Request Made within the Period Covered "
@@ -318,6 +392,20 @@ const handleSaveSubmissionif = async () => {
                     optionValue="value"
                     class="mb-4 w-full"
                     placeholder="Choose Period Covered"
+                    :disabled="isHumanResourceActive"
+                  />
+                </div>
+
+                <div class="mb-6">
+                  <WbDropdown
+                    v-if="isHumanResourceActive"
+                    v-model="payload.status"
+                    label="Status "
+                    :options="statusOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                    class="mb-4 w-full"
+                    placeholder="Choose Status"
                   />
                 </div>
 
@@ -366,10 +454,15 @@ const handleSaveSubmissionif = async () => {
                   <p class="font-semibold uppercase text-surface-600">
                     {{ getMonthAndYear(props.data.period_covered_from) }}
                   </p>
-                  <p v-if="RoleAssignView" class="uppercase text-surface-600">
+
+                  <p v-if="isHumanResourceActive" class="uppercase text-surface-600">
                     {{ snakeCaseToTitleCase(props.data.employee_id.first_name) }}
                     {{ snakeCaseToTitleCase(props.data.employee_id.middle_name ?? '') }}
                     {{ snakeCaseToTitleCase(props.data.employee_id.last_name) }}
+                  </p>
+
+                  <p v-if="props.data.status?.toLowerCase() === 'released'" class="font-semibold uppercase text-success-600">
+                    LS No: {{ props.data.locator_slip_no }}
                   </p>
                 </template>
               </Column>
@@ -386,12 +479,50 @@ const handleSaveSubmissionif = async () => {
                   </p>
                 </template>
               </Column>
+              <Column
+                field="status"
+                header="Status"
+                headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
+              >
+                <template #body="props">
+                  <template v-if="props.data.status === 'pending'">
+                    <Chip
+                      label="Pending"
+                      class="flex items-center justify-center !bg-warn-500 px-4 py-1 font-semibold !text-surface-0"
+                    >
+                    </Chip>
+                  </template>
+                  <template v-else-if="props.data.status === 'in progress'">
+                    <Chip
+                      label="In Progress"
+                      class="flex items-center justify-center !bg-success-800 px-4 py-1 font-semibold !text-surface-0"
+                    />
+                  </template>
+                  <template v-else-if="props.data.status === 'released'">
+                    <Chip
+                      label="Released"
+                      class="flex items-center justify-center !bg-info-800 px-4 py-1 font-semibold !text-surface-0"
+                    />
+                  </template>
+                </template>
+              </Column>
               <Column field="action" header="Action" headerClass="w-64 bg-surface-100 opacity-70 font-bold py-2">
                 <template #body="props">
                   <div class="flex gap-4 whitespace-nowrap md:w-auto">
                     <Button
-                      icon="pi pi-file-pdf"
-                      v-tooltip.top="'Export to PDF'"
+                      icon="pi pi-eye"
+                      v-tooltip.top="'Update Status'"
+                      severity="info"
+                      size="large"
+                      class="border-none text-lg font-semibold text-primary-600 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
+                      text
+                      :disabled="props.data.status === 'released'"
+                      @click="openLocatorSlipDialog(props.data)"
+                    />
+                    <Button
+                      v-if="props.data.status?.toLowerCase() === 'released'"
+                      icon="pi pi-download"
+                      v-tooltip.top="'Download Locator Slip'"
                       severity="info"
                       class="border-none text-lg font-semibold text-primary-600 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
                       text

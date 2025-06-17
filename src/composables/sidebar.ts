@@ -116,6 +116,9 @@ export const useSidebarNavLinks = () => {
                 case 'request-documents':
                   childNavLink.icon = 'fas fa-list-check'
                   break
+                case 'my-payslips':
+                  childNavLink.icon = 'fas fa-receipt'
+                  break
 
                 /*Profile Routes */
                 case 'my-pds':
@@ -129,9 +132,6 @@ export const useSidebarNavLinks = () => {
                   break
                 case 'my-locator-slips':
                   childNavLink.icon = 'fas fa-location-dot'
-                  break
-                case 'my-payslips':
-                  childNavLink.icon = 'fas fa-receipt'
                   break
                 case 'my-dtrs':
                   childNavLink.icon = 'fas fa-clipboard'
