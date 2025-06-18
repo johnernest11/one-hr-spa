@@ -739,6 +739,17 @@ const routes = [
         },
       },
       {
+        path: '/employee-payrolls/:id?',
+        name: 'employee-payrolls',
+        component: () => import('@/views/human-resources/EmployeesPayrollPage.vue'),
+        meta: <RouteMeta>{
+          label: 'Payroll',
+          isSidebarMenu: false,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+      {
         path: '/staff-ctdos/:id?',
         name: 'staff-ctdos',
         component: () => import('@/views/commitment/CompensatoryTimeOffPage.vue'),

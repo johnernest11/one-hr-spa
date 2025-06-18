@@ -12,7 +12,7 @@ import { PayrollResponse } from '@/typings/models.types.ts'
 import { usePayRollStore } from '@/stores/payroll.store'
 import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
-import { getMonthAndYear, formatDate } from '@/utils/helpers.ts'
+import { formatDate } from '@/utils/helpers.ts'
 
 const router = useRouter()
 const navigateToDetails = (paySlip: PayrollResponse) => {
@@ -96,7 +96,7 @@ const exportPdf = async (paySlips: PayrollResponse) => {
   toast.add({
     severity: 'info',
     summary: 'Exporting...',
-    detail: `Exporting ${paySlips.period_from} - ${paySlips.period_to} || 'the Pay Slip '}...`,
+    detail: `Exporting ${paySlips.period} - ${paySlips.period} || 'the Pay Slip '}...`,
     life: 5000,
   })
   const reportResponse = await paySlipsStore.generatePayRoll(String(paySlips.id))
@@ -116,7 +116,7 @@ const exportPdf = async (paySlips: PayrollResponse) => {
     toast.add({
       severity: 'success',
       summary: 'Pay Slip Details Exported',
-      detail: `The Pay Slip from ${paySlips.period_from} - ${paySlips.period_to}  was successfully exported.`,
+      detail: `The Pay Slip from ${paySlips.period} - ${paySlips.period}  was successfully exported.`,
       life: 5000,
     })
   }
@@ -157,7 +157,7 @@ const exportPdf = async (paySlips: PayrollResponse) => {
                 headerClass="w-1/2 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
               >
                 <template #body="props">
-                  <p class="font-semibold uppercase text-surface-600">{{ getMonthAndYear(props.data.period_to) }}</p>
+                  <p class="font-semibold uppercase text-surface-600">{{ props.data.period }}</p>
                 </template>
               </Column>
               <Column

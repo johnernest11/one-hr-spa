@@ -259,3 +259,20 @@ export const isAfterOrEqualFromDate = (fromField: () => string | Date) =>
     // Validate that toDate >= fromDate
     return toDate >= fromDate
   })
+
+export function formatPayrollPeriod(periodStr: string | null): string {
+  if (!periodStr) return ''
+
+  const [startStr, endStr] = periodStr.split(',').map((s) => s.trim())
+  const startDate = new Date(startStr)
+  const endDate = new Date(endStr)
+
+  if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+    return ''
+  }
+
+  const options: Intl.DateTimeFormatOptions = { month: 'long', year: 'numeric' }
+  const dateRange = `${startDate.getDate()}–${endDate.getDate()} ${endDate.toLocaleDateString('en-US', options)}`
+
+  return dateRange
+}

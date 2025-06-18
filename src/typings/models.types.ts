@@ -51,6 +51,21 @@ export type AddressResponse = {
   region: RegionResponse | null
 } & ApiResponseData
 
+export type DivisionResponse = {
+  name: string | null
+  head_user_id: string | null
+  added_by_user_id: string | null
+  last_modified_by_user_id: string | null
+} & ApiResponseData
+
+export type SectionorUnitResponse = {
+  name: string | null
+  head_user_id: string | null
+  division_id: string | null
+  added_by_user_id: string | null
+  last_modified_by_user_id: string | null
+} & ApiResponseData
+
 export type ItemNumberResponse = {
   number: string | null
   date_of_creation: string | null
@@ -213,7 +228,7 @@ export type PersonnelContactInfo = {
 
 export type PersonnelEmployee = {
   id: number | null
-  individual_basic_detail_id: number | null
+  individual_basic_detail_id: PersonnelResponse | null
   id_number: string | null
   item_id: number | null
   salary_grade_id: number | null
@@ -224,8 +239,8 @@ export type PersonnelEmployee = {
   }
   agency_employee_no: string | null
   office_id: number | null
-  division_id: number | null
-  section_or_unit_id: number | null
+  division_id: DivisionResponse | null
+  section_or_unit_id: SectionorUnitResponse | null
 }
 
 /** Leave Application (HTTP Responses) */
@@ -281,9 +296,8 @@ export type LocatorSlipResponse = {
 /** PayRoll (HTTP Responses) */
 export type PayrollResponse = {
   id: number | null
-  period_from: string | null
-  period_to: string | null
-  gross_monthly_salary: number
+  period: string | null
+  gross_monthly_salary: string | null
   net_pay: string | null
   total_deductions_1st_half: string | null
   amount_earned_1st_half: string | null
@@ -292,21 +306,19 @@ export type PayrollResponse = {
   total_deductions_whole: string | null
   amount_earned_whole: string | null
   payroll_deduction_id: Array<PayrollDeductionResponse> | null | undefined
-  employee_id: PersonnelResponse | null
-  generate_employee_id: PersonnelResponse | null
+  employee_id: PersonnelEmployee | null
 } & ApiResponseData
 
 export type PayrollDeductionResponse = {
-  amount: string | null
+  amount: number | null
   range: string | null
-  employee_id: PersonnelResponse | null
+  // employee_deduction_setting_id: PayrollDeductionResponse | null
   deduction_id: DeductionResponse | null
-  payroll_id: PayrollResponse | null
-  employee_deduction_setting_id: PayrollDeductionSettingResponse | null
+  // employee_id: PersonnelResponse | null
 } & ApiResponseData
 
 export type PayrollDeductionSettingResponse = {
-  amount: string | null
+  amount: number | null
   range: string | null
   employee_id: PersonnelResponse | null
   deduction_id: DeductionResponse | null
