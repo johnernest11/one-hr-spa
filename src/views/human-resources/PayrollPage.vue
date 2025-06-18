@@ -259,7 +259,7 @@ const handleSaveSubmissionif = async () => {
               v-model:visible="GeneratePayroll"
               modal
               header="Generate Payroll"
-              :style="{ width: '100%', maxWidth: '1200px' }"
+              :style="{ width: '90vw', maxWidth: '1000px' }"
             >
               <template #header>
                 <div class="flex items-center space-x-3 pt-4 sm:px-2 md:px-2">
