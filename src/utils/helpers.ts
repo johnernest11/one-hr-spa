@@ -260,7 +260,7 @@ export const isAfterOrEqualFromDate = (fromField: () => string | Date) =>
     return toDate >= fromDate
   })
 
-export function formatPayrollPeriod(periodStr: string | null): string {
+export const formatPayrollPeriod = (periodStr: string | null): string => {
   if (!periodStr) return ''
 
   const [startStr, endStr] = periodStr.split(',').map((s) => s.trim())
@@ -275,4 +275,15 @@ export function formatPayrollPeriod(periodStr: string | null): string {
   const dateRange = `${startDate.getDate()}–${endDate.getDate()} ${endDate.toLocaleDateString('en-US', options)}`
 
   return dateRange
+}
+
+export const formatAmount = (amount: number | string | null | undefined): string => {
+  if (amount === null || amount === undefined || isNaN(Number(amount))) {
+    return '0.00'
+  }
+
+  return parseFloat(String(amount)).toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
 }

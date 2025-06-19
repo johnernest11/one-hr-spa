@@ -1,5 +1,40 @@
 /** MOCK DATA */
 let mockId = 1
+const mockSalaryGrade = {
+  id: 1, // if your ApiResponseData includes `id`
+  nbc_no: 123,
+  effective_date: '2024-07-01',
+  tranche: 4,
+  salary_grade: 12,
+  step: 3,
+  amount: 34567.89,
+}
+
+const mockItemNumber = [
+  {
+    id: 1,
+    number: 'ITEM-000501',
+    date_of_creation: '2022-01-01',
+    status: 'Filled',
+    date_filled_up: '2023-05-15',
+    fund_source_id: null,
+    employment_status: 'Permanent',
+    position: null,
+    position_id: null,
+  },
+  {
+    id: 2,
+    number: 'ITEM-000501',
+    date_of_creation: '2022-01-01',
+    status: 'Filled',
+    date_filled_up: '2023-05-15',
+    fund_source_id: null,
+    employment_status: 'Contract of Service',
+    position: null,
+    position_id: null,
+  },
+]
+
 const individual_basic_details = [
   {
     id: 1,
@@ -128,8 +163,12 @@ const employee_data = [
     id: 1,
     individual_basic_detail_id: individual_basic_details[0],
     id_number: 'EMP-2025-001',
-    item_id: 501,
-    salary_grade_id: 12,
+    item_id: mockItemNumber[0],
+    fund_source_id: {
+      id: 1,
+      name: 'General Fund',
+    },
+    salary_grade_id: mockSalaryGrade,
     position: 'Administrative Officer III',
     fund_source: {
       id: 1,
@@ -157,8 +196,8 @@ const employee_data = [
     id: 2,
     individual_basic_detail_id: individual_basic_details[1],
     id_number: 'EMP-2025-002',
-    item_id: 502,
-    salary_grade_id: 15,
+    item_id: mockItemNumber[1],
+    salary_grade_id: mockSalaryGrade,
     position: 'Human Resource Assistant',
     fund_source: {
       id: 2,
@@ -186,8 +225,8 @@ const employee_data = [
     id: 3,
     individual_basic_detail_id: individual_basic_details[2],
     id_number: 'EMP-2025-003',
-    item_id: 503,
-    salary_grade_id: 10,
+    item_id: mockItemNumber[0],
+    salary_grade_id: mockSalaryGrade,
     position: 'IT Support Specialist',
     fund_source: {
       id: 1,
@@ -215,8 +254,8 @@ const employee_data = [
     id: 4,
     individual_basic_detail_id: individual_basic_details[3],
     id_number: 'EMP-2025-004',
-    item_id: 504,
-    salary_grade_id: 9,
+    item_id: mockItemNumber[0],
+    salary_grade_id: mockSalaryGrade,
     position: 'Records Officer',
     fund_source: {
       id: 3,
@@ -244,8 +283,8 @@ const employee_data = [
     id: 5,
     individual_basic_detail_id: individual_basic_details[4],
     id_number: 'EMP-2025-005',
-    item_id: 505,
-    salary_grade_id: 18,
+    item_id: mockItemNumber[0],
+    salary_grade_id: mockSalaryGrade,
     position: 'Budget Analyst',
     fund_source: {
       id: 1,
@@ -273,8 +312,8 @@ const employee_data = [
     id: 6,
     individual_basic_detail_id: individual_basic_details[5],
     id_number: 'EMP-2025-006',
-    item_id: 506,
-    salary_grade_id: 11,
+    item_id: mockItemNumber[0],
+    salary_grade_id: mockSalaryGrade,
     position: 'Procurement Officer',
     fund_source: {
       id: 2,
@@ -300,82 +339,90 @@ const employee_data = [
   },
 ]
 
-const payrollDeductions = [
-  {
-    id: 1,
-    amount: 2000,
-    range: '1st Half',
-    deduction_id: {
-      id: 10,
-      name: 'PHIC Contribution',
-      code: 'PH001',
-      details: 'Monthly PhilHealth contribution',
-      created_at: '2025-01-01T00:00:00Z',
-      updated_at: '2025-01-01T00:00:00Z',
-    },
-    created_at: '2025-07-06',
-    updated_at: '2025-07-06',
-  },
-  {
-    id: 2,
-    amount: 3000,
-    range: '2nd Half',
-    deduction_id: {
-      id: 12,
-      name: 'Pag-IBIG MPL',
-      code: 'PG002',
-      details: 'PAG-IBIG monthly deduction',
-      created_at: '2025-01-01T00:00:00Z',
-      updated_at: '2025-01-01T00:00:00Z',
-    },
-    created_at: '2025-07-06',
-    updated_at: '2025-07-06',
-  },
-  {
-    id: 3,
-    amount: 3000,
-    range: '2nd Half',
-    deduction_id: {
-      id: 2,
-      name: 'GSIS EE Share',
-      code: 'PG002',
-      details: 'PAG-IBIG monthly deduction',
-      created_at: '2025-01-01T00:00:00Z',
-      updated_at: '2025-01-01T00:00:00Z',
-    },
-    created_at: '2025-07-06',
-    updated_at: '2025-07-06',
-  },
-  {
-    id: 4,
-    amount: 3000,
-    range: '2nd Half',
-    deduction_id: {
-      id: 12,
-      name: 'COOP Emergency Loan',
-      code: 'PG002',
-      details: 'PAG-IBIG monthly deduction',
-      created_at: '2025-01-01T00:00:00Z',
-      updated_at: '2025-01-01T00:00:00Z',
-    },
-    created_at: '2025-07-06',
-    updated_at: '2025-07-06',
-  },
-]
+const payrollDeductions = () => {
+  const phic = mockSalaryGrade.amount * 0.0225 // 2.25%
+  const pagIbig = 100 // capped at 100
+  const gsis = mockSalaryGrade.amount * 0.09 // 9%
+  const loan = 3000 // fixed loan amount
 
+  return [
+    {
+      id: 1,
+      amount: phic,
+      range: '1st Half',
+      deduction_id: {
+        id: 10,
+        name: 'PHIC Contribution',
+        code: 'PH001',
+        details: 'Monthly PhilHealth contribution',
+        created_at: '2025-01-01T00:00:00Z',
+        updated_at: '2025-01-01T00:00:00Z',
+      },
+    },
+    {
+      id: 2,
+      amount: pagIbig,
+      range: '2nd Half',
+      deduction_id: {
+        id: 12,
+        name: 'Pag-IBIG MPL',
+        code: 'PG002',
+        details: 'PAG-IBIG monthly deduction',
+        created_at: '2025-01-01T00:00:00Z',
+        updated_at: '2025-01-01T00:00:00Z',
+      },
+    },
+    {
+      id: 3,
+      amount: gsis,
+      range: '1st Half',
+      deduction_id: {
+        id: 2,
+        name: 'GSIS EE Share',
+        code: 'PG002',
+        details: 'PAG-IBIG monthly deduction',
+        created_at: '2025-01-01T00:00:00Z',
+        updated_at: '2025-01-01T00:00:00Z',
+      },
+    },
+    {
+      id: 4,
+      amount: loan,
+      range: '2nd Half',
+      deduction_id: {
+        id: 12,
+        name: 'COOP Emergency Loan',
+        code: 'PG002',
+        details: 'PAG-IBIG monthly deduction',
+        created_at: '2025-01-01T00:00:00Z',
+        updated_at: '2025-01-01T00:00:00Z',
+      },
+    },
+  ]
+}
+const deductions = payrollDeductions()
+const total_deductions_1st_half = deductions.filter((d) => d.range === '1st Half').reduce((sum, d) => sum + d.amount, 0)
+
+const total_deductions_2nd_half = deductions.filter((d) => d.range === '2nd Half').reduce((sum, d) => sum + d.amount, 0)
+
+const total_deductions_whole = total_deductions_1st_half + total_deductions_2nd_half
+const net_pay = mockSalaryGrade.amount - total_deductions_whole
+const amount_earned_1st_half = mockSalaryGrade.amount / 2 - total_deductions_1st_half
+const amount_earned_2nd_half = mockSalaryGrade.amount / 2 - total_deductions_2nd_half
+const amount_earned_whole = amount_earned_1st_half + amount_earned_2nd_half
 export const payrollMockData = [
   {
     id: mockId++,
     period: '2025-05-01, 2025-05-15',
-    gross_monthly_salary: '50000',
-    net_pay: '40000',
-    total_deductions_1st_half: '5000',
-    amount_earned_1st_half: '20000',
-    total_deductions_2nd_half: '5000',
-    amount_earned_2nd_half: '20000',
-    total_deductions_whole: '10000',
-    amount_earned_whole: '40000',
-    payroll_deduction_id: payrollDeductions,
+    gross_monthly_salary: mockSalaryGrade.amount.toFixed(2),
+    payroll_deduction_id: payrollDeductions(),
+    total_deductions_1st_half: total_deductions_1st_half.toFixed(2),
+    amount_earned_1st_half: amount_earned_1st_half.toFixed(2),
+    total_deductions_2nd_half: total_deductions_2nd_half.toFixed(2),
+    amount_earned_2nd_half: amount_earned_2nd_half.toFixed(2),
+    total_deductions_whole: total_deductions_whole.toFixed(2),
+    amount_earned_whole: amount_earned_whole.toFixed(2),
+    net_pay: net_pay.toFixed(2),
     employee_id: employee_data[0],
     created_at: '2025-07-06',
     updated_at: '2025-07-06',
@@ -383,15 +430,15 @@ export const payrollMockData = [
   {
     id: mockId++,
     period: '2025-05-16, 2025-05-31',
-    gross_monthly_salary: '48000',
-    net_pay: '38000',
-    total_deductions_1st_half: '4000',
-    amount_earned_1st_half: '19000',
-    total_deductions_2nd_half: '6000',
-    amount_earned_2nd_half: '19000',
-    total_deductions_whole: '10000',
-    amount_earned_whole: '38000',
-    payroll_deduction_id: payrollDeductions.slice(0, 3),
+    gross_monthly_salary: mockSalaryGrade.amount.toFixed(2),
+    payroll_deduction_id: payrollDeductions(),
+    total_deductions_1st_half: total_deductions_1st_half.toFixed(2),
+    amount_earned_1st_half: amount_earned_1st_half.toFixed(2),
+    total_deductions_2nd_half: total_deductions_2nd_half.toFixed(2),
+    amount_earned_2nd_half: amount_earned_2nd_half.toFixed(2),
+    total_deductions_whole: total_deductions_whole.toFixed(2),
+    amount_earned_whole: amount_earned_whole.toFixed(2),
+    net_pay: net_pay.toFixed(2),
     employee_id: employee_data[1],
     created_at: '2025-07-07',
     updated_at: '2025-07-07',
@@ -399,15 +446,15 @@ export const payrollMockData = [
   {
     id: mockId++,
     period: '2025-06-01, 2025-06-15',
-    gross_monthly_salary: '52000',
-    net_pay: '41000',
-    total_deductions_1st_half: '5000',
-    amount_earned_1st_half: '21000',
-    total_deductions_2nd_half: '5000',
-    amount_earned_2nd_half: '20000',
-    total_deductions_whole: '10000',
-    amount_earned_whole: '41000',
-    payroll_deduction_id: payrollDeductions.slice(1, 4),
+    gross_monthly_salary: mockSalaryGrade.amount.toFixed(2),
+    payroll_deduction_id: payrollDeductions(),
+    total_deductions_1st_half: total_deductions_1st_half.toFixed(2),
+    amount_earned_1st_half: amount_earned_1st_half.toFixed(2),
+    total_deductions_2nd_half: total_deductions_2nd_half.toFixed(2),
+    amount_earned_2nd_half: amount_earned_2nd_half.toFixed(2),
+    total_deductions_whole: total_deductions_whole.toFixed(2),
+    amount_earned_whole: amount_earned_whole.toFixed(2),
+    net_pay: net_pay.toFixed(2),
     employee_id: employee_data[2],
     created_at: '2025-07-08',
     updated_at: '2025-07-08',
@@ -415,15 +462,15 @@ export const payrollMockData = [
   {
     id: mockId++,
     period: '2025-06-16, 2025-06-30',
-    gross_monthly_salary: '55000',
-    net_pay: '43000',
-    total_deductions_1st_half: '6000',
-    amount_earned_1st_half: '22000',
-    total_deductions_2nd_half: '6000',
-    amount_earned_2nd_half: '21000',
-    total_deductions_whole: '12000',
-    amount_earned_whole: '43000',
-    payroll_deduction_id: payrollDeductions.slice(0, 2),
+    gross_monthly_salary: mockSalaryGrade.amount.toFixed(2),
+    payroll_deduction_id: payrollDeductions(),
+    total_deductions_1st_half: total_deductions_1st_half.toFixed(2),
+    amount_earned_1st_half: amount_earned_1st_half.toFixed(2),
+    total_deductions_2nd_half: total_deductions_2nd_half.toFixed(2),
+    amount_earned_2nd_half: amount_earned_2nd_half.toFixed(2),
+    total_deductions_whole: total_deductions_whole.toFixed(2),
+    amount_earned_whole: amount_earned_whole.toFixed(2),
+    net_pay: net_pay.toFixed(2),
     employee_id: employee_data[3],
     created_at: '2025-07-09',
     updated_at: '2025-07-09',
@@ -431,15 +478,15 @@ export const payrollMockData = [
   {
     id: mockId++,
     period: '2025-07-01, 2025-07-15',
-    gross_monthly_salary: '47000',
-    net_pay: '37000',
-    total_deductions_1st_half: '5000',
-    amount_earned_1st_half: '18000',
-    total_deductions_2nd_half: '5000',
-    amount_earned_2nd_half: '19000',
-    total_deductions_whole: '10000',
-    amount_earned_whole: '37000',
-    payroll_deduction_id: payrollDeductions.slice(2, 4),
+    gross_monthly_salary: mockSalaryGrade.amount.toFixed(2),
+    payroll_deduction_id: payrollDeductions(),
+    total_deductions_1st_half: total_deductions_1st_half.toFixed(2),
+    amount_earned_1st_half: amount_earned_1st_half.toFixed(2),
+    total_deductions_2nd_half: total_deductions_2nd_half.toFixed(2),
+    amount_earned_2nd_half: amount_earned_2nd_half.toFixed(2),
+    total_deductions_whole: total_deductions_whole.toFixed(2),
+    amount_earned_whole: amount_earned_whole.toFixed(2),
+    net_pay: net_pay.toFixed(2),
     employee_id: employee_data[4],
     created_at: '2025-07-10',
     updated_at: '2025-07-10',

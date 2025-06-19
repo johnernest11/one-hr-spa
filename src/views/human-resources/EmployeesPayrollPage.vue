@@ -20,6 +20,7 @@ import { ApiResponsePagination } from '@/typings/http-resources.types.ts'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { useToast } from 'primevue/usetoast'
 import { helpers, required } from '@vuelidate/validators'
+import { formatAmount } from '@/utils/helpers'
 import { deductionTypes } from '@/utils/mock-data'
 
 const route = useRoute()
@@ -367,14 +368,31 @@ const handleSaveSubmissionif = async () => {
     formIsSubmitting.value = false
   }
 }
-const totalDeductions = computed(() => {
+const deductionTotals = computed(() => {
+  let firstHalf = 0
+  let secondHalf = 0
   let total = 0
+
   for (const deduction of payload.payroll.payroll_deduction_id) {
     if (deduction.amount) {
-      total += parseFloat(String(deduction.amount))
+      const amount = parseFloat(String(deduction.amount))
+      total += amount
+
+      if (deduction.range === '1st Half') {
+        firstHalf += amount
+      } else if (deduction.range === '2nd Half') {
+        secondHalf += amount
+      }
     }
   }
-  return total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+  const format = (val: number) => val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+  return {
+    firstHalf: format(firstHalf),
+    secondHalf: format(secondHalf),
+    total: format(total),
+  }
 })
 </script>
 <template>
@@ -567,21 +585,14 @@ const totalDeductions = computed(() => {
                     v-if="true"
                     class="!text-surface-00 absolute right-2 top-1/2 -translate-y-9 text-base sm:right-4 md:text-base lg:right-0"
                   >
-                    {{
-                      deduction.amount !== null && deduction.amount !== undefined
-                        ? parseFloat(String(deduction.amount)).toLocaleString('en-US', {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })
-                        : '0.00'
-                    }}
+                    {{ formatAmount(deduction.amount) }}
                   </p>
                 </div>
               </template>
             </Card>
           </div>
           <p class="mb-2 mr-2 mt-2 whitespace-nowrap text-end font-semibold text-surface-600 md:text-lg">
-            Total Deductions: {{ totalDeductions }}
+            Total Deductions: {{ deductionTotals.total }}
           </p>
           <hr />
           <div class="mt-4 flex justify-end gap-2">
