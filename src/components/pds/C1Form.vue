@@ -681,7 +681,11 @@ const showToast = (
 const propPosition = async () => {
   isPositionLoading.value = true
 
-  const itemResp = await employment.fetchItemNumberById(payload.employee.item_id ?? 'null')
+  const itemId =
+    typeof payload.employee.item_id === 'string' || typeof payload.employee.item_id === 'number'
+      ? payload.employee.item_id
+      : 'null'
+  const itemResp = await employment.fetchItemNumberById(itemId)
   const itemRespData = itemResp.data as ItemNumberResponse
   payload.employee.position = itemRespData.position?.title
   isPositionLoading.value = false

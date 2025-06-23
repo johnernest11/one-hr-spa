@@ -7,19 +7,17 @@ import { compensatorymockData } from '@/utils/mock-data'
 import { ref, reactive } from 'vue'
 /** Typings for Fecthing All Compensatory CTDO Report */
 export type PersonnelCompensatoryTimeOffPayload = {
-  compensatory: {
-    ctdo_period: string | null
-    ctdo_supervisor_notes: string | null
-    ctdo_status: string | null
-    rows: {
-      days_of_the_week: string | null
-      work_date: string | null
-      time_start: string | null
-      time_end: string | null
-      accomplishment: string | null
-      authorized_claim: string | null
-    }[]
-  }
+  ctdo_period: string | null
+  ctdo_supervisor_notes: string | null
+  ctdo_status: string | null
+  rows: {
+    days_of_the_week: string | null
+    work_date: string | null
+    time_start: string | null
+    time_end: string | null
+    accomplishment: string | null
+    authorized_claim: string | null
+  }[]
 }
 
 export const useCompensatoryTimeOffStore = defineStore('personnel-compensatory-time-day-off', () => {
@@ -28,21 +26,19 @@ export const useCompensatoryTimeOffStore = defineStore('personnel-compensatory-t
   const selectedCompensatoryDayOff = ref<PersonnelCompensatoryDayTimeOffResponse | null>(null)
 
   const compensatoryInfo = ref<PersonnelCompensatoryTimeOffPayload>({
-    compensatory: {
-      ctdo_period: null,
-      ctdo_supervisor_notes: null,
-      ctdo_status: null,
-      rows: reactive([
-        {
-          days_of_the_week: null,
-          work_date: null,
-          time_start: null,
-          time_end: null,
-          accomplishment: null,
-          authorized_claim: null,
-        },
-      ]),
-    },
+    ctdo_period: null,
+    ctdo_supervisor_notes: null,
+    ctdo_status: null,
+    rows: reactive([
+      {
+        days_of_the_week: null,
+        work_date: null,
+        time_start: null,
+        time_end: null,
+        accomplishment: null,
+        authorized_claim: null,
+      },
+    ]),
   })
 
   const fetchCompensatoryDayTimeOff = async (limit = 10, page = 1, status?: string | string[]) => {
