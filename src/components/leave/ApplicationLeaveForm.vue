@@ -122,7 +122,7 @@ payload.dates = reactive([
     end_date: '',
   },
 ])
-
+const formattedDate = formatDateRequest(payload.date_of_filing)
 watch(
   () => payload.leave_type_id,
   (newVal) => {
@@ -436,13 +436,7 @@ const isHumanResourceActive = computed(() => route.name === 'leave-applications/
             <div class="mb-6 mr-4 flex w-full justify-end md:mb-0 md:w-auto">
               <h1 class="mb-6 mr-4 flex justify-end text-lg font-semibold text-surface-600 dark:text-primary-100">
                 Date of Request:
-                {{
-                  isUpdateMode
-                    ? formatDateRequest(payload.date_of_filing)
-                    : isHumanResourceActive
-                      ? formatDateRequest(payload.date_of_filing)
-                      : DateToday
-                }}
+                {{ isUpdateMode ? formattedDate : isHumanResourceActive ? formattedDate : DateToday }}
               </h1>
             </div>
           </div>
