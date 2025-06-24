@@ -158,7 +158,7 @@ export const calcDurationMins = (start: string, end: string): number => {
 
 /**
  * @description Converts minutes into a string format of hours and minutes.
- * @example fmtHoursMins(125) // "2hr 5min"
+ * @example  "2hr 5min"
  */
 export const fmtHoursMins = (totalMinutes: number): string => {
   const h = Math.floor(totalMinutes / 60)
@@ -170,7 +170,7 @@ export const fmtHoursMins = (totalMinutes: number): string => {
 
 /**
  * @description Extracts "Month Year" from a string like "1 December 2025".
- * @example extractMonthYear('1 December 2025') // "December 2025"
+ * @example "December 2025"
  */
 export const extractMonthYear = (period: string): string => {
   const parts = period.trim().split(' ')
@@ -179,7 +179,7 @@ export const extractMonthYear = (period: string): string => {
 
 /**
  * @description Extracts "Month Year" from a string and increments the year by 1.
- * @example extractMonthYearPlusOneYear('1 December 2025') // "December 2026"
+ * @example "December 2026"
  */
 export const extractMonthYearPlusOneYear = (period: string): string => {
   const parts = period.trim().split(' ')
@@ -193,7 +193,7 @@ export const extractMonthYearPlusOneYear = (period: string): string => {
 
 /**
  * @description Formats a date string into "DD MMM YYYY" format.
- * @example formatDate('2025-06-14') // "14 Jun 2025"
+ * @example "14 Jun 2025"
  */
 export const formatDate = (dateString: string | null | undefined): string => {
   if (!dateString) return ''
@@ -218,7 +218,7 @@ export const formatDate = (dateString: string | null | undefined): string => {
 
 /**
  * @description Formats a single date range into a readable string.
- * @example formatDateRangeObject('2025-06-01', '2025-06-15') // "01 - 15 June 2025"
+ * @example// "01 - 15 June 2025"
  */
 export const formatDateRangeObject = (start_date: string, end_date: string): string => {
   const start = new Date(start_date)
@@ -235,8 +235,7 @@ export const formatDateRangeObject = (start_date: string, end_date: string): str
 
 /**
  * @description Formats multiple date ranges into a readable string, comma-separated.
- * @example formatDateRanges([{ start_date: '2025-06-01', end_date: '2025-06-15' }, { start_date: '2025-07-01', end_date: '2025-07-15' }])
- * // "01 - 15 June 2025, 01 - 15 July 2025"
+ * @example "01 - 15 June 2025, 01 - 15 July 2025"
  */
 export const formatDateRanges = (ranges: { start_date: string; end_date: string }[]): string => {
   if (!ranges || !Array.isArray(ranges)) return ''
@@ -360,10 +359,6 @@ export const DateToday = dateToday()
 
 /**
  * @description Validator to ensure end date is not before start date.
- * @example
- * const rules = {
- *   to: { isAfterOrEqualFromDate: isAfterOrEqualFromDate(() => fromDate.value) }
- * }
  */
 export const isAfterOrEqualFromDate = (fromField: () => string | Date) =>
   helpers.withMessage('Period Covered To must be after or equal to  From', (toValue: string | Date) => {
@@ -376,3 +371,51 @@ export const isAfterOrEqualFromDate = (fromField: () => string | Date) =>
 
     return toDate >= fromDate
   })
+
+/**
+ * Summarizes leave date ranges by grouping consecutive dates into ranges.
+ * Formats multiple ranges (or single dates) into a compact string.
+ *
+ * @param dates - Array of objects with `start_date` and `end_date`.
+ * @returns A string like "11-14, 10 June 2025".
+ */
+export const summarizeLeaveDates = (dates: { start_date: string; end_date: string }[]): string => {
+  if (!dates.length) return ''
+
+  const pad2 = (n: number) => n.toString().padStart(2, '0')
+
+  // Expand each range into day numbers
+  const days = new Set<number>()
+  dates.forEach(({ start_date, end_date }) => {
+    const s = new Date(start_date)
+    const e = new Date(end_date)
+    for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+      days.add(d.getDate())
+    }
+  })
+
+  // Sorted unique days
+  const sorted = Array.from(days).sort((a, b) => a - b)
+
+  // Group into ranges
+  const groups: [number, number][] = []
+  sorted.forEach((day) => {
+    const last = groups[groups.length - 1]
+    if (last && day === last[1] + 1) {
+      last[1] = day
+    } else {
+      groups.push([day, day])
+    }
+  })
+
+  const dayStrings = groups.map(([start, end]) => (start === end ? pad2(start) : `${pad2(start)}–${pad2(end)}`))
+
+  // Month & year from first date
+  const first = new Date(dates[0].start_date)
+  const monthYear = first.toLocaleDateString(undefined, {
+    month: 'long',
+    year: 'numeric',
+  })
+
+  return `${dayStrings.join(', ')} ${monthYear}`
+}

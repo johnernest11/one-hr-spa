@@ -277,6 +277,33 @@ export type LeaveApplicationDateResponse = {
   end_date: string | null
 } & ApiResponseData
 
+/** Leave Credits (HTTP Responses) */
+export type LeaveCreditsResponse = {
+  id: number | null
+  type: string | null
+  particular: string | null
+  ut_w_pay_day: string | null
+  ut_w_pay_hr: string | null
+  ut_w_pay_min: string | null
+  ut_day: string | null
+  ut_hr: string
+  ut_min: string | null
+  ut_w_pay: string | null
+  earned: string | null
+  balance: string | null
+  ut_wo_pay: string | null
+  salary: string | null
+  aca_pera: string | null
+  leave_credits_dates: Array<LeaveCreditsDateResponse> | null | undefined
+  employee_id: PersonnelEmployee | null
+} & ApiResponseData
+
+export type LeaveCreditsDateResponse = {
+  leave_credits_id: LeaveCreditsResponse | null
+  start_date: string | null
+  end_date: string | null
+} & ApiResponseData
+
 /** Document Request (HTTP Responses) */
 export type DocumentRequestResponse = {
   id: number | null
