@@ -58,15 +58,6 @@ const payload = reactive<DocumentRequestPayload>({
   status: 'Draft',
 })
 
-// watch(
-//   () => payload.certificate_type,
-//   (newVal) => {
-//     const matched = typeofRequest.find((item) => item.label === newVal)
-//     selectedtypeofRequestId.value = matched ? matched.id : null
-//   },
-//   { immediate: true }
-// )
-
 watch(
   () => payload.additional_info,
   (newVal) => {
