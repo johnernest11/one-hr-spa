@@ -46,7 +46,6 @@ const additionalInformationofRequest = [
   { id: 2, label: 'SERVICE/CONTRACT GAPS' },
   { id: 3, label: 'OTHERS (please specify) ' },
 ]
-/** Payload for the Request Document */
 const payload = reactive<DocumentRequestPayload>({
   request_date: DateToday,
   certificate_type: null,
@@ -187,6 +186,19 @@ const emit = defineEmits<{
   (e: 'request-created', value: boolean): void
 }>()
 
+/** Confirm the action based on the dialog type */
+const confirmAction = () => {
+  if (dialogType.value === 'pending') {
+    handleSaveSubmissionif()
+  } else if (dialogType.value === 'in progress') {
+    handleSaveSubmissionif()
+  } else if (dialogType.value === 'released') {
+    handleSaveSubmissionif()
+  }
+
+  visible.value = false
+}
+
 const openDialog = (type: 'pending' | 'in progress' | 'released') => {
   dialogType.value = type
   visible.value = true
@@ -211,19 +223,6 @@ const openDialog = (type: 'pending' | 'in progress' | 'released') => {
     confirmButtonLabel.value = 'Approve Request'
     payload.status = 'released'
   }
-}
-
-/** Confirm the action based on the dialog type */
-const confirmAction = () => {
-  if (dialogType.value === 'pending') {
-    handleSaveSubmissionif()
-  } else if (dialogType.value === 'in progress') {
-    handleSaveSubmissionif()
-  } else if (dialogType.value === 'released') {
-    handleSaveSubmissionif()
-  }
-
-  visible.value = false
 }
 
 /** Confirm the action based on the dialog type */
