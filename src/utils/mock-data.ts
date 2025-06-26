@@ -493,6 +493,111 @@ export const payrollMockData = [
   },
 ]
 
+export const compensatorymockData = [
+  {
+    id: mockId++,
+    ctdo_period: '01-31 December 2025',
+    ctdo_supervisor_notes: 'Reviewed and approved.',
+    ctdo_status: 'for revision',
+    rows: [
+      {
+        id: 6,
+        days_of_the_week: 'Monday',
+        work_date: '2025-07-01',
+        time_start: '7:30',
+        time_end: '16:30',
+        accomplishment: 'Completed project planning.',
+        authorized_claim: 'COC',
+      },
+      {
+        id: 7,
+        days_of_the_week: 'Tuesday',
+        work_date: '2025-07-02',
+        time_start: '09:00',
+        time_end: '17:00',
+        accomplishment: 'Team meeting and report writing.',
+        authorized_claim: 'COC',
+      },
+      {
+        id: 8,
+        days_of_the_week: 'Monday',
+        work_date: '2025-07-01',
+        time_start: '7:30',
+        time_end: '16:15',
+        accomplishment: 'Completed project planning.',
+        authorized_claim: 'COC',
+      },
+      {
+        id: 9,
+        days_of_the_week: 'Tuesday',
+        work_date: '2025-07-02',
+        time_start: '09:10',
+        time_end: '14:21',
+        accomplishment: 'Team meeting and report writing.',
+        authorized_claim: 'COC',
+      },
+    ],
+    created_at: '2025-07-01',
+    updated_at: '2025-07-01',
+  },
+  {
+    id: mockId++,
+    ctdo_period: '01-31 November 2025',
+    ctdo_supervisor_notes: 'Pending approval.',
+    ctdo_status: 'for review',
+    rows: [
+      {
+        id: 2,
+        days_of_the_week: 'Wednesday',
+        work_date: '2025-07-09',
+        time_start: '8:12',
+        time_end: '18:00',
+        accomplishment: 'Client presentation.',
+        authorized_claim: 'COC',
+      },
+      {
+        id: 3,
+        days_of_the_week: 'Thursday',
+        work_date: '2025-07-10',
+        time_start: '09:30',
+        time_end: '16:00',
+        accomplishment: 'Documentation updates.',
+        authorized_claim: 'COC',
+      },
+    ],
+    created_at: '2025-07-05',
+    updated_at: '2025-07-05',
+  },
+  {
+    id: mockId++,
+    ctdo_period: '01-30 October 2025',
+    ctdo_supervisor_notes: 'Requires additional documentation.',
+    ctdo_status: 'approved',
+    rows: [
+      {
+        id: 4,
+        days_of_the_week: 'Friday',
+        work_date: '2025-07-18',
+        time_start: '08:46',
+        time_end: '15:00',
+        accomplishment: 'Site inspection.',
+        authorized_claim: 'COC',
+      },
+      {
+        id: 5,
+        days_of_the_week: 'Saturday',
+        work_date: '2025-07-19',
+        time_start: '08:27',
+        time_end: '15:00',
+        accomplishment: 'Site inspection.',
+        authorized_claim: 'COC',
+      },
+    ],
+    created_at: '2025-07-06',
+    updated_at: '2025-07-06',
+  },
+]
+
 /* Selection of DeductionTypes */
 export const deductionTypes = [
   { id: 1, label: 'ACA/ PERA' },
