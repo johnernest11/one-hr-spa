@@ -252,6 +252,27 @@ export type PersonnelEmployee = {
   section_or_unit_id: SectionorUnitResponse | null
 }
 
+export type DailyTimeRecordResponse = {
+  id: number
+  date: string
+  ut: string | null
+  is_edit_ut: boolean | null
+  ot: string | null
+  is_missing: boolean | null
+  employee_remarks: string | null
+  hr_remarks: string | null
+  status: string | null
+  warm_bodies: Array<WarmBodyResponse> | null | undefined
+}
+
+export type WarmBodyResponse = {
+  id: number
+  employee_id: number
+  timestamp: string
+  daily_time_record_id: number
+  is_in: boolean // true = IN, false = OUT
+}
+
 /** Leave Application (HTTP Responses) */
 export type LeaveApplicationResponse = {
   id: number | null

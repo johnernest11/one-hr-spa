@@ -1,6 +1,6 @@
 import { CountryCode, isValidPhoneNumber, parsePhoneNumber } from 'libphonenumber-js'
 import { helpers } from '@vuelidate/validators'
-
+import { WarmBodyResponse } from '@/typings/models.types.ts'
 /**
  * @description Halt code execution for x seconds
  * @example
@@ -418,4 +418,97 @@ export const summarizeLeaveDates = (dates: { start_date: string; end_date: strin
   })
 
   return `${dayStrings.join(', ')} ${monthYear}`
+}
+
+export const formatDTRTime = (dateString: string | undefined): string => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  return date.toLocaleString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  })
+}
+
+/** Helper to get formatted date like "1-Feb" */
+export const getFormattedDTRDate = (dateString: string): string => {
+  if (!dateString) return ''
+
+  const date = new Date(dateString)
+  // Format with short month and numeric day
+  const formatted = new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'short',
+  }).format(date)
+  // Intl yields "5 Jun" → convert to "5-Jun"
+  return formatted.replace(' ', '-')
+}
+
+// Helper to get the day of the week like "Sat"
+export const getDTRDayOfWeek = (dateString: string): string => {
+  if (!dateString) return ''
+
+  const date = new Date(dateString)
+  const options: Intl.DateTimeFormatOptions = {
+    weekday: 'short',
+  }
+
+  return date.toLocaleDateString('en-US', options)
+}
+
+export const resolveDTRSlots = (entries: WarmBodyResponse[] = []) => {
+  const inLogs = entries.filter((e) => e.is_in).sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+  const outLogs = entries
+    .filter((e) => !e.is_in)
+    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+
+  const slots = {
+    in1: '',
+    out1: '',
+    in2: '',
+    out2: '',
+  }
+
+  // Helper function to check if a timestamp falls within a specific time window
+  const isBetween = (timestamp: string | number | Date, startHour: number, endHour: number) => {
+    const date = new Date(timestamp)
+    const hours = date.getHours()
+    return hours >= startHour && hours < endHour
+  }
+
+  // 1. Assign in1: between 6:00 - 9:00
+  const in1Candidate = inLogs.find((e) => isBetween(e.timestamp, 6, 9))
+  if (in1Candidate) slots.in1 = in1Candidate.timestamp
+
+  // 2. Assign out1: between 12:00 - 13:00
+  const out1Candidate = outLogs.find((e) => isBetween(e.timestamp, 12, 13))
+  if (out1Candidate) slots.out1 = out1Candidate.timestamp
+
+  // 3. Assign in2: between 12:00 - 14:00, but not within 15 mins after out1
+  if (slots.out1) {
+    const out1Time = new Date(slots.out1).getTime()
+    const in2Candidates = inLogs.filter((e) => {
+      const time = new Date(e.timestamp).getTime()
+      return (
+        isBetween(e.timestamp, 12, 14) && time >= out1Time + 15 * 60 * 1000 // at least 15 mins after out1
+      )
+    })
+    if (in2Candidates.length) {
+      // pick the earliest valid in2
+      slots.in2 = in2Candidates[0].timestamp
+    }
+  } else {
+    // fallback: pick earliest in between 12-14 if out1 not found
+    const in2Candidate = inLogs.find((e) => isBetween(e.timestamp, 12, 14))
+    if (in2Candidate) slots.in2 = in2Candidate.timestamp
+  }
+
+  // 4. Assign out2: from 14:00 onwards
+  const out2Candidate = outLogs.find((e) => {
+    const date = new Date(e.timestamp)
+    return date.getHours() >= 14
+  })
+  if (out2Candidate) slots.out2 = out2Candidate.timestamp
+
+  return slots
 }

@@ -1,7 +1,6 @@
 import { createRouter, createWebHistory, RouteMeta } from 'vue-router'
 import { vueApp } from '@/app.ts'
 import Dashboard from '@/views/DashboardPage.vue'
-import EmptyPage from '@/views/EmptyPage.vue'
 import SupportPage from '@/views/SupportPage.vue'
 import AccomplishmentReportPage from '@/views/commitment/AccomplishmentReportPage.vue'
 import ItemNumberPage from '@/views/human-resources/ItemNumberPage.vue'
@@ -305,10 +304,30 @@ const routes = [
       {
         path: '/my-dtrs/:id?',
         name: 'my-dtrs',
-        component: EmptyPage,
+        component: () => import('@/views/personnel/DailyTimeRecordPage.vue'),
         meta: <RouteMeta>{
           label: 'Daily Time Record',
           isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [
+            AuthRole.STANDARD_USER,
+            AuthRole.SECTION_HEAD,
+            AuthRole.DIVISION_HEAD,
+            AuthRole.HR_PPMS_ADMIN,
+            AuthRole.HR_PAS_ADMIN,
+            AuthRole.ADMIN,
+            AuthRole.SUPER_USER,
+            AuthRole.SYSTEM_SUPPORT,
+          ],
+        },
+      },
+
+      {
+        path: '/my-dtrs/list',
+        name: 'my-dtrs/list',
+        component: () => import('@/components/dtr/DTRList.vue'),
+        meta: <RouteMeta>{
+          isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
           roles: [
             AuthRole.STANDARD_USER,

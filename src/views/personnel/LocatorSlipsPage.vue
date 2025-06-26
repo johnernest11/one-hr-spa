@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeMount, ref, watch, computed, reactive, onMounted } from 'vue'
+import { onBeforeMount, ref, watch, computed, reactive, onMounted, toRef } from 'vue'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
 import Chip from 'primevue/chip'
@@ -13,6 +13,8 @@ import WbDropdown from '@/components/webkit/WbDropdown.vue'
 import Paginator, { PageState } from 'primevue/paginator'
 import { LocatorSlipResponse } from '@/typings/models.types.ts'
 import { useLocatorSlipStore, LocatorSlipPayload } from '@/stores/locator-slip.store'
+import WbAutoComplete, { WbAutoCompleteOption, WbAutoCompleteOptionTrueValue } from '@/components/webkit/WbAutoComplete.vue'
+import { useWbAutoCompleteHandleTrueValue } from '@/composables/wb-ui-components'
 import useVuelidate from '@vuelidate/core'
 import { ApiResponsePagination } from '@/typings/http-resources.types.ts'
 import { parseApiResponseError } from '@/utils/error-handle.ts'
@@ -21,12 +23,25 @@ import { getMonthAndYear, formatDateRanges, snakeCaseToTitleCase, isAfterOrEqual
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { useToast } from 'primevue/usetoast'
 import { useRoute } from 'vue-router'
-
+import { useLibrariesStore } from '@/stores/libraries.store'
+import { usePrependOrAppendOnce } from '@/utils/helpers'
 const route = useRoute()
 const locatorSlipsStore = useLocatorSlipStore()
+const libraryStore = useLibrariesStore()
 const locatorSlipsIsLoading = ref(false)
 const isLoading = ref(true)
 const paginationLimit = 5
+const getId = usePrependOrAppendOnce('generate-payroll')
+const selectedDivision = ref<WbAutoCompleteOption[] | null>(null)
+const selectedSectionUnit = ref<WbAutoCompleteOption[] | null>(null)
+const selectedFundingSources = ref<WbAutoCompleteOption[] | null>(null)
+const employementStatusOptions = [
+  { label: 'Permanent', value: 'Permanent' },
+  { label: 'Contractual', value: 'Contractual' },
+  { label: 'Contract of Service', value: 'Contract of Service' },
+  { label: 'Job Order', value: 'Job Order' },
+]
+
 onBeforeMount(async () => {
   locatorSlipsIsLoading.value = true
   const response = await locatorSlipsStore.fetchLocatorSlip(paginationLimit)
@@ -164,7 +179,6 @@ const resetPayload = () => {
   payload.period_request = ''
   payload.locator_slip_no = ''
   payload.status = ''
-  // initialize other fields to default if needed
 }
 
 type LocatorSlipDetailsFormProps = {
@@ -245,6 +259,9 @@ const showErrorAlert = ref(false)
 const errorMessage = ref<string | null>(null)
 const errorDetails = ref<string[]>([])
 
+// Add showModal for Dialog visibility
+const showModal = ref(false)
+
 /** Emits */
 const emit = defineEmits<{
   (e: 'locator-created', value: boolean): void
@@ -323,9 +340,12 @@ const isHumanResourceActive = computed(() => route.name === 'locator-slips')
               v-tooltip.top="'Filter'"
               severity="info"
               size="large"
-              class="mr-2 border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100 sm:text-primary-400 md:text-primary-400 lg:text-primary-400 dark:lg:text-primary-400"
+              class="mr-2 border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100"
               text
+              aria-label="Filter"
+              @click="showModal = true"
             />
+
             <Button
               v-if="!isHumanResourceActive"
               icon="pi pi-plus"
@@ -593,4 +613,145 @@ const isHumanResourceActive = computed(() => route.name === 'locator-slips')
       </div>
     </div>
   </div>
+  <!--Filter & Field Options Dialog -->
+  <Dialog
+    v-model:visible="showModal"
+    :modal="false"
+    closable
+    :dismissableMask="true"
+    :position="'right'"
+    :style="{ width: '20vw', maxWidth: '600px', minWidth: '320px' }"
+    :breakpoints="{ '1199px': '75vw', '575px': '90vw' }"
+    :pt="{
+      root: {
+        class: 'w-full flex flex-col h-full bg-white shadow-lg p-4',
+      },
+    }"
+  >
+    <!-- Custom header slot -->
+    <template #header>
+      <div class="flex w-full flex-col items-start md:flex-row">
+        <h1 class="mb-2 ml-12 text-2xl text-surface-600 dark:text-primary-100 md:ml-4">
+          <font-awesome-icon :icon="['fas', 'grip-lines']" class="h-5 text-surface-600 sm:h-6 md:h-7" />
+          Filter and Filed Options
+          <br />
+        </h1>
+      </div>
+    </template>
+    <div class="flex-grow overflow-auto pr-2">
+      <h1 class="mb-2 text-xl text-surface-600 dark:text-primary-100">Filters</h1>
+      <div class="mb-4">
+        <WbAutoComplete
+          :useApiFilter="true"
+          :apiEndpoint="'/libraries/divisions/search'"
+          :suggestions="libraryStore.divisionOptions"
+          :loading="libraryStore.divisionOptionsLoading"
+          apiOptionLabel="name"
+          label="Division"
+          placeholder="Type the Division"
+          v-model="selectedDivision"
+          :id="getId('input-division')"
+          optionLabel="label"
+          optionValue="value"
+          @on-true-value-computed="
+            (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
+              useWbAutoCompleteHandleTrueValue(value, toRef('division_id'))
+          "
+          label-class="text-sm text-start text-surface-600 dark:lg:text-surface-200"
+          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+          validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+        />
+      </div>
+      <div class="mb-4">
+        <WbAutoComplete
+          :useApiFilter="true"
+          :apiEndpoint="'/libraries/section-or-units/search'"
+          :suggestions="libraryStore.sectionUnitOptions"
+          :loading="libraryStore.sectionUnitOptionsLoading"
+          apiOptionLabel="name"
+          label="Section/Unit"
+          placeholder="Type the Section / Unit"
+          v-model="selectedSectionUnit"
+          :id="getId('input-section-unit')"
+          optionLabel="label"
+          optionValue="value"
+          @on-true-value-computed="
+            (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
+              useWbAutoCompleteHandleTrueValue(value, toRef('section_or_unit_id'))
+          "
+          label-class="text-sm text-start text-surface-600 dark:lg:text-surface-200"
+          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+          validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+        />
+      </div>
+      <div class="mb-4">
+        <WbAutoComplete
+          :useApiFilter="true"
+          :apiEndpoint="'/libraries/fund-sources/search'"
+          :suggestions="libraryStore.fundingSourcesOptions"
+          :loading="libraryStore.fundingSourcesOptionsLoading"
+          apiOptionLabel="name"
+          label="Funding"
+          placeholder="Type the Funding"
+          v-model="selectedFundingSources"
+          :id="getId('input-funding-sources')"
+          optionLabel="label"
+          optionValue="value"
+          @on-true-value-computed="
+            (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
+              useWbAutoCompleteHandleTrueValue(value, toRef('fund_source'))
+          "
+          label-class="text-sm text-start text-surface-600 dark:lg:text-surface-200"
+          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+          validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+        />
+      </div>
+      <div class="mb-4">
+        <WbDropdown
+          :options="employementStatusOptions"
+          optionLabel="label"
+          optionValue="value"
+          label="Employment Status"
+          placeholder="Select Employment Status"
+          label-class="text-sm text-start text-surface-600"
+        />
+      </div>
+      <div class="mb-40">
+        <WbDropdown
+          :options="statusOptions"
+          optionLabel="label"
+          optionValue="value"
+          label="Status"
+          placeholder="Select Status"
+          label-class="text-sm text-start text-surface-600"
+        />
+      </div>
+    </div>
+
+    <div
+      class="mt-48 flex w-full flex-col justify-center gap-2 border-t border-surface-200 pt-4 dark:border-surface-700 sm:flex-row"
+    >
+      <Button
+        label="Cancel"
+        class="dark:text-secondary-100 border border-surface-400 px-6 py-2 text-lg text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
+        @click="showModal = false"
+        text
+      >
+        <template #icon>
+          <i class="pi pi-ban mr-2 text-lg"></i>
+        </template>
+      </Button>
+      <Button
+        :loading="formIsSubmitting"
+        :disabled="formIsSubmitting"
+        label="Apply"
+        class="dark:text-secondary-100 border border-primary-500 px-6 py-3 text-lg text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-600"
+        text
+      >
+        <template #icon>
+          <font-awesome-icon :icon="['fas', 'check']" class="mr-2 text-lg" />
+        </template>
+      </Button>
+    </div>
+  </Dialog>
 </template>
