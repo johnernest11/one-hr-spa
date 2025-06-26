@@ -46,7 +46,6 @@ const additionalInformationofRequest = [
   { id: 2, label: 'SERVICE/CONTRACT GAPS' },
   { id: 3, label: 'OTHERS (please specify) ' },
 ]
-/** Payload for the Request Document */
 const payload = reactive<DocumentRequestPayload>({
   request_date: DateToday,
   certificate_type: null,

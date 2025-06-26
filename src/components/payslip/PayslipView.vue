@@ -161,6 +161,7 @@ const updatePayloadFromReport = (payRoll: PayrollResponse | null) => {
 }
 
 // Watch for changes in `props.payRoll` and update payload accordingly
+
 watch(
   () => props.payRoll,
   (newValue) => {
