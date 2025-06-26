@@ -680,7 +680,7 @@ const totalDeductions = computed(() => {
               <template #content>
                 <div class="relative h-full w-full">
                   <p
-                    class="absolute top-1/2 m-0 w-[70%] -translate-y-9 overflow-hidden text-left text-sm sm:text-left sm:text-base md:w-[60%] lg:text-lg"
+                    class="absolute top-1/2 m-0 w-[70%] -translate-y-9 overflow-hidden text-left text-sm sm:text-left sm:text-sm md:w-[60%] lg:text-lg"
                   >
                     {{ deduction.deduction_id.name }}
                   </p>
@@ -779,7 +779,7 @@ const totalDeductions = computed(() => {
               <template #content>
                 <div class="relative h-full w-full">
                   <p
-                    class="absolute top-1/2 m-0 w-[70%] -translate-y-9 overflow-hidden text-left text-sm sm:text-left sm:text-base md:w-[60%] lg:text-lg"
+                    class="absolute top-1/2 m-0 w-[70%] -translate-y-9 overflow-hidden text-left text-sm sm:text-left sm:text-sm md:w-[60%] lg:text-lg"
                   >
                     {{ item.label }}
                   </p>
