@@ -303,7 +303,6 @@ export const usePdsStore = defineStore('pds', () => {
       office_id: null,
       division_id: null,
       section_or_unit_id: null,
-      item: null,
     },
   })
 
