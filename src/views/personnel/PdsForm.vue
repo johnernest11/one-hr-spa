@@ -7,19 +7,13 @@ import { TransitionRoot } from '@headlessui/vue'
 import C1Form from '@/components/pds/C1Form.vue'
 import { useRoute } from 'vue-router'
 import { lcFirst } from '@/utils/helpers.ts'
+import { usePdsStore } from '@/stores/pds.store'
 
 const route = useRoute()
 
-import { useEmployeeEntryStore } from '@/stores/employee-entry.store.ts'
+const pdsStore = usePdsStore()
 
-const personnelStore = useEmployeeEntryStore()
-
-const pdsSections = ref([
-  { name: 'C1', component: shallowRef(C1Form) },
-  { name: 'C2', component: shallowRef(C1Form) },
-  { name: 'C3', component: shallowRef(C1Form) },
-  { name: 'C4', component: shallowRef(C1Form) },
-])
+const pdsSections = ref([{ name: 'C1', component: shallowRef(C1Form) }])
 
 const profileStore = useProfileStore()
 
@@ -27,7 +21,7 @@ onBeforeMount(async () => {
   await profileStore.fetchProfile()
 
   if (route.query.mode === 'via-manual-input') {
-    personnelStore.pdsMode = route.query.mode.replace(/-/g, ' ').replace(/(?:^|\s)\S/g, (a: string) => a.toUpperCase())
+    pdsStore.pdsMode = route.query.mode.replace(/-/g, ' ').replace(/(?:^|\s)\S/g, (a: string) => a.toUpperCase())
   }
 })
 </script>
@@ -41,7 +35,7 @@ onBeforeMount(async () => {
         <FontAwesomeIcon :icon="['fas', 'users']" class="text-2xl md:text-4xl" />
         <span class="flex flex-col justify-center">
           <p class="text-xl md:text-3xl">Personal Data Sheet</p>
-          <p class="text-surface-500">{{ lcFirst(personnelStore.pdsMode) }}</p>
+          <p class="text-surface-500">{{ lcFirst(pdsStore.pdsMode) }}</p>
         </span>
       </div>
 
