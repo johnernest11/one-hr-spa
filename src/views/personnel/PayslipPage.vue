@@ -1,37 +1,46 @@
 <script setup lang="ts">
 import { onBeforeMount, ref, watch } from 'vue'
+import { PayrollResponse } from '@/typings/models.types.ts'
+import { usePayRollStore } from '@/stores/payroll.store'
+import { useRouter } from 'vue-router'
+
 import Button from 'primevue/button'
 import Card from 'primevue/card'
 import Column from 'primevue/column'
 import DataTable from 'primevue/datatable'
 import InputText from 'primevue/inputtext'
 import InputGroup from 'primevue/inputgroup'
+
 import Paginator, { PageState } from 'primevue/paginator'
 import { ApiResponsePagination } from '@/typings/http-resources.types.ts'
-import { PayrollResponse } from '@/typings/models.types.ts'
-import { usePayRollStore } from '@/stores/payroll.store'
-import { useRouter } from 'vue-router'
+import { formatPayrollPeriod } from '@/utils/helpers'
 import { useToast } from 'primevue/usetoast'
-import { getMonthAndYear, formatDate } from '@/utils/helpers.ts'
 
+const paySlipsStore = usePayRollStore()
+const toast = useToast()
 const router = useRouter()
+
+const isSearching = ref(false)
+const searchSubmitted = ref(false)
+const paySlipsIsLoading = ref(false)
+
+const paginationLimit = 5
+const roleFilter = ref<number | null>(null)
+const searchQuery = ref<string | null>(null)
+
 const navigateToDetails = (paySlip: PayrollResponse) => {
   if (!paySlip || !paySlip.id) {
     console.error('Cannot navigate to details: Pay Slip or ID is undefined', paySlip)
     return
   }
   router.push({
-    name: 'my-payslips/editor',
+    name: 'my-payslip/editor',
     params: {
       id: paySlip.id,
     },
   })
 }
 
-const paySlipsStore = usePayRollStore()
-
-const paySlipsIsLoading = ref(false)
-const paginationLimit = 5
 onBeforeMount(async () => {
   paySlipsIsLoading.value = true
   const response = await paySlipsStore.fetchPayRoll(paginationLimit)
@@ -52,9 +61,6 @@ const handlePaginationPageChange = async (event: PageState) => {
   paySlipsIsLoading.value = false
 }
 
-const roleFilter = ref<number | null>(null)
-const searchQuery = ref<string | null>(null)
-const isSearching = ref(false)
 watch(
   () => roleFilter.value,
   async () => {
@@ -68,7 +74,7 @@ watch(
     paySlipsIsLoading.value = false
   }
 )
-const searchSubmitted = ref(false)
+
 const handleSearchPaySlip = async () => {
   paySlipsIsLoading.value = true
   searchSubmitted.value = true
@@ -91,34 +97,49 @@ const handleSearchPaySlip = async () => {
   paySlipsIsLoading.value = false
 }
 
-const toast = useToast()
-const exportPdf = async (paySlips: PayrollResponse) => {
+const exportPdf = async (paySlip: PayrollResponse) => {
+  const { period, id } = paySlip
+
   toast.add({
     severity: 'info',
-    summary: 'Exporting...',
-    detail: `Exporting ${paySlips.period_from} - ${paySlips.period_to} || 'the Pay Slip '}...`,
+    summary: 'Exporting Pay Slip...',
+    detail: `Exporting Pay Slip for the period ${period}.`,
     life: 5000,
   })
-  const reportResponse = await paySlipsStore.generatePayRoll(String(paySlips.id))
 
-  const blob = reportResponse.data.value // Get the Blob
+  try {
+    const reportResponse = await paySlipsStore.generatePayRoll(String(id))
 
-  if (blob) {
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${reportResponse.fileNameHeader.value}`
-    document.body.appendChild(a)
-    a.click()
-    window.URL.revokeObjectURL(url)
-    document.body.removeChild(a)
+    const blob = reportResponse.data.value
+    const fileName = reportResponse.fileNameHeader?.value || `locator-slip-${id}.pdf`
 
+    if (blob) {
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = fileName
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+
+      toast.add({
+        severity: 'success',
+        summary: 'Export Successful',
+        detail: `Pay Slip for ${period} was exported successfully.`,
+        life: 5000,
+      })
+    } else {
+      throw new Error('Failed to generate file.')
+    }
+  } catch (error) {
     toast.add({
-      severity: 'success',
-      summary: 'Pay Slip Details Exported',
-      detail: `The Pay Slip from ${paySlips.period_from} - ${paySlips.period_to}  was successfully exported.`,
+      severity: 'error',
+      summary: 'Export Failed',
+      detail: 'There was an issue exporting the locator slip. Please try again.',
       life: 5000,
     })
+    console.error(error)
   }
 }
 </script>
@@ -154,19 +175,19 @@ const exportPdf = async (paySlips: PayrollResponse) => {
               <Column
                 field="period"
                 header="Payslip Period"
-                headerClass="w-1/2 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
+                headerClass="w-80 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
               >
                 <template #body="props">
-                  <p class="font-semibold uppercase text-surface-600">{{ getMonthAndYear(props.data.period_to) }}</p>
+                  <p class="font-base uppercase text-surface-600">{{ formatPayrollPeriod(props.data.period) }}</p>
                 </template>
               </Column>
               <Column
                 field="edited_at"
-                header="Last Edited"
+                header="Last Edited "
                 headerClass=" w-80 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
               >
                 <template #body="props">
-                  <p class="uppercase text-surface-600">{{ formatDate(props.data.updated_at) }}</p>
+                  <p class="font-base uppercase text-surface-600">{{ props.data.updated_at }}</p>
                 </template>
               </Column>
               <Column field="action" header="Actions" headerClass="w-64 bg-surface-100 opacity-70 font-bold py-2">
@@ -174,7 +195,7 @@ const exportPdf = async (paySlips: PayrollResponse) => {
                   <div class="flex gap-4 whitespace-nowrap md:w-auto">
                     <Button
                       icon="pi pi-eye"
-                      v-tooltip.top="'View PaySlip'"
+                      v-tooltip.top="'View Payroll'"
                       severity="info"
                       class="border-none text-lg font-semibold text-primary-600 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
                       text
@@ -182,7 +203,7 @@ const exportPdf = async (paySlips: PayrollResponse) => {
                     />
                     <Button
                       icon="pi pi-file-pdf"
-                      v-tooltip.top="'Export to PDF'"
+                      v-tooltip.top="'Export Pay Slip'"
                       severity="info"
                       class="border-none text-lg font-semibold text-primary-600 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
                       text

@@ -1,290 +1,143 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, reactive } from 'vue'
 import { useAuthStore } from '@/stores/auth.store.ts'
 import { useApiCall } from '@/composables/network'
 import { ApiResponseBody } from '@/typings/http-resources.types.ts'
-import { PayrollResponse } from '@/typings/models.types'
+import { DeductionResponse, PayrollResponse, PersonnelEmployee } from '@/typings/models.types'
 import { useFetchBlob } from '@/composables/fetch.blob'
+import { payrollMockData } from '@/utils/mock-data'
 
 export type PayRollPayload = {
-  period_from: string | null
-  period_to: string | null
-  gross_monthly_salary: number
-  net_pay: string | null
-  total_deductions_1st_half: string | null
-  amount_earned_1st_half: string | null
-  total_deductions_2nd_half: string | null
-  amount_earned_2nd_half: string | null
-  total_deductions_whole: string | null
-  amount_earned_whole: string | null
-  payroll_deduction_id?: string | number | null
+  payroll: {
+    period: [Date, Date] | null
+    gross_monthly_salary: string | null
+    net_pay: string | null
+    total_deductions_1st_half: string | null
+    amount_earned_1st_half: string | null
+    total_deductions_2nd_half: string | null
+    amount_earned_2nd_half: string | null
+    total_deductions_whole: string | null
+    amount_earned_whole: string | null
+    payroll_deduction_id: {
+      amount: number | null
+      range: string | null
+      deduction_id: DeductionResponse
+    }[]
+    employee_id: PersonnelEmployee
+  }
 }
 
 export const usePayRollStore = defineStore('pay-roll', () => {
   const auth = useAuthStore()
   const payRoll = ref<PayrollResponse[]>([])
-  const selectedpaySlip = ref<PayrollResponse | null>(null)
+  const selectedpayRoll = ref<PayrollResponse | null>(null)
 
-  /** MOCK DATA */
-  let mockId = 1
-
-  const employee_data = {
-    id: 1,
-    individual_basic_detail_id: 101,
-    id_number: 'EMP-2025-001',
-    item_id: 501,
-    salary_grade_id: 12,
-    position: 'Administrative Officer III',
-    fund_source: {
-      id: 1,
-      name: 'General Fund',
-    },
-    agency_employee_no: 'AGY-000123',
-    office_id: 10,
-    division_id: 3,
-    section_or_unit_id: 5,
-    item: null,
-  }
-
-  const employee = {
-    id: 1,
-    first_name: 'John Ernest ',
-    last_name: 'Catungal ',
-    middle_name: null,
-    ext_name: null,
-    birthday: '1990-01-01',
-    sex: 'M',
-    place_of_birth: 'City',
-    civil_status: 'Single',
-    height: 170,
-    weight: 70,
-    blood_type: 'O',
-    gsis_no: '',
-    pag_ibig_no: 'null',
-    philhealth_no: '',
-    sss_no: '',
-    citizenship: 'Filipino',
-    tin: '',
-    citizenship_acquisition: '',
-    individual_address: {
-      barangay: '',
-      city: '',
-      province: '',
-      id: 1,
-      individual_basic_detail_id: null,
-      residential_house_block_lot_no: null,
-      residential_street: null,
-      residential_subdivision_village: null,
-      residential_brgy_id: null,
-      residential_citymun_id: null,
-      residential_province_id: null,
-      residential_region_id: null,
-      residential_zip_code: null,
-      permanent_house_block_lot_no: null,
-      permanent_street: null,
-      permanent_subdivision_village: null,
-      permanent_brgy_id: null,
-      permanent_citymun_id: null,
-      permanent_province_id: null,
-      permanent_region_id: null,
-      permanent_zip_code: null,
-      created_at: null,
-      updated_at: null,
-      deleted_at: null,
-      region: null,
-    },
-    individual_contact_info: {
-      id: '3',
-      mobile_no: null,
-      tel_no: null,
-      email_address: null,
-      individual_basic_detail_id: null,
-    },
-    employee: employee_data,
-  }
-
-  const deduction = [
-    {
-      id: 1,
-      name: 'PhilHealth',
-      code: null,
-      details: null,
-      description: 'PhilHealth Contribution',
-      created_at: undefined,
-      updated_at: undefined,
-      deleted_at: undefined,
-    },
-    {
-      id: 2,
-      name: 'SSS',
-      code: null,
-      details: null,
-      description: 'SSS Contribution',
-      created_at: undefined,
-      updated_at: undefined,
-      deleted_at: undefined,
-    },
-  ]
-
-  const deduction_setting = [
-    {
-      id: 1,
-      amount: '2000',
-      range: '1st Half',
-      employee_id: employee,
-      deduction_id: deduction[0],
-      created_at: '2025-07-06',
-      updated_at: '2025-07-06',
-    },
-    {
-      id: 2,
-      amount: '2000',
-      range: '1st Half',
-      employee_id: employee,
-      deduction_id: deduction[1],
-      created_at: '2025-07-06',
-      updated_at: '2025-07-06',
-    },
-  ]
-
-  const mockData = [
-    {
-      id: mockId++,
-      period_from: '2025-05-01',
-      period_to: '2025-05-15',
-      gross_monthly_salary: 50000,
-      net_pay: '40000',
-      total_deductions_1st_half: '5000',
-      amount_earned_1st_half: '20000',
-      total_deductions_2nd_half: '5000',
-      amount_earned_2nd_half: '20000',
-      total_deductions_whole: '10000',
-      amount_earned_whole: '40000',
-      payroll_deduction_id: [
+  const payrollInfo = ref<PayRollPayload>({
+    payroll: {
+      period: null as [Date, Date] | null,
+      gross_monthly_salary: null,
+      net_pay: null,
+      total_deductions_1st_half: null,
+      amount_earned_1st_half: null,
+      total_deductions_2nd_half: null,
+      amount_earned_2nd_half: null,
+      total_deductions_whole: null,
+      amount_earned_whole: null,
+      payroll_deduction_id: reactive([
         {
-          id: 1,
-          amount: '2000',
-          range: '1st Half',
-          employee_id: employee,
-          deduction_id: deduction[0],
-          payroll_id: null,
-          employee_deduction_setting_id: deduction_setting[0],
-          created_at: '2025-07-06',
-          updated_at: '2025-07-06',
+          amount: null,
+          range: null,
+          deduction_id: {
+            id: '',
+            name: '',
+            code: null,
+            details: null,
+            created_at: undefined,
+            updated_at: undefined,
+          },
         },
-        {
-          id: 2,
-          amount: '3000',
-          range: '2nd Half',
-          employee_id: employee,
-          deduction_id: deduction[1],
-          payroll_id: null,
-          employee_deduction_setting_id: deduction_setting[1],
-          created_at: '2025-07-06',
-          updated_at: '2025-07-06',
+      ]),
+      employee_id: {
+        id: null,
+        individual_basic_detail_id: {
+          id: 0,
+          first_name: '',
+          last_name: '',
+          middle_name: null,
+          ext_name: null,
+          birthday: '',
+          sex: '',
+          place_of_birth: '',
+          civil_status: '',
+          height: 0,
+          weight: 0,
+          blood_type: '',
+          gsis_no: '',
+          pag_ibig_no: '',
+          philhealth_no: '',
+          sss_no: '',
+          tin: '',
+          citizenship: '',
+          citizenship_acquisition: '',
+          individual_address: null,
+          individual_contact_info: null,
+          employee: null,
         },
-      ],
-      employee_id: employee,
-      generate_employee_id: employee,
-      created_at: '2025-07-06',
-      updated_at: '2025-07-06',
+        id_number: null,
+        item_id: {
+          id: '',
+          number: null,
+          date_of_creation: null,
+          status: null,
+          date_filled_up: null,
+          fund_source_id: null,
+          employment_status: null,
+          position: null,
+          position_id: null,
+        },
+        salary_grade_id: null,
+        position: null,
+        fund_source: {
+          id: null,
+          name: null,
+        },
+        agency_employee_no: null,
+        office_id: null,
+        division_id: {
+          id: '',
+          name: null,
+          head_user_id: null,
+          added_by_user_id: null,
+          last_modified_by_user_id: null,
+        },
+        section_or_unit_id: {
+          id: '',
+          name: null,
+          division_id: null,
+          head_user_id: null,
+          added_by_user_id: null,
+          last_modified_by_user_id: null,
+        },
+      },
     },
-    {
-      id: mockId++,
-      period_from: '2025-06-01',
-      period_to: '2025-06-15',
-      gross_monthly_salary: 52000,
-      net_pay: '42000',
-      total_deductions_1st_half: '4500',
-      amount_earned_1st_half: '21000',
-      total_deductions_2nd_half: '5500',
-      amount_earned_2nd_half: '21000',
-      total_deductions_whole: '10000',
-      amount_earned_whole: '42000',
-      payroll_deduction_id: [
-        {
-          id: 3,
-          amount: '2500',
-          range: '1st Half',
-          employee_id: employee,
-          deduction_id: deduction[0],
-          payroll_id: null,
-          employee_deduction_setting_id: deduction_setting[0],
-          created_at: '2025-08-01',
-          updated_at: '2025-08-01',
-        },
-        {
-          id: 4,
-          amount: '2500',
-          range: '2nd Half',
-          employee_id: employee,
-          deduction_id: deduction[1],
-          payroll_id: null,
-          employee_deduction_setting_id: deduction_setting[1],
-          created_at: '2025-08-01',
-          updated_at: '2025-08-01',
-        },
-      ],
-      employee_id: employee,
-      generate_employee_id: employee,
-      created_at: '2025-08-01',
-      updated_at: '2025-08-01',
-    },
-    {
-      id: mockId++,
-      period_from: '2025-07-01',
-      period_to: '2025-07-15',
-      gross_monthly_salary: 53000,
-      net_pay: '42500',
-      total_deductions_1st_half: '5000',
-      amount_earned_1st_half: '21500',
-      total_deductions_2nd_half: '5500',
-      amount_earned_2nd_half: '21000',
-      total_deductions_whole: '10500',
-      amount_earned_whole: '42500',
-      payroll_deduction_id: [
-        {
-          id: 5,
-          amount: '3000',
-          range: '1st Half',
-          employee_id: employee,
-          deduction_id: deduction[0],
-          payroll_id: null,
-          employee_deduction_setting_id: deduction_setting[0],
-          created_at: '2025-09-01',
-          updated_at: '2025-09-01',
-        },
-        {
-          id: 6,
-          amount: '3000',
-          range: '2nd Half',
-          employee_id: employee,
-          deduction_id: deduction[1],
-          payroll_id: null,
-          employee_deduction_setting_id: deduction_setting[1],
-          created_at: '2025-09-01',
-          updated_at: '2025-09-01',
-        },
-      ],
-      employee_id: employee,
-      generate_employee_id: employee,
-      created_at: '2025-09-01',
-      updated_at: '2025-09-01',
-    },
-  ]
+  })
 
   const fetchPayRoll = async (limit = 10, page = 1) => {
     const start = (page - 1) * limit
-    const paginated = mockData.slice(start, start + limit)
+    const paginated = payrollMockData.slice(start, start + limit).map((item) => ({
+      ...item,
+      payroll_deduction_id:
+        typeof item.payroll_deduction_id === 'function' ? item.payroll_deduction_id : item.payroll_deduction_id,
+    }))
     payRoll.value = [...paginated]
     return {
       success: true,
       data: paginated,
       pagination: {
         current_page: page,
-        last_page: Math.ceil(mockData.length / limit),
+        last_page: Math.ceil(payrollMockData.length / limit),
         per_page: limit,
-        total: mockData.length,
+        total: payrollMockData.length,
         from: start + 1,
         to: start + paginated.length,
         first_page_url: '',
@@ -296,13 +149,30 @@ export const usePayRollStore = defineStore('pay-roll', () => {
     }
   }
 
-  const fetchPayRollById = async (id: string | number) => {
-    const url = `/pay-rolls/${id}`
-    const { data } = await useApiCall(url, auth.authenticationToken).get().json()
-    const responseBody: ApiResponseBody = data.value
-    if (responseBody.success) {
-      selectedpaySlip.value = responseBody.data as PayrollResponse
+  const fetchPayRollById = async (id: string) => {
+    await new Promise((resolve) => setTimeout(resolve, 300))
+
+    const foundData = payrollMockData.find((item) => item.id === parseInt(id))
+
+    const responseBody = {
+      success: !!foundData,
+      data: foundData || null,
+      message: foundData ? 'Data fetched successfully.' : 'Record not found.',
     }
+
+    if (responseBody.success) {
+      const data = responseBody.data
+      if (data) {
+        selectedpayRoll.value = {
+          ...data,
+          payroll_deduction_id:
+            typeof data.payroll_deduction_id === 'function' ? data.payroll_deduction_id : data.payroll_deduction_id,
+        }
+      } else {
+        selectedpayRoll.value = null
+      }
+    }
+
     return responseBody
   }
 
@@ -347,6 +217,7 @@ export const usePayRollStore = defineStore('pay-roll', () => {
 
   return {
     payRoll,
+    payrollInfo,
     createPayRoll,
     fetchPayRoll,
     fetchPayRollById,

@@ -284,6 +284,25 @@ const routes = [
         },
       },
       {
+        path: '/my-payslip/:id/editor',
+        name: 'my-payslip/editor',
+        component: () => import('@/components/payslip/PayslipView.vue'),
+        meta: <RouteMeta>{
+          isSidebarMenu: false,
+          authType: AuthType.AUTHENTICATED,
+          roles: [
+            AuthRole.STANDARD_USER,
+            AuthRole.SECTION_HEAD,
+            AuthRole.DIVISION_HEAD,
+            AuthRole.HR_PPMS_ADMIN,
+            AuthRole.HR_PAS_ADMIN,
+            AuthRole.ADMIN,
+            AuthRole.SUPER_USER,
+            AuthRole.SYSTEM_SUPPORT,
+          ],
+        },
+      },
+      {
         path: '/my-dtrs/:id?',
         name: 'my-dtrs',
         component: EmptyPage,
@@ -311,6 +330,25 @@ const routes = [
         meta: <RouteMeta>{
           label: 'Compensatory Overtime Credit',
           isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [
+            AuthRole.STANDARD_USER,
+            AuthRole.SECTION_HEAD,
+            AuthRole.DIVISION_HEAD,
+            AuthRole.HR_PPMS_ADMIN,
+            AuthRole.HR_PAS_ADMIN,
+            AuthRole.ADMIN,
+            AuthRole.SUPER_USER,
+            AuthRole.SYSTEM_SUPPORT,
+          ],
+        },
+      },
+      {
+        path: '/my-cocs/list',
+        name: 'my-cocs/list',
+        component: () => import('@/components/compensatory-time-off/CompensantoryOvertimeCreditList.vue'),
+        meta: <RouteMeta>{
+          isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
           roles: [
             AuthRole.STANDARD_USER,
@@ -734,6 +772,17 @@ const routes = [
         meta: <RouteMeta>{
           label: 'Payroll',
           isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+      {
+        path: '/employee-payrolls/:id?',
+        name: 'employee-payrolls',
+        component: () => import('@/views/human-resources/EmployeesPayrollPage.vue'),
+        meta: <RouteMeta>{
+          label: 'Payroll',
+          isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
           roles: [AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
         },

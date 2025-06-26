@@ -3,15 +3,16 @@ import { useApiCall } from '@/composables/network'
 import { useAuthStore } from '@/stores/auth.store.ts'
 import { PersonnelCompensatoryDayTimeOffResponse } from '@/typings/models.types.ts'
 import { ApiResponseBody } from '@/typings/http-resources.types.ts'
-import { ref } from 'vue'
+import { compensatorymockData } from '@/utils/mock-data'
+import { ref, reactive } from 'vue'
 /** Typings for Fecthing All Compensatory CTDO Report */
 export type PersonnelCompensatoryTimeOffPayload = {
   ctdo_period: string | null
-  ctdo_supervisor_notes: string
-  ctdo_status: string
+  ctdo_supervisor_notes: string | null
+  ctdo_status: string | null
   rows: {
-    days_of_the_week: string
-    work_date: string
+    days_of_the_week: string | null
+    work_date: string | null
     time_start: string | null
     time_end: string | null
     accomplishment: string | null
@@ -19,114 +20,33 @@ export type PersonnelCompensatoryTimeOffPayload = {
   }[]
 }
 
-export type PersonnelCompensatoryTimeDayOffDetailsPayload = {
-  days_of_the_week: string
-  work_date: string
-  time_start: string | null
-  time_end: string | null
-  accomplishment: string | null
-  authorized_claim: string | null
-}
-
 export const useCompensatoryTimeOffStore = defineStore('personnel-compensatory-time-day-off', () => {
   const auth = useAuthStore()
   const compensatory = ref<PersonnelCompensatoryDayTimeOffResponse[]>([])
   const selectedCompensatoryDayOff = ref<PersonnelCompensatoryDayTimeOffResponse | null>(null)
 
-  let mockId = 1
-  const mockData = [
-    {
-      id: mockId++,
-      ctdo_period: '01-31 December 2025',
-      ctdo_supervisor_notes: 'Reviewed and approved.',
-      ctdo_status: 'for revision',
-      rows: [
-        {
-          id: 6,
-          days_of_the_week: 'Monday',
-          work_date: '2025-07-01',
-          time_start: '09:00',
-          time_end: '17:00',
-          accomplishment: 'Completed project planning.',
-          authorized_claim: 'COC',
-        },
-        {
-          id: 7,
-          days_of_the_week: 'Tuesday',
-          work_date: '2025-07-02',
-          time_start: '09:00',
-          time_end: '17:00',
-          accomplishment: 'Team meeting and report writing.',
-          authorized_claim: 'COC',
-        },
-      ],
-      created_at: '2025-07-01',
-      updated_at: '2025-07-01',
-    },
-    {
-      id: mockId++,
-      ctdo_period: '01-31 November 2025',
-      ctdo_supervisor_notes: 'Pending approval.',
-      ctdo_status: 'for review',
-      rows: [
-        {
-          id: 2,
-          days_of_the_week: 'Wednesday',
-          work_date: '2025-07-09',
-          time_start: '10:00',
-          time_end: '18:00',
-          accomplishment: 'Client presentation.',
-          authorized_claim: 'COC',
-        },
-        {
-          id: 3,
-          days_of_the_week: 'Thursday',
-          work_date: '2025-07-10',
-          time_start: '09:30',
-          time_end: '16:30',
-          accomplishment: 'Documentation updates.',
-          authorized_claim: 'COC',
-        },
-      ],
-      created_at: '2025-07-05',
-      updated_at: '2025-07-05',
-    },
-    {
-      id: mockId++,
-      ctdo_period: '01-30 October 2025',
-      ctdo_supervisor_notes: 'Requires additional documentation.',
-      ctdo_status: 'approved',
-      rows: [
-        {
-          id: 4,
-          days_of_the_week: 'Friday',
-          work_date: '2025-07-18',
-          time_start: '08:00',
-          time_end: '15:00',
-          accomplishment: 'Site inspection.',
-          authorized_claim: 'COC',
-        },
-        {
-          id: 5,
-          days_of_the_week: 'Saturday',
-          work_date: '2025-07-19',
-          time_start: '08:00',
-          time_end: '15:00',
-          accomplishment: 'Site inspection.',
-          authorized_claim: 'COC',
-        },
-      ],
-      created_at: '2025-07-06',
-      updated_at: '2025-07-06',
-    },
-  ]
+  const compensatoryInfo = ref<PersonnelCompensatoryTimeOffPayload>({
+    ctdo_period: null,
+    ctdo_supervisor_notes: null,
+    ctdo_status: null,
+    rows: reactive([
+      {
+        days_of_the_week: null,
+        work_date: null,
+        time_start: null,
+        time_end: null,
+        accomplishment: null,
+        authorized_claim: null,
+      },
+    ]),
+  })
+
   const fetchCompensatoryDayTimeOff = async (limit = 10, page = 1, status?: string | string[]) => {
-    let filteredData = [...mockData]
+    let filteredData = [...compensatorymockData]
 
     // Normalize status filter
     if (status) {
       const statuses = Array.isArray(status) ? status.map((s) => s.toLowerCase()) : [status.toLowerCase()]
-
       filteredData = filteredData.filter((item) => statuses.includes(item.ctdo_status.toLowerCase()))
     }
 
@@ -158,7 +78,7 @@ export const useCompensatoryTimeOffStore = defineStore('personnel-compensatory-t
   const fetchCompensatoryDayTimeOffById = async (id: string) => {
     await new Promise((resolve) => setTimeout(resolve, 300))
 
-    const foundData = mockData.find((item) => item.id === parseInt(id))
+    const foundData = compensatorymockData.find((item) => item.id === parseInt(id))
 
     const responseBody = {
       success: !!foundData,
@@ -211,9 +131,9 @@ export const useCompensatoryTimeOffStore = defineStore('personnel-compensatory-t
   }
 
   const generateCompensatoryDayTimeOff = async (id: string) => {
-    const response = await fetch('/mock/Compensatory-Form.docx')
+    const response = await fetch('/mock/Certificate-of-COC-Earned.docx')
     const blob = await response.blob()
-    const fileNameHeader = `Compensatory-Form-${id}.docx`
+    const fileNameHeader = `Certificate-of-COC-Earned-${id}.docx`
 
     return {
       data: ref(blob),
@@ -223,6 +143,7 @@ export const useCompensatoryTimeOffStore = defineStore('personnel-compensatory-t
 
   return {
     compensatory,
+    compensatoryInfo,
     createCompensatoryDayTimeOff,
     fetchCompensatoryDayTimeOff,
     fetchCompensatoryDayTimeOffById,
