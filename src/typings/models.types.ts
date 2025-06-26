@@ -230,7 +230,7 @@ export type PersonnelEmployee = {
   id: number | null
   individual_basic_detail_id: PersonnelResponse | null
   id_number: string | null
-  item_id: number | null
+  item_id: ItemNumberResponse | null
   salary_grade_id: number | null
   position?: string | null
   fund_source?: {
