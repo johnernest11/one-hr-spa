@@ -15,15 +15,13 @@ export type DailyTimeRecordPayload = {
   is_missing: boolean | null
   employee_remarks: string | null
   hr_remarks: string | null
-  warm_bodies: WarmBody[]
-}
-
-export type WarmBody = {
-  id: number
-  employee_id: number
-  timestamp: string
-  daily_time_record_id: number
-  is_in: boolean // true = IN, false = OUT
+  status: string | null
+  warm_bodies: {
+    employee_id?: string | number | null
+    timestamp: string
+    daily_time_record_id: number
+    is_in: boolean // true = IN, false = OUT
+  }[]
 }
 
 export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => {

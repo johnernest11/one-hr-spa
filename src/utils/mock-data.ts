@@ -702,42 +702,42 @@ export const dailyTimeRecordsmockData = [
     warm_bodies: [
       {
         id: 101,
-        employee_id: 1,
+        employee_id: employee_data[0],
         timestamp: '2025-06-05T07:59:00', // IN 1 (morning)
         daily_time_record_id: 1,
         is_in: true,
       },
       {
         id: 102,
-        employee_id: 1,
+        employee_id: employee_data[0],
         timestamp: '2025-06-05T10:00:00', // OUT 1 (lunch out)
         daily_time_record_id: 1,
         is_in: false,
       },
       {
         id: 103,
-        employee_id: 1,
+        employee_id: employee_data[0],
         timestamp: '2025-06-05T13:00:00', // IN 2 (after lunch)
         daily_time_record_id: 1,
         is_in: true,
       },
       {
         id: 104,
-        employee_id: 1,
+        employee_id: employee_data[0],
         timestamp: '2025-06-05T15:01:00', // OUT 2 (end of day)
         daily_time_record_id: 1,
         is_in: false,
       },
       {
         id: 105,
-        employee_id: 1,
+        employee_id: employee_data[0],
         timestamp: '2025-06-05T17:01:00', // OUT 2 (end of day)
         daily_time_record_id: 1,
-        is_in: false,
+        is_in: true,
       },
       {
         id: 106,
-        employee_id: 1,
+        employee_id: employee_data[0],
         timestamp: '2025-05-05T18:01:00', // OUT 2 (end of day)
         daily_time_record_id: 1,
         is_in: false,
@@ -759,28 +759,28 @@ export const dailyTimeRecordsmockData = [
     warm_bodies: [
       {
         id: 201,
-        employee_id: 2,
+        employee_id: employee_data[1],
         timestamp: '2025-05-10T08:30:00',
         daily_time_record_id: 2,
         is_in: true,
       },
       {
         id: 202,
-        employee_id: 2,
+        employee_id: employee_data[1],
         timestamp: '2025-05-10T12:30:00',
         daily_time_record_id: 2,
         is_in: false,
       },
       {
         id: 203,
-        employee_id: 2,
+        employee_id: employee_data[1],
         timestamp: '2025-05-10T12:45:00',
         daily_time_record_id: 2,
         is_in: true,
       },
       {
         id: 204,
-        employee_id: 2,
+        employee_id: employee_data[1],
         timestamp: '2025-05-10T17:00:00',
         daily_time_record_id: 2,
         is_in: false,
@@ -802,14 +802,14 @@ export const dailyTimeRecordsmockData = [
     warm_bodies: [
       {
         id: 301,
-        employee_id: 3,
+        employee_id: employee_data[2],
         timestamp: '2025-06-07T08:00:00',
         daily_time_record_id: 3,
         is_in: true,
       },
       {
         id: 302,
-        employee_id: 3,
+        employee_id: employee_data[2],
         timestamp: '2025-06-09T17:00:00',
         daily_time_record_id: 3,
         is_in: false,
@@ -831,28 +831,28 @@ export const dailyTimeRecordsmockData = [
     warm_bodies: [
       {
         id: 401,
-        employee_id: 4,
+        employee_id: employee_data[2],
         timestamp: '2025-06-15T08:15:00',
         daily_time_record_id: 4,
         is_in: true,
       },
       {
         id: 402,
-        employee_id: 4,
+        employee_id: employee_data[2],
         timestamp: '2025-06-15T12:45:00',
         daily_time_record_id: 4,
         is_in: false,
       },
       {
         id: 403,
-        employee_id: 4,
+        employee_id: employee_data[2],
         timestamp: '2025-06-15T13:00:00',
         daily_time_record_id: 4,
         is_in: true,
       },
       {
         id: 404,
-        employee_id: 4,
+        employee_id: employee_data[2],
         timestamp: '2025-06-15T17:10:00',
         daily_time_record_id: 4,
         is_in: false,
@@ -874,28 +874,28 @@ export const dailyTimeRecordsmockData = [
     warm_bodies: [
       {
         id: 501,
-        employee_id: 5,
+        employee_id: employee_data[3],
         timestamp: '2025-06-20T07:50:00',
         daily_time_record_id: 5,
         is_in: true,
       },
       {
         id: 502,
-        employee_id: 5,
+        employee_id: employee_data[3],
         timestamp: '2025-06-20T12:30:00',
         daily_time_record_id: 5,
         is_in: false,
       },
       {
         id: 503,
-        employee_id: 5,
+        employee_id: employee_data[3],
         timestamp: '2025-06-20T13:45:00',
         daily_time_record_id: 5,
         is_in: true,
       },
       {
         id: 504,
-        employee_id: 5,
+        employee_id: employee_data[3],
         timestamp: '2025-06-20T17:00:00',
         daily_time_record_id: 5,
         is_in: false,

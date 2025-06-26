@@ -253,7 +253,7 @@ export type PersonnelEmployee = {
 }
 
 export type DailyTimeRecordResponse = {
-  id: number
+  id: number | null
   date: string
   ut: string | null
   is_edit_ut: boolean | null
@@ -267,7 +267,7 @@ export type DailyTimeRecordResponse = {
 
 export type WarmBodyResponse = {
   id: number
-  employee_id: number
+  employee_id: PersonnelEmployee | null
   timestamp: string
   daily_time_record_id: number
   is_in: boolean // true = IN, false = OUT
