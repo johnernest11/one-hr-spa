@@ -344,6 +344,25 @@ const routes = [
         },
       },
       {
+        path: '/my-cocs/list',
+        name: 'my-cocs/list',
+        component: () => import('@/components/compensatory-time-off/CompensantoryOvertimeCreditList.vue'),
+        meta: <RouteMeta>{
+          isSidebarMenu: false,
+          authType: AuthType.AUTHENTICATED,
+          roles: [
+            AuthRole.STANDARD_USER,
+            AuthRole.SECTION_HEAD,
+            AuthRole.DIVISION_HEAD,
+            AuthRole.HR_PPMS_ADMIN,
+            AuthRole.HR_PAS_ADMIN,
+            AuthRole.ADMIN,
+            AuthRole.SUPER_USER,
+            AuthRole.SYSTEM_SUPPORT,
+          ],
+        },
+      },
+      {
         path: '/my-leavecredits',
         name: 'my-leavecredits',
         component: () => import('@/views/personnel/LeaveCreditsPage.vue'),

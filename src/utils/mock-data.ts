@@ -339,6 +339,7 @@ const employee_data = [
   },
 ]
 
+/* Payroll Computation*/
 const payrollDeductions = () => {
   const phic = mockSalaryGrade.amount * 0.0225 // 2.25%
   const pagIbig = 100 // capped at 100
@@ -402,14 +403,14 @@ const payrollDeductions = () => {
 }
 const deductions = payrollDeductions()
 const total_deductions_1st_half = deductions.filter((d) => d.range === '1st Half').reduce((sum, d) => sum + d.amount, 0)
-
 const total_deductions_2nd_half = deductions.filter((d) => d.range === '2nd Half').reduce((sum, d) => sum + d.amount, 0)
-
 const total_deductions_whole = total_deductions_1st_half + total_deductions_2nd_half
 const net_pay = mockSalaryGrade.amount - total_deductions_whole
 const amount_earned_1st_half = mockSalaryGrade.amount / 2 - total_deductions_1st_half
 const amount_earned_2nd_half = mockSalaryGrade.amount / 2 - total_deductions_2nd_half
 const amount_earned_whole = amount_earned_1st_half + amount_earned_2nd_half
+
+/* Payroll */
 export const payrollMockData = [
   {
     id: mockId++,
@@ -490,6 +491,199 @@ export const payrollMockData = [
     employee_id: employee_data[4],
     created_at: '2025-07-10',
     updated_at: '2025-07-10',
+  },
+]
+/* Compensatory */
+export const compensatorymockData = [
+  {
+    id: mockId++,
+    ctdo_period: '01-31 December 2025',
+    ctdo_supervisor_notes: 'Reviewed and approved.',
+    ctdo_status: 'for revision',
+    rows: [
+      {
+        id: 6,
+        days_of_the_week: 'Monday',
+        work_date: '2025-07-01',
+        time_start: '7:30',
+        time_end: '16:30',
+        accomplishment: 'Completed project planning.',
+        authorized_claim: 'COC',
+      },
+      {
+        id: 7,
+        days_of_the_week: 'Tuesday',
+        work_date: '2025-07-02',
+        time_start: '09:00',
+        time_end: '17:00',
+        accomplishment: 'Team meeting and report writing.',
+        authorized_claim: 'COC',
+      },
+      {
+        id: 8,
+        days_of_the_week: 'Monday',
+        work_date: '2025-07-01',
+        time_start: '7:30',
+        time_end: '16:15',
+        accomplishment: 'Completed project planning.',
+        authorized_claim: 'COC',
+      },
+      {
+        id: 9,
+        days_of_the_week: 'Tuesday',
+        work_date: '2025-07-02',
+        time_start: '09:10',
+        time_end: '14:21',
+        accomplishment: 'Team meeting and report writing.',
+        authorized_claim: 'COC',
+      },
+    ],
+    created_at: '2025-07-01',
+    updated_at: '2025-07-01',
+  },
+  {
+    id: mockId++,
+    ctdo_period: '01-31 November 2025',
+    ctdo_supervisor_notes: 'Pending approval.',
+    ctdo_status: 'for review',
+    rows: [
+      {
+        id: 2,
+        days_of_the_week: 'Wednesday',
+        work_date: '2025-07-09',
+        time_start: '8:12',
+        time_end: '18:00',
+        accomplishment: 'Client presentation.',
+        authorized_claim: 'COC',
+      },
+      {
+        id: 3,
+        days_of_the_week: 'Thursday',
+        work_date: '2025-07-10',
+        time_start: '09:30',
+        time_end: '16:00',
+        accomplishment: 'Documentation updates.',
+        authorized_claim: 'COC',
+      },
+    ],
+    created_at: '2025-07-05',
+    updated_at: '2025-07-05',
+  },
+  {
+    id: mockId++,
+    ctdo_period: '01-30 October 2025',
+    ctdo_supervisor_notes: 'Requires additional documentation.',
+    ctdo_status: 'approved',
+    rows: [
+      {
+        id: 4,
+        days_of_the_week: 'Friday',
+        work_date: '2025-07-18',
+        time_start: '08:46',
+        time_end: '15:00',
+        accomplishment: 'Site inspection.',
+        authorized_claim: 'COC',
+      },
+      {
+        id: 5,
+        days_of_the_week: 'Saturday',
+        work_date: '2025-07-19',
+        time_start: '08:27',
+        time_end: '15:00',
+        accomplishment: 'Site inspection.',
+        authorized_claim: 'COC',
+      },
+    ],
+    created_at: '2025-07-06',
+    updated_at: '2025-07-06',
+  },
+]
+
+/* Leave Credits */
+export const leavecreditsmockData = [
+  {
+    id: mockId++,
+    employee_id: employee_data[0],
+    type: 'Sick Leave',
+    particular: 'Medical ',
+    ut_w_pay_day: '0',
+    ut_w_pay_hr: '2',
+    ut_w_pay_min: '30',
+    ut_day: '0',
+    ut_hr: '2',
+    ut_min: '30',
+    ut_w_pay: '2.5',
+    earned: '15', // annual entitlement
+    balance: '12.5', // after use
+    ut_wo_pay: '0',
+    salary: '46,725',
+    aca_pera: '2,000',
+    leave_credits_dates: [
+      {
+        id: 1,
+        leave_credits_id: null,
+        start_date: '2025-06-05',
+        end_date: '2025-06-05',
+      },
+    ],
+  },
+  {
+    id: mockId++,
+    employee_id: employee_data[1],
+    type: 'Vacation Leave',
+    particular: 'Family vacation',
+    ut_w_pay_day: '3',
+    ut_w_pay_hr: '0',
+    ut_w_pay_min: '0',
+    ut_day: '3',
+    ut_hr: '0',
+    ut_min: '0',
+    ut_w_pay: '3',
+    earned: '15',
+    balance: '12',
+    ut_wo_pay: '0',
+    salary: '46,725',
+    aca_pera: '2,000',
+    leave_credits_dates: [
+      {
+        id: 2,
+        leave_credits_id: null,
+        start_date: '2025-06-11',
+        end_date: '2025-06-14',
+      },
+      {
+        id: 5,
+        leave_credits_id: null,
+        start_date: '2025-06-16',
+        end_date: '2025-06-16',
+      },
+    ],
+  },
+  {
+    id: mockId++,
+    employee_id: employee_data[2],
+    type: 'Sick Leave',
+    particular: 'Flu with fever',
+    ut_w_pay_day: '2',
+    ut_w_pay_hr: '0',
+    ut_w_pay_min: '0',
+    ut_day: '2',
+    ut_hr: '0',
+    ut_min: '0',
+    ut_w_pay: '2',
+    earned: '15',
+    balance: '10',
+    ut_wo_pay: '0',
+    salary: '46,725',
+    aca_pera: '2,000',
+    leave_credits_dates: [
+      {
+        id: 3,
+        leave_credits_id: null,
+        start_date: '2025-06-07',
+        end_date: '2025-06-09',
+      },
+    ],
   },
 ]
 

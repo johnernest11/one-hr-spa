@@ -488,7 +488,7 @@ const isSupervisorActive = computed(() => route.name === 'ctdo-report-list/edito
                 severity="danger"
                 rounded
                 @click="removeCompensatory(index)"
-                v-if="!['for review', 'approved'].includes(payload.ctdo_status) && payload.rows.length > 1"
+                v-if="!['for review', 'approved'].includes(payload.ctdo_status ?? '') && payload.rows.length > 1"
                 class="mt-2"
               />
             </div>
@@ -519,10 +519,10 @@ const isSupervisorActive = computed(() => route.name === 'ctdo-report-list/edito
           <div class="flex w-full flex-col gap-4 pb-4">
             <hr />
             <Button
-              v-if="addcompensatoryFiledBtn && !['for review', 'approved'].includes(payload.ctdo_status)"
+              v-if="addcompensatoryFiledBtn && !['for review', 'approved'].includes(payload.ctdo_status ?? '')"
               label="+ Add Additional Date / Accomplishment"
               @click="addCompensatory"
-              :disabled="payload && ['for review', 'approved'].includes(payload.ctdo_status)"
+              :disabled="payload && ['for review', 'approved'].includes(payload.ctdo_status ?? '')"
               class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
               text
             />
