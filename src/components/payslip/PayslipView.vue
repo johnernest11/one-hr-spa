@@ -157,34 +157,6 @@ watch(
   },
   { immediate: true }
 )
-
-// const deductionTotals = computed(() => {
-//   let firstHalf = 0
-//   let secondHalf = 0
-//   let total = 0
-
-//   for (const deduction of payload.payroll.payroll_deduction_id) {
-//     if (deduction.amount) {
-//       const amount = parseFloat(String(deduction.amount))
-//       total += amount
-
-//       if (deduction.range === '1st Half') {
-//         firstHalf += amount
-//       } else if (deduction.range === '2nd Half') {
-//         secondHalf += amount
-//       }
-//     }
-//   }
-
-//   const format = (val: number) =>
-//     val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-
-//   return {
-//     firstHalf: format(firstHalf),
-//     secondHalf: format(secondHalf),
-//     total: format(total),
-//   }
-// })
 </script>
 
 <template>
