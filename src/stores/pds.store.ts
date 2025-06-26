@@ -132,6 +132,7 @@ export type IndividualEducBg = {
 export const usePdsStore = defineStore('pds', () => {
   /** States */
   const authStore = useAuthStore()
+  const pdsMode = ref('')
 
   const pdsInfo = ref<PersonalDataSheetPayload>({
     individual: {
@@ -302,6 +303,7 @@ export const usePdsStore = defineStore('pds', () => {
       office_id: null,
       division_id: null,
       section_or_unit_id: null,
+      item: null,
     },
   })
 
@@ -317,5 +319,6 @@ export const usePdsStore = defineStore('pds', () => {
   return {
     pdsInfo,
     saveC1,
+    pdsMode,
   }
 })
