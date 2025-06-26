@@ -10,18 +10,28 @@ import Button from 'primevue/button'
 import Card from 'primevue/card'
 import Divider from 'primevue/divider'
 
+// Initialize route object to access route params
 const route = useRoute()
+
+// Access the payroll store
 const payRollStore = usePayRollStore()
+
+// Loading state indicator
 const isLoading = ref(true)
 
+// Initialize reactive payload object with store's current payroll info
 const payload = reactive<PayRollPayload>({
   ...payRollStore.payrollInfo,
 })
 
+// Define component props, optional payroll data
 type PayrollDeductionFormProps = {
   payRoll?: PayrollResponse
 }
+
 const props = defineProps<PayrollDeductionFormProps>()
+
+// Fetch payroll data when component is mounted
 onMounted(async () => {
   const id = route.params.id as string
   if (id) {
@@ -33,11 +43,14 @@ onMounted(async () => {
   isLoading.value = false
 })
 
+// Function to update payload fields based on fetched payroll report
 const updatePayloadFromReport = (payRoll: PayrollResponse | null) => {
   if (payRoll) {
     payload.payroll.period = payRoll.period
       ? (payRoll.period.split(', ').map((dateStr) => new Date(dateStr)) as [Date, Date])
       : null
+
+    // Assign various payroll fields, defaulting to empty strings if undefined
     payload.payroll.gross_monthly_salary = payRoll.gross_monthly_salary ?? ''
     payload.payroll.net_pay = payRoll.net_pay ?? ''
     payload.payroll.total_deductions_1st_half = payRoll.total_deductions_1st_half ?? ''
@@ -45,8 +58,9 @@ const updatePayloadFromReport = (payRoll: PayrollResponse | null) => {
     payload.payroll.total_deductions_2nd_half = payRoll.total_deductions_2nd_half ?? ''
     payload.payroll.amount_earned_2nd_half = payRoll.amount_earned_2nd_half ?? ''
     payload.payroll.total_deductions_whole = payRoll.total_deductions_whole ?? ''
-
     payload.payroll.amount_earned_whole = payRoll.amount_earned_whole ?? ''
+
+    // Map payroll deductions if available, transforming each item
     payload.payroll.payroll_deduction_id = Array.isArray(payRoll.payroll_deduction_id)
       ? payRoll.payroll_deduction_id.map((deduction) => ({
         amount: deduction.amount ?? null,
@@ -66,6 +80,8 @@ const updatePayloadFromReport = (payRoll: PayrollResponse | null) => {
           },
       }))
       : []
+
+    // If employee info exists, populate nested employee object
     if (payRoll.employee_id) {
       payload.payroll.employee_id = {
         id: payRoll.employee_id.id ?? null,
@@ -93,6 +109,7 @@ const updatePayloadFromReport = (payRoll: PayrollResponse | null) => {
           individual_contact_info: null,
           employee: null,
         },
+        // Employee identifier info
         id_number: payRoll.employee_id.id_number ?? null,
         item_id: payRoll.employee_id.item_id ?? {
           id: '',
@@ -105,6 +122,7 @@ const updatePayloadFromReport = (payRoll: PayrollResponse | null) => {
           position: null,
           position_id: null,
         },
+        // Salary grade details
         salary_grade_id: payRoll.employee_id.salary_grade_id ?? {
           id: '',
           nbc_no: 0,
@@ -114,10 +132,13 @@ const updatePayloadFromReport = (payRoll: PayrollResponse | null) => {
           step: 0,
           amount: 0,
         },
+        // Position and fund source info
         position: payRoll.employee_id.position ?? null,
         fund_source: payRoll.employee_id.fund_source ?? { id: null, name: null },
+        // Employee number and office details
         agency_employee_no: payRoll.employee_id.agency_employee_no ?? null,
         office_id: payRoll.employee_id.office_id ?? null,
+        // Division info
         division_id: payRoll.employee_id.division_id ?? {
           id: '',
           name: null,
@@ -125,6 +146,7 @@ const updatePayloadFromReport = (payRoll: PayrollResponse | null) => {
           added_by_user_id: null,
           last_modified_by_user_id: null,
         },
+        // Section/Unit info
         section_or_unit_id: payRoll.employee_id.section_or_unit_id ?? {
           id: '',
           name: null,
@@ -137,6 +159,8 @@ const updatePayloadFromReport = (payRoll: PayrollResponse | null) => {
     }
   }
 }
+
+// Watch for changes in `props.payRoll` and update payload accordingly
 
 watch(
   () => props.payRoll,

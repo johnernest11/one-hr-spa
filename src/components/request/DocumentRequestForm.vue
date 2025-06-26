@@ -517,7 +517,7 @@ const isHumanResourceActive = computed(() => route.name === 'document-requests/e
                   @click="visible = false"
                 >
                   <template #icon>
-                    <i class="pi pi pi-times mr-2"></i>
+                    <i class="pi pi-times mr-2"></i>
                   </template>
                 </Button>
               </div>

@@ -32,6 +32,7 @@ import { usePrependOrAppendOnce } from '@/utils/helpers.js'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { TransitionRoot } from '@headlessui/vue'
 import { ItemNumberResponse } from '@/typings/models.types'
+import { useRouter } from 'vue-router'
 
 const getId = usePrependOrAppendOnce('pds-c1-section-form')
 
@@ -40,6 +41,7 @@ const employment = useItemNumberStore()
 const sgStore = useSalaryGradesStore()
 const pdsStore = usePdsStore()
 const toast = useToast()
+const router = useRouter()
 
 const isPositionLoading = ref(false)
 const isSameResidential = ref(false)
@@ -613,6 +615,8 @@ watch(
     if (!newSelectedItem) {
       selectedItemNo.value = null
       return
+    } else {
+      propPosition()
     }
   }
 )
@@ -765,6 +769,7 @@ const handleSaveC1Form = async () => {
     showToast('error', 'PDS C1 Error', 'PLease see the validation messages')
   } else {
     showToast('success', 'PDS C1', 'PDS C1 Information has been saved')
+    router.push({ name: 'employment' })
   }
 
   isC1Loading.value = false
@@ -779,7 +784,7 @@ const c1Tabs = ref([
 
 <template>
   <div class="flex flex-row">
-    <form @submit.prevent="handleSaveC1Form" autocomplete="off" class="h-full w-full">
+    <form @submit.prevent="" autocomplete="off" class="h-full w-full">
       <div class="w-full">
         <TabGroup>
           <TabList class="flex">
@@ -1816,6 +1821,7 @@ const c1Tabs = ref([
                   <span class="mt-2 flex flex-col justify-center font-medium text-primary-700">
                     <p class="text-lg italic md:text-xl">Children</p>
                   </span>
+
                   <template v-for="childIdx in payload.individual_family_children.length" :key="childIdx">
                     <TransitionRoot
                       appear
@@ -1829,7 +1835,7 @@ const c1Tabs = ref([
                     >
                       <div class="flex flex-col items-center gap-x-12 gap-y-4 md:flex-row">
                         <WbInputText
-                          v-model="payload.individual_family_children[childIdx].last_name"
+                          v-model="payload.individual_family_children[childIdx - 1].last_name"
                           label="Surname"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
@@ -1837,7 +1843,7 @@ const c1Tabs = ref([
                         />
 
                         <WbInputText
-                          v-model="payload.individual_family_children[childIdx].first_name"
+                          v-model="payload.individual_family_children[childIdx - 1].first_name"
                           label="First Name"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
@@ -1845,7 +1851,7 @@ const c1Tabs = ref([
                         />
 
                         <WbInputText
-                          v-model="payload.individual_family_children[childIdx].middle_name"
+                          v-model="payload.individual_family_children[childIdx - 1].middle_name"
                           label="Middle Name"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
@@ -1853,7 +1859,7 @@ const c1Tabs = ref([
                         />
 
                         <WbInputText
-                          v-model="payload.individual_family_children[childIdx].ext_name"
+                          v-model="payload.individual_family_children[childIdx - 1].ext_name"
                           label="Name Extension"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
@@ -1861,7 +1867,7 @@ const c1Tabs = ref([
                         />
 
                         <WbCalendar
-                          v-model="payload.individual_family_children[childIdx].date_of_birth"
+                          v-model="payload.individual_family_children[childIdx - 1].date_of_birth"
                           dateFormat="MM dd, yy"
                           :maxDate="new Date()"
                           label="Date of Birth"
@@ -1872,10 +1878,10 @@ const c1Tabs = ref([
                           </template>
                         </WbCalendar>
                         <Button
-                          v-show="childIdx + 1 > 1"
-                          :id="getId(`button-remove-child-${childIdx}`)"
+                          v-show="childIdx - 1 > 1"
+                          :id="getId(`button-remove-child-${childIdx - 1}`)"
                           icon="pi pi-trash"
-                          @click="handleRemoveChild(childIdx)"
+                          @click="handleRemoveChild(childIdx - 1)"
                           v-tooltip.top="'Remove Child'"
                           severity="danger"
                           class="mt-8 text-lg font-semibold dark:text-primary-100"
@@ -2402,8 +2408,9 @@ const c1Tabs = ref([
 
         <Button
           label="Save C1 Info"
+          @click.prevent="handleSaveC1Form"
           :loading="isC1Loading"
-          type="submit"
+          type="button"
           size="large"
           class="dark:text-secondary-100 bottom-0 right-0 mt-4 w-full border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
           text
