@@ -112,16 +112,27 @@ const updatePayloadFromReport = (payRoll: PayrollResponse | null) => {
         // Employee identifier info
         id_number: payRoll.employee_id.id_number ?? null,
         item_id: payRoll.employee_id.item_id ?? {
-          id: '',
+          id: 0,
           number: null,
           date_of_creation: null,
           status: null,
           date_filled_up: null,
           fund_source_id: null,
           employment_status: null,
-          position: null,
-          position_id: null,
+          position_id: {
+            id: 0,
+            title: '',
+            parenthetical_title: null,
+            level: null,
+            created_at: '',
+            updated_at: '',
+            deleted_at: '',
+          },
+          created_at: '',
+          updated_at: '',
+          deleted_at: '',
         },
+
         // Salary grade details
         salary_grade_id: payRoll.employee_id.salary_grade_id ?? {
           id: '',
@@ -133,7 +144,6 @@ const updatePayloadFromReport = (payRoll: PayrollResponse | null) => {
           amount: 0,
         },
         // Position and fund source info
-        position: payRoll.employee_id.position ?? null,
         fund_source: payRoll.employee_id.fund_source ?? { id: null, name: null },
         // Employee number and office details
         agency_employee_no: payRoll.employee_id.agency_employee_no ?? null,

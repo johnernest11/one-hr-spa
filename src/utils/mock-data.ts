@@ -1,7 +1,7 @@
 /** MOCK DATA */
 let mockId = 1
 const mockSalaryGrade = {
-  id: 1, // if your ApiResponseData includes `id`
+  id: 1,
   nbc_no: 123,
   effective_date: '2024-07-01',
   tranche: 4,
@@ -9,31 +9,6 @@ const mockSalaryGrade = {
   step: 3,
   amount: 34567.89,
 }
-
-const mockItemNumber = [
-  {
-    id: 1,
-    number: 'ITEM-000501',
-    date_of_creation: '2022-01-01',
-    status: 'Filled',
-    date_filled_up: '2023-05-15',
-    fund_source_id: null,
-    employment_status: 'Permanent',
-    position: null,
-    position_id: null,
-  },
-  {
-    id: 2,
-    number: 'ITEM-000501',
-    date_of_creation: '2022-01-01',
-    status: 'Filled',
-    date_filled_up: '2023-05-15',
-    fund_source_id: null,
-    employment_status: 'Contract of Service',
-    position: null,
-    position_id: null,
-  },
-]
 
 const individual_basic_details = [
   {
@@ -159,7 +134,7 @@ const individual_basic_details = [
 ]
 
 const item_id = {
-  id: 501,
+  id: 1,
   number: 'ITEM-501',
   date_of_creation: '2020-01-01',
   status: 'Active',
@@ -187,9 +162,8 @@ const employee_data = [
     id: 1,
     individual_basic_detail_id: individual_basic_details[0],
     id_number: 'EMP-2025-001',
-    item_id: item_id,
-    salary_grade_id: 12,
-    position: 'Administrative Officer III',
+    item_id: item_id, // <-- position_id is inside this object
+    salary_grade_id: mockSalaryGrade,
     fund_source: {
       id: 1,
       name: 'General Fund',
@@ -217,8 +191,7 @@ const employee_data = [
     individual_basic_detail_id: individual_basic_details[1],
     id_number: 'EMP-2025-002',
     item_id: item_id,
-    salary_grade_id: 15,
-    position: 'Human Resource Assistant',
+    salary_grade_id: mockSalaryGrade,
     fund_source: {
       id: 2,
       name: 'Special Education Fund',
@@ -246,8 +219,7 @@ const employee_data = [
     individual_basic_detail_id: individual_basic_details[2],
     id_number: 'EMP-2025-003',
     item_id: item_id,
-    salary_grade_id: 10,
-    position: 'IT Support Specialist',
+    salary_grade_id: mockSalaryGrade,
     fund_source: {
       id: 1,
       name: 'General Fund',
@@ -275,8 +247,7 @@ const employee_data = [
     individual_basic_detail_id: individual_basic_details[3],
     id_number: 'EMP-2025-004',
     item_id: item_id,
-    salary_grade_id: 9,
-    position: 'Records Officer',
+    salary_grade_id: mockSalaryGrade,
     fund_source: {
       id: 3,
       name: 'Trust Fund',
@@ -304,8 +275,7 @@ const employee_data = [
     individual_basic_detail_id: individual_basic_details[4],
     id_number: 'EMP-2025-005',
     item_id: item_id,
-    salary_grade_id: 18,
-    position: 'Budget Analyst',
+    salary_grade_id: mockSalaryGrade,
     fund_source: {
       id: 1,
       name: 'General Fund',
@@ -333,8 +303,7 @@ const employee_data = [
     individual_basic_detail_id: individual_basic_details[5],
     id_number: 'EMP-2025-006',
     item_id: item_id,
-    salary_grade_id: 11,
-    position: 'Procurement Officer',
+    salary_grade_id: mockSalaryGrade,
     fund_source: {
       id: 2,
       name: 'Special Education Fund',
