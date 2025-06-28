@@ -112,44 +112,89 @@ export const lcFirst = (string: string) => {
   return string[0].toLowerCase() + string.slice(1)
 }
 
-export const formatDateRanges = (ranges: { start_date: string; end_date: string }[]): string => {
-  if (!ranges || !Array.isArray(ranges)) return ''
-
-  return ranges
-    .map(({ start_date, end_date }) => {
-      const start = new Date(start_date)
-      const end = new Date(end_date)
-
-      const sameMonthYear = start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()
-
-      const formatDay = (date: Date) => date.getDate().toString().padStart(2, '0')
-      const formatMonthYear = (date: Date) => date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
-
-      if (sameMonthYear) {
-        return `${formatDay(start)} - ${formatDay(end)} ${formatMonthYear(end)}`
-      } else {
-        return `${formatDay(start)} ${formatMonthYear(start)} - ${formatDay(end)} ${formatMonthYear(end)}`
-      }
-    })
-    .join(', ')
-}
-
-export const formatDateRangeObject = (start_date: string, end_date: string): string => {
-  const start = new Date(start_date)
-  const end = new Date(end_date)
-
-  const sameMonthYear = start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()
-
-  const formatDay = (date: Date) => date.getDate().toString().padStart(2, '0')
-  const formatMonthYear = (date: Date) => date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
-
-  if (sameMonthYear) {
-    return `${formatDay(start)} - ${formatDay(end)} ${formatMonthYear(end)}`
-  } else {
-    return `${formatDay(start)} ${formatMonthYear(start)} - ${formatDay(end)} ${formatMonthYear(end)}`
+/**
+ * @description Formats a numeric amount into a string with 2 decimal places and thousands separator.
+ * @example formatAmount(12345.678) // "12,345.68"
+ */
+export const formatAmount = (amount: number | string | null | undefined): string => {
+  if (amount === null || amount === undefined || isNaN(Number(amount))) {
+    return '0.00'
   }
+  return parseFloat(String(amount)).toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
 }
 
+/**
+ * @description Calculates the duration in minutes between two times (e.g., "07:30" to "16:30"),
+ * subtracting 60 minutes if overlapping the lunch break (12:00–13:00).
+ * @param start - Start time (e.g., "07:30")
+ * @param end - End time (e.g., "16:30")
+ * @returns number of working minutes
+ */
+export const calcDurationMins = (start: string, end: string): number => {
+  const [sh, sm] = start.split(':').map(Number)
+  const [eh, em] = end.split(':').map(Number)
+  const startM = sh * 60 + sm
+  let endM = eh * 60 + em
+
+  // Adjust for overnight shift
+  if (endM <= startM) {
+    endM += 24 * 60
+  }
+
+  let total = endM - startM
+
+  // Subtract 60-minute lunch if overlapping 12:00–13:00
+  const lunchStart = 12 * 60
+  const lunchEnd = 13 * 60
+  if (startM < lunchEnd && endM > lunchStart) {
+    const overlap = Math.min(endM, lunchEnd) - Math.max(startM, lunchStart)
+    total -= overlap
+  }
+  return total
+}
+
+/**
+ * @description Converts minutes into a string format of hours and minutes.
+ * @example  "2hr 5min"
+ */
+export const fmtHoursMins = (totalMinutes: number): string => {
+  const h = Math.floor(totalMinutes / 60)
+  const m = totalMinutes % 60
+  const hours = `${h}hr`
+  const mins = m > 0 ? ` ${m}min` : ''
+  return `${hours}${mins}`
+}
+
+/**
+ * @description Extracts "Month Year" from a string like "1 December 2025".
+ * @example "December 2025"
+ */
+export const extractMonthYear = (period: string): string => {
+  const parts = period.trim().split(' ')
+  return parts.length >= 3 ? `${parts[1]} ${parts[2]}` : period
+}
+
+/**
+ * @description Extracts "Month Year" from a string and increments the year by 1.
+ * @example "December 2026"
+ */
+export const extractMonthYearPlusOneYear = (period: string): string => {
+  const parts = period.trim().split(' ')
+  if (parts.length >= 3) {
+    const month = parts[1]
+    const year = parseInt(parts[2], 10)
+    return `${month} ${year + 1}`
+  }
+  return period
+}
+
+/**
+ * @description Formats a date string into "DD MMM YYYY" format.
+ * @example "14 Jun 2025"
+ */
 export const formatDate = (dateString: string | null | undefined): string => {
   if (!dateString) return ''
   try {
@@ -171,24 +216,89 @@ export const formatDate = (dateString: string | null | undefined): string => {
   }
 }
 
+/**
+ * @description Formats a single date range into a readable string.
+ * @example// "01 - 15 June 2025"
+ */
+export const formatDateRangeObject = (start_date: string, end_date: string): string => {
+  const start = new Date(start_date)
+  const end = new Date(end_date)
+
+  const sameMonthYear = start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()
+  const formatDay = (date: Date) => date.getDate().toString().padStart(2, '0')
+  const formatMonthYear = (date: Date) => date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+
+  return sameMonthYear
+    ? `${formatDay(start)} - ${formatDay(end)} ${formatMonthYear(end)}`
+    : `${formatDay(start)} ${formatMonthYear(start)} - ${formatDay(end)} ${formatMonthYear(end)}`
+}
+
+/**
+ * @description Formats multiple date ranges into a readable string, comma-separated.
+ * @example "01 - 15 June 2025, 01 - 15 July 2025"
+ */
+export const formatDateRanges = (ranges: { start_date: string; end_date: string }[]): string => {
+  if (!ranges || !Array.isArray(ranges)) return ''
+
+  return ranges
+    .map(({ start_date, end_date }) => {
+      const start = new Date(start_date)
+      const end = new Date(end_date)
+
+      const sameMonthYear = start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()
+      const formatDay = (date: Date) => date.getDate().toString().padStart(2, '0')
+      const formatMonthYear = (date: Date) => date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+
+      return sameMonthYear
+        ? `${formatDay(start)} - ${formatDay(end)} ${formatMonthYear(end)}`
+        : `${formatDay(start)} ${formatMonthYear(start)} - ${formatDay(end)} ${formatMonthYear(end)}`
+    })
+    .join(', ')
+}
+
+/**
+ * @description Formats a date into full long-form for request payloads.
+ * @example formatDateRequest('2025-06-14') // "Saturday, June 14, 2025"
+ */
 export const formatDateRequest = (dateInput: string | null | undefined): string => {
   if (!dateInput) return ''
 
   const date = new Date(dateInput)
-
   if (isNaN(date.getTime())) return ''
 
   const options: Intl.DateTimeFormatOptions = {
-    weekday: 'long', // Saturday
-    day: 'numeric', // 14
-    month: 'long', // June
-    year: 'numeric', // 2025
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
   }
 
-  // Format the date using Intl.DateTimeFormat
   return new Intl.DateTimeFormat('en-US', options).format(date)
 }
 
+/**
+ * @description Formats a payroll period string like "2025-06-01, 2025-06-15" to "1–15 June 2025".
+ * @example formatPayrollPeriod('2025-06-01, 2025-06-15') // "1–15 June 2025"
+ */
+export const formatPayrollPeriod = (periodStr: string | null): string => {
+  if (!periodStr) return ''
+
+  const [startStr, endStr] = periodStr.split(',').map((s) => s.trim())
+  const startDate = new Date(startStr)
+  const endDate = new Date(endStr)
+
+  if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+    return ''
+  }
+
+  const options: Intl.DateTimeFormatOptions = { month: 'long', year: 'numeric' }
+  return `${startDate.getDate()}–${endDate.getDate()} ${endDate.toLocaleDateString('en-US', options)}`
+}
+
+/**
+ * @description Gets "Month Year" from a date string.
+ * @example getMonthAndYear('2025-07-14') // "Jul 2025"
+ */
 export const getMonthAndYear = (dateString: string | null | undefined): string => {
   if (!dateString) return ''
   try {
@@ -197,14 +307,13 @@ export const getMonthAndYear = (dateString: string | null | undefined): string =
       console.error('Invalid date string:', dateString)
       return 'Invalid Date'
     }
+
     const options: Intl.DateTimeFormatOptions = {
-      month: 'short', // 'long' for full month name
+      month: 'short',
       year: 'numeric',
     }
-    // Format date with month and year
-    const formatted = date.toLocaleDateString(undefined, options)
-    // Example output: "Jul 2025"
-    return formatted
+
+    return date.toLocaleDateString(undefined, options)
   } catch (error) {
     console.error('Error formatting date:', error)
     return 'Invalid Date'
@@ -212,11 +321,11 @@ export const getMonthAndYear = (dateString: string | null | undefined): string =
 }
 
 /**
- * @description Formats the current date into a string like "Monday 24 March, 2025".
- * @returns {string} The formatted date string for today.
+ * @description Returns today’s full date in the format "Monday  23 June, 2025".
+ * @example dateToday() // "Monday  23 June, 2025"
  */
 export const dateToday = (): string => {
-  const dateObj = new Date() // Get the current date
+  const dateObj = new Date()
 
   const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
   const months = [
@@ -239,40 +348,74 @@ export const dateToday = (): string => {
   const monthName = months[dateObj.getMonth()]
   const year = dateObj.getFullYear()
 
-  // Changed from single space to double space after dayOfWeek
   return `${dayOfWeek}  ${dayOfMonth} ${monthName}, ${year}`
 }
 
+/**
+ * @description Constant string of today's date from `dateToday()`.
+ * @example DateToday // "Monday  23 June, 2025"
+ */
 export const DateToday = dateToday()
 
+/**
+ * @description Validator to ensure end date is not before start date.
+ */
 export const isAfterOrEqualFromDate = (fromField: () => string | Date) =>
   helpers.withMessage('Period Covered To must be after or equal to  From', (toValue: string | Date) => {
     const fromValue = fromField()
 
-    // Convert to Date objects
     const toDate = new Date(toValue)
     const fromDate = new Date(fromValue)
 
-    // Skip validation if either date is invalid
     if (isNaN(toDate.getTime()) || isNaN(fromDate.getTime())) return true
 
-    // Validate that toDate >= fromDate
     return toDate >= fromDate
   })
 
-export function formatPayrollPeriod(periodStr: string | null): string {
-  if (!periodStr) return ''
+/**
+ * Summarizes leave date ranges by grouping consecutive dates into ranges.
+ * Formats multiple ranges (or single dates) into a compact string.
+ *
+ * @param dates - Array of objects with `start_date` and `end_date`.
+ * @returns A string like "11-14, 10 June 2025".
+ */
+export const summarizeLeaveDates = (dates: { start_date: string; end_date: string }[]): string => {
+  if (!dates.length) return ''
 
-  const [startStr, endStr] = periodStr.split(',').map((s) => s.trim())
-  const startDate = new Date(startStr)
-  const endDate = new Date(endStr)
+  const pad2 = (n: number) => n.toString().padStart(2, '0')
 
-  if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-    return ''
-  }
+  // Expand each range into day numbers
+  const days = new Set<number>()
+  dates.forEach(({ start_date, end_date }) => {
+    const s = new Date(start_date)
+    const e = new Date(end_date)
+    for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+      days.add(d.getDate())
+    }
+  })
 
-  const options: Intl.DateTimeFormatOptions = { month: 'long', year: 'numeric' }
-  const dateRange = `${startDate.getDate()}–${endDate.getDate()} ${endDate.toLocaleDateString('en-US', options)}`
+  // Sorted unique days
+  const sorted = Array.from(days).sort((a, b) => a - b)
 
-  return dateRange
+  // Group into ranges
+  const groups: [number, number][] = []
+  sorted.forEach((day) => {
+    const last = groups[groups.length - 1]
+    if (last && day === last[1] + 1) {
+      last[1] = day
+    } else {
+      groups.push([day, day])
+    }
+  })
+
+  const dayStrings = groups.map(([start, end]) => (start === end ? pad2(start) : `${pad2(start)}–${pad2(end)}`))
+
+  // Month & year from first date
+  const first = new Date(dates[0].start_date)
+  const monthYear = first.toLocaleDateString(undefined, {
+    month: 'long',
+    year: 'numeric',
+  })
+
+  return `${dayStrings.join(', ')} ${monthYear}`
 }

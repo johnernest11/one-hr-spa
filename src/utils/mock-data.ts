@@ -1,5 +1,40 @@
 /** MOCK DATA */
 let mockId = 1
+const mockSalaryGrade = {
+  id: 1, // if your ApiResponseData includes `id`
+  nbc_no: 123,
+  effective_date: '2024-07-01',
+  tranche: 4,
+  salary_grade: 12,
+  step: 3,
+  amount: 34567.89,
+}
+
+const mockItemNumber = [
+  {
+    id: 1,
+    number: 'ITEM-000501',
+    date_of_creation: '2022-01-01',
+    status: 'Filled',
+    date_filled_up: '2023-05-15',
+    fund_source_id: null,
+    employment_status: 'Permanent',
+    position: null,
+    position_id: null,
+  },
+  {
+    id: 2,
+    number: 'ITEM-000501',
+    date_of_creation: '2022-01-01',
+    status: 'Filled',
+    date_filled_up: '2023-05-15',
+    fund_source_id: null,
+    employment_status: 'Contract of Service',
+    position: null,
+    position_id: null,
+  },
+]
+
 const individual_basic_details = [
   {
     id: 1,
@@ -324,82 +359,91 @@ const employee_data = [
   },
 ]
 
-const payrollDeductions = [
-  {
-    id: 1,
-    amount: 2000,
-    range: '1st Half',
-    deduction_id: {
-      id: 10,
-      name: 'PHIC Contribution',
-      code: 'PH001',
-      details: 'Monthly PhilHealth contribution',
-      created_at: '2025-01-01T00:00:00Z',
-      updated_at: '2025-01-01T00:00:00Z',
-    },
-    created_at: '2025-07-06',
-    updated_at: '2025-07-06',
-  },
-  {
-    id: 2,
-    amount: 3000,
-    range: '2nd Half',
-    deduction_id: {
-      id: 12,
-      name: 'Pag-IBIG MPL',
-      code: 'PG002',
-      details: 'PAG-IBIG monthly deduction',
-      created_at: '2025-01-01T00:00:00Z',
-      updated_at: '2025-01-01T00:00:00Z',
-    },
-    created_at: '2025-07-06',
-    updated_at: '2025-07-06',
-  },
-  {
-    id: 3,
-    amount: 3000,
-    range: '2nd Half',
-    deduction_id: {
-      id: 2,
-      name: 'GSIS EE Share',
-      code: 'PG002',
-      details: 'PAG-IBIG monthly deduction',
-      created_at: '2025-01-01T00:00:00Z',
-      updated_at: '2025-01-01T00:00:00Z',
-    },
-    created_at: '2025-07-06',
-    updated_at: '2025-07-06',
-  },
-  {
-    id: 4,
-    amount: 3000,
-    range: '2nd Half',
-    deduction_id: {
-      id: 12,
-      name: 'COOP Emergency Loan',
-      code: 'PG002',
-      details: 'PAG-IBIG monthly deduction',
-      created_at: '2025-01-01T00:00:00Z',
-      updated_at: '2025-01-01T00:00:00Z',
-    },
-    created_at: '2025-07-06',
-    updated_at: '2025-07-06',
-  },
-]
+/* Payroll Computation*/
+const payrollDeductions = () => {
+  const phic = mockSalaryGrade.amount * 0.0225 // 2.25%
+  const pagIbig = 100 // capped at 100
+  const gsis = mockSalaryGrade.amount * 0.09 // 9%
+  const loan = 3000 // fixed loan amount
 
+  return [
+    {
+      id: 1,
+      amount: phic,
+      range: '1st Half',
+      deduction_id: {
+        id: 10,
+        name: 'PHIC Contribution',
+        code: 'PH001',
+        details: 'Monthly PhilHealth contribution',
+        created_at: '2025-01-01T00:00:00Z',
+        updated_at: '2025-01-01T00:00:00Z',
+      },
+    },
+    {
+      id: 2,
+      amount: pagIbig,
+      range: '2nd Half',
+      deduction_id: {
+        id: 12,
+        name: 'Pag-IBIG MPL',
+        code: 'PG002',
+        details: 'PAG-IBIG monthly deduction',
+        created_at: '2025-01-01T00:00:00Z',
+        updated_at: '2025-01-01T00:00:00Z',
+      },
+    },
+    {
+      id: 3,
+      amount: gsis,
+      range: '1st Half',
+      deduction_id: {
+        id: 2,
+        name: 'GSIS EE Share',
+        code: 'PG002',
+        details: 'PAG-IBIG monthly deduction',
+        created_at: '2025-01-01T00:00:00Z',
+        updated_at: '2025-01-01T00:00:00Z',
+      },
+    },
+    {
+      id: 4,
+      amount: loan,
+      range: '2nd Half',
+      deduction_id: {
+        id: 12,
+        name: 'COOP Emergency Loan',
+        code: 'PG002',
+        details: 'PAG-IBIG monthly deduction',
+        created_at: '2025-01-01T00:00:00Z',
+        updated_at: '2025-01-01T00:00:00Z',
+      },
+    },
+  ]
+}
+const deductions = payrollDeductions()
+const total_deductions_1st_half = deductions.filter((d) => d.range === '1st Half').reduce((sum, d) => sum + d.amount, 0)
+const total_deductions_2nd_half = deductions.filter((d) => d.range === '2nd Half').reduce((sum, d) => sum + d.amount, 0)
+const total_deductions_whole = total_deductions_1st_half + total_deductions_2nd_half
+const net_pay = mockSalaryGrade.amount - total_deductions_whole
+const amount_earned_1st_half = mockSalaryGrade.amount / 2 - total_deductions_1st_half
+const amount_earned_2nd_half = mockSalaryGrade.amount / 2 - total_deductions_2nd_half
+const amount_earned_whole = amount_earned_1st_half + amount_earned_2nd_half
+
+/* Payroll */
 export const payrollMockData = [
   {
     id: mockId++,
     period: '2025-05-01, 2025-05-15',
-    gross_monthly_salary: '50000',
-    net_pay: '40000',
-    total_deductions_1st_half: '5000',
-    amount_earned_1st_half: '20000',
-    total_deductions_2nd_half: '5000',
-    amount_earned_2nd_half: '20000',
-    total_deductions_whole: '10000',
-    amount_earned_whole: '40000',
-    payroll_deduction_id: payrollDeductions,
+    gross_monthly_salary: mockSalaryGrade.amount.toFixed(2),
+    payroll_deduction_id: payrollDeductions(),
+    total_deductions_1st_half: total_deductions_1st_half.toFixed(2),
+    amount_earned_1st_half: amount_earned_1st_half.toFixed(2),
+    total_deductions_2nd_half: total_deductions_2nd_half.toFixed(2),
+    amount_earned_2nd_half: amount_earned_2nd_half.toFixed(2),
+    total_deductions_whole: total_deductions_whole.toFixed(2),
+    amount_earned_whole: amount_earned_whole.toFixed(2),
+    net_pay: net_pay.toFixed(2),
     employee_id: employee_data[0],
     created_at: '2025-07-06',
     updated_at: '2025-07-06',
@@ -408,15 +452,15 @@ export const payrollMockData = [
   {
     id: mockId++,
     period: '2025-05-16, 2025-05-31',
-    gross_monthly_salary: '48000',
-    net_pay: '38000',
-    total_deductions_1st_half: '4000',
-    amount_earned_1st_half: '19000',
-    total_deductions_2nd_half: '6000',
-    amount_earned_2nd_half: '19000',
-    total_deductions_whole: '10000',
-    amount_earned_whole: '38000',
-    payroll_deduction_id: payrollDeductions.slice(0, 3),
+    gross_monthly_salary: mockSalaryGrade.amount.toFixed(2),
+    payroll_deduction_id: payrollDeductions(),
+    total_deductions_1st_half: total_deductions_1st_half.toFixed(2),
+    amount_earned_1st_half: amount_earned_1st_half.toFixed(2),
+    total_deductions_2nd_half: total_deductions_2nd_half.toFixed(2),
+    amount_earned_2nd_half: amount_earned_2nd_half.toFixed(2),
+    total_deductions_whole: total_deductions_whole.toFixed(2),
+    amount_earned_whole: amount_earned_whole.toFixed(2),
+    net_pay: net_pay.toFixed(2),
     employee_id: employee_data[1],
     created_at: '2025-07-07',
     updated_at: '2025-07-07',
@@ -425,15 +469,15 @@ export const payrollMockData = [
   {
     id: mockId++,
     period: '2025-06-01, 2025-06-15',
-    gross_monthly_salary: '52000',
-    net_pay: '41000',
-    total_deductions_1st_half: '5000',
-    amount_earned_1st_half: '21000',
-    total_deductions_2nd_half: '5000',
-    amount_earned_2nd_half: '20000',
-    total_deductions_whole: '10000',
-    amount_earned_whole: '41000',
-    payroll_deduction_id: payrollDeductions.slice(1, 4),
+    gross_monthly_salary: mockSalaryGrade.amount.toFixed(2),
+    payroll_deduction_id: payrollDeductions(),
+    total_deductions_1st_half: total_deductions_1st_half.toFixed(2),
+    amount_earned_1st_half: amount_earned_1st_half.toFixed(2),
+    total_deductions_2nd_half: total_deductions_2nd_half.toFixed(2),
+    amount_earned_2nd_half: amount_earned_2nd_half.toFixed(2),
+    total_deductions_whole: total_deductions_whole.toFixed(2),
+    amount_earned_whole: amount_earned_whole.toFixed(2),
+    net_pay: net_pay.toFixed(2),
     employee_id: employee_data[2],
     created_at: '2025-07-08',
     updated_at: '2025-07-08',
@@ -442,15 +486,15 @@ export const payrollMockData = [
   {
     id: mockId++,
     period: '2025-06-16, 2025-06-30',
-    gross_monthly_salary: '55000',
-    net_pay: '43000',
-    total_deductions_1st_half: '6000',
-    amount_earned_1st_half: '22000',
-    total_deductions_2nd_half: '6000',
-    amount_earned_2nd_half: '21000',
-    total_deductions_whole: '12000',
-    amount_earned_whole: '43000',
-    payroll_deduction_id: payrollDeductions.slice(0, 2),
+    gross_monthly_salary: mockSalaryGrade.amount.toFixed(2),
+    payroll_deduction_id: payrollDeductions(),
+    total_deductions_1st_half: total_deductions_1st_half.toFixed(2),
+    amount_earned_1st_half: amount_earned_1st_half.toFixed(2),
+    total_deductions_2nd_half: total_deductions_2nd_half.toFixed(2),
+    amount_earned_2nd_half: amount_earned_2nd_half.toFixed(2),
+    total_deductions_whole: total_deductions_whole.toFixed(2),
+    amount_earned_whole: amount_earned_whole.toFixed(2),
+    net_pay: net_pay.toFixed(2),
     employee_id: employee_data[3],
     created_at: '2025-07-09',
     updated_at: '2025-07-09',
@@ -459,19 +503,212 @@ export const payrollMockData = [
   {
     id: mockId++,
     period: '2025-07-01, 2025-07-15',
-    gross_monthly_salary: '47000',
-    net_pay: '37000',
-    total_deductions_1st_half: '5000',
-    amount_earned_1st_half: '18000',
-    total_deductions_2nd_half: '5000',
-    amount_earned_2nd_half: '19000',
-    total_deductions_whole: '10000',
-    amount_earned_whole: '37000',
-    payroll_deduction_id: payrollDeductions.slice(2, 4),
+    gross_monthly_salary: mockSalaryGrade.amount.toFixed(2),
+    payroll_deduction_id: payrollDeductions(),
+    total_deductions_1st_half: total_deductions_1st_half.toFixed(2),
+    amount_earned_1st_half: amount_earned_1st_half.toFixed(2),
+    total_deductions_2nd_half: total_deductions_2nd_half.toFixed(2),
+    amount_earned_2nd_half: amount_earned_2nd_half.toFixed(2),
+    total_deductions_whole: total_deductions_whole.toFixed(2),
+    amount_earned_whole: amount_earned_whole.toFixed(2),
+    net_pay: net_pay.toFixed(2),
     employee_id: employee_data[4],
     created_at: '2025-07-10',
     updated_at: '2025-07-10',
     deleted_at: '2025-07-10',
+  },
+]
+/* Compensatory */
+export const compensatorymockData = [
+  {
+    id: mockId++,
+    ctdo_period: '01-31 December 2025',
+    ctdo_supervisor_notes: 'Reviewed and approved.',
+    ctdo_status: 'for revision',
+    rows: [
+      {
+        id: 6,
+        days_of_the_week: 'Monday',
+        work_date: '2025-07-01',
+        time_start: '7:30',
+        time_end: '16:30',
+        accomplishment: 'Completed project planning.',
+        authorized_claim: 'COC',
+      },
+      {
+        id: 7,
+        days_of_the_week: 'Tuesday',
+        work_date: '2025-07-02',
+        time_start: '09:00',
+        time_end: '17:00',
+        accomplishment: 'Team meeting and report writing.',
+        authorized_claim: 'COC',
+      },
+      {
+        id: 8,
+        days_of_the_week: 'Monday',
+        work_date: '2025-07-01',
+        time_start: '7:30',
+        time_end: '16:15',
+        accomplishment: 'Completed project planning.',
+        authorized_claim: 'COC',
+      },
+      {
+        id: 9,
+        days_of_the_week: 'Tuesday',
+        work_date: '2025-07-02',
+        time_start: '09:10',
+        time_end: '14:21',
+        accomplishment: 'Team meeting and report writing.',
+        authorized_claim: 'COC',
+      },
+    ],
+    created_at: '2025-07-01',
+    updated_at: '2025-07-01',
+  },
+  {
+    id: mockId++,
+    ctdo_period: '01-31 November 2025',
+    ctdo_supervisor_notes: 'Pending approval.',
+    ctdo_status: 'for review',
+    rows: [
+      {
+        id: 2,
+        days_of_the_week: 'Wednesday',
+        work_date: '2025-07-09',
+        time_start: '8:12',
+        time_end: '18:00',
+        accomplishment: 'Client presentation.',
+        authorized_claim: 'COC',
+      },
+      {
+        id: 3,
+        days_of_the_week: 'Thursday',
+        work_date: '2025-07-10',
+        time_start: '09:30',
+        time_end: '16:00',
+        accomplishment: 'Documentation updates.',
+        authorized_claim: 'COC',
+      },
+    ],
+    created_at: '2025-07-05',
+    updated_at: '2025-07-05',
+  },
+  {
+    id: mockId++,
+    ctdo_period: '01-30 October 2025',
+    ctdo_supervisor_notes: 'Requires additional documentation.',
+    ctdo_status: 'approved',
+    rows: [
+      {
+        id: 4,
+        days_of_the_week: 'Friday',
+        work_date: '2025-07-18',
+        time_start: '08:46',
+        time_end: '15:00',
+        accomplishment: 'Site inspection.',
+        authorized_claim: 'COC',
+      },
+      {
+        id: 5,
+        days_of_the_week: 'Saturday',
+        work_date: '2025-07-19',
+        time_start: '08:27',
+        time_end: '15:00',
+        accomplishment: 'Site inspection.',
+        authorized_claim: 'COC',
+      },
+    ],
+    created_at: '2025-07-06',
+    updated_at: '2025-07-06',
+  },
+]
+
+/* Leave Credits */
+export const leavecreditsmockData = [
+  {
+    id: mockId++,
+    employee_id: employee_data[0],
+    type: 'Sick Leave',
+    particular: 'Medical ',
+    ut_w_pay_day: '0',
+    ut_w_pay_hr: '2',
+    ut_w_pay_min: '30',
+    ut_day: '0',
+    ut_hr: '2',
+    ut_min: '30',
+    ut_w_pay: '2.5',
+    earned: '15', // annual entitlement
+    balance: '12.5', // after use
+    ut_wo_pay: '0',
+    salary: '46,725',
+    aca_pera: '2,000',
+    leave_credits_dates: [
+      {
+        id: 1,
+        leave_credits_id: null,
+        start_date: '2025-06-05',
+        end_date: '2025-06-05',
+      },
+    ],
+  },
+  {
+    id: mockId++,
+    employee_id: employee_data[1],
+    type: 'Vacation Leave',
+    particular: 'Family vacation',
+    ut_w_pay_day: '3',
+    ut_w_pay_hr: '0',
+    ut_w_pay_min: '0',
+    ut_day: '3',
+    ut_hr: '0',
+    ut_min: '0',
+    ut_w_pay: '3',
+    earned: '15',
+    balance: '12',
+    ut_wo_pay: '0',
+    salary: '46,725',
+    aca_pera: '2,000',
+    leave_credits_dates: [
+      {
+        id: 2,
+        leave_credits_id: null,
+        start_date: '2025-06-11',
+        end_date: '2025-06-14',
+      },
+      {
+        id: 5,
+        leave_credits_id: null,
+        start_date: '2025-06-16',
+        end_date: '2025-06-16',
+      },
+    ],
+  },
+  {
+    id: mockId++,
+    employee_id: employee_data[2],
+    type: 'Sick Leave',
+    particular: 'Flu with fever',
+    ut_w_pay_day: '2',
+    ut_w_pay_hr: '0',
+    ut_w_pay_min: '0',
+    ut_day: '2',
+    ut_hr: '0',
+    ut_min: '0',
+    ut_w_pay: '2',
+    earned: '15',
+    balance: '10',
+    ut_wo_pay: '0',
+    salary: '46,725',
+    aca_pera: '2,000',
+    leave_credits_dates: [
+      {
+        id: 3,
+        leave_credits_id: null,
+        start_date: '2025-06-07',
+        end_date: '2025-06-09',
+      },
+    ],
   },
 ]
 

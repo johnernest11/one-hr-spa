@@ -122,7 +122,11 @@ export const usePayRollStore = defineStore('pay-roll', () => {
 
   const fetchPayRoll = async (limit = 10, page = 1) => {
     const start = (page - 1) * limit
-    const paginated = payrollMockData.slice(start, start + limit)
+    const paginated = payrollMockData.slice(start, start + limit).map((item) => ({
+      ...item,
+      payroll_deduction_id:
+        typeof item.payroll_deduction_id === 'function' ? item.payroll_deduction_id : item.payroll_deduction_id,
+    }))
     payRoll.value = [...paginated]
     return {
       success: true,
@@ -155,7 +159,16 @@ export const usePayRollStore = defineStore('pay-roll', () => {
     }
 
     if (responseBody.success) {
-      selectedpayRoll.value = responseBody.data
+      const data = responseBody.data
+      if (data) {
+        selectedpayRoll.value = {
+          ...data,
+          payroll_deduction_id:
+            typeof data.payroll_deduction_id === 'function' ? data.payroll_deduction_id : data.payroll_deduction_id,
+        }
+      } else {
+        selectedpayRoll.value = null
+      }
     }
 
     return responseBody
