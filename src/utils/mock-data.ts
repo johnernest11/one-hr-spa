@@ -123,12 +123,36 @@ const individual_basic_details = [
   },
 ]
 
+const item_id = {
+  id: 501,
+  number: 'ITEM-501',
+  date_of_creation: '2020-01-01',
+  status: 'Active',
+  date_filled_up: '2020-03-01',
+  fund_source_id: {
+    id: 1,
+    name: 'General Fund',
+    created_at: '2020-01-01',
+    updated_at: '2020-01-01',
+  },
+  employment_status: 'Permanent',
+  position_id: {
+    id: 1,
+    title: 'Administrative Officer III',
+    parenthetical_title: null,
+    level: null,
+    created_at: '2020-01-01',
+    updated_at: '2020-01-01',
+  },
+  created_at: '2020-01-01',
+  updated_at: '2020-01-01',
+}
 const employee_data = [
   {
     id: 1,
     individual_basic_detail_id: individual_basic_details[0],
     id_number: 'EMP-2025-001',
-    item_id: 501,
+    item_id: item_id,
     salary_grade_id: 12,
     position: 'Administrative Officer III',
     fund_source: {
@@ -157,7 +181,7 @@ const employee_data = [
     id: 2,
     individual_basic_detail_id: individual_basic_details[1],
     id_number: 'EMP-2025-002',
-    item_id: 502,
+    item_id: item_id,
     salary_grade_id: 15,
     position: 'Human Resource Assistant',
     fund_source: {
@@ -186,7 +210,7 @@ const employee_data = [
     id: 3,
     individual_basic_detail_id: individual_basic_details[2],
     id_number: 'EMP-2025-003',
-    item_id: 503,
+    item_id: item_id,
     salary_grade_id: 10,
     position: 'IT Support Specialist',
     fund_source: {
@@ -215,7 +239,7 @@ const employee_data = [
     id: 4,
     individual_basic_detail_id: individual_basic_details[3],
     id_number: 'EMP-2025-004',
-    item_id: 504,
+    item_id: item_id,
     salary_grade_id: 9,
     position: 'Records Officer',
     fund_source: {
@@ -244,7 +268,7 @@ const employee_data = [
     id: 5,
     individual_basic_detail_id: individual_basic_details[4],
     id_number: 'EMP-2025-005',
-    item_id: 505,
+    item_id: item_id,
     salary_grade_id: 18,
     position: 'Budget Analyst',
     fund_source: {
@@ -273,7 +297,7 @@ const employee_data = [
     id: 6,
     individual_basic_detail_id: individual_basic_details[5],
     id_number: 'EMP-2025-006',
-    item_id: 506,
+    item_id: item_id,
     salary_grade_id: 11,
     position: 'Procurement Officer',
     fund_source: {
@@ -379,6 +403,7 @@ export const payrollMockData = [
     employee_id: employee_data[0],
     created_at: '2025-07-06',
     updated_at: '2025-07-06',
+    deleted_at: '2025-07-06',
   },
   {
     id: mockId++,
@@ -395,6 +420,7 @@ export const payrollMockData = [
     employee_id: employee_data[1],
     created_at: '2025-07-07',
     updated_at: '2025-07-07',
+    deleted_at: '2025-07-07',
   },
   {
     id: mockId++,
@@ -411,6 +437,7 @@ export const payrollMockData = [
     employee_id: employee_data[2],
     created_at: '2025-07-08',
     updated_at: '2025-07-08',
+    deleted_at: '2025-07-08',
   },
   {
     id: mockId++,
@@ -427,6 +454,7 @@ export const payrollMockData = [
     employee_id: employee_data[3],
     created_at: '2025-07-09',
     updated_at: '2025-07-09',
+    deleted_at: '2025-07-09',
   },
   {
     id: mockId++,
@@ -443,6 +471,7 @@ export const payrollMockData = [
     employee_id: employee_data[4],
     created_at: '2025-07-10',
     updated_at: '2025-07-10',
+    deleted_at: '2025-07-10',
   },
 ]
 
