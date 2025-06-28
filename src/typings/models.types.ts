@@ -67,13 +67,13 @@ export type SectionorUnitResponse = {
 } & ApiResponseData
 
 export type ItemNumberResponse = {
+  id: number
   number: string | null
   date_of_creation: string | null
   status: string | null
   date_filled_up: string | null
   fund_source_id: FundSourceResponse | null
   employment_status: string | null
-  position: PositionResponse | null
   position_id: PositionResponse | null
 } & ApiResponseData
 
@@ -240,8 +240,7 @@ export type PersonnelEmployee = {
   individual_basic_detail_id: PersonnelResponse | null
   id_number: string | null
   item_id: ItemNumberResponse | null
-  salary_grade_id: SalaryGradeResponse | null
-  position?: string | null
+  salary_grade_id: number | null
   fund_source?: {
     id: number | null
     name: string | null

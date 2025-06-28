@@ -294,7 +294,6 @@ export const usePdsStore = defineStore('pds', () => {
       id_number: null,
       item_id: null,
       salary_grade_id: null,
-      position: null,
       fund_source: {
         id: null,
         name: null,
