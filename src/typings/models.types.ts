@@ -67,13 +67,13 @@ export type SectionorUnitResponse = {
 } & ApiResponseData
 
 export type ItemNumberResponse = {
+  id: number
   number: string | null
   date_of_creation: string | null
   status: string | null
   date_filled_up: string | null
   fund_source_id: FundSourceResponse | null
   employment_status: string | null
-  position: PositionResponse | null
   position_id: PositionResponse | null
 } & ApiResponseData
 
@@ -82,12 +82,12 @@ export type FundSourceResponse = {
 } & ApiResponseData
 
 export type SalaryGradeResponse = {
-  nbc_no: number
-  effective_date: string
-  tranche: number
-  salary_grade: number
-  step: number
-  amount: number
+  nbc_no: number | null
+  effective_date: string | null
+  tranche: number | null
+  salary_grade: number | null
+  step: number | null
+  amount: number | null
 } & ApiResponseData
 
 export type PositionResponse = {
@@ -241,7 +241,6 @@ export type PersonnelEmployee = {
   id_number: string | null
   item_id: ItemNumberResponse | null
   salary_grade_id: SalaryGradeResponse | null
-  position?: string | null
   fund_source?: {
     id: number | null
     name: string | null
@@ -250,6 +249,27 @@ export type PersonnelEmployee = {
   office_id: number | null
   division_id: DivisionResponse | null
   section_or_unit_id: SectionorUnitResponse | null
+}
+
+export type DailyTimeRecordResponse = {
+  id: number | null
+  date: string
+  ut: string | null
+  is_edit_ut: boolean | null
+  ot: string | null
+  is_missing: boolean | null
+  employee_remarks: string | null
+  hr_remarks: string | null
+  status: string | null
+  warm_bodies: Array<WarmBodyResponse> | null | undefined
+}
+
+export type WarmBodyResponse = {
+  id: number
+  employee_id: PersonnelEmployee | null
+  timestamp: string
+  daily_time_record_id: number
+  is_in: boolean // true = IN, false = OUT
 }
 
 /** Leave Application (HTTP Responses) */

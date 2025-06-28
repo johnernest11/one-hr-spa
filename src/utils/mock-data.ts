@@ -1,7 +1,7 @@
 /** MOCK DATA */
 let mockId = 1
 const mockSalaryGrade = {
-  id: 1, // if your ApiResponseData includes `id`
+  id: 1,
   nbc_no: 123,
   effective_date: '2024-07-01',
   tranche: 4,
@@ -9,31 +9,6 @@ const mockSalaryGrade = {
   step: 3,
   amount: 34567.89,
 }
-
-const mockItemNumber = [
-  {
-    id: 1,
-    number: 'ITEM-000501',
-    date_of_creation: '2022-01-01',
-    status: 'Filled',
-    date_filled_up: '2023-05-15',
-    fund_source_id: null,
-    employment_status: 'Permanent',
-    position: null,
-    position_id: null,
-  },
-  {
-    id: 2,
-    number: 'ITEM-000501',
-    date_of_creation: '2022-01-01',
-    status: 'Filled',
-    date_filled_up: '2023-05-15',
-    fund_source_id: null,
-    employment_status: 'Contract of Service',
-    position: null,
-    position_id: null,
-  },
-]
 
 const individual_basic_details = [
   {
@@ -158,18 +133,37 @@ const individual_basic_details = [
   },
 ]
 
+const item_id = {
+  id: 1,
+  number: 'ITEM-501',
+  date_of_creation: '2020-01-01',
+  status: 'Active',
+  date_filled_up: '2020-03-01',
+  fund_source_id: {
+    id: 1,
+    name: 'General Fund',
+    created_at: '2020-01-01',
+    updated_at: '2020-01-01',
+  },
+  employment_status: 'Permanent',
+  position_id: {
+    id: 1,
+    title: 'Administrative Officer III',
+    parenthetical_title: null,
+    level: null,
+    created_at: '2020-01-01',
+    updated_at: '2020-01-01',
+  },
+  created_at: '2020-01-01',
+  updated_at: '2020-01-01',
+}
 const employee_data = [
   {
     id: 1,
     individual_basic_detail_id: individual_basic_details[0],
     id_number: 'EMP-2025-001',
-    item_id: mockItemNumber[0],
-    fund_source_id: {
-      id: 1,
-      name: 'General Fund',
-    },
+    item_id: item_id, // <-- position_id is inside this object
     salary_grade_id: mockSalaryGrade,
-    position: 'Administrative Officer III',
     fund_source: {
       id: 1,
       name: 'General Fund',
@@ -196,9 +190,8 @@ const employee_data = [
     id: 2,
     individual_basic_detail_id: individual_basic_details[1],
     id_number: 'EMP-2025-002',
-    item_id: mockItemNumber[1],
+    item_id: item_id,
     salary_grade_id: mockSalaryGrade,
-    position: 'Human Resource Assistant',
     fund_source: {
       id: 2,
       name: 'Special Education Fund',
@@ -225,9 +218,8 @@ const employee_data = [
     id: 3,
     individual_basic_detail_id: individual_basic_details[2],
     id_number: 'EMP-2025-003',
-    item_id: mockItemNumber[0],
+    item_id: item_id,
     salary_grade_id: mockSalaryGrade,
-    position: 'IT Support Specialist',
     fund_source: {
       id: 1,
       name: 'General Fund',
@@ -254,9 +246,8 @@ const employee_data = [
     id: 4,
     individual_basic_detail_id: individual_basic_details[3],
     id_number: 'EMP-2025-004',
-    item_id: mockItemNumber[0],
+    item_id: item_id,
     salary_grade_id: mockSalaryGrade,
-    position: 'Records Officer',
     fund_source: {
       id: 3,
       name: 'Trust Fund',
@@ -283,9 +274,8 @@ const employee_data = [
     id: 5,
     individual_basic_detail_id: individual_basic_details[4],
     id_number: 'EMP-2025-005',
-    item_id: mockItemNumber[0],
+    item_id: item_id,
     salary_grade_id: mockSalaryGrade,
-    position: 'Budget Analyst',
     fund_source: {
       id: 1,
       name: 'General Fund',
@@ -312,9 +302,8 @@ const employee_data = [
     id: 6,
     individual_basic_detail_id: individual_basic_details[5],
     id_number: 'EMP-2025-006',
-    item_id: mockItemNumber[0],
+    item_id: item_id,
     salary_grade_id: mockSalaryGrade,
-    position: 'Procurement Officer',
     fund_source: {
       id: 2,
       name: 'Special Education Fund',
@@ -427,6 +416,7 @@ export const payrollMockData = [
     employee_id: employee_data[0],
     created_at: '2025-07-06',
     updated_at: '2025-07-06',
+    deleted_at: '2025-07-06',
   },
   {
     id: mockId++,
@@ -443,6 +433,7 @@ export const payrollMockData = [
     employee_id: employee_data[1],
     created_at: '2025-07-07',
     updated_at: '2025-07-07',
+    deleted_at: '2025-07-07',
   },
   {
     id: mockId++,
@@ -459,6 +450,7 @@ export const payrollMockData = [
     employee_id: employee_data[2],
     created_at: '2025-07-08',
     updated_at: '2025-07-08',
+    deleted_at: '2025-07-08',
   },
   {
     id: mockId++,
@@ -475,6 +467,7 @@ export const payrollMockData = [
     employee_id: employee_data[3],
     created_at: '2025-07-09',
     updated_at: '2025-07-09',
+    deleted_at: '2025-07-09',
   },
   {
     id: mockId++,
@@ -491,6 +484,7 @@ export const payrollMockData = [
     employee_id: employee_data[4],
     created_at: '2025-07-10',
     updated_at: '2025-07-10',
+    deleted_at: '2025-07-10',
   },
 ]
 /* Compensatory */
@@ -684,6 +678,225 @@ export const leavecreditsmockData = [
         end_date: '2025-06-09',
       },
     ],
+  },
+]
+
+/* Daily Time Records */
+export const dailyTimeRecordsmockData = [
+  {
+    id: 1,
+    date: '2025-06-05',
+    ut: null,
+    is_edit_ut: null,
+    ot: null,
+    is_missing: null,
+    employee_remarks: null,
+    hr_remarks: null,
+    status: 'approved',
+    warm_bodies: [
+      {
+        id: 101,
+        employee_id: employee_data[0],
+        timestamp: '2025-06-05T07:59:00', // IN 1 (morning)
+        daily_time_record_id: 1,
+        is_in: true,
+      },
+      {
+        id: 102,
+        employee_id: employee_data[0],
+        timestamp: '2025-06-05T10:00:00', // OUT 1 (lunch out)
+        daily_time_record_id: 1,
+        is_in: false,
+      },
+      {
+        id: 103,
+        employee_id: employee_data[0],
+        timestamp: '2025-06-05T13:00:00', // IN 2 (after lunch)
+        daily_time_record_id: 1,
+        is_in: true,
+      },
+      {
+        id: 104,
+        employee_id: employee_data[0],
+        timestamp: '2025-06-05T15:01:00', // OUT 2 (end of day)
+        daily_time_record_id: 1,
+        is_in: false,
+      },
+      {
+        id: 105,
+        employee_id: employee_data[0],
+        timestamp: '2025-06-05T17:01:00', // OUT 2 (end of day)
+        daily_time_record_id: 1,
+        is_in: true,
+      },
+      {
+        id: 106,
+        employee_id: employee_data[0],
+        timestamp: '2025-05-05T18:01:00', // OUT 2 (end of day)
+        daily_time_record_id: 1,
+        is_in: false,
+      },
+    ],
+    created_at: '2025-07-06',
+    updated_at: '2025-07-06',
+  },
+  {
+    id: 2,
+    date: '2025-05-10',
+    ut: null,
+    is_edit_ut: null,
+    ot: null,
+    is_missing: null,
+    employee_remarks: null,
+    hr_remarks: null,
+    status: 'approved',
+    warm_bodies: [
+      {
+        id: 201,
+        employee_id: employee_data[1],
+        timestamp: '2025-05-10T08:30:00',
+        daily_time_record_id: 2,
+        is_in: true,
+      },
+      {
+        id: 202,
+        employee_id: employee_data[1],
+        timestamp: '2025-05-10T12:30:00',
+        daily_time_record_id: 2,
+        is_in: false,
+      },
+      {
+        id: 203,
+        employee_id: employee_data[1],
+        timestamp: '2025-05-10T12:45:00',
+        daily_time_record_id: 2,
+        is_in: true,
+      },
+      {
+        id: 204,
+        employee_id: employee_data[1],
+        timestamp: '2025-05-10T17:00:00',
+        daily_time_record_id: 2,
+        is_in: false,
+      },
+    ],
+    created_at: '2025-07-06',
+    updated_at: '2025-07-06',
+  },
+  {
+    id: 3,
+    date: '2025-06-07',
+    ut: null,
+    is_edit_ut: null,
+    ot: null,
+    is_missing: null,
+    employee_remarks: null,
+    hr_remarks: null,
+    status: 'approved',
+    warm_bodies: [
+      {
+        id: 301,
+        employee_id: employee_data[2],
+        timestamp: '2025-06-07T08:00:00',
+        daily_time_record_id: 3,
+        is_in: true,
+      },
+      {
+        id: 302,
+        employee_id: employee_data[2],
+        timestamp: '2025-06-09T17:00:00',
+        daily_time_record_id: 3,
+        is_in: false,
+      },
+    ],
+    created_at: '2025-07-06',
+    updated_at: '2025-07-06',
+  },
+  {
+    id: 4,
+    date: '2025-06-15',
+    ut: null,
+    is_edit_ut: null,
+    ot: null,
+    is_missing: null,
+    employee_remarks: null,
+    hr_remarks: null,
+    status: 'pending',
+    warm_bodies: [
+      {
+        id: 401,
+        employee_id: employee_data[2],
+        timestamp: '2025-06-15T08:15:00',
+        daily_time_record_id: 4,
+        is_in: true,
+      },
+      {
+        id: 402,
+        employee_id: employee_data[2],
+        timestamp: '2025-06-15T12:45:00',
+        daily_time_record_id: 4,
+        is_in: false,
+      },
+      {
+        id: 403,
+        employee_id: employee_data[2],
+        timestamp: '2025-06-15T13:00:00',
+        daily_time_record_id: 4,
+        is_in: true,
+      },
+      {
+        id: 404,
+        employee_id: employee_data[2],
+        timestamp: '2025-06-15T17:10:00',
+        daily_time_record_id: 4,
+        is_in: false,
+      },
+    ],
+    created_at: '2025-07-07',
+    updated_at: '2025-07-07',
+  },
+  {
+    id: 5,
+    date: '2025-06-20',
+    ut: null,
+    is_edit_ut: null,
+    ot: null,
+    is_missing: null,
+    employee_remarks: null,
+    hr_remarks: null,
+    status: 'approved',
+    warm_bodies: [
+      {
+        id: 501,
+        employee_id: employee_data[3],
+        timestamp: '2025-06-20T07:50:00',
+        daily_time_record_id: 5,
+        is_in: true,
+      },
+      {
+        id: 502,
+        employee_id: employee_data[3],
+        timestamp: '2025-06-20T12:30:00',
+        daily_time_record_id: 5,
+        is_in: false,
+      },
+      {
+        id: 503,
+        employee_id: employee_data[3],
+        timestamp: '2025-06-20T13:45:00',
+        daily_time_record_id: 5,
+        is_in: true,
+      },
+      {
+        id: 504,
+        employee_id: employee_data[3],
+        timestamp: '2025-06-20T17:00:00',
+        daily_time_record_id: 5,
+        is_in: false,
+      },
+    ],
+    created_at: '2025-07-07',
+    updated_at: '2025-07-07',
   },
 ]
 
