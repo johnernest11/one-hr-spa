@@ -82,12 +82,12 @@ export type FundSourceResponse = {
 } & ApiResponseData
 
 export type SalaryGradeResponse = {
-  nbc_no: number
-  effective_date: string
-  tranche: number
-  salary_grade: number
-  step: number
-  amount: number
+  nbc_no: number | null
+  effective_date: string | null
+  tranche: number | null
+  salary_grade: number | null
+  step: number | null
+  amount: number | null
 } & ApiResponseData
 
 export type PositionResponse = {
@@ -240,7 +240,7 @@ export type PersonnelEmployee = {
   individual_basic_detail_id: PersonnelResponse | null
   id_number: string | null
   item_id: ItemNumberResponse | null
-  salary_grade_id: number | null
+  salary_grade_id: SalaryGradeResponse | null
   fund_source?: {
     id: number | null
     name: string | null
