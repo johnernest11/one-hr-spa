@@ -1,20 +1,46 @@
 <script setup lang="ts">
-import { onBeforeMount, ref, watch } from 'vue'
+import { onBeforeMount, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { ItemNumberResponse } from '@/typings/models.types.ts'
+import { useItemNumberStore } from '@/stores/item-number.store'
+
 import Button from 'primevue/button'
 import Chip from 'primevue/chip'
 import Card from 'primevue/card'
 import Column from 'primevue/column'
 import DataTable from 'primevue/datatable'
+import Dialog from 'primevue/dialog'
+import WbDropdown from '@/components/webkit/WbDropdown.vue'
 import InputText from 'primevue/inputtext'
 import InputGroup from 'primevue/inputgroup'
+
 import Paginator, { PageState } from 'primevue/paginator'
 import { ApiResponsePagination } from '@/typings/http-resources.types.ts'
-import { ItemNumberResponse } from '@/typings/models.types.ts'
-import { useItemNumberStore } from '@/stores/item-number.store'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-import { useRouter } from 'vue-router'
+import { formatDate } from '@/utils/helpers.ts'
 
+const itemNumberStore = useItemNumberStore()
 const router = useRouter()
+
+const formIsSubmitting = ref(false)
+const showModal = ref(false)
+const itemNumberIsLoading = ref(false)
+const searchSubmitted = ref(false)
+const paginationLimit = 5
+
+const searchQuery = ref<string | null>(null)
+const selectedStatus = ref<string | null>(null)
+const pagination = ref<ApiResponsePagination | null>(null)
+
+onBeforeMount(async () => {
+  itemNumberIsLoading.value = true
+  const response = await itemNumberStore.fetchItemNumber(paginationLimit)
+  if (response.success && response.pagination) {
+    pagination.value = response.pagination
+  }
+  itemNumberIsLoading.value = false
+})
+
 const navigateToDetails = (itemNumber: ItemNumberResponse) => {
   if (!itemNumber || !itemNumber.id) {
     console.error('Cannot navigate to details: Item Number or ID is undefined', itemNumber)
@@ -28,20 +54,15 @@ const navigateToDetails = (itemNumber: ItemNumberResponse) => {
   })
 }
 
-const itemNumberStore = useItemNumberStore()
+const navigateToCreate = () => {
+  router.push({ name: 'item-numbers/store' })
+}
 
-const itemNumberIsLoading = ref(false)
-const paginationLimit = 5
-onBeforeMount(async () => {
-  itemNumberIsLoading.value = true
-  const response = await itemNumberStore.fetchItemNumber(paginationLimit)
-  if (response.success && response.pagination) {
-    pagination.value = response.pagination
-  }
-  itemNumberIsLoading.value = false
-})
+const statusOptions = ref([
+  { label: 'Unfilled', value: 'Unfilled' },
+  { label: 'Filled', value: 'Filled' },
+])
 
-const pagination = ref<ApiResponsePagination | null>(null)
 const handlePaginationPageChange = async (event: PageState) => {
   const pageSelected = event.page + 1
   itemNumberIsLoading.value = true
@@ -52,23 +73,29 @@ const handlePaginationPageChange = async (event: PageState) => {
   itemNumberIsLoading.value = false
 }
 
-const roleFilter = ref<number | null>(null)
-const searchQuery = ref<string | null>(null)
-const isSearching = ref(false)
-watch(
-  () => roleFilter.value,
-  async () => {
-    itemNumberIsLoading.value = true
-    searchQuery.value = null
-    isSearching.value = false
-    const response = await itemNumberStore.fetchItemNumber(paginationLimit)
+const handleFilterItemNumber = async () => {
+  itemNumberIsLoading.value = true
+  searchSubmitted.value = true
+  // If no status selected, fetch default paginated list
+  if (!selectedStatus.value) {
+    const response = await itemNumberStore.fetchItemNumber(paginationLimit) // 5 = pagination limit
     if (response.success && response.pagination) {
       pagination.value = response.pagination
     }
     itemNumberIsLoading.value = false
+    return
   }
-)
-const searchSubmitted = ref(false)
+  // Else, filter using the status
+  const response = await itemNumberStore.filterItemNumber(selectedStatus.value)
+  if (response.success && response.pagination) {
+    pagination.value = response.pagination
+    searchQuery.value = null
+  }
+
+  showModal.value = false
+  itemNumberIsLoading.value = false
+}
+
 const handleSearchItemNumber = async () => {
   itemNumberIsLoading.value = true
   searchSubmitted.value = true
@@ -89,30 +116,6 @@ const handleSearchItemNumber = async () => {
     searchQuery.value = null
   }
   itemNumberIsLoading.value = false
-}
-
-const navigateToCreate = () => {
-  router.push({ name: 'item-numbers/store' })
-}
-const formatDate = (dateString: string | null | undefined): string => {
-  if (!dateString) return ''
-  try {
-    const date = new Date(dateString)
-    if (isNaN(date.getTime())) {
-      console.error('Invalid date string:', dateString)
-      return 'Invalid Date'
-    }
-    const options: Intl.DateTimeFormatOptions = {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    }
-    const formattedDate = date.toLocaleDateString(undefined, options)
-    return formattedDate.replace(/^(\w+)\s(\d+),\s(\d+)$/, '$2 $1 $3')
-  } catch (error) {
-    console.error('Error formatting date:', error)
-    return 'Invalid Date'
-  }
 }
 </script>
 <template>
@@ -144,7 +147,7 @@ const formatDate = (dateString: string | null | undefined): string => {
                     size="large"
                     class="border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100"
                     text
-                    @click="$router.push({ name: 'sign-up' })"
+                    @click="showModal = true"
                   />
                   <Button
                     icon="pi pi-plus"
@@ -289,5 +292,73 @@ const formatDate = (dateString: string | null | undefined): string => {
         </div>
       </template>
     </Card>
+    <Dialog
+      v-model:visible="showModal"
+      :modal="false"
+      closable
+      :dismissableMask="true"
+      :position="'right'"
+      :style="{ width: '20vw', maxWidth: '600px', minWidth: '320px' }"
+      :breakpoints="{ '1199px': '75vw', '575px': '90vw' }"
+      :pt="{
+        root: {
+          class: 'relative w-full h-full flex flex-col bg-white shadow-lg',
+        },
+      }"
+    >
+      <!-- Header -->
+      <template #header>
+        <div class="flex w-full items-center justify-between p-4 pb-0">
+          <h1 class="text-xl font-semibold text-surface-600 dark:text-primary-100">
+            <font-awesome-icon :icon="['fas', 'bars-staggered']" class="mr-2" />
+            Filter and Field Options
+          </h1>
+        </div>
+      </template>
+      <!-- Scrollable Content (space reserved for footer height) -->
+      <div class="flex-1 overflow-auto px-4 pb-24">
+        <h2 class="mb-2 mt-4 text-sm font-medium text-surface-500 dark:text-primary-100">Filters</h2>
+        <div class="mb-4">
+          <WbDropdown
+            v-model="selectedStatus"
+            :options="statusOptions"
+            optionLabel="label"
+            optionValue="value"
+            label="Status"
+            placeholder="Select Status"
+            label-class="text-sm text-start text-surface-600"
+          />
+        </div>
+      </div>
+      <!-- Fixed Footer (inside dialog container) -->
+      <div
+        class="absolute bottom-0 left-0 right-0 border-t border-surface-300 bg-surface-0 px-4 py-3 dark:border-surface-700 dark:bg-surface-900"
+      >
+        <div class="flex flex-col items-center justify-center gap-2 sm:flex-row">
+          <Button
+            label="Cancel"
+            class="dark:text-secondary-100 w-full border border-surface-400 px-4 py-2 text-surface-500 dark:border-surface-700"
+            @click="showModal = false"
+            text
+          >
+            <template #icon>
+              <i class="pi pi-ban mr-2 text-lg"></i>
+            </template>
+          </Button>
+          <Button
+            :loading="formIsSubmitting"
+            :disabled="formIsSubmitting"
+            @click="handleFilterItemNumber"
+            label="Apply"
+            class="dark:text-secondary-100 w-full border border-primary-500 px-4 py-3 text-primary-600 dark:border-surface-700"
+            text
+          >
+            <template #icon>
+              <font-awesome-icon :icon="['fas', 'check']" class="mr-2 text-lg" />
+            </template>
+          </Button>
+        </div>
+      </div>
+    </Dialog>
   </div>
 </template>

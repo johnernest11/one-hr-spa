@@ -1,5 +1,4 @@
 import { CountryCode, isValidPhoneNumber, parsePhoneNumber } from 'libphonenumber-js'
-import { helpers } from '@vuelidate/validators'
 import { WarmBodyResponse } from '@/typings/models.types.ts'
 /**
  * @description Halt code execution for x seconds
@@ -360,17 +359,12 @@ export const DateToday = dateToday()
 /**
  * @description Validator to ensure end date is not before start date.
  */
-export const isAfterOrEqualFromDate = (fromField: () => string | Date) =>
-  helpers.withMessage('Period Covered To must be after or equal to  From', (toValue: string | Date) => {
-    const fromValue = fromField()
-
-    const toDate = new Date(toValue)
-    const fromDate = new Date(fromValue)
-
-    if (isNaN(toDate.getTime()) || isNaN(fromDate.getTime())) return true
-
-    return toDate >= fromDate
-  })
+export const isAfterOrEqualFromDate = (getFromDate: () => string | null) => (value: string | null) => {
+  if (!value) return true
+  const fromDate = getFromDate()
+  if (!fromDate) return true
+  return new Date(value) >= new Date(fromDate)
+}
 
 /**
  * Summarizes leave date ranges by grouping consecutive dates into ranges.

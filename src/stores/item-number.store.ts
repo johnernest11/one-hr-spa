@@ -12,18 +12,20 @@ export type ItemNumberPayload = {
   date_of_creation: string
   status: 'Unfilled'
   date_filled_up: string
+  fund_source: number
   fund_source_id?: string | number | null
   employment_status: string
+  position: number
   position_id?: string | number | null
-  // position_id?: 1
 }
+
 export const useItemNumberStore = defineStore('item-number', () => {
-  const auth = useAuthStore()
-  const itemNumber = ref<ItemNumberResponse[]>([])
   /** States */
+  const auth = useAuthStore()
   const itemNumbers = ref<ItemNumberResponse[]>([])
   const itemNumbersSuggestions = ref<WbAutoCompleteOption[]>([])
   const selectedItemNumber = ref<ItemNumberResponse | null>(null)
+
   const fetchItemNumber = async (limit: number = 10, page: number | null = null) => {
     let uri = `/items?limit=${limit}&sort=asc&`
     if (page) uri += `page=${page}`
@@ -41,6 +43,7 @@ export const useItemNumberStore = defineStore('item-number', () => {
     }
     return responseBody
   }
+
   const fetchItemNumberById = async (id: string | number) => {
     const url = `/items/${id}`
     const { data } = await useApiCall(url, auth.authenticationToken).get().json()
@@ -50,6 +53,7 @@ export const useItemNumberStore = defineStore('item-number', () => {
     }
     return responseBody
   }
+
   const createItemNumber = async (item: Partial<ItemNumberPayload>) => {
     const formatDate = (date: Date | string | null | undefined): string | undefined => {
       return date ? useDateFormat(date, 'YYYY-MM-DD').value.toString() : undefined
@@ -61,7 +65,24 @@ export const useItemNumberStore = defineStore('item-number', () => {
     const responseBody: ApiResponseBody = data.value
 
     if (responseBody.success) {
-      itemNumber.value.unshift(responseBody.data as ItemNumberResponse)
+      itemNumbers.value.unshift(responseBody.data as ItemNumberResponse)
+    }
+    return responseBody
+  }
+
+  const updateItemNumber = async (item: Partial<ItemNumberPayload>, id: string | number) => {
+    const formatDate = (date: Date | string | null | undefined): string | undefined => {
+      return date ? useDateFormat(date, 'YYYY-MM-DD').value.toString() : undefined
+    }
+
+    item.date_of_creation = formatDate(item.date_of_creation)
+    item.date_filled_up = formatDate(item.date_filled_up)
+    const { data } = await useApiCall(`/items/${id}`, auth.authenticationToken).put(item).json()
+    const responseBody: ApiResponseBody = data.value
+    if (responseBody.success) {
+      const index = itemNumbers.value.findIndex((itemNumbers) => itemNumbers?.id === id)
+      if (index === -1) return responseBody
+      itemNumbers.value[index] = responseBody.data as ItemNumberResponse
     }
     return responseBody
   }
@@ -78,30 +99,26 @@ export const useItemNumberStore = defineStore('item-number', () => {
     return responseBody
   }
 
-  const updateItemNumber = async (item: Partial<ItemNumberPayload>, id: string | number) => {
-    const formatDate = (date: Date | string | null | undefined): string | undefined => {
-      return date ? useDateFormat(date, 'YYYY-MM-DD').value.toString() : undefined
-    }
-
-    item.date_of_creation = formatDate(item.date_of_creation)
-    item.date_filled_up = formatDate(item.date_filled_up)
-    const { data } = await useApiCall(`/items/${id}`, auth.authenticationToken).put(item).json()
+  const filterItemNumber = async (status: string | null) => {
+    let uri = '/items'
+    if (status) uri += `?status=${encodeURIComponent(status)}`
+    const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
     const responseBody: ApiResponseBody = data.value
     if (responseBody.success) {
-      const index = itemNumber.value.findIndex((ItemNumber) => ItemNumber?.id === id)
-      if (index === -1) return responseBody
-      itemNumber.value[index] = responseBody.data as ItemNumberResponse
+      const accomplishmentReportsList = responseBody.data as ItemNumberResponse[]
+      itemNumbers.value = [...accomplishmentReportsList]
     }
     return responseBody
   }
 
   return {
     itemNumbers,
+    itemNumbersSuggestions,
     createItemNumber,
     fetchItemNumber,
     fetchItemNumberById,
     updateItemNumber,
     searchItemNumber,
-    itemNumbersSuggestions,
+    filterItemNumber,
   }
 })
