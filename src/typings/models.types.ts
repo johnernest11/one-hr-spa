@@ -199,6 +199,14 @@ export type PersonnelResponse = {
   employee: PersonnelEmployee | null
 } & ApiResponseData
 
+export type QrCodeResponse = {
+  id: number
+  employee: PersonnelEmployee | null
+  qr_code_value: string | null
+  last_generated_at: string | null
+  is_active: boolean
+} & ApiResponseData
+
 export type PersonnelAddress = {
   id: number
   individual_basic_detail_id: string | null

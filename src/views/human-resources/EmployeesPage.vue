@@ -10,11 +10,12 @@ import Column from 'primevue/column'
 import DataTable from 'primevue/datatable'
 import Dialog from 'primevue/dialog'
 import QRCodeStyling from 'qr-code-styling'
+import { ApiResponsePagination } from '@/typings/http-resources.types.ts'
 import { useAuthStore } from '@/stores/auth.store.ts'
 import { usePersonnelStore } from '@/stores/personnel.store'
-import { sleep } from '@/utils/helpers'
 import DSWDLogo from '@/assets/image/DSWD logo_Mark.png'
-import type { PersonnelResponse } from '@/typings/models.types'
+import type { PersonnelResponse, QrCodeResponse } from '@/typings/models.types'
+import type { ApiResponseBody } from '@/typings/http-resources.types.ts'
 const personnelStore = usePersonnelStore()
 
 const columnWidths = ['w-32', 'w-24', 'w-64', 'w-24', 'w-40', 'w-32', 'w-48']
@@ -37,102 +38,13 @@ const items = ref([
   },
 ])
 
-const sampleEmployees = ref([
-  {
-    id: 1,
-    first_name: 'John',
-    middle_name: 'D.',
-    last_name: 'Doe',
-    ext_name: null,
-    employee: {
-      item: {
-        number: 'EMP-001',
-        position: {
-          title: 'Software Engineer',
-        },
-      },
-    },
-    individual_contact_info: {
-      email_address: 'john.doe@example.com',
-    },
-  },
-  {
-    id: 2,
-    first_name: 'Jane',
-    middle_name: 'A.',
-    last_name: 'Smith',
-    ext_name: null,
-    employee: {
-      item: {
-        number: 'EMP-002',
-        position: {
-          title: 'UI/UX Designer',
-        },
-      },
-    },
-    individual_contact_info: {
-      email_address: 'jane.smith@example.com',
-    },
-  },
-  {
-    id: 3,
-    first_name: 'Peter',
-    middle_name: 'B.',
-    last_name: 'Jones',
-    ext_name: null,
-    employee: {
-      item: {
-        number: 'EMP-003',
-        position: {
-          title: 'Project Manager',
-        },
-      },
-    },
-    individual_contact_info: {
-      email_address: 'peter.jones@example.com',
-    },
-  },
-  {
-    id: 4,
-    first_name: 'Alice',
-    middle_name: null,
-    last_name: 'Williams',
-    ext_name: 'Jr.',
-    employee: {
-      item: {
-        number: 'EMP-004',
-        position: {
-          title: 'Data Analyst',
-        },
-      },
-    },
-    individual_contact_info: {
-      email_address: 'alice.williams@example.com',
-    },
-  },
-  {
-    id: 5,
-    first_name: 'Robert',
-    middle_name: 'E.',
-    last_name: 'Brown',
-    ext_name: null,
-    employee: {
-      item: {
-        number: 'EMP-005',
-        position: {
-          title: 'HR Specialist',
-        },
-      },
-    },
-    individual_contact_info: {
-      email_address: 'robert.brown@example.com',
-    },
-  },
-])
+const pagination = ref<ApiResponsePagination | null>(null)
 
 onBeforeMount(async () => {
-  await sleep(1)
-  personnelStore.employees = sampleEmployees.value
+  const response = await personnelStore.fetchEmployees()
+  if (response.success && response.pagination) {
+    pagination.value = response.pagination
+  }
   personnelStore.isEmployeesLoading = false
 })
 
@@ -151,18 +63,35 @@ const handleSearchEmployee = () => {
 }
 
 const showQrModal = ref(false)
-const selectedEmployeeForQr = ref<PersonnelResponse | null>(null)
-const qrContainerRef = ref<HTMLElement | null>(null)
-let qrCode: QRCodeStyling | null = null
+const selectedEmployeeForQr = ref() // @todo Update this back to PersonnelResponse once the typings for it has been fixed.
+const fetchedQrCode = ref<QrCodeResponse | null>(null)
 
-const openQrModal = (employee: PersonnelResponse) => {
+const openQrModal = async (employee: PersonnelResponse) => {
   selectedEmployeeForQr.value = employee
   showQrModal.value = true
+  fetchedQrCode.value = null
+  fetchedQrCode.value = await handleViewQr(employee)
 }
+
+const handleViewQr = async (employee: PersonnelResponse): Promise<QrCodeResponse> => {
+  let response: ApiResponseBody
+  response = await personnelStore.fetchQrCode(employee.id)
+
+  if (response.error_message == 'Employee has no QR code yet.' && !response.success) {
+    response = await personnelStore.generateQrCode(employee.id)
+  }
+
+  personnelStore.isEmployeesLoading = false
+  return response.data as QrCodeResponse
+}
+
+const qrContainerRef = ref<HTMLElement | null>(null)
+let qrCode: QRCodeStyling | null = null
 
 const closeQrModal = () => {
   showQrModal.value = false
   selectedEmployeeForQr.value = null
+  fetchedQrCode.value = null
 
   if (qrContainerRef.value) {
     qrContainerRef.value.innerHTML = ''
@@ -170,22 +99,14 @@ const closeQrModal = () => {
   qrCode = null
 }
 
-const qrCodeData = computed(() => {
-  if (selectedEmployeeForQr.value) {
-    const employeeId = selectedEmployeeForQr.value.employee.item.number
-    return btoa(employeeId)
-  }
-  return ''
-})
-
 watchEffect(() => {
-  if (showQrModal.value && qrContainerRef.value && qrCodeData.value) {
+  if (showQrModal.value && qrContainerRef.value && fetchedQrCode.value?.qr_code_value) {
     if (!qrCode) {
       qrCode = new QRCodeStyling({
-        width: 250,
-        height: 250,
+        width: 350,
+        height: 350,
         type: 'canvas',
-        data: qrCodeData.value,
+        data: fetchedQrCode.value?.qr_code_value,
         image: DSWDLogo,
         dotsOptions: {
           color: '#000000',
@@ -213,7 +134,7 @@ watchEffect(() => {
       qrCode.append(qrContainerRef.value)
     } else {
       qrCode.update({
-        data: qrCodeData.value,
+        data: fetchedQrCode.value?.qr_code_value,
         image: DSWDLogo,
         dotsOptions: {
           type: 'extra-rounded',
@@ -223,7 +144,7 @@ watchEffect(() => {
           color: '#000000',
         },
         cornersDotOptions: {
-          type: 'extra- rounded',
+          type: 'extra-rounded',
           color: '#000000',
         },
       })
@@ -465,10 +386,10 @@ const downloadQrCode = async () => {
                 {{ selectedEmployeeForQr.ext_name ? selectedEmployeeForQr.ext_name : '' }}
               </p>
               <p class="text-sm text-gray-600 dark:text-gray-300">
-                {{ selectedEmployeeForQr.employee.item.position.title }}
+                {{ selectedEmployeeForQr.employee?.item?.position?.title || '' }}
               </p>
               <p class="text-sm text-gray-600 dark:text-gray-300">
-                {{ selectedEmployeeForQr.employee.item.number }}
+                {{ selectedEmployeeForQr.employee?.item?.number || '' }}
               </p>
             </div>
             <div class="font-semibold md:w-1/2">
