@@ -22,7 +22,6 @@ import { formatDate } from '@/utils/helpers.ts'
 const itemNumberStore = useItemNumberStore()
 const router = useRouter()
 
-const formIsSubmitting = ref(false)
 const showModal = ref(false)
 const itemNumberIsLoading = ref(false)
 const searchSubmitted = ref(false)
@@ -76,24 +75,22 @@ const handlePaginationPageChange = async (event: PageState) => {
 const handleFilterItemNumber = async () => {
   itemNumberIsLoading.value = true
   searchSubmitted.value = true
-  // If no status selected, fetch default paginated list
   if (!selectedStatus.value) {
-    const response = await itemNumberStore.fetchItemNumber(paginationLimit) // 5 = pagination limit
+    const response = await itemNumberStore.fetchItemNumber(paginationLimit)
     if (response.success && response.pagination) {
       pagination.value = response.pagination
     }
     itemNumberIsLoading.value = false
     return
   }
-  // Else, filter using the status
   const response = await itemNumberStore.filterItemNumber(selectedStatus.value)
   if (response.success && response.pagination) {
     pagination.value = response.pagination
     searchQuery.value = null
   }
 
-  showModal.value = false
   itemNumberIsLoading.value = false
+  showModal.value = false
 }
 
 const handleSearchItemNumber = async () => {
@@ -346,8 +343,8 @@ const handleSearchItemNumber = async () => {
             </template>
           </Button>
           <Button
-            :loading="formIsSubmitting"
-            :disabled="formIsSubmitting"
+            :loading="itemNumberIsLoading"
+            :disabled="itemNumberIsLoading"
             @click="handleFilterItemNumber"
             label="Apply"
             class="dark:text-secondary-100 w-full border border-primary-500 px-4 py-3 text-primary-600 dark:border-surface-700"

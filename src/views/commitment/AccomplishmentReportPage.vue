@@ -1,5 +1,10 @@
 <script setup lang="ts">
 import { onBeforeMount, ref, computed } from 'vue'
+import { useRoute } from 'vue-router'
+import { useRouter } from 'vue-router'
+import { PersonnelAccomplishmentReportResponse } from '@/typings/models.types.ts'
+import { useAccomplishmentReportStore } from '@/stores/personnel-accomplishment-report.store'
+
 import Button from 'primevue/button'
 import Card from 'primevue/card'
 import Chip from 'primevue/chip'
@@ -9,24 +14,25 @@ import DataTable from 'primevue/datatable'
 import InputText from 'primevue/inputtext'
 import InputGroup from 'primevue/inputgroup'
 import WbDropdown from '@/components/webkit/WbDropdown.vue'
+
 import Paginator, { PageState } from 'primevue/paginator'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { ApiResponsePagination } from '@/typings/http-resources.types.ts'
-import { PersonnelAccomplishmentReportResponse } from '@/typings/models.types.ts'
-import { useAccomplishmentReportStore } from '@/stores/personnel-accomplishment-report.store'
-import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { formatDate } from '@/utils/helpers.ts'
-import { useRoute } from 'vue-router'
 
 const accomplishmentReportStore = useAccomplishmentReportStore()
 const router = useRouter()
-const toast = useToast()
-const accomplishmentReportIsLoading = ref(false)
-const paginationLimit = 5
-const formIsSubmitting = ref(false)
-const showModal = ref(false)
 const route = useRoute()
+const toast = useToast()
+
+const accomplishmentReportIsLoading = ref(false)
+const showModal = ref(false)
+const paginationLimit = 5
+
+const searchQuery = ref<string | null>(null)
+const selectedStatus = ref<string | null>(null)
+const pagination = ref<ApiResponsePagination | null>(null)
 const isSupervisorView = computed(() => route.name === 'accomplishment-report-list')
 
 onBeforeMount(async () => {
@@ -65,8 +71,6 @@ const statusOptions = ref([
   { label: 'Approved', value: 'approved' },
 ])
 
-/** Pagination */
-const pagination = ref<ApiResponsePagination | null>(null)
 const fetchAccomplishmentsBasedOnContext = async (page = 1) => {
   accomplishmentReportIsLoading.value = true
   const statusFilter = isSupervisorView.value ? 'done' : undefined
@@ -82,10 +86,6 @@ onBeforeMount(() => fetchAccomplishmentsBasedOnContext())
 const handlePaginationPageChange = async (event: PageState) => {
   await fetchAccomplishmentsBasedOnContext(event.page + 1)
 }
-
-/** Search and Filters */
-const searchQuery = ref<string | null>(null)
-const selectedStatus = ref<string | null>(null)
 
 const handleSearchAccomplishmentReport = async () => {
   accomplishmentReportIsLoading.value = true
@@ -107,24 +107,22 @@ const handleSearchAccomplishmentReport = async () => {
 
 const handleFilterAccomplishmentReport = async () => {
   accomplishmentReportIsLoading.value = true
-  // If no status selected, fetch default paginated list
   if (!selectedStatus.value) {
     const response = await accomplishmentReportStore.fetchAccomplishment(paginationLimit) // 5 = pagination limit
     if (response.success && response.pagination) {
       pagination.value = response.pagination
     }
-    accomplishmentReportIsLoading.value = false
-    return
+    return (accomplishmentReportIsLoading.value = false)
   }
-  // Else, filter using the status
+
   const response = await accomplishmentReportStore.filterAccomplishment(selectedStatus.value)
   if (response.success && response.pagination) {
     pagination.value = response.pagination
     searchQuery.value = null
   }
 
-  showModal.value = false
   accomplishmentReportIsLoading.value = false
+  showModal.value = false
 }
 
 const exportToFile = async (accomplishmentReport: PersonnelAccomplishmentReportResponse) => {
@@ -395,8 +393,8 @@ const exportToFile = async (accomplishmentReport: PersonnelAccomplishmentReportR
           </template>
         </Button>
         <Button
-          :loading="formIsSubmitting"
-          :disabled="formIsSubmitting"
+          :loading="accomplishmentReportIsLoading"
+          :disabled="accomplishmentReportIsLoading"
           @click="handleFilterAccomplishmentReport"
           label="Apply"
           class="dark:text-secondary-100 w-full border border-primary-500 px-4 py-3 text-primary-600 dark:border-surface-700"
