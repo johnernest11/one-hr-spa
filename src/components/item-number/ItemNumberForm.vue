@@ -62,6 +62,7 @@ const publicPositionStore = usePositionStore()
 const publicFundSourceStore = useFundSourceStore()
 const itemNumberStore = useItemNumberStore()
 const validator = useVuelidate<Partial<ItemNumberPayload>>(formRules, payload)
+const manualInvalidFields = ref<Record<string, boolean>>({})
 const errorMessage = ref<string | null>(null)
 const errorDetails = ref<string[]>([])
 const formIsSubmitting = ref(false)
@@ -189,7 +190,31 @@ const saveButtonSubmission = async () => {
     errorMessage.value = result.message
     errorDetails.value = result.errors
 
+    const targetMessage = 'The number has already been taken.'
+
+    const fieldWithDuplicateError = (response.errors || []).find(
+      (errorObj) => Array.isArray(errorObj.messages) && errorObj.messages.includes(targetMessage)
+    )
+
+    if (fieldWithDuplicateError) {
+      const firstMessage = fieldWithDuplicateError.messages[0]
+
+      if (fieldWithDuplicateError.field === 'number') {
+        manualInvalidFields.value.number = true
+
+        validator.value.number.$errors.push({
+          $message: firstMessage,
+          $params: {},
+          $pending: false,
+          $invalid: true,
+          $uid: 'server-error',
+        })
+
+        validator.value.number.$touch()
+      }
+    }
     formIsSubmitting.value = false
+    return
   }
 
   formIsSubmitting.value = false
@@ -199,7 +224,6 @@ const saveButtonSubmission = async () => {
     detail: "You've successfully created a Item Number",
     life: 3000,
   })
-  formIsSubmitting.value = false
   emit('item-number-created', true)
   setTimeout(async () => {
     await router.push({ name: 'item-numbers' })
@@ -276,9 +300,9 @@ const updateButtonSubmission = async () => {
             <div class="flex w-full flex-col">
               <WbInputText
                 v-model="payload.number"
-                label=" Item Number "
+                label="Item Number"
                 label-class="text-sm text-surface-600"
-                :invalid="validator.number.$invalid"
+                :invalid="validator.number.$invalid || manualInvalidFields.number"
                 :invalid-text="validator.number.$errors[0]?.$message"
                 @blur="validator.number.$touch"
                 required
