@@ -139,14 +139,16 @@ const item_id = {
   date_of_creation: '2020-01-01',
   status: 'Active',
   date_filled_up: '2020-03-01',
-  fund_source_id: {
+  fund_source_id: 1,
+  fund_source: {
     id: 1,
     name: 'General Fund',
     created_at: '2020-01-01',
     updated_at: '2020-01-01',
   },
   employment_status: 'Permanent',
-  position_id: {
+  position_id: 1,
+  position: {
     id: 1,
     title: 'Administrative Officer III',
     parenthetical_title: null,
@@ -162,7 +164,7 @@ const employee_data = [
     id: 1,
     individual_basic_detail_id: individual_basic_details[0],
     id_number: 'EMP-2025-001',
-    item_id: item_id, // <-- position_id is inside this object
+    item_id: 1,
     salary_grade_id: mockSalaryGrade,
     fund_source: {
       id: 1,
@@ -185,12 +187,13 @@ const employee_data = [
       added_by_user_id: null,
       last_modified_by_user_id: null,
     },
+    item: item_id,
   },
   {
     id: 2,
     individual_basic_detail_id: individual_basic_details[1],
     id_number: 'EMP-2025-002',
-    item_id: item_id,
+    item_id: 1,
     salary_grade_id: mockSalaryGrade,
     fund_source: {
       id: 2,
@@ -213,12 +216,13 @@ const employee_data = [
       added_by_user_id: null,
       last_modified_by_user_id: null,
     },
+    item: item_id,
   },
   {
     id: 3,
     individual_basic_detail_id: individual_basic_details[2],
     id_number: 'EMP-2025-003',
-    item_id: item_id,
+    item_id: 1,
     salary_grade_id: mockSalaryGrade,
     fund_source: {
       id: 1,
@@ -241,12 +245,13 @@ const employee_data = [
       added_by_user_id: null,
       last_modified_by_user_id: null,
     },
+    item: item_id,
   },
   {
     id: 4,
     individual_basic_detail_id: individual_basic_details[3],
     id_number: 'EMP-2025-004',
-    item_id: item_id,
+    item_id: 1,
     salary_grade_id: mockSalaryGrade,
     fund_source: {
       id: 3,
@@ -269,12 +274,13 @@ const employee_data = [
       added_by_user_id: null,
       last_modified_by_user_id: null,
     },
+    item: item_id,
   },
   {
     id: 5,
     individual_basic_detail_id: individual_basic_details[4],
     id_number: 'EMP-2025-005',
-    item_id: item_id,
+    item_id: 1,
     salary_grade_id: mockSalaryGrade,
     fund_source: {
       id: 1,
@@ -297,12 +303,13 @@ const employee_data = [
       added_by_user_id: null,
       last_modified_by_user_id: null,
     },
+    item: item_id,
   },
   {
     id: 6,
     individual_basic_detail_id: individual_basic_details[5],
     id_number: 'EMP-2025-006',
-    item_id: item_id,
+    item_id: 1,
     salary_grade_id: mockSalaryGrade,
     fund_source: {
       id: 2,
@@ -325,6 +332,7 @@ const employee_data = [
       added_by_user_id: null,
       last_modified_by_user_id: null,
     },
+    item: item_id,
   },
 ]
 
