@@ -65,6 +65,7 @@ const handleSearchEmployee = () => {
 const showQrModal = ref(false)
 const selectedEmployeeForQr = ref() // @todo Update this back to PersonnelResponse once the typings for it has been fixed.
 const fetchedQrCode = ref<QrCodeResponse | null>(null)
+const qrCodeIsLoading = ref(false)
 
 const openQrModal = async (employee: PersonnelResponse) => {
   selectedEmployeeForQr.value = employee
@@ -75,13 +76,15 @@ const openQrModal = async (employee: PersonnelResponse) => {
 
 const handleViewQr = async (employee: PersonnelResponse): Promise<QrCodeResponse> => {
   let response: ApiResponseBody
+  qrCodeIsLoading.value = true
   response = await personnelStore.fetchQrCode(employee.id)
 
-  if (response.error_message == 'Employee has no QR code yet.' && !response.success) {
+  if (response.error_message === 'Employee has no QR code yet.' && !response.success) {
     response = await personnelStore.generateQrCode(employee.id)
   }
 
   personnelStore.isEmployeesLoading = false
+  qrCodeIsLoading.value = false
   return response.data as QrCodeResponse
 }
 
@@ -152,10 +155,23 @@ watchEffect(() => {
   }
 })
 
+const formatName = (first_name: string, middle_name: string, last_name: string) => {
+  const f = first_name?.charAt(0).toLowerCase() || ''
+  const m = middle_name?.charAt(0).toLowerCase() || ''
+  const l = last_name?.toLowerCase() || ''
+
+  return `${f}${m}${l}`
+}
+
 const downloadQrCode = async () => {
   if (qrCode && selectedEmployeeForQr.value) {
+    const formattedName = formatName(
+      selectedEmployeeForQr.value.first_name,
+      selectedEmployeeForQr.value.middle_name,
+      selectedEmployeeForQr.value.last_name
+    )
     await qrCode.download({
-      name: `${selectedEmployeeForQr.value.first_name}-${selectedEmployeeForQr.value.last_name}-QR`,
+      name: `${formattedName}-QR`,
       extension: 'png',
     })
   }
@@ -223,7 +239,7 @@ const downloadQrCode = async () => {
               <div
                 class="flex flex-row items-center space-x-4 font-medium text-primary-700 dark:text-primary-100 md:ml-4 md:mt-2 md:flex-row"
               >
-                <FontAwesomeIcon :icon="['fas', 'users']" class="text-2xl md:text-4xl" />
+                <FontAwesomeIcon icon="fa-solid fa-users" class="text-2xl md:text-4xl" />
                 <span class="flex flex-col justify-center">
                   <p class="text-xl md:text-3xl">Employees</p>
                 </span>
@@ -365,10 +381,10 @@ const downloadQrCode = async () => {
     }"
   >
     <template #container="{}">
-      <div class="rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
+      <div class="rounded-lg bg-white p-6 dark:bg-gray-800">
         <div class="mb-4 flex items-center justify-between">
           <h2 class="text-xl font-semibold text-gray-500 dark:text-white">
-            <font-awesome-icon :icon="['fas', 'qrcode']" /> QR CODE Generation
+            <FontAwesomeIcon icon="fa-solid fa-qrcode" /> QR CODE Generation
           </h2>
           <button @click="closeQrModal" class="text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-500">
             <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -401,12 +417,15 @@ const downloadQrCode = async () => {
                 class="dark:text-secondary-100 bottom-0 right-0 mt-4 w-full border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
                 text
               >
-                <font-awesome-icon :icon="['fas', 'download']" class="mr-2" /> Download QR Code
+                <FontAwesomeIcon icon="fa-solid fa-download" class="mr-2" /> Download QR Code
               </Button>
             </div>
           </div>
 
-          <div ref="qrContainerRef" class="my-6 flex justify-center"></div>
+          <div ref="qrContainerRef" v-if="!qrCodeIsLoading" class="my-6 flex justify-center"></div>
+          <div v-if="qrCodeIsLoading" class="my-6 flex justify-center">
+            <i class="pi pi-spinner animate-spin text-2xl text-surface-400" />
+          </div>
         </div>
       </div>
     </template>
