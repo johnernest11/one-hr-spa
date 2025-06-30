@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { onBeforeMount, ref, computed } from 'vue'
-import { useRoute } from 'vue-router'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { PersonnelAccomplishmentReportResponse } from '@/typings/models.types.ts'
 import { useAccomplishmentReportStore } from '@/stores/personnel-accomplishment-report.store'
 
