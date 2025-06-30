@@ -241,8 +241,9 @@ export type PersonnelEmployee = {
   id: number | null
   individual_basic_detail_id: PersonnelResponse | null
   id_number: string | null
-  item_id: number
+  item_id: number | null
   salary_grade_id: SalaryGradeResponse | null
+  position?: string | null
   fund_source?: {
     id: number | null
     name: string | null
