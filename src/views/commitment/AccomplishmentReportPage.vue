@@ -28,6 +28,7 @@ const toast = useToast()
 
 const accomplishmentReportIsLoading = ref(false)
 const showModal = ref(false)
+const searchSubmitted = ref(false)
 const paginationLimit = 5
 
 const searchQuery = ref<string | null>(null)
@@ -89,6 +90,7 @@ const handlePaginationPageChange = async (event: PageState) => {
 
 const handleSearchAccomplishmentReport = async () => {
   accomplishmentReportIsLoading.value = true
+  searchSubmitted.value = true
   if (!searchQuery.value) {
     const response = await accomplishmentReportStore.fetchAccomplishment(paginationLimit)
     if (response.success && response.pagination) {
@@ -217,7 +219,12 @@ const exportToFile = async (accomplishmentReport: PersonnelAccomplishmentReportR
           v-if="accomplishmentReportStore.accomplishment && accomplishmentReportStore.accomplishment.length > 0"
           class="mx-auto flex h-full w-full flex-col"
         >
-          <DataTable :value="accomplishmentReportStore.accomplishment" class="mt-6" dataKey="id">
+          <DataTable
+            :value="accomplishmentReportStore.accomplishment"
+            :loading="accomplishmentReportIsLoading"
+            class="mt-6"
+            dataKey="id"
+          >
             <Column
               field="period"
               header="Accomplishment Period"
@@ -303,9 +310,20 @@ const exportToFile = async (accomplishmentReport: PersonnelAccomplishmentReportR
           </div>
           <!-- End Pagination -->
         </div>
+
+        <div
+          v-if="searchSubmitted && !accomplishmentReportIsLoading && !accomplishmentReportStore.accomplishment.length"
+          class="flex h-full w-full flex-col items-center justify-center font-menu text-lg dark:text-surface-300"
+        >
+          <i class="pi pi-exclamation-triangle mb-2 text-2xl"></i>
+          <p>No items found</p>
+        </div>
         <!-- End Data Table -->
         <!-- Show "No Accomplishment Report" message if tableData is empty -->
-        <div v-if="!accomplishmentReportIsLoading && !pagination?.total" class="mx-auto flex h-full w-full flex-col">
+        <div
+          v-if="!accomplishmentReportIsLoading && !pagination?.total && !searchSubmitted"
+          class="mx-auto flex h-full w-full flex-col"
+        >
           <Card class="w-full p-0 shadow-none">
             <template #content>
               <div class="flex flex-col items-center sm:flex-col md:flex-col">

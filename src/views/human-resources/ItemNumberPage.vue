@@ -174,7 +174,7 @@ const handleSearchItemNumber = async () => {
               v-if="itemNumberStore.itemNumbers && itemNumberStore.itemNumbers.length > 0"
               class="mx-auto flex h-full w-full flex-col"
             >
-              <DataTable :value="itemNumberStore.itemNumbers" class="mt-6" dataKey="id">
+              <DataTable :value="itemNumberStore.itemNumbers" class="mt-6" dataKey="id" :loading="itemNumberIsLoading">
                 <Column
                   field="period"
                   header="Item Numbers"
