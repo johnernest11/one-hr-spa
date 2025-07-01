@@ -134,27 +134,23 @@ const individual_basic_details = [
   },
 ]
 
-const item_id = {
-  id: 1,
-  number: 'ITEM-501',
-  date_of_creation: '2020-01-01',
-  status: 'Active',
-  date_filled_up: '2020-03-01',
-  fund_source_id: 1,
-  fund_source: {
+const item_id = [
+  {
     id: 1,
     number: 'ITEM-501',
     date_of_creation: '2020-01-01',
     status: 'Active',
     date_filled_up: '2020-03-01',
-    fund_source_id: {
+    fund_source_id: 1,
+    fund_source: {
       id: 1,
       name: 'General Fund',
       created_at: '2020-01-01',
       updated_at: '2020-01-01',
     },
     employment_status: 'COS',
-    position_id: {
+    position_id: 1,
+    position: {
       id: 1,
       title: 'Administrative Officer III',
       parenthetical_title: null,
@@ -165,13 +161,29 @@ const item_id = {
     created_at: '2020-01-01',
     updated_at: '2020-01-01',
   },
-  employment_status: 'Permanent',
-  position_id: 1,
-  position: {
-    id: 1,
-    title: 'Administrative Officer III',
-    parenthetical_title: null,
-    level: null,
+  {
+    id: 2,
+    number: 'ITEM-501',
+    date_of_creation: '2020-01-01',
+    status: 'Active',
+    date_filled_up: '2020-03-01',
+    fund_source_id: 1,
+    fund_source: {
+      id: 1,
+      name: 'General Fund',
+      created_at: '2020-01-01',
+      updated_at: '2020-01-01',
+    },
+    employment_status: 'Permanent',
+    position_id: 2,
+    position: {
+      id: 2,
+      title: 'Administrative Officer IV',
+      parenthetical_title: null,
+      level: null,
+      created_at: '2020-01-01',
+      updated_at: '2020-01-01',
+    },
     created_at: '2020-01-01',
     updated_at: '2020-01-01',
   },
@@ -181,7 +193,7 @@ const employee_data = [
     id: 1,
     individual_basic_detail_id: individual_basic_details[0],
     id_number: 'EMP-2025-001',
-    item_id: item_id[0],
+    item_id: 1,
     salary_grade_id: mockSalaryGrade,
     fund_source: {
       id: 1,
@@ -204,13 +216,13 @@ const employee_data = [
       added_by_user_id: null,
       last_modified_by_user_id: null,
     },
-    item: item_id,
+    item: item_id[0],
   },
   {
     id: 2,
     individual_basic_detail_id: individual_basic_details[1],
     id_number: 'EMP-2025-002',
-    item_id: item_id[1],
+    item_id: 2,
     salary_grade_id: mockSalaryGrade,
     fund_source: {
       id: 2,
@@ -233,13 +245,13 @@ const employee_data = [
       added_by_user_id: null,
       last_modified_by_user_id: null,
     },
-    item: item_id,
+    item: item_id[1],
   },
   {
     id: 3,
     individual_basic_detail_id: individual_basic_details[2],
     id_number: 'EMP-2025-003',
-    item_id: item_id[0],
+    item_id: 1,
     salary_grade_id: mockSalaryGrade,
     fund_source: {
       id: 1,
@@ -262,13 +274,13 @@ const employee_data = [
       added_by_user_id: null,
       last_modified_by_user_id: null,
     },
-    item: item_id,
+    item: item_id[0],
   },
   {
     id: 4,
     individual_basic_detail_id: individual_basic_details[3],
     id_number: 'EMP-2025-004',
-    item_id: item_id[1],
+    item_id: 1,
     salary_grade_id: mockSalaryGrade,
     fund_source: {
       id: 3,
@@ -291,13 +303,13 @@ const employee_data = [
       added_by_user_id: null,
       last_modified_by_user_id: null,
     },
-    item: item_id,
+    item: item_id[1],
   },
   {
     id: 5,
     individual_basic_detail_id: individual_basic_details[4],
     id_number: 'EMP-2025-005',
-    item_id: item_id[0],
+    item_id: 1,
     salary_grade_id: mockSalaryGrade,
     fund_source: {
       id: 1,
@@ -320,7 +332,7 @@ const employee_data = [
       added_by_user_id: null,
       last_modified_by_user_id: null,
     },
-    item: item_id,
+    item: item_id[0],
   },
 ]
 
@@ -593,9 +605,12 @@ export const compensatorymockData = [
   },
 ]
 
+/* ApplicationLeave */
+// Use a local mockId for compensatorymockData
+let applicationLeaveMockId = 1
 export const applicationLeavemockData = [
   {
-    id: mockId++,
+    id: applicationLeaveMockId++,
     employee_id: employee_data[0],
     leave_type_id: {
       id: 3,
@@ -623,7 +638,7 @@ export const applicationLeavemockData = [
     ],
   },
   {
-    id: mockId++,
+    id: applicationLeaveMockId++,
     employee_id: employee_data[1],
     leave_type_id: {
       id: 6,
@@ -657,7 +672,7 @@ export const applicationLeavemockData = [
     ],
   },
   {
-    id: mockId++,
+    id: applicationLeaveMockId++,
     employee_id: employee_data[2],
     leave_type_id: {
       id: 7,
