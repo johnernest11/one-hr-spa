@@ -143,7 +143,25 @@ const item_id = {
   fund_source_id: 1,
   fund_source: {
     id: 1,
-    name: 'General Fund',
+    number: 'ITEM-501',
+    date_of_creation: '2020-01-01',
+    status: 'Active',
+    date_filled_up: '2020-03-01',
+    fund_source_id: {
+      id: 1,
+      name: 'General Fund',
+      created_at: '2020-01-01',
+      updated_at: '2020-01-01',
+    },
+    employment_status: 'COS',
+    position_id: {
+      id: 1,
+      title: 'Administrative Officer III',
+      parenthetical_title: null,
+      level: null,
+      created_at: '2020-01-01',
+      updated_at: '2020-01-01',
+    },
     created_at: '2020-01-01',
     updated_at: '2020-01-01',
   },
@@ -157,15 +175,13 @@ const item_id = {
     created_at: '2020-01-01',
     updated_at: '2020-01-01',
   },
-  created_at: '2020-01-01',
-  updated_at: '2020-01-01',
-}
+]
 const employee_data = [
   {
     id: 1,
     individual_basic_detail_id: individual_basic_details[0],
     id_number: 'EMP-2025-001',
-    item_id: item_id,
+    item_id: item_id[0],
     salary_grade_id: mockSalaryGrade,
     fund_source: {
       id: 1,
@@ -188,12 +204,13 @@ const employee_data = [
       added_by_user_id: null,
       last_modified_by_user_id: null,
     },
+    item: item_id,
   },
   {
     id: 2,
     individual_basic_detail_id: individual_basic_details[1],
     id_number: 'EMP-2025-002',
-    item_id: item_id,
+    item_id: item_id[1],
     salary_grade_id: mockSalaryGrade,
     fund_source: {
       id: 2,
@@ -216,12 +233,13 @@ const employee_data = [
       added_by_user_id: null,
       last_modified_by_user_id: null,
     },
+    item: item_id,
   },
   {
     id: 3,
     individual_basic_detail_id: individual_basic_details[2],
     id_number: 'EMP-2025-003',
-    item_id: item_id,
+    item_id: item_id[0],
     salary_grade_id: mockSalaryGrade,
     fund_source: {
       id: 1,
@@ -244,12 +262,13 @@ const employee_data = [
       added_by_user_id: null,
       last_modified_by_user_id: null,
     },
+    item: item_id,
   },
   {
     id: 4,
     individual_basic_detail_id: individual_basic_details[3],
     id_number: 'EMP-2025-004',
-    item_id: item_id,
+    item_id: item_id[1],
     salary_grade_id: mockSalaryGrade,
     fund_source: {
       id: 3,
@@ -272,12 +291,13 @@ const employee_data = [
       added_by_user_id: null,
       last_modified_by_user_id: null,
     },
+    item: item_id,
   },
   {
     id: 5,
     individual_basic_detail_id: individual_basic_details[4],
     id_number: 'EMP-2025-005',
-    item_id: item_id,
+    item_id: item_id[0],
     salary_grade_id: mockSalaryGrade,
     fund_source: {
       id: 1,
@@ -300,6 +320,7 @@ const employee_data = [
       added_by_user_id: null,
       last_modified_by_user_id: null,
     },
+    item: item_id,
   },
 ]
 
@@ -572,6 +593,98 @@ export const compensatorymockData = [
   },
 ]
 
+export const applicationLeavemockData = [
+  {
+    id: mockId++,
+    employee_id: employee_data[0],
+    leave_type_id: {
+      id: 3,
+      title: 'SICK LEAVE',
+      description: 'Sec. 43, Rule XVI, Omnibus Rules Implementing E.O. No. 292',
+    },
+    date_of_filing: '2025-06-01',
+    others_notes: 'Medical leave',
+    number_of_days: '2',
+    detail_of_leave: 'Fever',
+    specific_detail: 'High fever and fatigue',
+    commutation: 'yes',
+    status: 'for review',
+    division_head_disapproval_notes: null,
+    days_with_pay: '2',
+    days_without_pay: '0',
+    disapproved_notes: null,
+    dates: [
+      {
+        id: 1,
+        leave_application_id: null,
+        start_date: '2025-06-05',
+        end_date: '2025-06-06',
+      },
+    ],
+  },
+  {
+    id: mockId++,
+    employee_id: employee_data[1],
+    leave_type_id: {
+      id: 6,
+      title: 'SPECIAL PRIVILEGE LEAVE',
+      description: 'Sec. 21, Rule XVI, Omnibus Rules Implementing E.O. No. 292',
+    },
+    date_of_filing: '2025-05-15',
+    others_notes: 'Family vacation',
+    number_of_days: '5',
+    detail_of_leave: 'Family trip',
+    specific_detail: 'Traveling to hometown',
+    commutation: 'no',
+    status: 'for review',
+    division_head_disapproval_notes: null,
+    days_with_pay: '5',
+    days_without_pay: '0',
+    disapproved_notes: null,
+    dates: [
+      {
+        id: 2,
+        leave_application_id: null,
+        start_date: '2025-06-10',
+        end_date: '2025-06-14',
+      },
+      {
+        id: 5,
+        leave_application_id: null,
+        start_date: '2025-06-10',
+        end_date: '2025-06-14',
+      },
+    ],
+  },
+  {
+    id: mockId++,
+    employee_id: employee_data[2],
+    leave_type_id: {
+      id: 7,
+      title: 'SOLO PARENT LEAVE',
+      description: 'Sec. 21, Rule XVI, Omnibus Rules Implementing E.O. No. 292',
+    },
+    date_of_filing: '2025-06-02',
+    others_notes: 'Flu symptoms',
+    number_of_days: '3',
+    detail_of_leave: 'Flu',
+    specific_detail: 'Cough and fever',
+    commutation: 'yes',
+    status: 'approved',
+    division_head_disapproval_notes: null,
+    days_with_pay: '3',
+    days_without_pay: '0',
+    disapproved_notes: null,
+    dates: [
+      {
+        id: 3,
+        leave_application_id: null,
+        start_date: '2025-06-07',
+        end_date: '2025-06-09',
+      },
+    ],
+  },
+]
 /* Leave Credits */
 // Use a local mockId for leavecreditsmockData
 let leaveCreditsMockId = 1

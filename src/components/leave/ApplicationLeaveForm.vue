@@ -61,38 +61,44 @@ const typeofLeave = [
   },
   {
     id: 7,
+    title: 'SPECIAL  LEAVE BENEFITS FOR WOMEN',
+    description: '(RA No. 9710 / CSC MC No. 25, s. 2010)',
+  },
+  {
+    id: 8,
     title: 'SOLO PARENT LEAVE',
     description: 'Sec. 21, Rule XVI, Omnibus Rules Implementing E.O. No. 292',
   },
   {
-    id: 8,
+    id: 9,
     title: 'STUDY LEAVE',
     description: 'Sec. 68, Rule XVI, Omnibus Rules Implementing E.O. No. 292',
   },
   {
-    id: 9,
+    id: 10,
     title: '10-DAY VAWC LEAVE',
     description: 'RA No. 9262 / CSC MC No. 15, s. 2005',
   },
   {
-    id: 10,
+    id: 11,
     title: 'REHABILITATION PRIVILEGE',
     description: 'Sec. 55, Rule XVI, Omnibus Rules Implementing E.O. No. 292',
   },
   {
-    id: 11,
-    title: 'SPECIAL EMERGENCY (CATASTROPHE) LEAVE',
-    description: 'CSC MC No. 2, s. 2012, as amended',
-  },
-  {
     id: 12,
-    title: 'ADOPTION LEAVE',
-    description: 'R.A. No. 8552',
+    title: 'SPECIAL EMERGENCY (Calamity)  LEAVE',
+    description: 'CSC MC No. 2, s. 2012, as amended',
   },
   {
     id: 13,
     title: 'OTHERS',
     description: '',
+  },
+
+  {
+    id: 14,
+    title: 'ADOPTION LEAVE',
+    description: 'R.A. No. 8552',
   },
 ]
 
@@ -182,6 +188,16 @@ const removeInclusiveDates = (index: number) => {
 const modeofReceiptOptions = ref([
   { label: 'Not Requested', value: 'Not Requested' },
   { label: 'Requested', value: 'Requested' },
+])
+
+const recommendationOptions = ref([
+  { label: 'Disapprove', value: 'Disapprove' },
+  { label: 'Approve', value: 'Approve' },
+])
+
+const approvedForOptions = ref([
+  { label: 'Disapprove', value: 'Disapprove' },
+  { label: 'Approve', value: 'Approve' },
 ])
 
 type LeaveApplicationFormProps = {
@@ -288,7 +304,7 @@ const emit = defineEmits<{
   (e: 'leave-created', value: boolean): void
 }>()
 
-const openDialog = (type: 'for review' | 'approved') => {
+const openDialog = (type: 'for review' | 'draft' | 'approved') => {
   dialogType.value = type
   visible.value = true
 
@@ -299,6 +315,11 @@ const openDialog = (type: 'for review' | 'approved') => {
       confirmButtonLabel.value = 'File and Submit'
       break
 
+    case 'draft':
+      dialogTitle.value = 'Save as Draft this Leave Application?'
+      dialogMessage.value = 'Save as Draft your Leave Application, will allow you to continue editing it later.'
+      confirmButtonLabel.value = 'Save as Draft'
+      break
     case 'approved':
       dialogTitle.value = 'Approve Leave Application?'
       dialogMessage.value = 'Approving this Leave Application will mark it as complete and archive it.'
@@ -495,7 +516,7 @@ const isHumanResourceActive = computed(() => route.name === 'leave-applications/
           </div>
           <div class="mx-auto my-4 flex h-full flex-col lg:mx-24">
             <Card
-              v-if="selectedtypeofLeaveId === 14"
+              v-if="selectedtypeofLeaveId === 7"
               class="h-22 mx-auto my-0 w-full cursor-pointer rounded-md !bg-primary-200 transition-colors"
             >
               <template #content>
@@ -607,7 +628,7 @@ const isHumanResourceActive = computed(() => route.name === 'leave-applications/
           <div class="mb-4 mt-6 justify-center gap-2 border-b-2 bg-surface-100 px-2 py-2 md:gap-4 md:px-0">
             <div class="text-center font-semibold text-surface-500">DETAILS OF ACTION ON APPLICATION</div>
           </div>
-          <div class="mx-auto my-2 flex h-full flex-col">
+          <div class="max-w-screen- my-0 grid grid-cols-1 gap-2 px-4 py-2 sm:grid-cols-2 md:gap-4 md:px-0 lg:mx-24">
             <div class="w-full rounded-lg border border-surface-300 text-sm">
               <div class="grid grid-cols-3">
                 <div
@@ -662,6 +683,30 @@ const isHumanResourceActive = computed(() => route.name === 'leave-applications/
                 </div>
               </div>
             </div>
+            <div class="grid sm:grid-cols-2">
+              <WbDropdown
+                v-tooltip.top="'Choose Recommendation'"
+                :options="recommendationOptions"
+                optionLabel="label"
+                optionValue="value"
+                class="mb-4 w-full"
+                label="Recommendation"
+                label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                placeholder="Choose Recommendation"
+                :disabled="isHumanResourceActive || payload.status === 'approved'"
+              />
+              <WbDropdown
+                v-tooltip.top="'Choose Approved For'"
+                :options="approvedForOptions"
+                optionLabel="label"
+                optionValue="value"
+                class="ml-6 w-full"
+                label="Approved For"
+                label-class="text-md ml-6 text-surface-600 dark:lg:text-surface-200"
+                placeholder="Choose Approved For"
+                :disabled="isHumanResourceActive || payload.status === 'approved'"
+              />
+            </div>
           </div>
           <Divider layout="horizontal" class="mb-12 ml-2 hidden md:block"></Divider>
           <!-- Other content -->
@@ -702,6 +747,19 @@ const isHumanResourceActive = computed(() => route.name === 'leave-applications/
             >
               <template #icon>
                 <i class="pi pi-file mr-2"></i>
+              </template>
+            </Button>
+            <Button
+              @click="openDialog('draft')"
+              v-if="!isUpdateMode"
+              label="Save as Draft"
+              :loading="formIsSubmitting"
+              :disabled="formIsSubmitting"
+              class="dark:text-secondary-100 border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+              text
+            >
+              <template #icon>
+                <i class="pi pi-save mr-2"></i>
               </template>
             </Button>
             <Button

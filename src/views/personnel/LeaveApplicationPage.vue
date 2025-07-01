@@ -1,23 +1,62 @@
 <script setup lang="ts">
-import { onBeforeMount, ref, watch, computed } from 'vue'
+import { onBeforeMount, ref, computed, toRef } from 'vue'
+import { useLibrariesStore } from '@/stores/libraries.store'
+import { useLeaveApplicationStore } from '@/stores/leave-application.store'
+import { LeaveApplicationResponse } from '@/typings/models.types.ts'
+import { useRoute } from 'vue-router'
+import { useRouter } from 'vue-router'
+
 import Button from 'primevue/button'
 import Chip from 'primevue/chip'
 import Card from 'primevue/card'
 import Column from 'primevue/column'
 import DataTable from 'primevue/datatable'
+import Dialog from 'primevue/dialog'
 import InputText from 'primevue/inputtext'
 import InputGroup from 'primevue/inputgroup'
+
+import WbDropdown from '@/components/webkit/WbDropdown.vue'
+import WbAutoComplete, { WbAutoCompleteOption, WbAutoCompleteOptionTrueValue } from '@/components/webkit/WbAutoComplete.vue'
+import { useWbAutoCompleteHandleTrueValue } from '@/composables/wb-ui-components'
+
 import Paginator, { PageState } from 'primevue/paginator'
 import { ApiResponsePagination } from '@/typings/http-resources.types.ts'
-import { LeaveApplicationResponse } from '@/typings/models.types.ts'
-import { useLeaveApplicationStore } from '@/stores/leave-application.store'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-import { useRouter } from 'vue-router'
-import { useToast } from 'primevue/usetoast'
 import { formatDateRanges, formatDate } from '@/utils/helpers.ts'
-import { useRoute } from 'vue-router'
+import { usePrependOrAppendOnce } from '@/utils/helpers'
+import { useToast } from 'primevue/usetoast'
+
 const route = useRoute()
 const router = useRouter()
+const libraryStore = useLibrariesStore()
+const applicationLeaveStore = useLeaveApplicationStore()
+
+const getId = usePrependOrAppendOnce('generate-payroll')
+const pagination = ref<ApiResponsePagination | null>(null)
+const selectedDivision = ref<WbAutoCompleteOption[] | null>(null)
+const selectedSectionUnit = ref<WbAutoCompleteOption[] | null>(null)
+const isHumanResourceActive = computed(() => route.name === 'leave-applications')
+
+const searchQuery = ref<string | null>(null)
+const showModal = ref(false)
+const formIsSubmitting = ref(false)
+const searchSubmitted = ref(false)
+const toast = useToast()
+const applicationLeaveIsLoading = ref(false)
+const paginationLimit = 5
+
+const employementStatusOptions = [
+  { label: 'Permanent', value: 'Permanent' },
+  { label: 'Contractual', value: 'Contractual' },
+  { label: 'Contract of Service', value: 'Contract of Service' },
+  { label: 'Job Order', value: 'Job Order' },
+]
+
+const statusOptions = ref([
+  { label: 'For Review', value: 'For Review' },
+  { label: 'Disapproved', value: 'Disapproved' },
+  { label: 'Approved', value: 'Approved' },
+])
 
 const navigateToDetails = (applicationLeave: LeaveApplicationResponse) => {
   if (!applicationLeave || !applicationLeave.id) {
@@ -39,10 +78,6 @@ const navigateToDetails = (applicationLeave: LeaveApplicationResponse) => {
   })
 }
 
-const applicationLeaveStore = useLeaveApplicationStore()
-
-const applicationLeaveIsLoading = ref(false)
-const paginationLimit = 5
 onBeforeMount(async () => {
   applicationLeaveIsLoading.value = true
   const response = await applicationLeaveStore.fetchLeaveApplication(paginationLimit)
@@ -52,7 +87,6 @@ onBeforeMount(async () => {
   applicationLeaveIsLoading.value = false
 })
 
-const pagination = ref<ApiResponsePagination | null>(null)
 const fetchDocumentRequestBasedOnContext = async (page = 1) => {
   applicationLeaveIsLoading.value = true
   const statusFilter = isHumanResourceActive.value ? ['for review', 'approved'] : undefined
@@ -70,23 +104,6 @@ const handlePaginationPageChange = async (event: PageState) => {
   await fetchDocumentRequestBasedOnContext(event.page + 1)
 }
 
-const roleFilter = ref<number | null>(null)
-const searchQuery = ref<string | null>(null)
-const isSearching = ref(false)
-watch(
-  () => roleFilter.value,
-  async () => {
-    applicationLeaveIsLoading.value = true
-    searchQuery.value = null
-    isSearching.value = false
-    const response = await applicationLeaveStore.fetchLeaveApplication(paginationLimit)
-    if (response.success && response.pagination) {
-      pagination.value = response.pagination
-    }
-    applicationLeaveIsLoading.value = false
-  }
-)
-const searchSubmitted = ref(false)
 const handleSearchApplicationLeave = async () => {
   applicationLeaveIsLoading.value = true
   searchSubmitted.value = true
@@ -109,7 +126,6 @@ const handleSearchApplicationLeave = async () => {
   applicationLeaveIsLoading.value = false
 }
 
-const toast = useToast()
 const exportPdf = async (leaveApplication: LeaveApplicationResponse) => {
   const { date_of_filing, id } = leaveApplication
   toast.add({
@@ -154,7 +170,6 @@ const exportPdf = async (leaveApplication: LeaveApplicationResponse) => {
     console.error(error)
   }
 }
-const isHumanResourceActive = computed(() => route.name === 'leave-applications')
 </script>
 <template>
   <div class="flex h-full w-full flex-col shadow-md">
@@ -163,7 +178,7 @@ const isHumanResourceActive = computed(() => route.name === 'leave-applications'
         class="flex flex-row items-center space-x-4 font-medium text-primary-700 dark:text-primary-100 md:ml-4 md:mt-2 md:flex-row"
       >
         <h1 class="mb-2 mr-4 whitespace-nowrap text-xl text-surface-600 dark:text-primary-100 md:text-xl lg:text-4xl">
-          {{ !isHumanResourceActive ? ' My Application for Leave' : 'Application for Leave' }}
+          {{ !isHumanResourceActive ? ' My Leave Applications' : 'Leave Applications' }}
         </h1>
         <div class="flex w-full items-center justify-end gap-4">
           <div class="flex space-x-2 whitespace-nowrap md:w-auto">
@@ -174,7 +189,7 @@ const isHumanResourceActive = computed(() => route.name === 'leave-applications'
               size="large"
               class="border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100"
               text
-              @click="$router.push({ name: 'sign-up' })"
+              @click="showModal = true"
             />
             <RouterLink :to="{ name: 'my-leaveapplications/store' }">
               <Button
@@ -192,7 +207,7 @@ const isHumanResourceActive = computed(() => route.name === 'leave-applications'
             <InputGroup v-model="searchQuery" class="w-full">
               <InputText
                 v-model="searchQuery"
-                placeholder="Search via Period or Leave"
+                placeholder="Search via Period or Date"
                 class="w-full"
                 :disabled="applicationLeaveIsLoading"
                 @keyup.enter="handleSearchApplicationLeave"
@@ -207,6 +222,7 @@ const isHumanResourceActive = computed(() => route.name === 'leave-applications'
           <div class="mx-auto flex h-full w-full flex-col">
             <DataTable :value="applicationLeaveStore.leaveApplication" class="mt-6" dataKey="id">
               <Column
+                v-if="!isHumanResourceActive"
                 field="period"
                 header="Leave Period"
                 headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
@@ -216,24 +232,55 @@ const isHumanResourceActive = computed(() => route.name === 'leave-applications'
                 </template>
               </Column>
               <Column
+                v-if="isHumanResourceActive"
+                field="period"
+                headerClass="w-80 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
+              >
+                <template #header>
+                  <div class="flex flex-col">
+                    <span class="text-base text-surface-600">Employee</span>
+                    <span class="text-sm font-normal text-surface-500">ID Number</span>
+                  </div>
+                </template>
+
+                <template #body="props">
+                  <div class="flex flex-col">
+                    <p class="font-semibold uppercase text-surface-600">
+                      {{
+                        [
+                          props.data.employee_id?.individual_basic_detail_id?.first_name,
+                          props.data.employee_id?.individual_basic_detail_id?.middle_name,
+                          props.data.employee_id?.individual_basic_detail_id?.last_name,
+                        ]
+                          .filter(Boolean)
+                          .join(' ')
+                      }}
+                    </p>
+                    <p class="text-sm text-surface-500">
+                      {{ props.data.employee_id.id_number || 'N/A' }}
+                    </p>
+                  </div>
+                </template>
+              </Column>
+              <Column
                 field="status"
-                header="Status"
+                header="Leave Type"
                 headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
               >
                 <template #body="props">
-                  <template v-if="props.data.leave_type_id.title === 'Sick Leave'">
+                  <template v-if="props.data.leave_type_id.title === 'SICK LEAVE'">
                     <p class="uppercase text-surface-600">
                       <font-awesome-icon :icon="['fas', 'kit-medical']" /> {{ props.data.leave_type_id.title }}
                     </p>
                   </template>
-                  <template v-else-if="props.data.leave_type_id.title === 'Vacation Leave'">
+                  <template v-else-if="props.data.leave_type_id.title === 'SPECIAL PRIVILEGE LEAVE'">
                     <p class="uppercase text-surface-600">
                       <font-awesome-icon :icon="['fas', 'umbrella-beach']" /> {{ props.data.leave_type_id.title }}
                     </p>
                   </template>
-                  <template v-else-if="props.data.leave_type_id.title === 'Study Leave'">
+                  <template v-else-if="props.data.leave_type_id.title === 'SOLO PARENT LEAVE'">
                     <p class="uppercase text-surface-600">
-                      <font-awesome-icon :icon="['fas', 'book']" /> {{ props.data.leave_type_id.title }}
+                      <font-awesome-icon :icon="['fas', 'users']" /> {{ props.data.leave_type_id.title }}
                     </p>
                   </template>
                 </template>
@@ -358,4 +405,126 @@ const isHumanResourceActive = computed(() => route.name === 'leave-applications'
       </div>
     </div>
   </div>
+  <!--Filter & Field Options Dialog -->
+  <Dialog
+    v-model:visible="showModal"
+    :modal="false"
+    closable
+    :dismissableMask="true"
+    :position="'right'"
+    :style="{ width: '20vw', maxWidth: '600px', minWidth: '320px' }"
+    :breakpoints="{ '1199px': '75vw', '575px': '90vw' }"
+    :pt="{
+      root: {
+        class: 'relative w-full h-full flex flex-col bg-white shadow-lg',
+      },
+    }"
+  >
+    <template #header>
+      <div class="flex w-full items-center justify-between p-4 pb-0">
+        <h1 class="text-xl font-semibold text-surface-600 dark:text-primary-100">
+          <font-awesome-icon :icon="['fas', 'bars-staggered']" class="mr-2" />
+          Filter and Field Options
+        </h1>
+      </div>
+    </template>
+    <!-- Scrollable Content (space reserved for footer height) -->
+    <div class="flex-1 overflow-auto px-4 pb-24">
+      <h2 class="mb-2 mt-4 text-sm font-medium text-surface-500 dark:text-primary-100">Filters</h2>
+      <div class="mb-4">
+        <WbAutoComplete
+          :useApiFilter="true"
+          :apiEndpoint="'/libraries/divisions/search'"
+          :suggestions="libraryStore.divisionOptions"
+          :loading="libraryStore.divisionOptionsLoading"
+          apiOptionLabel="name"
+          label="Division"
+          placeholder="Type the Division"
+          v-model="selectedDivision"
+          :id="getId('input-division')"
+          optionLabel="label"
+          optionValue="value"
+          @on-true-value-computed="
+            (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
+              useWbAutoCompleteHandleTrueValue(value, toRef('division_id'))
+          "
+          label-class="text-sm text-start text-surface-600 dark:lg:text-surface-200"
+          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+          validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+        />
+      </div>
+      <div class="mb-4">
+        <WbAutoComplete
+          :useApiFilter="true"
+          :apiEndpoint="'/libraries/section-or-units/search'"
+          :suggestions="libraryStore.sectionUnitOptions"
+          :loading="libraryStore.sectionUnitOptionsLoading"
+          apiOptionLabel="name"
+          label="Section/Unit"
+          placeholder="Type the Section / Unit"
+          v-model="selectedSectionUnit"
+          :id="getId('input-section-unit')"
+          optionLabel="label"
+          optionValue="value"
+          @on-true-value-computed="
+            (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
+              useWbAutoCompleteHandleTrueValue(value, toRef('section_or_unit_id'))
+          "
+          label-class="text-sm text-start text-surface-600 dark:lg:text-surface-200"
+          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+          validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+        />
+      </div>
+      <div class="mb-4">
+        <WbDropdown
+          v-if="isHumanResourceActive"
+          :options="employementStatusOptions"
+          optionLabel="label"
+          optionValue="value"
+          label="Employment Status"
+          placeholder="Select Employment Status"
+          label-class="text-sm text-start text-surface-600"
+        />
+      </div>
+      <div class="mb-40">
+        <WbDropdown
+          :options="statusOptions"
+          optionLabel="label"
+          optionValue="value"
+          label="Status"
+          placeholder="Select Status"
+          label-class="text-sm text-start text-surface-600"
+        />
+      </div>
+    </div>
+
+    <!-- Fixed Footer (inside dialog container) -->
+    <div
+      class="absolute bottom-0 left-0 right-0 border-t border-surface-300 bg-surface-0 px-4 py-3 dark:border-surface-700 dark:bg-surface-900"
+    >
+      <div class="flex flex-col items-center justify-center gap-2 sm:flex-row">
+        <Button
+          label="Cancel"
+          class="dark:text-secondary-100 w-full border border-surface-400 px-4 py-2 text-surface-500 dark:border-surface-700"
+          @click="showModal = false"
+          text
+        >
+          <template #icon>
+            <i class="pi pi-ban mr-2 text-lg"></i>
+          </template>
+        </Button>
+        <Button
+          :loading="formIsSubmitting"
+          :disabled="formIsSubmitting"
+          label="Apply"
+          class="dark:text-secondary-100 w-full border border-primary-500 px-4 py-3 text-primary-600 dark:border-surface-700"
+          text
+        >
+          <template #icon>
+            <font-awesome-icon :icon="['fas', 'check']" class="mr-2 text-lg" />
+          </template>
+        </Button>
+      </div>
+    </div>
+  </Dialog>
 </template>
