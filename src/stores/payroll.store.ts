@@ -115,6 +115,7 @@ export const usePayRollStore = defineStore('pay-roll', () => {
           added_by_user_id: null,
           last_modified_by_user_id: null,
         },
+
         item: {
           id: 0,
           number: null,
