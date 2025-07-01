@@ -1,17 +1,5 @@
 <script setup lang="ts">
 import { ref, reactive, onBeforeMount, watch, onMounted, computed } from 'vue'
-import { useToast } from 'primevue/usetoast'
-import { parseApiResponseError } from '@/utils/error-handle.ts'
-import useVuelidate from '@vuelidate/core'
-import { helpers, maxLength, required } from '@vuelidate/validators'
-import WbInputText from '@/components/webkit/WbInputText.vue'
-import WbTextArea from '../webkit/WbTextArea.vue'
-import Button from 'primevue/button'
-import Divider from 'primevue/divider'
-import Card from 'primevue/card'
-import Dialog from 'primevue/dialog'
-import WbDropdown from '@/components/webkit/WbDropdown.vue'
-import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { useRolesStore } from '@/stores/roles.store.ts'
 import { useRoute } from 'vue-router'
 import {
@@ -21,22 +9,70 @@ import {
 import { PersonnelAccomplishmentReportResponse } from '@/typings/models.types'
 import { useAuthStore } from '@/stores/auth.store'
 
+import WbInputText from '@/components/webkit/WbInputText.vue'
+import WbDropdown from '@/components/webkit/WbDropdown.vue'
+import WbTextArea from '../webkit/WbTextArea.vue'
+import Button from 'primevue/button'
+import Divider from 'primevue/divider'
+import Card from 'primevue/card'
+import Dialog from 'primevue/dialog'
+
+import { useToast } from 'primevue/usetoast'
+import { parseApiResponseError } from '@/utils/error-handle.ts'
+import useVuelidate from '@vuelidate/core'
+import { helpers, maxLength, required } from '@vuelidate/validators'
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
+
+const route = useRoute()
+const rolesStore = useRolesStore()
+const authStore = useAuthStore()
+const accomplishmentReportStore = useAccomplishmentReportStore()
+const toast = useToast()
+
+const accomplishmentBtn = ref(false)
+const addAccomplishmentFieldBtn = ref(false)
+const showTextAreaActivity = ref(false)
+const showTextAreaHighlights = ref(false)
+const rolesOptionsIsLoading = ref(false)
+const formIsSubmitting = ref(false)
+const showErrorAlert = ref(false)
+const isLoading = ref(true)
+const visible = ref(false)
+const IsBeingUpdated = ref(false)
+
+const dialogType = ref('')
+const dialogTitle = ref('')
+const dialogMessage = ref('')
+const confirmButtonLabel = ref('')
+
+const errorMessage = ref<string | null>(null)
+const errorDetails = ref<string[]>([])
+const isUpdateMode = computed(() => !!route.params.id)
+const accomplishmentReportExportFile = ref<PersonnelAccomplishmentReportResponse | null>(null)
+const props = defineProps<AccomplishmentReportFormProps>()
+
+onBeforeMount(async () => {
+  rolesOptionsIsLoading.value = true
+  await rolesStore.fetchRoles()
+  rolesOptionsIsLoading.value = false
+})
+
+const isSupervisorView = computed(() => route.name === 'accomplishment-report-list/editor')
+
 /** Payload for the Personnel Accomplishment Report */
 const payload = reactive<PersonnelAccomplishmentReportPayload>({
   period: null,
   supervisor_notes: '',
   status: '',
-  rows: [],
+  rows: [
+    {
+      week_num: '',
+      dates_in_week: '',
+      specific_activity: null,
+      highlights: null,
+    },
+  ],
 })
-
-payload.rows = reactive([
-  {
-    week_num: '',
-    dates_in_week: '',
-    specific_activity: null,
-    highlights: null,
-  },
-])
 
 /** Options for selecting the week number */
 const weekOptions = ref([
@@ -46,25 +82,6 @@ const weekOptions = ref([
   { label: 'Week 4', value: 'Week 4' },
   { label: 'Week 5', value: 'Week 5' },
 ])
-
-/** Controls  */
-const accomplishmentBtn = ref(false)
-const addAccomplishmentFieldBtn = ref(false)
-const showTextAreaActivity = ref(false)
-const showTextAreaHighlights = ref(false)
-const rolesOptionsIsLoading = ref(false)
-const isLoading = ref(true)
-const visible = ref(false)
-const dialogType = ref('')
-const dialogTitle = ref('')
-const dialogMessage = ref('')
-const confirmButtonLabel = ref('')
-const route = useRoute()
-const rolesStore = useRolesStore()
-const authStore = useAuthStore()
-const isUpdateMode = computed(() => !!route.params.id)
-const accomplishmentReportExportFile = ref<PersonnelAccomplishmentReportResponse | null>(null)
-const props = defineProps<AccomplishmentReportFormProps>()
 
 /** Function to add a new accomplishment entry */
 const addAccomplishment = (newFields = {}) => {
@@ -120,12 +137,6 @@ onMounted(async () => {
   isLoading.value = false
 })
 
-onBeforeMount(async () => {
-  rolesOptionsIsLoading.value = true
-  await rolesStore.fetchRoles()
-  rolesOptionsIsLoading.value = false
-})
-
 watch(
   () => props.accomplishmentReport,
   (newValue) => {
@@ -156,37 +167,36 @@ watch(
 
 /** Validation */
 const globalStringMaxLength = import.meta.env.VITE_GLOBAL_STRING_MAX_LENGTH
-const globalStringMaxLengthRule = helpers.withMessage(
-  `Must not exceed ${globalStringMaxLength} characters`,
-  maxLength(globalStringMaxLength)
-)
-const formRules = {
+const formRules = computed(() => ({
   $lazy: true,
   period: {
     required: helpers.withMessage('Period of Accomplishment is required', required),
-    maxLength: helpers.withMessage('', globalStringMaxLengthRule),
+    maxLength: helpers.withMessage(`Must not exceed ${globalStringMaxLength} characters`, maxLength(globalStringMaxLength)),
   },
-}
+  // Validate each row
+  rows: {
+    $each: {
+      week_num: { required: helpers.withMessage('Week is required', required) },
+      dates_in_week: { required: helpers.withMessage('Date/s or coverage is required', required) },
+      specific_activity: { required: helpers.withMessage('Specific activity is required', required) },
+      highlights: { required: helpers.withMessage('Highlights are required', required) },
+    },
+  },
+}))
 
-/** Handle Form Submission */
 const validator = useVuelidate<Partial<PersonnelAccomplishmentReportPayload>>(formRules, payload)
-const formIsSubmitting = ref(false)
-const showErrorAlert = ref(false)
-const errorMessage = ref<string | null>(null)
-const errorDetails = ref<string[]>([])
-const accomplishmentReportStore = useAccomplishmentReportStore()
-const toast = useToast()
-const IsBeingUpdated = ref(false)
 
 /** Check if the page should be reloaded after the update */
 const shouldReloadPageAfterUpdate = (): boolean => {
   return true
 }
+
 /** Emits */
 const emit = defineEmits<{
   (e: 'ar-created', value: boolean): void
   (e: 'ar-updated', value: boolean): void
 }>()
+
 /** Open a dialog with a specified type (export, markDone, or saveDraft) */
 const openDialog = (type: 'draft' | 'done' | 'export' | 'markDone' | 'saveDraft') => {
   dialogType.value = type
@@ -239,6 +249,7 @@ const confirmAction = () => {
 }
 
 const handleSaveSubmissionif = async (status: string) => {
+  validator.value.$touch()
   const valid = await validator.value.$validate()
   if (!valid) {
     document.querySelector('.create-ar-creds-section')?.scrollIntoView({ behavior: 'smooth' })
@@ -403,8 +414,6 @@ const handleMarkDone = async () => {
 
   emit('ar-updated', true)
 }
-
-const isSupervisorView = computed(() => route.name === 'accomplishment-report-list/editor')
 </script>
 
 <template>
@@ -524,15 +533,14 @@ const isSupervisorView = computed(() => route.name === 'accomplishment-report-li
                   required
                   placeholder="Choose a week"
                 />
-                <label for="converage" class="mb-0 text-sm text-surface-600">
-                  Date/s or Converage <span class="text-error-500">*</span>
-                </label>
                 <WbInputText
                   v-model="accomplishment.dates_in_week"
-                  label=""
+                  label="Date/s or Converage"
+                  required
+                  label-class="text-sm text-surface-600"
                   placeholder="e.g. 16-17 January 2025 or 1, 3, 4 & 5 January 2025"
                   class="w-full"
-                ></WbInputText>
+                />
               </div>
             </div>
             <Divider layout="vertical" class="hidden md:block"></Divider>

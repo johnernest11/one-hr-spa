@@ -19,11 +19,10 @@ export type PersonnelAccomplishmentReportPayload = {
 }
 
 export const useAccomplishmentReportStore = defineStore('personnel-accomplishment-report', () => {
+  /** States */
   const auth = useAuthStore()
   const accomplishment = ref<PersonnelAccomplishmentReportResponse[]>([])
-  /** States */
-  const accomplishmentReportArray = ref<PersonnelAccomplishmentReportResponse[]>([])
-  const selectedAccomplishmentReport = ref<PersonnelAccomplishmentReportResponse | null>(null)
+  const fectchAccomplishmentReportId = ref<PersonnelAccomplishmentReportResponse | null>(null)
 
   const fetchAccomplishment = async (limit: number = 10, page: number | null = null, status?: string) => {
     let uri = `/accomplishment-reports?limit=${limit}&sort=asc&`
@@ -35,7 +34,7 @@ export const useAccomplishmentReportStore = defineStore('personnel-accomplishmen
       const accomplishmentReportsList = Array.isArray(responseBody.data)
         ? (responseBody.data as PersonnelAccomplishmentReportResponse[])
         : []
-      accomplishmentReportArray.value = [...accomplishmentReportsList]
+      accomplishment.value = [...accomplishmentReportsList]
     }
     return responseBody
   }
@@ -45,7 +44,7 @@ export const useAccomplishmentReportStore = defineStore('personnel-accomplishmen
     const { data } = await useApiCall(url, auth.authenticationToken).get().json()
     const responseBody: ApiResponseBody = data.value
     if (responseBody.success) {
-      selectedAccomplishmentReport.value = responseBody.data as PersonnelAccomplishmentReportResponse
+      fectchAccomplishmentReportId.value = responseBody.data as PersonnelAccomplishmentReportResponse
     }
     return responseBody
   }
@@ -55,18 +54,6 @@ export const useAccomplishmentReportStore = defineStore('personnel-accomplishmen
     const responseBody: ApiResponseBody = data.value
     if (responseBody.success) {
       accomplishment.value.unshift(responseBody.data as PersonnelAccomplishmentReportResponse)
-    }
-    return responseBody
-  }
-
-  const searchAccomplishment = async (query: string | null) => {
-    let uri = '/accomplishment-reports/search?'
-    if (query) uri += `query=${query}`
-    const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
-    const responseBody: ApiResponseBody = data.value
-    if (responseBody.success) {
-      const accomplishmentReportsList = responseBody.data as PersonnelAccomplishmentReportResponse[]
-      accomplishmentReportArray.value = [...accomplishmentReportsList]
     }
     return responseBody
   }
@@ -85,6 +72,30 @@ export const useAccomplishmentReportStore = defineStore('personnel-accomplishmen
     return responseBody
   }
 
+  const searchAccomplishment = async (query: string | null) => {
+    let uri = '/accomplishment-reports/search?'
+    if (query) uri += `query=${query}`
+    const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
+    const responseBody: ApiResponseBody = data.value
+    if (responseBody.success) {
+      const accomplishmentReportsList = responseBody.data as PersonnelAccomplishmentReportResponse[]
+      accomplishment.value = [...accomplishmentReportsList]
+    }
+    return responseBody
+  }
+
+  const filterAccomplishment = async (status: string | null) => {
+    let uri = '/accomplishment-reports'
+    if (status) uri += `?status=${encodeURIComponent(status)}`
+    const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
+    const responseBody: ApiResponseBody = data.value
+    if (responseBody.success) {
+      const accomplishmentReportsList = responseBody.data as PersonnelAccomplishmentReportResponse[]
+      accomplishment.value = [...accomplishmentReportsList]
+    }
+    return responseBody
+  }
+
   const generateAccomplishmentReport = async (id: string) => {
     const api_url = `/accomplishment-reports/${id}/generate`
 
@@ -93,12 +104,13 @@ export const useAccomplishmentReportStore = defineStore('personnel-accomplishmen
   }
 
   return {
-    accomplishmentReportArray,
+    accomplishment,
     createAccomplishment,
     fetchAccomplishment,
     fetchAccomplishmentById,
     updateAccomplishment,
     searchAccomplishment,
+    filterAccomplishment,
     generateAccomplishmentReport,
   }
 })

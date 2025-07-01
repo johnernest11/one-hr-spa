@@ -180,7 +180,7 @@ const isHumanResourceActive = computed(() => route.name === 'daily-time-records'
             <InputGroup v-model="searchQuery" class="w-full">
               <InputText
                 v-model="searchQuery"
-                placeholder="Search via Period or Leave"
+                placeholder="Search via Period or Date"
                 class="w-full"
                 :disabled="dailyTimeRecordIsLoading"
                 @keyup.enter="handleSearchApplicationLeave"
@@ -194,18 +194,20 @@ const isHumanResourceActive = computed(() => route.name === 'daily-time-records'
         <div class="w-full">
           <div class="mx-auto flex h-full w-full flex-col">
             <DataTable :value="dailyTimeRecordStore.dailyTimeRecords" class="mt-6" dataKey="id">
-              <Column
-                field="period"
-                header="Period"
-                headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
-              >
+              <Column field="period" headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2">
+                <template #header>
+                  <div class="flex flex-col">
+                    <span class="text-base text-surface-600">PERIOD</span>
+                    <span class="text-sm font-normal text-surface-500">From - To</span>
+                  </div>
+                </template>
                 <template #body="props">
                   <p class="uppercase text-surface-600">{{ formatDate(props.data.date) }}</p>
                 </template>
               </Column>
               <Column
                 field="edited_at"
-                header="Date Filed"
+                header="LAST EDITED"
                 headerClass=" w-80 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
               >
                 <template #body="props">
@@ -214,7 +216,7 @@ const isHumanResourceActive = computed(() => route.name === 'daily-time-records'
               </Column>
               <Column
                 field="status"
-                header="Status"
+                header="STATUS"
                 headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
               >
                 <template #body="props">
@@ -239,7 +241,7 @@ const isHumanResourceActive = computed(() => route.name === 'daily-time-records'
                   </template>
                 </template>
               </Column>
-              <Column field="action" header="Actions" headerClass="w-64 bg-surface-100 opacity-70 font-bold py-2">
+              <Column field="action" header="ACTIONS" headerClass="w-64 bg-surface-100 opacity-70 font-bold py-2">
                 <template #body="props">
                   <div class="flex gap-4 whitespace-nowrap md:w-auto">
                     <Button

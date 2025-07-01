@@ -18,14 +18,17 @@ import { ItemNumberResponse } from '@/typings/models.types'
 import { useRoute } from 'vue-router'
 import { useRouter } from 'vue-router'
 import { useWbAutoCompleteHandleTrueValue } from '@/composables/wb-ui-components.ts'
-
+import { isAfterOrEqualFromDate, usePrependOrAppendOnce } from '@/utils/helpers.ts'
+import { uniqueItemNumberRuleLocal } from '@/utils/custom-validations.ts'
 const payload = reactive<ItemNumberPayload>({
   number: null,
   date_of_creation: '',
   status: 'Unfilled',
   date_filled_up: '',
   employment_status: '',
+  fund_source: 0,
   fund_source_id: null,
+  position: 0,
   position_id: null,
 })
 
@@ -41,9 +44,20 @@ const formRules = {
   number: {
     required: helpers.withMessage('Item Number is Required', required),
     maxLength: globalStringMaxLengthRule,
+    unique: helpers.withAsync(
+      helpers.withMessage('This Item Number is already taken', uniqueItemNumberRuleLocal(['item-number']))
+    ),
   },
   date_of_creation: {
     required: helpers.withMessage('Date of Creation is Required', required),
+    maxLength: globalStringMaxLengthRule,
+  },
+  date_filled_up: {
+    isAfterOrEqualFromDate: helpers.withMessage(
+      'Date Filled Up should not be earlier than the Date of Creation',
+      isAfterOrEqualFromDate(() => payload.date_of_creation)
+    ),
+    maxLength: globalStringMaxLengthRule,
   },
   employment_status: {
     required: helpers.withMessage('Employment Status is Required', required),
@@ -67,7 +81,6 @@ const errorMessage = ref<string | null>(null)
 const errorDetails = ref<string[]>([])
 const formIsSubmitting = ref(false)
 const showErrorAlert = ref(false)
-const searchQuery = ref('')
 const isLoading = ref(true)
 const IsBeingUpdated = ref(false)
 const toast = useToast()
@@ -81,32 +94,15 @@ const emit = defineEmits<{
   (e: 'item-number-created', value: boolean): void
   (e: 'item-number-updated', value: boolean): void
 }>()
+const getId = usePrependOrAppendOnce('item-numbers')
 
 const employementStatusOptions = [
   { label: 'Permanent', value: 'Permanent' },
   { label: 'Contractual', value: 'Contractual' },
   { label: 'Contract of Service', value: 'Contract of Service' },
   { label: 'Job Order', value: 'Job Order' },
+  { label: 'Casual', value: 'Casual' },
 ]
-
-let lastTimeout: NodeJS.Timeout | number | null = null
-
-const onInputSearch = (event: InputEvent, type: 'position' | 'fundSource') => {
-  const target = event.target as HTMLInputElement
-  searchQuery.value = target.value.trim()
-  lastTimeout = setTimeout(async () => {
-    if (type === 'position') {
-      await publicPositionStore.searchPosition(searchQuery.value)
-    } else if (type === 'fundSource') {
-      await publicFundSourceStore.searchFundSources(searchQuery.value)
-    }
-    lastTimeout = null
-  }, 1000)
-}
-
-onInputSearch.lastTimeout = lastTimeout
-
-onInputSearch.lastTimeout = null
 
 type ItemNumberDetailsFormProps = {
   itemNumber?: ItemNumberResponse
@@ -120,8 +116,29 @@ onMounted(async () => {
       updatePayloadFromReport(response.data as ItemNumberResponse)
     }
   }
+
   isLoading.value = false
 })
+
+watch(
+  () => payload.fund_source_id,
+  (newSelectedItem) => {
+    if (!newSelectedItem) {
+      selectedFundSource.value = null // Corrected to selectedFundingSources
+      return
+    }
+  }
+)
+
+watch(
+  () => payload.position_id,
+  (newSelectedItem) => {
+    if (!newSelectedItem) {
+      selectedPosition.value = null // Corrected to selectedPosition
+      return
+    }
+  }
+)
 
 const isButtonVisible = computed(() => true)
 const handleButtonClick = async () => {
@@ -144,9 +161,25 @@ const updatePayloadFromReport = (itemNumber: ItemNumberResponse | null) => {
   payload.number = itemNumber?.number ?? null
   payload.date_of_creation = itemNumber?.date_of_creation ?? ''
   payload.date_filled_up = itemNumber?.date_filled_up ?? ''
-  payload.fund_source_id = itemNumber?.fund_source_id?.id ?? ''
+  payload.fund_source_id = itemNumber?.fund_source?.id ?? ''
   payload.employment_status = itemNumber?.employment_status ?? ''
-  payload.position_id = itemNumber?.position_id?.id ?? ''
+  payload.position_id = itemNumber?.position?.id ?? ''
+
+  payload.position_id = itemNumber?.position_id ?? null
+
+  selectedFundSource.value = itemNumber?.fund_source
+    ? {
+      label: itemNumber.fund_source.name,
+      value: itemNumber.fund_source.id,
+    }
+    : null
+
+  selectedPosition.value = itemNumber?.position
+    ? {
+      label: itemNumber.position.title,
+      value: itemNumber.position.id,
+    }
+    : null
 }
 
 watch(
@@ -315,6 +348,9 @@ const updateButtonSubmission = async () => {
                 label-class=" text-sm text-surface-600"
                 dateFormat="MM dd, yy"
                 :maxDate="new Date()"
+                :invalid="validator.date_filled_up.$invalid"
+                :invalid-text="validator.date_filled_up.$errors[0]?.$message"
+                @blur="validator.date_filled_up.$touch"
               >
               </WbCalendar>
             </div>
@@ -336,23 +372,29 @@ const updateButtonSubmission = async () => {
             </div>
             <div class="flex w-full flex-col">
               <WbAutoComplete
-                v-model="selectedFundSource"
+                :useApiFilter="true"
+                :apiEndpoint="'/libraries/fund-sources/search'"
                 :suggestions="publicFundSourceStore.fundSourceOptions"
                 :loading="publicFundSourceStore.fundSourceOptionsIsLoading"
+                apiOptionLabel="name"
+                label="Funding"
+                placeholder="Type the Funding"
+                v-model="selectedFundSource"
+                :id="getId('input-funding-sources')"
+                optionLabel="label"
+                optionValue="value"
+                required
+                @on-true-value-computed="
+                  (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
+                    useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'fund_source_id'))
+                "
+                label-class="text-sm text-surface-600 dark:lg:text-surface-200"
+                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                 :invalid="validator.fund_source_id.$invalid"
                 :invalid-text="validator.fund_source_id.$errors[0]?.$message"
                 @blur="validator.fund_source_id.$touch"
-                label="Fund Source"
-                optionLabel="label"
-                optionValue="value"
-                forceSelection
-                @input="onInputSearch($event, 'fundSource')"
-                @on-true-value-computed="
-                  (value: WbAutoCompleteOptionTrueValue) =>
-                    useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'fund_source_id'))
-                "
-                label-class="text-sm text-surface-600"
-                required
+                @focusin="validator.fund_source_id.$dirty = false"
               >
               </WbAutoComplete>
             </div>
@@ -375,22 +417,29 @@ const updateButtonSubmission = async () => {
             </div>
             <div class="flex w-full flex-col">
               <WbAutoComplete
-                v-model="selectedPosition"
+                :useApiFilter="true"
+                :apiEndpoint="'/libraries/positions/search'"
                 :suggestions="publicPositionStore.positionOptions"
                 :loading="publicPositionStore.positionOptionsIsLoading"
+                apiOptionLabel="title"
+                label="Position"
+                placeholder="Type the Position"
+                v-model="selectedPosition"
+                :id="getId('input-positions')"
+                optionLabel="label"
+                optionValue="value"
+                required
+                @on-true-value-computed="
+                  (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
+                    useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'position_id'))
+                "
+                label-class="text-sm text-surface-600 dark:lg:text-surface-200"
+                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                 :invalid="validator.position_id.$invalid"
                 :invalid-text="validator.position_id.$errors[0]?.$message"
                 @blur="validator.position_id.$touch"
-                label="Position"
-                optionLabel="label"
-                optionValue="value"
-                forceSelection
-                @input="onInputSearch($event, 'position')"
-                @on-true-value-computed="
-                  (value: WbAutoCompleteOptionTrueValue) => useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'position_id'))
-                "
-                label-class="text-sm text-surface-600"
-                required
+                @focusin="validator.position_id.$dirty = false"
               >
               </WbAutoComplete>
             </div>

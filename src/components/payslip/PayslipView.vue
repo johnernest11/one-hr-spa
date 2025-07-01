@@ -111,28 +111,7 @@ const updatePayloadFromReport = (payRoll: PayrollResponse | null) => {
         },
         // Employee identifier info
         id_number: payRoll.employee_id.id_number ?? null,
-        item_id: payRoll.employee_id.item_id ?? {
-          id: 0,
-          number: null,
-          date_of_creation: null,
-          status: null,
-          date_filled_up: null,
-          fund_source_id: null,
-          employment_status: null,
-          position_id: {
-            id: 0,
-            title: '',
-            parenthetical_title: null,
-            level: null,
-            created_at: '',
-            updated_at: '',
-            deleted_at: '',
-          },
-          created_at: '',
-          updated_at: '',
-          deleted_at: '',
-        },
-
+        item_id: 0,
         // Salary grade details
         salary_grade_id: payRoll.employee_id.salary_grade_id ?? {
           id: '',
@@ -164,6 +143,30 @@ const updatePayloadFromReport = (payRoll: PayrollResponse | null) => {
           head_user_id: null,
           added_by_user_id: null,
           last_modified_by_user_id: null,
+        },
+        // Item
+        item: payRoll.employee_id.item ?? {
+          id: 0,
+          number: null,
+          date_of_creation: null,
+          status: null,
+          date_filled_up: null,
+          fund_source_id: 0,
+          fund_source: null,
+          employment_status: null,
+          position_id: 0,
+          position: {
+            id: 0,
+            title: '',
+            parenthetical_title: null,
+            level: null,
+            created_at: '',
+            updated_at: '',
+            deleted_at: '',
+          },
+          created_at: '',
+          updated_at: '',
+          deleted_at: '',
         },
       }
     }
@@ -325,7 +328,7 @@ watch(
             </div>
           </div>
           <hr />
-          <div v-if="payload.payroll.employee_id.item_id?.employment_status === 'Permanent'" class="flex flex-col md:flex-row">
+          <div v-if="payload.payroll.employee_id.item?.employment_status === 'Permanent'" class="flex flex-col md:flex-row">
             <div class="md:w-12/12 flex w-full flex-col items-start justify-center gap-0 py-1">
               <p class="ml-56 text-sm font-semibold text-surface-600 md:text-base">ADD ACA/PERA</p>
             </div>

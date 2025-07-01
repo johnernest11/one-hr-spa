@@ -244,7 +244,10 @@ const formRules = () => ({
   period_covered_to: {
     required: helpers.withMessage('Period Covered To is required', required),
     maxLength: helpers.withMessage('', globalStringMaxLengthRule),
-    isAfterOrEqualFromDate: isAfterOrEqualFromDate(() => payload.period_covered_from ?? ''),
+    isAfterOrEqualFromDate: helpers.withMessage(
+      'Period Covered To must be after or equal to  From',
+      isAfterOrEqualFromDate(() => payload.period_covered_from ?? '')
+    ),
   },
   period_request: {
     required: helpers.withMessage('Period Request is required', required),

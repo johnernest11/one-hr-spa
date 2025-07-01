@@ -81,6 +81,20 @@ export const uniqueUserIdentifierRule =
       return res.data.is_available
     }
 
+/**
+ * @description Client-side rule to check for duplicate item numbers (no backend)
+ */
+export const uniqueItemNumberRuleLocal = (
+  existingItemNumbers: string[] // e.g., from store or props
+): ((value: string) => boolean | Promise<boolean>) => {
+  return (value: string) => {
+    if (!value || typeof value !== 'string') return true
+
+    // Check against existing item numbers
+    return !existingItemNumbers.includes(value)
+  }
+}
+
 /** @description Only allow certain file extensions **/
 export const mimeTypeRule = (mimeTypes: string[]) => (value: File) => {
   return mimeTypes.includes(value.type)

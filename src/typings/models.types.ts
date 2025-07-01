@@ -72,9 +72,11 @@ export type ItemNumberResponse = {
   date_of_creation: string | null
   status: string | null
   date_filled_up: string | null
-  fund_source_id: FundSourceResponse | null
+  fund_source_id: number
+  fund_source: FundSourceResponse | null
   employment_status: string | null
-  position_id: PositionResponse | null
+  position_id: number
+  position: PositionResponse | null
 } & ApiResponseData
 
 export type FundSourceResponse = {
@@ -199,6 +201,14 @@ export type PersonnelResponse = {
   employee: PersonnelEmployee | null
 } & ApiResponseData
 
+export type QrCodeResponse = {
+  id: number
+  employee: PersonnelEmployee | null
+  qr_code_value: string | null
+  last_generated_at: string | null
+  is_active: boolean
+} & ApiResponseData
+
 export type PersonnelAddress = {
   id: number
   individual_basic_detail_id: string | null
@@ -239,8 +249,9 @@ export type PersonnelEmployee = {
   id: number | null
   individual_basic_detail_id: PersonnelResponse | null
   id_number: string | null
-  item_id: ItemNumberResponse | null
+  item_id: number | null
   salary_grade_id: SalaryGradeResponse | null
+  position?: string | null
   fund_source?: {
     id: number | null
     name: string | null
@@ -249,6 +260,7 @@ export type PersonnelEmployee = {
   office_id: number | null
   division_id: DivisionResponse | null
   section_or_unit_id: SectionorUnitResponse | null
+  item: ItemNumberResponse | null
 }
 
 export type DailyTimeRecordResponse = {
@@ -287,7 +299,7 @@ export type LeaveApplicationResponse = {
   days_without_pay: string | null
   disapproved_notes: string | null
   dates: Array<LeaveApplicationDateResponse> | null | undefined
-  employee_id: PersonnelResponse | null
+  employee_id: PersonnelEmployee | null
   leave_type_id: LeaveTypeResponse | null
 } & ApiResponseData
 
