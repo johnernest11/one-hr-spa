@@ -684,12 +684,13 @@ const showToast = (
 
 const propPosition = async () => {
   isPositionLoading.value = true
-  const itemResp = await employment.fetchItemNumberById(payload.employee.item_id?.position_id ?? 'null')
-  const itemRespData = itemResp.data as ItemNumberResponse
 
   if (payload.employee.item_id) {
-    payload.employee.item_id.position = itemRespData.position
+    const itemResp = await employment.fetchItemNumberById(payload.employee.item_id)
+    const itemRespData = itemResp.data as ItemNumberResponse
+    payload.employee.position = itemRespData.position?.title ?? null
   }
+
   isPositionLoading.value = false
 }
 
@@ -864,11 +865,7 @@ const c1Tabs = ref([
                     </div>
 
                     <WbInputText
-                      :model-value="
-                        payload.employee.item_id && payload.employee.item_id.position_id && payload.employee.item_id.position
-                          ? payload.employee.item_id.position.title
-                          : ''
-                      "
+                      v-model="payload.employee.position"
                       :id="getId('input-item-position')"
                       label="Position"
                       :loading="isPositionLoading"
