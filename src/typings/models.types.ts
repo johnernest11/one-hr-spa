@@ -291,7 +291,7 @@ export type LeaveApplicationResponse = {
   days_without_pay: string | null
   disapproved_notes: string | null
   dates: Array<LeaveApplicationDateResponse> | null | undefined
-  employee_id: PersonnelResponse | null
+  employee_id: PersonnelEmployee | null
   leave_type_id: LeaveTypeResponse | null
 } & ApiResponseData
 

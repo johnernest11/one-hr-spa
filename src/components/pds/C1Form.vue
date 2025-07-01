@@ -859,6 +859,7 @@ const c1Tabs = ref([
                         @focusin="validator.employee.item_id.$dirty = false"
                       >
                       </WbAutoComplete>
+
                       <RouterLink :to="{ name: 'support', state: { from: 'recruitment' } }" v-tooltip.top="'Add Item Number'">
                         <FontAwesomeIcon icon="fa-solid fa-plus" class="mt-8 text-3xl font-bold text-primary-500" />
                       </RouterLink>
