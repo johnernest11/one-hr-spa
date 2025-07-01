@@ -5,7 +5,6 @@ import { parseApiResponseError } from '@/utils/error-handle.ts'
 import useVuelidate from '@vuelidate/core'
 import { helpers, maxLength, required } from '@vuelidate/validators'
 import WbInputText from '@/components/webkit/WbInputText.vue'
-import WbCalendar from '@/components/webkit/WbCalendar.vue'
 import WbDropdown from '@/components/webkit/WbDropdown.vue'
 import WbTextArea from '../webkit/WbTextArea.vue'
 import Button from 'primevue/button'
@@ -327,10 +326,10 @@ const isSupervisorActive = computed(() => route.name === 'ctdo-report-list/edito
               <font-awesome-icon :icon="['fas', isSupervisorActive ? 'magnifying-glass' : 'check-double']" />
               {{
                 isSupervisorActive
-                  ? 'Viewing Compensatory Time Day Offs (CTDO)'
+                  ? 'Viewing Compensatory Time Day Off (CTDO)'
                   : route.params.id
-                    ? 'Update Compensatory Time Day Offs (CTDO)'
-                    : 'New Compensatory Time Day Offs (CTDO)'
+                    ? 'Update Compensatory Time Day Off (CTDO)'
+                    : 'New Compensatory Time Day Off (CTDO)'
               }}
               <br />
               <span class="ml-10 text-lg text-surface-600 md:text-xl lg:text-2xl">
@@ -414,6 +413,13 @@ const isSupervisorActive = computed(() => route.name === 'ctdo-report-list/edito
 
           <div v-for="(compensatories, index) in payload.rows" :key="index" class="mb-4 flex flex-col md:flex-row">
             <div class="mb-4 ml-0 flex w-full flex-col items-start justify-center gap-2 py-2 pt-8 md:ml-12 md:w-2/12">
+              <WbInputText
+                v-model="compensatories.work_date"
+                label=" Date"
+                placeholder="e.g. 16-17 January 2025 or 1, 3, 4 & 5 January 2025"
+                class="mb-4 w-full"
+                required
+              />
               <div class="flex w-full flex-col gap-2">
                 <WbDropdown
                   :id="'week-' + index"
@@ -426,13 +432,6 @@ const isSupervisorActive = computed(() => route.name === 'ctdo-report-list/edito
                   @change="handleWeekChange()"
                   class="mb-4 w-full"
                   placeholder="Choose a day"
-                  required
-                />
-                <WbCalendar
-                  v-model="compensatories.work_date"
-                  label=" Date"
-                  placeholder="e.g. 16-17 January 2025 or 1, 3, 4 & 5 January 2025"
-                  class="w-full"
                   required
                 />
 

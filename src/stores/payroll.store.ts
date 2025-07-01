@@ -132,6 +132,26 @@ export const usePayRollStore = defineStore('pay-roll', () => {
           added_by_user_id: null,
           last_modified_by_user_id: null,
         },
+        item: {
+          id: 0,
+          number: null,
+          date_of_creation: null,
+          status: null,
+          date_filled_up: null,
+          fund_source_id: 0,
+          fund_source: {
+            id: '',
+            name: '',
+          },
+          employment_status: null,
+          position_id: 0,
+          position: {
+            id: '',
+            title: '',
+            parenthetical_title: null,
+            level: null,
+          },
+        },
       },
     },
   })
