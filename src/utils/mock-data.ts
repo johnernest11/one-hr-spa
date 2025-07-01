@@ -323,7 +323,7 @@ const employee_data = [
   },
   {
     id: 6,
-    individual_basic_detail_id: individual_basic_details[5],
+    individual_basic_detail_id: individual_basic_details[4],
     id_number: 'EMP-2025-006',
     item_id: item_id[1],
     salary_grade_id: mockSalaryGrade,
