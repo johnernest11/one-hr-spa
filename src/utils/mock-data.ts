@@ -1012,10 +1012,7 @@ export const deductionTypes = [
   { id: 12, label: 'Pag-IBIG MPL' },
   { id: 13, label: 'Pag-IBIG Contribution' },
   { id: 14, label: 'Pag-IBIG II' },
-  {
-    id: 15,
-    label: 'Pag-IBIG Cal. Loan',
-  },
+  { id: 15, label: 'Pag-IBIG Cal. Loan' },
   { id: 16, label: 'MBA Contribution' },
   { id: 17, label: 'Pag-IBIG HLoan' },
   { id: 18, label: 'COOP Emergency Loan' },
