@@ -160,23 +160,9 @@ const updatePayloadFromReport = (itemNumber: ItemNumberResponse | null) => {
   payload.number = itemNumber?.number ?? null
   payload.date_of_creation = itemNumber?.date_of_creation ?? ''
   payload.date_filled_up = itemNumber?.date_filled_up ?? ''
-  payload.fund_source_id = itemNumber?.fund_source_id ?? null
+  payload.fund_source_id = itemNumber?.fund_source?.id ?? ''
   payload.employment_status = itemNumber?.employment_status ?? ''
-  payload.position_id = itemNumber?.position_id ?? null
-
-  selectedFundSource.value = itemNumber?.fund_source
-    ? {
-      label: itemNumber.fund_source.name,
-      value: itemNumber.fund_source.id,
-    }
-    : null
-
-  selectedPosition.value = itemNumber?.position
-    ? {
-      label: itemNumber.position.title,
-      value: itemNumber.position.id,
-    }
-    : null
+  payload.position_id = itemNumber?.position?.id ?? ''
 }
 
 watch(
