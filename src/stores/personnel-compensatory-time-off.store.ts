@@ -130,9 +130,23 @@ export const useCompensatoryTimeOffStore = defineStore('personnel-compensatory-t
     return responseBody
   }
 
-  const filterCompensatoryDayTimeOff = async (status: string | null) => {
+  const filterCompensatoryDayTimeOff = async (ctdo_status: string | null, useMock = false) => {
+    if (useMock) {
+      // Filter mock data based on ctdo_status if provided
+      let filteredData = compensatorymockData
+      if (ctdo_status) {
+        filteredData = compensatorymockData.filter((item) => item.ctdo_status === ctdo_status)
+      }
+      // Simulate async behavior
+      await new Promise((resolve) => setTimeout(resolve, 300))
+      // Update your reactive data
+      compensatory.value = [...filteredData]
+      return { success: true, data: filteredData }
+    }
+
+    // Actual API call
     let uri = '/accomplishment-reports'
-    if (status) uri += `?status=${encodeURIComponent(status)}`
+    if (ctdo_status) uri += `?status=${encodeURIComponent(ctdo_status)}`
     const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
     const responseBody: ApiResponseBody = data.value
     if (responseBody.success) {

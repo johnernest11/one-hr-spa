@@ -235,7 +235,12 @@ const exportPdf = async (compensatoryDayTimeOff: PersonnelCompensatoryDayTimeOff
       <div class="mt-6 flex flex-col">
         <div class="w-full">
           <div class="mx-auto flex h-full w-full flex-col">
-            <DataTable :value="compensatoryDayTimeOffStore.compensatory" class="mt-6" dataKey="id">
+            <DataTable
+              :value="compensatoryDayTimeOffStore.compensatory"
+              :loading="compensatoryDayTimeOffIsLoading"
+              class="mt-6"
+              dataKey="id"
+            >
               <Column
                 v-if="isHumanResourceActive"
                 field="period"
@@ -356,7 +361,7 @@ const exportPdf = async (compensatoryDayTimeOff: PersonnelCompensatoryDayTimeOff
           </div>
         </div>
         <div
-          v-if="searchSubmitted && !compensatoryDayTimeOffIsLoading && !compensatoryDayTimeOffStore.compensatory.length"
+          v-if="searchSubmitted && !compensatoryDayTimeOffIsLoading && !compensatoryDayTimeOffStore.accomplishment.length"
           class="flex h-full w-full flex-col items-center justify-center font-menu text-lg dark:text-surface-300"
         >
           <i class="pi pi-exclamation-triangle mb-2 text-2xl"></i>
@@ -421,7 +426,7 @@ const exportPdf = async (compensatoryDayTimeOff: PersonnelCompensatoryDayTimeOff
     <template #header>
       <div class="flex w-full items-center justify-between p-4 pb-0">
         <h1 class="text-xl font-semibold text-surface-600 dark:text-primary-100">
-          <font-awesome-icon :icon="['fas', 'bars-staggered']" class="mr-2" />
+          <font-awesome-icon icon="bars-staggered" class="mr-2" />
           Filter and Field Options
         </h1>
       </div>
