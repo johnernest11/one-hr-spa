@@ -1,5 +1,6 @@
 /** MOCK DATA */
-let mockId = 1
+// Remove the global 'let mockId = 1'
+
 const mockSalaryGrade = {
   id: 1,
   nbc_no: 123,
@@ -395,9 +396,11 @@ const amount_earned_2nd_half = mockSalaryGrade.amount / 2 - total_deductions_2nd
 const amount_earned_whole = amount_earned_1st_half + amount_earned_2nd_half
 
 /* Payroll */
+// Use a local mockId for payrollMockData
+let payrollMockId = 1
 export const payrollMockData = [
   {
-    id: mockId++,
+    id: payrollMockId++,
     period: '2025-05-01, 2025-05-15',
     gross_monthly_salary: mockSalaryGrade.amount.toFixed(2),
     payroll_deduction_id: payrollDeductions(),
@@ -414,7 +417,7 @@ export const payrollMockData = [
     deleted_at: '2025-07-06',
   },
   {
-    id: mockId++,
+    id: payrollMockId++,
     period: '2025-05-16, 2025-05-31',
     gross_monthly_salary: mockSalaryGrade.amount.toFixed(2),
     payroll_deduction_id: payrollDeductions(),
@@ -431,7 +434,7 @@ export const payrollMockData = [
     deleted_at: '2025-07-07',
   },
   {
-    id: mockId++,
+    id: payrollMockId++,
     period: '2025-06-01, 2025-06-15',
     gross_monthly_salary: mockSalaryGrade.amount.toFixed(2),
     payroll_deduction_id: payrollDeductions(),
@@ -448,7 +451,7 @@ export const payrollMockData = [
     deleted_at: '2025-07-08',
   },
   {
-    id: mockId++,
+    id: payrollMockId++,
     period: '2025-06-16, 2025-06-30',
     gross_monthly_salary: mockSalaryGrade.amount.toFixed(2),
     payroll_deduction_id: payrollDeductions(),
@@ -465,7 +468,7 @@ export const payrollMockData = [
     deleted_at: '2025-07-09',
   },
   {
-    id: mockId++,
+    id: payrollMockId++,
     period: '2025-07-01, 2025-07-15',
     gross_monthly_salary: mockSalaryGrade.amount.toFixed(2),
     payroll_deduction_id: payrollDeductions(),
@@ -483,9 +486,11 @@ export const payrollMockData = [
   },
 ]
 /* Compensatory */
+// Use a local mockId for compensatorymockData
+let compensatoryMockId = 1
 export const compensatorymockData = [
   {
-    id: mockId++,
+    id: compensatoryMockId++,
     ctdo_period: '01-31 December 2025',
     ctdo_supervisor_notes: 'Reviewed and approved.',
     ctdo_status: 'for revision',
@@ -531,7 +536,7 @@ export const compensatorymockData = [
     updated_at: '2025-07-01',
   },
   {
-    id: mockId++,
+    id: compensatoryMockId++,
     ctdo_period: '01-31 November 2025',
     ctdo_supervisor_notes: 'Pending approval.',
     ctdo_status: 'for review',
@@ -559,7 +564,7 @@ export const compensatorymockData = [
     updated_at: '2025-07-05',
   },
   {
-    id: mockId++,
+    id: compensatoryMockId++,
     ctdo_period: '01-30 October 2025',
     ctdo_supervisor_notes: 'Requires additional documentation.',
     ctdo_status: 'approved',
@@ -681,9 +686,11 @@ export const applicationLeavemockData = [
   },
 ]
 /* Leave Credits */
+// Use a local mockId for leavecreditsmockData
+let leaveCreditsMockId = 1
 export const leavecreditsmockData = [
   {
-    id: mockId++,
+    id: leaveCreditsMockId++,
     employee_id: employee_data[0],
     type: 'Sick Leave',
     particular: 'Medical ',
@@ -709,7 +716,7 @@ export const leavecreditsmockData = [
     ],
   },
   {
-    id: mockId++,
+    id: leaveCreditsMockId++,
     employee_id: employee_data[1],
     type: 'Vacation Leave',
     particular: 'Family vacation',
@@ -741,7 +748,7 @@ export const leavecreditsmockData = [
     ],
   },
   {
-    id: mockId++,
+    id: leaveCreditsMockId++,
     employee_id: employee_data[2],
     type: 'Sick Leave',
     particular: 'Flu with fever',
@@ -769,9 +776,11 @@ export const leavecreditsmockData = [
 ]
 
 /* Daily Time Records */
+// Use a local mockId for dailyTimeRecordsmockData
+let dailyTimeRecordsMockId = 1
 export const dailyTimeRecordsmockData = [
   {
-    id: 1,
+    id: dailyTimeRecordsMockId++,
     date: '2025-06-05',
     ut: null,
     is_edit_ut: null,
@@ -828,7 +837,7 @@ export const dailyTimeRecordsmockData = [
     updated_at: '2025-07-06',
   },
   {
-    id: 2,
+    id: dailyTimeRecordsMockId++,
     date: '2025-05-10',
     ut: null,
     is_edit_ut: null,
@@ -871,7 +880,7 @@ export const dailyTimeRecordsmockData = [
     updated_at: '2025-07-06',
   },
   {
-    id: 3,
+    id: dailyTimeRecordsMockId++,
     date: '2025-06-07',
     ut: null,
     is_edit_ut: null,
@@ -900,7 +909,7 @@ export const dailyTimeRecordsmockData = [
     updated_at: '2025-07-06',
   },
   {
-    id: 4,
+    id: dailyTimeRecordsMockId++,
     date: '2025-06-15',
     ut: null,
     is_edit_ut: null,
@@ -943,7 +952,7 @@ export const dailyTimeRecordsmockData = [
     updated_at: '2025-07-07',
   },
   {
-    id: 5,
+    id: dailyTimeRecordsMockId++,
     date: '2025-06-20',
     ut: null,
     is_edit_ut: null,
@@ -1003,7 +1012,10 @@ export const deductionTypes = [
   { id: 12, label: 'Pag-IBIG MPL' },
   { id: 13, label: 'Pag-IBIG Contribution' },
   { id: 14, label: 'Pag-IBIG II' },
-  { id: 15, label: 'Pag-IBIG Cal. Loan' },
+  {
+    id: 15,
+    label: 'Pag-IBIG Cal. Loan',
+  },
   { id: 16, label: 'MBA Contribution' },
   { id: 17, label: 'Pag-IBIG HLoan' },
   { id: 18, label: 'COOP Emergency Loan' },
