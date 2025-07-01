@@ -72,9 +72,11 @@ export type ItemNumberResponse = {
   date_of_creation: string | null
   status: string | null
   date_filled_up: string | null
-  fund_source_id: FundSourceResponse | null
+  fund_source_id: number
+  fund_source: FundSourceResponse | null
   employment_status: string | null
-  position_id: PositionResponse | null
+  position_id: number
+  position: PositionResponse | null
 } & ApiResponseData
 
 export type FundSourceResponse = {

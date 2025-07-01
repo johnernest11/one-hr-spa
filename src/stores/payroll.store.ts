@@ -90,9 +90,11 @@ export const usePayRollStore = defineStore('pay-roll', () => {
           date_of_creation: null,
           status: null,
           date_filled_up: null,
-          fund_source_id: null,
+          fund_source_id: 0,
+          fund_source: null,
           employment_status: null,
-          position_id: {
+          position_id: 0,
+          position: {
             id: '',
             title: '',
             parenthetical_title: null,
