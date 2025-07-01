@@ -203,6 +203,7 @@ const employee_data = [
       added_by_user_id: null,
       last_modified_by_user_id: null,
     },
+    item: item_id,
   },
   {
     id: 2,
@@ -231,6 +232,7 @@ const employee_data = [
       added_by_user_id: null,
       last_modified_by_user_id: null,
     },
+    item: item_id,
   },
   {
     id: 3,
@@ -259,6 +261,7 @@ const employee_data = [
       added_by_user_id: null,
       last_modified_by_user_id: null,
     },
+    item: item_id,
   },
   {
     id: 4,
@@ -287,6 +290,7 @@ const employee_data = [
       added_by_user_id: null,
       last_modified_by_user_id: null,
     },
+    item: item_id,
   },
   {
     id: 5,
@@ -315,6 +319,7 @@ const employee_data = [
       added_by_user_id: null,
       last_modified_by_user_id: null,
     },
+    item: item_id,
   },
   {
     id: 6,
@@ -343,6 +348,7 @@ const employee_data = [
       added_by_user_id: null,
       last_modified_by_user_id: null,
     },
+    item: item_id,
   },
 ]
 
