@@ -165,7 +165,7 @@ const employee_data = [
     id: 1,
     individual_basic_detail_id: individual_basic_details[0],
     id_number: 'EMP-2025-001',
-    item_id: item_id, // <-- position_id is inside this object
+    item_id: item_id,
     salary_grade_id: mockSalaryGrade,
     fund_source: {
       id: 1,
