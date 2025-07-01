@@ -85,23 +85,6 @@ export const usePayRollStore = defineStore('pay-roll', () => {
         },
         id_number: null,
         item_id: 0,
-        item: {
-          id: 0,
-          number: null,
-          date_of_creation: null,
-          status: null,
-          date_filled_up: null,
-          fund_source_id: 0,
-          fund_source: null,
-          employment_status: null,
-          position_id: 0,
-          position: {
-            id: '',
-            title: '',
-            parenthetical_title: null,
-            level: null,
-          },
-        },
         salary_grade_id: {
           id: '',
           nbc_no: null,
