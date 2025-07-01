@@ -321,35 +321,6 @@ const employee_data = [
     },
     item: item_id,
   },
-  {
-    id: 6,
-    individual_basic_detail_id: individual_basic_details[4],
-    id_number: 'EMP-2025-006',
-    item_id: item_id[1],
-    salary_grade_id: mockSalaryGrade,
-    fund_source: {
-      id: 2,
-      name: 'Special Education Fund',
-    },
-    agency_employee_no: 'AGY-000128',
-    office_id: 15,
-    division_id: {
-      id: 8,
-      name: 'SUPPLY AND PROCUREMENT DIVISION',
-      head_user_id: null,
-      added_by_user_id: null,
-      last_modified_by_user_id: null,
-    },
-    section_or_unit_id: {
-      id: 10,
-      name: 'SUPPLY SECTION',
-      division_id: null,
-      head_user_id: null,
-      added_by_user_id: null,
-      last_modified_by_user_id: null,
-    },
-    item: item_id,
-  },
 ]
 
 /* Payroll Computation*/
