@@ -175,14 +175,14 @@ const employee_data = [
     office_id: 10,
     division_id: {
       id: 3,
-      name: 'FINANCE AND MANAGEMENT DIVISION',
+      name: 'HUMAN RESOURCE DIVISION',
       head_user_id: null,
       added_by_user_id: null,
       last_modified_by_user_id: null,
     },
     section_or_unit_id: {
       id: 5,
-      name: 'ACCOUNTING SECTION',
+      name: 'PAS SECTION',
       division_id: null,
       head_user_id: null,
       added_by_user_id: null,
