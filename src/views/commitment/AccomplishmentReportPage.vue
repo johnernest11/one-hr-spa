@@ -1,28 +1,49 @@
 <script setup lang="ts">
-import { onBeforeMount, ref, watch, computed } from 'vue'
+import { onBeforeMount, ref, computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { PersonnelAccomplishmentReportResponse } from '@/typings/models.types.ts'
+import { useAccomplishmentReportStore } from '@/stores/personnel-accomplishment-report.store'
+
 import Button from 'primevue/button'
 import Card from 'primevue/card'
 import Chip from 'primevue/chip'
+import Dialog from 'primevue/dialog'
 import Column from 'primevue/column'
 import DataTable from 'primevue/datatable'
 import InputText from 'primevue/inputtext'
 import InputGroup from 'primevue/inputgroup'
+import WbDropdown from '@/components/webkit/WbDropdown.vue'
+
 import Paginator, { PageState } from 'primevue/paginator'
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { ApiResponsePagination } from '@/typings/http-resources.types.ts'
-import { PersonnelAccomplishmentReportResponse } from '@/typings/models.types.ts'
-import { useAccomplishmentReportStore } from '@/stores/personnel-accomplishment-report.store'
-import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { formatDate } from '@/utils/helpers.ts'
-import { useRoute } from 'vue-router'
 
 const accomplishmentReportStore = useAccomplishmentReportStore()
 const router = useRouter()
+const route = useRoute()
 const toast = useToast()
+
 const accomplishmentReportIsLoading = ref(false)
+const showModal = ref(false)
+const searchSubmitted = ref(false)
 const paginationLimit = 5
 
-const route = useRoute()
+const searchQuery = ref<string | null>(null)
+const selectedStatus = ref<string | null>(null)
+const pagination = ref<ApiResponsePagination | null>(null)
+const isSupervisorView = computed(() => route.name === 'accomplishment-report-list')
+
+onBeforeMount(async () => {
+  accomplishmentReportIsLoading.value = true
+  const response = await accomplishmentReportStore.fetchAccomplishment(paginationLimit)
+  if (response.success && response.pagination) {
+    pagination.value = response.pagination
+  }
+  accomplishmentReportIsLoading.value = false
+})
+
 const navigateToDetails = (accomplishmentReport: PersonnelAccomplishmentReportResponse) => {
   if (!accomplishmentReport || !accomplishmentReport.id) {
     console.error('Cannot navigate to details: accomplishmentRepor or ID is undefined', accomplishmentReport)
@@ -42,16 +63,14 @@ const navigateToDetails = (accomplishmentReport: PersonnelAccomplishmentReportRe
     },
   })
 }
-onBeforeMount(async () => {
-  accomplishmentReportIsLoading.value = true
-  const response = await accomplishmentReportStore.fetchAccomplishment(paginationLimit)
-  if (response.success && response.pagination) {
-    pagination.value = response.pagination
-  }
-  accomplishmentReportIsLoading.value = false
-})
-/** Pagination */
-const pagination = ref<ApiResponsePagination | null>(null)
+
+const statusOptions = ref([
+  { label: 'Draft', value: 'draft' },
+  { label: 'For Review', value: 'done' },
+  { label: 'For Revision', value: 'for revision' },
+  { label: 'Approved', value: 'approved' },
+])
+
 const fetchAccomplishmentsBasedOnContext = async (page = 1) => {
   accomplishmentReportIsLoading.value = true
   const statusFilter = isSupervisorView.value ? 'done' : undefined
@@ -68,24 +87,9 @@ const handlePaginationPageChange = async (event: PageState) => {
   await fetchAccomplishmentsBasedOnContext(event.page + 1)
 }
 
-/** Search and Filters */
-const roleFilter = ref<number | null>(null)
-const searchQuery = ref<string | null>(null)
-watch(
-  () => roleFilter.value,
-  async () => {
-    accomplishmentReportIsLoading.value = true
-    searchQuery.value = null
-    const response = await accomplishmentReportStore.fetchAccomplishment(paginationLimit)
-    if (response.success && response.pagination) {
-      pagination.value = response.pagination
-    }
-    accomplishmentReportIsLoading.value = false
-  }
-)
-
 const handleSearchAccomplishmentReport = async () => {
   accomplishmentReportIsLoading.value = true
+  searchSubmitted.value = true
   if (!searchQuery.value) {
     const response = await accomplishmentReportStore.fetchAccomplishment(paginationLimit)
     if (response.success && response.pagination) {
@@ -100,6 +104,26 @@ const handleSearchAccomplishmentReport = async () => {
     searchQuery.value = null
   }
   accomplishmentReportIsLoading.value = false
+}
+
+const handleFilterAccomplishmentReport = async () => {
+  accomplishmentReportIsLoading.value = true
+  if (!selectedStatus.value) {
+    const response = await accomplishmentReportStore.fetchAccomplishment(paginationLimit) // 5 = pagination limit
+    if (response.success && response.pagination) {
+      pagination.value = response.pagination
+    }
+    return (accomplishmentReportIsLoading.value = false)
+  }
+
+  const response = await accomplishmentReportStore.filterAccomplishment(selectedStatus.value)
+  if (response.success && response.pagination) {
+    pagination.value = response.pagination
+    searchQuery.value = null
+  }
+
+  accomplishmentReportIsLoading.value = false
+  showModal.value = false
 }
 
 const exportToFile = async (accomplishmentReport: PersonnelAccomplishmentReportResponse) => {
@@ -131,8 +155,6 @@ const exportToFile = async (accomplishmentReport: PersonnelAccomplishmentReportR
     })
   }
 }
-
-const isSupervisorView = computed(() => route.name === 'accomplishment-report-list')
 </script>
 <template>
   <div class="flex h-full w-full flex-col shadow-md">
@@ -155,11 +177,11 @@ const isSupervisorView = computed(() => route.name === 'accomplishment-report-li
               size="large"
               class="mr-2 border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100 sm:text-primary-400 md:text-primary-400 lg:text-primary-400 dark:lg:text-primary-400"
               text
-              @click="$router.push({ name: 'sign-up' })"
+              @click="showModal = true"
             />
             <RouterLink :to="{ name: 'accomplishment-reports/store' }">
               <Button
-                v-if="isSupervisorView"
+                v-if="!isSupervisorView"
                 icon="pi pi-plus"
                 v-tooltip.top="'Create Accomplishments'"
                 severity="info"
@@ -193,12 +215,15 @@ const isSupervisorView = computed(() => route.name === 'accomplishment-report-li
       <div class="mt-6 flex flex-col">
         <!-- Show Table if tableData has items -->
         <div
-          v-if="
-            accomplishmentReportStore.accomplishmentReportArray && accomplishmentReportStore.accomplishmentReportArray.length > 0
-          "
+          v-if="accomplishmentReportStore.accomplishment && accomplishmentReportStore.accomplishment.length > 0"
           class="mx-auto flex h-full w-full flex-col"
         >
-          <DataTable :value="accomplishmentReportStore.accomplishmentReportArray" class="mt-6" dataKey="id">
+          <DataTable
+            :value="accomplishmentReportStore.accomplishment"
+            :loading="accomplishmentReportIsLoading"
+            class="mt-6"
+            dataKey="id"
+          >
             <Column
               field="period"
               header="Accomplishment Period"
@@ -284,9 +309,20 @@ const isSupervisorView = computed(() => route.name === 'accomplishment-report-li
           </div>
           <!-- End Pagination -->
         </div>
+
+        <div
+          v-if="searchSubmitted && !accomplishmentReportIsLoading && !accomplishmentReportStore.accomplishment.length"
+          class="flex h-full w-full flex-col items-center justify-center font-menu text-lg dark:text-surface-300"
+        >
+          <i class="pi pi-exclamation-triangle mb-2 text-2xl"></i>
+          <p>No items found</p>
+        </div>
         <!-- End Data Table -->
         <!-- Show "No Accomplishment Report" message if tableData is empty -->
-        <div v-if="!accomplishmentReportIsLoading && !pagination?.total" class="mx-auto flex h-full w-full flex-col">
+        <div
+          v-if="!accomplishmentReportIsLoading && !pagination?.total && !searchSubmitted"
+          class="mx-auto flex h-full w-full flex-col"
+        >
           <Card class="w-full p-0 shadow-none">
             <template #content>
               <div class="flex flex-col items-center sm:flex-col md:flex-col">
@@ -320,4 +356,72 @@ const isSupervisorView = computed(() => route.name === 'accomplishment-report-li
       </div>
     </div>
   </div>
+  <Dialog
+    v-model:visible="showModal"
+    :modal="false"
+    closable
+    :dismissableMask="true"
+    :position="'right'"
+    :style="{ width: '20vw', maxWidth: '600px', minWidth: '320px' }"
+    :breakpoints="{ '1199px': '75vw', '575px': '90vw' }"
+    :pt="{
+      root: {
+        class: 'relative w-full h-full flex flex-col bg-white shadow-lg',
+      },
+    }"
+  >
+    <!-- Header -->
+    <template #header>
+      <div class="flex w-full items-center justify-between p-4 pb-0">
+        <h1 class="text-xl font-semibold text-surface-600 dark:text-primary-100">
+          <font-awesome-icon :icon="['fas', 'bars-staggered']" class="mr-2" />
+          Filter and Field Options
+        </h1>
+      </div>
+    </template>
+    <!-- Scrollable Content (space reserved for footer height) -->
+    <div class="flex-1 overflow-auto px-4 pb-24">
+      <h2 class="mb-2 mt-4 text-sm font-medium text-surface-500 dark:text-primary-100">Filters</h2>
+      <div class="mb-4">
+        <WbDropdown
+          v-model="selectedStatus"
+          :options="statusOptions"
+          optionLabel="label"
+          optionValue="value"
+          label="Status"
+          placeholder="Select Status"
+          label-class="text-sm text-start text-surface-600"
+        />
+      </div>
+    </div>
+    <!-- Fixed Footer (inside dialog container) -->
+    <div
+      class="absolute bottom-0 left-0 right-0 border-t border-surface-300 bg-surface-0 px-4 py-3 dark:border-surface-700 dark:bg-surface-900"
+    >
+      <div class="flex flex-col items-center justify-center gap-2 sm:flex-row">
+        <Button
+          label="Cancel"
+          class="dark:text-secondary-100 w-full border border-surface-400 px-4 py-2 text-surface-500 dark:border-surface-700"
+          @click="showModal = false"
+          text
+        >
+          <template #icon>
+            <i class="pi pi-ban mr-2 text-lg"></i>
+          </template>
+        </Button>
+        <Button
+          :loading="accomplishmentReportIsLoading"
+          :disabled="accomplishmentReportIsLoading"
+          @click="handleFilterAccomplishmentReport"
+          label="Apply"
+          class="dark:text-secondary-100 w-full border border-primary-500 px-4 py-3 text-primary-600 dark:border-surface-700"
+          text
+        >
+          <template #icon>
+            <font-awesome-icon :icon="['fas', 'check']" class="mr-2 text-lg" />
+          </template>
+        </Button>
+      </div>
+    </div>
+  </Dialog>
 </template>
