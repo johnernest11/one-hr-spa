@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeMount, ref, computed } from 'vue'
+import { onBeforeMount, ref, computed, watchEffect } from 'vue'
 import { TransitionRoot } from '@headlessui/vue'
 import Button from 'primevue/button'
 import Menu from 'primevue/menu'
@@ -8,10 +8,14 @@ import InputText from 'primevue/inputtext'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import Column from 'primevue/column'
 import DataTable from 'primevue/datatable'
+import Dialog from 'primevue/dialog'
+import QRCodeStyling from 'qr-code-styling'
 import { ApiResponsePagination } from '@/typings/http-resources.types.ts'
 import { useAuthStore } from '@/stores/auth.store.ts'
 import { usePersonnelStore } from '@/stores/personnel.store'
-import { sleep } from '@/utils/helpers'
+import DSWDLogo from '@/assets/image/DSWD logo_Mark.png'
+import type { PersonnelResponse, QrCodeResponse } from '@/typings/models.types'
+import type { ApiResponseBody } from '@/typings/http-resources.types.ts'
 const personnelStore = usePersonnelStore()
 
 const columnWidths = ['w-32', 'w-24', 'w-64', 'w-24', 'w-40', 'w-32', 'w-48']
@@ -28,21 +32,22 @@ const items = ref([
       {
         label: 'via PDS Importation',
         mode: 'via-pds-importation',
-        to: 'dashboard' /** abang */,
+        to: 'dashboard',
       },
     ],
   },
 ])
+
 const pagination = ref<ApiResponsePagination | null>(null)
 
 onBeforeMount(async () => {
-  await sleep(1)
   const response = await personnelStore.fetchEmployees()
   if (response.success && response.pagination) {
     pagination.value = response.pagination
   }
   personnelStore.isEmployeesLoading = false
 })
+
 const authStore = useAuthStore()
 
 const canCreateNewEmployee = computed(() => {
@@ -54,7 +59,122 @@ const toggleAddingList = (event: Event) => {
 }
 
 const handleSearchEmployee = () => {
-  console.log(123)
+  console.log('Searching for:', searchQuery.value)
+}
+
+const showQrModal = ref(false)
+const selectedEmployeeForQr = ref() // @todo Update this back to PersonnelResponse once the typings for it has been fixed.
+const fetchedQrCode = ref<QrCodeResponse | null>(null)
+const qrCodeIsLoading = ref(false)
+
+const openQrModal = async (employee: PersonnelResponse) => {
+  selectedEmployeeForQr.value = employee
+  showQrModal.value = true
+  fetchedQrCode.value = null
+  fetchedQrCode.value = await handleViewQr(employee)
+}
+
+const handleViewQr = async (employee: PersonnelResponse): Promise<QrCodeResponse> => {
+  let response: ApiResponseBody
+  qrCodeIsLoading.value = true
+  response = await personnelStore.fetchQrCode(employee.id)
+
+  if (response.error_message === 'Employee has no QR code yet.' && !response.success) {
+    response = await personnelStore.generateQrCode(employee.id)
+  }
+
+  personnelStore.isEmployeesLoading = false
+  qrCodeIsLoading.value = false
+  return response.data as QrCodeResponse
+}
+
+const qrContainerRef = ref<HTMLElement | null>(null)
+let qrCode: QRCodeStyling | null = null
+
+const closeQrModal = () => {
+  showQrModal.value = false
+  selectedEmployeeForQr.value = null
+  fetchedQrCode.value = null
+
+  if (qrContainerRef.value) {
+    qrContainerRef.value.innerHTML = ''
+  }
+  qrCode = null
+}
+
+watchEffect(() => {
+  if (showQrModal.value && qrContainerRef.value && fetchedQrCode.value?.qr_code_value) {
+    if (!qrCode) {
+      qrCode = new QRCodeStyling({
+        width: 350,
+        height: 350,
+        type: 'canvas',
+        data: fetchedQrCode.value?.qr_code_value,
+        image: DSWDLogo,
+        dotsOptions: {
+          color: '#000000',
+          type: 'extra-rounded',
+        },
+        backgroundOptions: {
+          color: '#FFFFFF',
+        },
+        imageOptions: {
+          crossOrigin: 'anonymous',
+          margin: 5,
+        },
+        qrOptions: {
+          errorCorrectionLevel: 'H',
+        },
+        cornersSquareOptions: {
+          type: 'extra-rounded',
+          color: '#000000',
+        },
+        cornersDotOptions: {
+          type: 'extra-rounded',
+          color: '#000000',
+        },
+      })
+      qrCode.append(qrContainerRef.value)
+    } else {
+      qrCode.update({
+        data: fetchedQrCode.value?.qr_code_value,
+        image: DSWDLogo,
+        dotsOptions: {
+          type: 'extra-rounded',
+        },
+        cornersSquareOptions: {
+          type: 'extra-rounded',
+          color: '#000000',
+        },
+        cornersDotOptions: {
+          type: 'extra-rounded',
+          color: '#000000',
+        },
+      })
+    }
+  }
+})
+
+const formatName = (first_name: string, middle_name: string, last_name: string) => {
+  const f = first_name?.charAt(0).toLowerCase() || ''
+  const m = middle_name?.charAt(0).toLowerCase() || ''
+  const l = last_name?.toLowerCase() || ''
+
+  return `${f}${m}${l}`
+}
+
+const downloadQrCode = async () => {
+  if (qrCode && selectedEmployeeForQr.value) {
+    const formattedName = formatName(
+      selectedEmployeeForQr.value.first_name,
+      selectedEmployeeForQr.value.middle_name,
+      selectedEmployeeForQr.value.last_name
+    )
+    await qrCode.download({
+      name: `${formattedName}-QR`,
+      extension: 'png',
+    })
+  }
 }
 </script>
 
@@ -115,98 +235,108 @@ const handleSearchEmployee = () => {
             leaveFrom="opacity-100"
             leaveTo="opacity-0"
           >
-            <div
-              class="flex flex-row items-center space-x-4 font-medium text-primary-700 dark:text-primary-100 md:ml-4 md:mt-2 md:flex-row"
-            >
-              <FontAwesomeIcon :icon="['fas', 'users']" class="text-2xl md:text-4xl" />
-              <span class="flex flex-col justify-center">
-                <p class="text-xl md:text-3xl">Employees</p>
-              </span>
-
-              <div class="flex w-full items-center justify-end gap-4">
-                <div class="flex space-x-2 whitespace-nowrap md:w-auto">
-                  <Button
-                    icon="pi pi-filter-fill"
-                    v-tooltip.top="'Filter Item'"
-                    severity="info"
-                    size="large"
-                    class="border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100"
-                    text
-                  />
-                  <Button
-                    icon="pi pi-plus"
-                    v-tooltip.top="'New Employee'"
-                    severity="info"
-                    size="large"
-                    class="border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100"
-                    text
-                    @click="toggleAddingList"
-                  />
-                  <Menu ref="menu" id="overlay_menu" :model="items" :popup="true">
-                    <template #item="{ item }">
-                      <RouterLink :to="{ name: item.to, query: { mode: item.mode } }">
-                        <span class="ml-2">{{ item.label }}</span>
-                      </RouterLink>
-                    </template>
-                  </Menu>
-                </div>
-                <div class="flex w-full md:w-auto lg:w-1/2">
-                  <InputGroup v-model="searchQuery" class="w-full">
-                    <InputText
-                      v-model="searchQuery"
-                      placeholder="Search Item Number"
-                      class="w-full"
-                      :disabled="personnelStore.isEmployeesLoading"
-                      @keyup.enter="handleSearchEmployee"
-                    />
-                    <Button icon="pi pi-search" @click="handleSearchEmployee" />
-                  </InputGroup>
-                </div>
-              </div>
-            </div>
-            <DataTable :value="personnelStore.employees" stripedRows class="mt-24" dataKey="id">
-              <Column headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2">
-                <template #header>
-                  <div>
-                    Name <br />
-                    Item Number
-                  </div>
-                </template>
-                <template #body="props">
-                  <p class="font-semibold uppercase text-surface-500">
-                    {{ props.data.first_name }} {{ props.data.middle_name ?? null }} {{ props.data.last_name }}
-                    {{ props.data.ext_name ?? null }}
-                  </p>
-                  <p class="font-semibold uppercase text-surface-500">
-                    {{ props.data.employee.item.number }}
-                  </p>
-                </template>
-              </Column>
-              <Column
-                field="employee.item.position.title"
-                header="Position / Designation"
-                headerClass=" w-80 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
+            <div>
+              <div
+                class="flex flex-row items-center space-x-4 font-medium text-primary-700 dark:text-primary-100 md:ml-4 md:mt-2 md:flex-row"
               >
-              </Column>
-              <Column
-                field="individual_contact_info.email_address"
-                header="Email Address"
-                headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
-              ></Column>
-              <Column field="action" header="Actions" headerClass="w-64 bg-surface-100 opacity-70 font-bold py-2">
-                <template #body="">
-                  <div class="flex gap-4 whitespace-nowrap md:w-auto">
+                <FontAwesomeIcon icon="fa-solid fa-users" class="text-2xl md:text-4xl" />
+                <span class="flex flex-col justify-center">
+                  <p class="text-xl md:text-3xl">Employees</p>
+                </span>
+
+                <div class="flex w-full items-center justify-end gap-4">
+                  <div class="flex space-x-2 whitespace-nowrap md:w-auto">
                     <Button
-                      icon="pi pi-eye"
-                      v-tooltip.top="'View Employee'"
+                      icon="pi pi-filter-fill"
+                      v-tooltip.top="'Filter Item'"
                       severity="info"
-                      class="border-none text-lg font-semibold text-primary-600 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
+                      size="large"
+                      class="border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100"
                       text
                     />
+                    <Button
+                      icon="pi pi-plus"
+                      v-tooltip.top="'New Employee'"
+                      severity="info"
+                      size="large"
+                      class="border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100"
+                      text
+                      @click="toggleAddingList"
+                    />
+                    <Menu ref="menu" id="overlay_menu" :model="items" :popup="true">
+                      <template #item="{ item }">
+                        <RouterLink :to="{ name: item.to, query: { mode: item.mode } }">
+                          <span class="ml-2">{{ item.label }}</span>
+                        </RouterLink>
+                      </template>
+                    </Menu>
                   </div>
-                </template>
-              </Column>
-            </DataTable>
+                  <div class="flex w-full md:w-auto lg:w-1/2">
+                    <InputGroup v-model="searchQuery" class="w-full">
+                      <InputText
+                        v-model="searchQuery"
+                        placeholder="Search Item Number"
+                        class="w-full"
+                        :disabled="personnelStore.isEmployeesLoading"
+                        @keyup.enter="handleSearchEmployee"
+                      />
+                      <Button icon="pi pi-search" @click="handleSearchEmployee" />
+                    </InputGroup>
+                  </div>
+                </div>
+              </div>
+              <DataTable :value="personnelStore.employees" stripedRows class="mt-24" dataKey="id">
+                <Column headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2">
+                  <template #header>
+                    <div>
+                      Name <br />
+                      Item Number
+                    </div>
+                  </template>
+                  <template #body="props">
+                    <p class="font-semibold uppercase text-surface-500">
+                      {{ props.data.first_name }} {{ props.data.middle_name ?? null }} {{ props.data.last_name }}
+                      {{ props.data.ext_name ?? null }}
+                    </p>
+                    <p class="font-semibold uppercase text-surface-500">
+                      {{ props.data.employee.item.number }}
+                    </p>
+                  </template>
+                </Column>
+                <Column
+                  field="employee.item.position.title"
+                  header="Position / Designation"
+                  headerClass=" w-80 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
+                >
+                </Column>
+                <Column
+                  field="individual_contact_info.email_address"
+                  header="Email Address"
+                  headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
+                ></Column>
+                <Column field="action" header="Actions" headerClass="w-64 bg-surface-100 opacity-70 font-bold py-2">
+                  <template #body="props">
+                    <div class="flex gap-4 whitespace-nowrap md:w-auto">
+                      <Button
+                        icon="pi pi-eye"
+                        v-tooltip.top="'View Employee'"
+                        severity="info"
+                        class="border-none text-lg font-semibold text-primary-600 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
+                        text
+                      />
+                      <Button
+                        icon="pi pi-qrcode"
+                        v-tooltip.top="'Generate QR Code'"
+                        severity="info"
+                        class="border-none text-lg font-semibold text-primary-600 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
+                        text
+                        @click="openQrModal(props.data)"
+                      />
+                    </div>
+                  </template>
+                </Column>
+              </DataTable>
+            </div>
           </TransitionRoot>
         </template>
       </template>
@@ -236,4 +366,68 @@ const handleSearchEmployee = () => {
       </template>
     </div>
   </div>
+
+  <Dialog
+    v-model:visible="showQrModal"
+    modal
+    :draggable="false"
+    :dismissableMask="true"
+    :closable="false"
+    class="w-[90vw] max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800"
+    :pt="{
+      mask: {
+        style: 'backdrop-filter: blur(4px)',
+      },
+    }"
+  >
+    <template #container="{}">
+      <div class="rounded-lg bg-white p-6 dark:bg-gray-800">
+        <div class="mb-4 flex items-center justify-between">
+          <h2 class="text-xl font-semibold text-gray-500 dark:text-white">
+            <FontAwesomeIcon icon="fa-solid fa-qrcode" /> QR CODE Generation
+          </h2>
+          <button @click="closeQrModal" class="text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-500">
+            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+
+        <div v-if="selectedEmployeeForQr" class="text-left">
+          <div class="mb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div class="text-center md:w-1/2 md:text-left">
+              <p class="text-lg font-bold uppercase text-gray-500 dark:text-white">
+                {{ selectedEmployeeForQr.last_name }}, {{ selectedEmployeeForQr.first_name }}
+                {{ selectedEmployeeForQr.middle_name ? selectedEmployeeForQr.middle_name + ' ' : '' }}
+                {{ selectedEmployeeForQr.ext_name ? selectedEmployeeForQr.ext_name : '' }}
+              </p>
+              <p class="text-sm text-gray-600 dark:text-gray-300">
+                {{ selectedEmployeeForQr.employee?.item?.position?.title || '' }}
+              </p>
+              <p class="text-sm text-gray-600 dark:text-gray-300">
+                {{ selectedEmployeeForQr.employee?.item?.number || '' }}
+              </p>
+            </div>
+            <div class="font-semibold md:w-1/2">
+              <Button
+                @click="downloadQrCode"
+                severity="info"
+                type="button"
+                size="large"
+                class="dark:text-secondary-100 bottom-0 right-0 mt-4 w-full border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+                text
+              >
+                <FontAwesomeIcon icon="fa-solid fa-download" class="mr-2" /> Download QR Code
+              </Button>
+            </div>
+          </div>
+
+          <div ref="qrContainerRef" v-if="!qrCodeIsLoading" class="my-6 flex justify-center"></div>
+          <div v-if="qrCodeIsLoading" class="my-6 flex justify-center">
+            <i class="pi pi-spinner animate-spin text-2xl text-surface-400" />
+          </div>
+        </div>
+      </div>
+    </template>
+  </Dialog>
 </template>
