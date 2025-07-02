@@ -361,7 +361,7 @@ const exportPdf = async (compensatoryDayTimeOff: PersonnelCompensatoryDayTimeOff
           </div>
         </div>
         <div
-          v-if="searchSubmitted && !compensatoryDayTimeOffIsLoading && !compensatoryDayTimeOffStore.accomplishment.length"
+          v-if="searchSubmitted && !compensatoryDayTimeOffIsLoading && !compensatoryDayTimeOffStore.compensatory.length"
           class="flex h-full w-full flex-col items-center justify-center font-menu text-lg dark:text-surface-300"
         >
           <i class="pi pi-exclamation-triangle mb-2 text-2xl"></i>

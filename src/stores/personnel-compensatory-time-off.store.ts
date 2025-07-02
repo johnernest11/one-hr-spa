@@ -145,8 +145,8 @@ export const useCompensatoryTimeOffStore = defineStore('personnel-compensatory-t
     }
 
     // Actual API call
-    let uri = '/accomplishment-reports'
-    if (ctdo_status) uri += `?status=${encodeURIComponent(ctdo_status)}`
+    let uri = '/compensatory-day-time-offs'
+    if (ctdo_status) uri += `?ctdo_status=${encodeURIComponent(ctdo_status)}`
     const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
     const responseBody: ApiResponseBody = data.value
     if (responseBody.success) {
