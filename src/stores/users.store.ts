@@ -5,9 +5,10 @@ import { UserResponse } from '@/typings/models.types.ts'
 import { ApiResponseBody } from '@/typings/http-resources.types.ts'
 import { ref } from 'vue'
 import { useDateFormat } from '@vueuse/core'
-
+import { WbAutoCompleteOption } from '@/components/webkit/WbAutoComplete.vue'
 /** Typings */
 export type UserPayload = {
+  name: string
   email: string
   password: string
   password_confirmation: string
@@ -32,13 +33,14 @@ export type UserPayload = {
 
 export const useUsersStore = defineStore('users', () => {
   const authStore = useAuthStore()
-
+  const employeeOptions = ref<WbAutoCompleteOption[]>([])
+  const employeeOptionsLoading = ref(false)
   /** States */
   const users = ref<UserResponse[]>([])
 
   /** Actions */
   const fetchUsers = async (roleFilter: string | number | null = null, limit: number = 15, page: number | null = null) => {
-    let uri = `/users?limit=${limit}&sort=desc&`
+    let uri = `/users?limit=${limit}&sort=asc`
     if (roleFilter) uri += `role=${roleFilter}&`
     if (page) uri += `page=${page}`
 
@@ -123,6 +125,8 @@ export const useUsersStore = defineStore('users', () => {
 
   return {
     users,
+    employeeOptions,
+    employeeOptionsLoading,
     fetchUsers,
     searchUsers,
     createUser,

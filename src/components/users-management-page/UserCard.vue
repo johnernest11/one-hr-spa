@@ -36,7 +36,7 @@ const toggleUserDetailsDialog = () => (showUserDetailsDialog.value = !showUserDe
     <!-- End Avatar -->
     <!-- Start Name -->
     <p class="mt-16 text-center font-menu font-bold text-primary-600 dark:text-primary-400">
-      {{ props.user.user_profile?.full_name }}
+      {{ props.user.name }}
     </p>
     <!-- End Name -->
     <!-- Start Email -->
@@ -44,7 +44,12 @@ const toggleUserDetailsDialog = () => (showUserDetailsDialog.value = !showUserDe
     <!-- End Email -->
     <!-- Start Role Tags -->
     <div class="mt-2.5 flex w-full flex-wrap justify-center gap-2">
-      <Tag class="bg-surface-500" v-for="role in user.roles" :key="role.id">{{ snakeCaseToTitleCase(role.name) }}</Tag>
+      <template v-if="user.roles && user.roles.length > 0">
+        <Tag class="bg-surface-500" v-for="role in user.roles" :key="role.id">
+          {{ snakeCaseToTitleCase(role.name) }}
+        </Tag>
+      </template>
+      <div v-else class="text-gray-500"><Tag class="!bg-warn-400"> Not Yet Activated </Tag></div>
     </div>
     <!-- End Role Tags -->
 
