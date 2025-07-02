@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { onBeforeMount, ref, watch, computed } from 'vue'
+import { onBeforeMount, ref, computed, toRef } from 'vue'
+import { useLibrariesStore } from '@/stores/libraries.store'
+import { useCompensatoryTimeOffStore } from '@/stores/personnel-compensatory-time-off.store.ts'
+import { PersonnelCompensatoryDayTimeOffResponse } from '@/typings/models.types.ts'
+import { useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
+import { formatDate } from '@/utils/helpers'
+
 import Button from 'primevue/button'
 import Chip from 'primevue/chip'
 import Card from 'primevue/card'
@@ -7,22 +14,61 @@ import Column from 'primevue/column'
 import DataTable from 'primevue/datatable'
 import InputText from 'primevue/inputtext'
 import InputGroup from 'primevue/inputgroup'
-import Paginator, { PageState } from 'primevue/paginator'
-import { ApiResponsePagination } from '@/typings/http-resources.types.ts'
-import { PersonnelCompensatoryDayTimeOffResponse } from '@/typings/models.types.ts'
-import { useCompensatoryTimeOffStore } from '@/stores/personnel-compensatory-time-off.store.ts'
-import { useRouter } from 'vue-router'
-import { useToast } from 'primevue/usetoast'
-import { useRoute } from 'vue-router'
+import Dialog from 'primevue/dialog'
+import WbDropdown from '@/components/webkit/WbDropdown.vue'
+import WbAutoComplete, { WbAutoCompleteOption, WbAutoCompleteOptionTrueValue } from '@/components/webkit/WbAutoComplete.vue'
 
+import { useWbAutoCompleteHandleTrueValue } from '@/composables/wb-ui-components'
+import { ApiResponsePagination } from '@/typings/http-resources.types.ts'
+import Paginator, { PageState } from 'primevue/paginator'
+import { usePrependOrAppendOnce } from '@/utils/helpers'
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
+import { useToast } from 'primevue/usetoast'
+
+const compensatoryDayTimeOffStore = useCompensatoryTimeOffStore()
+const libraryStore = useLibrariesStore()
+const getId = usePrependOrAppendOnce('compensatory-timeday-off')
+const isHumanResourceActive = computed(() => {
+  const routeName = route.name
+  return routeName === 'ctdo-report-list' || routeName === 'staff-ctdos'
+})
+
+const selectedDivision = ref<WbAutoCompleteOption[] | null>(null)
+const selectedSectionUnit = ref<WbAutoCompleteOption[] | null>(null)
+const selectedPositions = ref<WbAutoCompleteOption[] | null>(null)
+const selectedStatus = ref<string | null>(null)
+const pagination = ref<ApiResponsePagination | null>(null)
+const searchQuery = ref<string | null>(null)
+
+const compensatoryDayTimeOffIsLoading = ref(false)
+const searchSubmitted = ref(false)
+const showModal = ref(false)
+const toast = useToast()
 const router = useRouter()
+const route = useRoute()
+const paginationLimit = 5
+
+const employementStatusOptions = ref([
+  { label: 'Permanent', value: 'Permanent' },
+  { label: 'Contractual', value: 'Contractual' },
+  { label: 'Contract of Service', value: 'Contract of Service' },
+  { label: 'Job Order', value: 'Job Order' },
+])
+
+const statusOptions = ref([
+  { label: 'Draft', value: 'draft' },
+  { label: 'For Review', value: 'done' },
+  { label: 'For Revision', value: 'for revision' },
+  { label: 'Approved', value: 'approved' },
+])
+
 const navigateToDetails = (compensatoryTimeOff: PersonnelCompensatoryDayTimeOffResponse) => {
   if (!compensatoryTimeOff || !compensatoryTimeOff.id) {
     console.error('Cannot navigate to details: Compensatory Day Time Offs or ID is undefined', compensatoryTimeOff)
     return
   }
   let targetRouteName
-  if (isSupervisorActive.value) {
+  if (isHumanResourceActive.value) {
     targetRouteName = 'ctdo-report-list/editor'
   } else {
     targetRouteName = 'ctdo-reports/editor'
@@ -36,10 +82,6 @@ const navigateToDetails = (compensatoryTimeOff: PersonnelCompensatoryDayTimeOffR
   })
 }
 
-const compensatoryDayTimeOffStore = useCompensatoryTimeOffStore()
-
-const compensatoryDayTimeOffIsLoading = ref(false)
-const paginationLimit = 5
 onBeforeMount(async () => {
   compensatoryDayTimeOffIsLoading.value = true
   const response = await compensatoryDayTimeOffStore.fetchCompensatoryDayTimeOff(paginationLimit)
@@ -49,11 +91,9 @@ onBeforeMount(async () => {
   compensatoryDayTimeOffIsLoading.value = false
 })
 
-const pagination = ref<ApiResponsePagination | null>(null)
-
 const fetchCompensatoryBasedOnContext = async (page = 1) => {
   compensatoryDayTimeOffIsLoading.value = true
-  const statusFilter = isSupervisorActive.value ? ['for review', 'approved'] : undefined
+  const statusFilter = isHumanResourceActive.value ? ['for review', 'approved'] : undefined
 
   const response = await compensatoryDayTimeOffStore.fetchCompensatoryDayTimeOff(paginationLimit, page, statusFilter)
   if (response.success && response.pagination) {
@@ -67,23 +107,7 @@ onBeforeMount(() => fetchCompensatoryBasedOnContext())
 const handlePaginationPageChange = async (event: PageState) => {
   await fetchCompensatoryBasedOnContext(event.page + 1)
 }
-const roleFilter = ref<number | null>(null)
-const searchQuery = ref<string | null>(null)
-const isSearching = ref(false)
-watch(
-  () => roleFilter.value,
-  async () => {
-    compensatoryDayTimeOffIsLoading.value = true
-    searchQuery.value = null
-    isSearching.value = false
-    const response = await compensatoryDayTimeOffStore.fetchCompensatoryDayTimeOff(paginationLimit)
-    if (response.success && response.pagination) {
-      pagination.value = response.pagination
-    }
-    compensatoryDayTimeOffIsLoading.value = false
-  }
-)
-const searchSubmitted = ref(false)
+
 const handleSearchCompensatoryTimeOff = async () => {
   compensatoryDayTimeOffIsLoading.value = true
   searchSubmitted.value = true
@@ -106,7 +130,26 @@ const handleSearchCompensatoryTimeOff = async () => {
   compensatoryDayTimeOffIsLoading.value = false
 }
 
-const toast = useToast()
+const handleFilterCompensatoryDayTimeOff = async () => {
+  compensatoryDayTimeOffIsLoading.value = true
+  if (!selectedStatus.value) {
+    const response = await compensatoryDayTimeOffStore.fetchCompensatoryDayTimeOff(paginationLimit)
+    if (response.success && response.pagination) {
+      pagination.value = response.pagination
+    }
+    return (compensatoryDayTimeOffIsLoading.value = false)
+  }
+
+  const response = await compensatoryDayTimeOffStore.filterCompensatoryDayTimeOff(selectedStatus.value)
+  if (response.success && response.pagination) {
+    pagination.value = response.pagination
+    searchQuery.value = null
+  }
+
+  compensatoryDayTimeOffIsLoading.value = false
+  showModal.value = false
+}
+
 const exportPdf = async (compensatoryDayTimeOff: PersonnelCompensatoryDayTimeOffResponse) => {
   const { ctdo_period, id } = compensatoryDayTimeOff
   toast.add({
@@ -138,30 +181,6 @@ const exportPdf = async (compensatoryDayTimeOff: PersonnelCompensatoryDayTimeOff
     })
   }
 }
-
-const formatDate = (dateString: string | null | undefined): string => {
-  if (!dateString) return ''
-  try {
-    const date = new Date(dateString)
-    if (isNaN(date.getTime())) {
-      console.error('Invalid date string:', dateString)
-      return 'Invalid Date'
-    }
-    const options: Intl.DateTimeFormatOptions = {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    }
-    const formattedDate = date.toLocaleDateString(undefined, options)
-    return formattedDate.replace(/^(\w+)\s(\d+),\s(\d+)$/, '$2 $1 $3')
-  } catch (error) {
-    console.error('Error formatting date:', error)
-    return 'Invalid Date'
-  }
-}
-
-const route = useRoute()
-const isSupervisorActive = computed(() => route.name === 'ctdo-report-list')
 </script>
 <template>
   <div class="flex h-full w-full flex-col shadow-md">
@@ -172,7 +191,9 @@ const isSupervisorActive = computed(() => route.name === 'ctdo-report-list')
         <h1 class="mb-2 mr-4 whitespace-nowrap text-xl text-surface-600 dark:text-primary-100 md:text-xl lg:text-4xl">
           Compensatory Time Day Offs (CTDO)
           <br />
-          <span class="ml-4 text-lg text-surface-600 md:text-xl lg:text-2xl">{{ isSupervisorActive ? 'For Review' : '' }}</span>
+          <span class="ml-4 text-lg text-surface-600 md:text-xl lg:text-2xl">{{
+            isHumanResourceActive ? 'For Review' : ''
+          }}</span>
         </h1>
         <div class="flex w-full items-center justify-end gap-4">
           <div class="flex space-x-2 whitespace-nowrap md:w-auto">
@@ -183,11 +204,11 @@ const isSupervisorActive = computed(() => route.name === 'ctdo-report-list')
               size="large"
               class="border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100"
               text
-              @click="$router.push({ name: 'sign-up' })"
+              @click="showModal = true"
             />
             <RouterLink :to="{ name: 'ctdo-reports/store' }">
               <Button
-                v-if="!isSupervisorActive"
+                v-if="!isHumanResourceActive"
                 icon="pi pi-plus"
                 v-tooltip.top="'Create Compensatory Day Time Offs (CTDO)'"
                 severity="info"
@@ -214,11 +235,47 @@ const isSupervisorActive = computed(() => route.name === 'ctdo-report-list')
       <div class="mt-6 flex flex-col">
         <div class="w-full">
           <div class="mx-auto flex h-full w-full flex-col">
-            <DataTable :value="compensatoryDayTimeOffStore.compensatory" class="mt-6" dataKey="id">
+            <DataTable
+              :value="compensatoryDayTimeOffStore.compensatory"
+              :loading="compensatoryDayTimeOffIsLoading"
+              class="mt-6"
+              dataKey="id"
+            >
+              <Column
+                v-if="isHumanResourceActive"
+                field="period"
+                headerClass="w-80 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
+              >
+                <template #header>
+                  <div class="flex flex-col">
+                    <span class="text-base text-surface-600">Employee</span>
+                    <span class="text-sm font-normal text-surface-500">ID Number</span>
+                  </div>
+                </template>
+
+                <template #body="props">
+                  <div class="flex flex-col">
+                    <p class="font-semibold uppercase text-surface-600">
+                      {{
+                        [
+                          props.data.employee_id?.individual_basic_detail_id?.first_name,
+                          props.data.employee_id?.individual_basic_detail_id?.middle_name,
+                          props.data.employee_id?.individual_basic_detail_id?.last_name,
+                        ]
+                          .filter(Boolean)
+                          .join(' ')
+                      }}
+                    </p>
+                    <p class="text-sm text-surface-500">
+                      {{ props.data.employee_id.id_number || 'N/A' }}
+                    </p>
+                  </div>
+                </template>
+              </Column>
               <Column
                 field="period"
                 header="Period"
-                headerClass="w-1/2 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
+                headerClass="w-80 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
               >
                 <template #body="props">
                   <p class="font-semibold uppercase text-surface-600">{{ props.data.ctdo_period }}</p>
@@ -304,7 +361,7 @@ const isSupervisorActive = computed(() => route.name === 'ctdo-report-list')
           </div>
         </div>
         <div
-          v-if="searchSubmitted && !compensatoryDayTimeOffIsLoading && !compensatoryDayTimeOffStore.compensatory.length"
+          v-if="searchSubmitted && !compensatoryDayTimeOffIsLoading && !compensatoryDayTimeOffStore.accomplishment.length"
           class="flex h-full w-full flex-col items-center justify-center font-menu text-lg dark:text-surface-300"
         >
           <i class="pi pi-exclamation-triangle mb-2 text-2xl"></i>
@@ -350,4 +407,149 @@ const isSupervisorActive = computed(() => route.name === 'ctdo-report-list')
       </div>
     </div>
   </div>
+
+  <Dialog
+    v-model:visible="showModal"
+    :modal="false"
+    closable
+    :dismissableMask="true"
+    :position="'right'"
+    :style="{ width: '20vw', maxWidth: '600px', minWidth: '320px' }"
+    :breakpoints="{ '1199px': '75vw', '575px': '90vw' }"
+    :pt="{
+      root: {
+        class: 'relative w-full h-full flex flex-col bg-white shadow-lg',
+      },
+    }"
+  >
+    <!-- Header -->
+    <template #header>
+      <div class="flex w-full items-center justify-between p-4 pb-0">
+        <h1 class="text-xl font-semibold text-surface-600 dark:text-primary-100">
+          <font-awesome-icon icon="bars-staggered" class="mr-2" />
+          Filter and Field Options
+        </h1>
+      </div>
+    </template>
+    <!-- Scrollable Content (space reserved for footer height) -->
+    <div class="flex-1 overflow-auto px-4 pb-24">
+      <h2 class="mb-2 mt-4 text-sm font-medium text-surface-500 dark:text-primary-100">Filters</h2>
+      <div class="mb-4" v-if="!isHumanResourceActive">
+        <WbDropdown
+          v-model="selectedStatus"
+          :options="statusOptions"
+          optionLabel="label"
+          optionValue="value"
+          label="Status"
+          placeholder="Select Status"
+          label-class="text-sm text-start text-surface-600"
+        />
+      </div>
+      <div class="mb-4" v-if="isHumanResourceActive">
+        <WbAutoComplete
+          :useApiFilter="true"
+          :apiEndpoint="'/libraries/divisions/search'"
+          :suggestions="libraryStore.divisionOptions"
+          :loading="libraryStore.divisionOptionsLoading"
+          apiOptionLabel="name"
+          label="Division"
+          placeholder="Type the Division"
+          v-model="selectedDivision"
+          :id="getId('input-division')"
+          optionLabel="label"
+          optionValue="value"
+          @on-true-value-computed="
+            (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
+              useWbAutoCompleteHandleTrueValue(value, toRef('division_id'))
+          "
+          label-class="text-sm text-start text-surface-600 dark:lg:text-surface-200"
+          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+          validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+        />
+      </div>
+      <div class="mb-4" v-if="isHumanResourceActive">
+        <WbAutoComplete
+          :useApiFilter="true"
+          :apiEndpoint="'/libraries/section-or-units/search'"
+          :suggestions="libraryStore.sectionUnitOptions"
+          :loading="libraryStore.sectionUnitOptionsLoading"
+          apiOptionLabel="name"
+          label="Section/Unit"
+          placeholder="Type the Section / Unit"
+          v-model="selectedSectionUnit"
+          :id="getId('input-section-unit')"
+          optionLabel="label"
+          optionValue="value"
+          @on-true-value-computed="
+            (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
+              useWbAutoCompleteHandleTrueValue(value, toRef('section_or_unit_id'))
+          "
+          label-class="text-sm text-start text-surface-600 dark:lg:text-surface-200"
+          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+          validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+        />
+      </div>
+      <div class="mb-4" v-if="isHumanResourceActive">
+        <WbAutoComplete
+          :useApiFilter="true"
+          :apiEndpoint="'/libraries/positions/search'"
+          :suggestions="libraryStore.positionsOptions"
+          :loading="libraryStore.positionsOptionsLoading"
+          apiOptionLabel="title"
+          label="Position"
+          placeholder="Type the Position"
+          v-model="selectedPositions"
+          :id="getId('input-position')"
+          optionLabel="label"
+          optionValue="value"
+          @on-true-value-computed="
+            (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
+              useWbAutoCompleteHandleTrueValue(value, toRef('position_id'))
+          "
+          label-class="text-sm text-start text-surface-600 dark:lg:text-surface-200"
+          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+          validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+        />
+      </div>
+      <div class="mb-4" v-if="isHumanResourceActive">
+        <WbDropdown
+          :options="employementStatusOptions"
+          optionLabel="label"
+          optionValue="value"
+          label="Employment Status"
+          placeholder="Select Employment Status"
+          label-class="text-sm text-start text-surface-600"
+        />
+      </div>
+    </div>
+    <!-- Fixed Footer (inside dialog container) -->
+    <div
+      class="absolute bottom-0 left-0 right-0 border-t border-surface-300 bg-surface-0 px-4 py-3 dark:border-surface-700 dark:bg-surface-900"
+    >
+      <div class="flex flex-col items-center justify-center gap-2 sm:flex-row">
+        <Button
+          label="Cancel"
+          class="dark:text-secondary-100 w-full border border-surface-400 px-4 py-2 text-surface-500 dark:border-surface-700"
+          @click="showModal = false"
+          text
+        >
+          <template #icon>
+            <i class="pi pi-ban mr-2 text-lg"></i>
+          </template>
+        </Button>
+        <Button
+          :loading="compensatoryDayTimeOffIsLoading"
+          :disabled="compensatoryDayTimeOffIsLoading"
+          @click="handleFilterCompensatoryDayTimeOff"
+          label="Apply"
+          class="dark:text-secondary-100 w-full border border-primary-500 px-4 py-3 text-primary-600 dark:border-surface-700"
+          text
+        >
+          <template #icon>
+            <font-awesome-icon :icon="['fas', 'check']" class="mr-2 text-lg" />
+          </template>
+        </Button>
+      </div>
+    </div>
+  </Dialog>
 </template>

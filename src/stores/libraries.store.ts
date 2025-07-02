@@ -46,6 +46,9 @@ export const useLibrariesStore = defineStore('libraries', () => {
   const fundingSourcesOptions = ref<WbAutoCompleteOption[]>([])
   const fundingSourcesOptionsLoading = ref(false)
 
+  const positionsOptions = ref<WbAutoCompleteOption[]>([])
+  const positionsOptionsLoading = ref(false)
+
   /** Actions */
 
   return {
@@ -57,6 +60,8 @@ export const useLibrariesStore = defineStore('libraries', () => {
     sectionUnitOptionsLoading,
     fundingSourcesOptions,
     fundingSourcesOptionsLoading,
+    positionsOptions,
+    positionsOptionsLoading,
     sexOptions,
     extNameOptions,
     civilStatusOptions,

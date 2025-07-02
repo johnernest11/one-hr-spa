@@ -155,6 +155,7 @@ export type PersonnelCompensatoryDayTimeOffResponse = {
   ctdo_supervisor_notes: string
   ctdo_status: string
   rows: Array<PersonnelCompensatoryDayTimeOffDetailsResponse> | null | undefined
+  employee_id: PersonnelEmployee | null
 } & ApiResponseData
 
 export type PersonnelCompensatoryDayTimeOffDetailsResponse = {
