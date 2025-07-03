@@ -40,7 +40,8 @@ const toggleUserDetailsDialog = () => (showUserDetailsDialog.value = !showUserDe
     </p>
     <!-- End Name -->
     <!-- Start Email -->
-    <p class="text-center text-sm text-surface-700 dark:text-surface-400">{{ props.user.email }}</p>
+    <p class="text-center text-sm text-surface-700 dark:text-surface-400">Email: {{ props.user.email }}</p>
+    <p class="text-center text-sm text-surface-700 dark:text-surface-400">Username: {{ props.user.username }}</p>
     <!-- End Email -->
     <!-- Start Role Tags -->
     <div class="mt-2.5 flex w-full flex-wrap justify-center gap-2">
@@ -49,7 +50,7 @@ const toggleUserDetailsDialog = () => (showUserDetailsDialog.value = !showUserDe
           {{ snakeCaseToTitleCase(role.name) }}
         </Tag>
       </template>
-      <div v-else class="text-gray-500"><Tag class="!bg-warn-400"> Not Yet Activated </Tag></div>
+      <div v-else class="text-gray-500"><Tag class="!bg-warn-400"> Account Not Yet Activated </Tag></div>
     </div>
     <!-- End Role Tags -->
 
@@ -60,7 +61,7 @@ const toggleUserDetailsDialog = () => (showUserDetailsDialog.value = !showUserDe
       :draggable="false"
       modal
       maximizable
-      class="mx-2 w-full sm:mx-0"
+      class="mx-4 w-full sm:mx-0"
     >
       <UserDetailsForm :user="props.user" :current-role-filter="props.roleFilter" @user-updated="toggleUserDetailsDialog" />
     </Dialog>

@@ -1,20 +1,21 @@
 <script setup lang="ts">
-import { computed, onBeforeMount, reactive, ref, toRef } from 'vue'
+import { computed, onBeforeMount, reactive, ref, toRef, watch } from 'vue'
 import { UserPayload, useUsersStore } from '@/stores/users.store.ts'
-import { email, helpers, maxLength, required } from '@vuelidate/validators'
-import { uniqueUserIdentifierRule } from '@/utils/custom-validations.ts'
+import { helpers, required } from '@vuelidate/validators'
 import useVuelidate from '@vuelidate/core'
 import { useRolesStore } from '@/stores/roles.store.ts'
 import { AuthRole } from '@/typings/auth.types.ts'
 import { useToast } from 'primevue/usetoast'
 import { UserResponse } from '@/typings/models.types.ts'
 import { parseApiResponseError } from '@/utils/error-handle.ts'
+
 import Button from 'primevue/button'
 import WbMultiSelect from '@/components/webkit/WbMultiSelect.vue'
 import WbInputText from '@/components/webkit/WbInputText.vue'
 import WbDropdown from '@/components/webkit/WbDropdown.vue'
 import InputSwitch from 'primevue/inputswitch'
 import Message from 'primevue/message'
+
 import { useConfirm } from 'primevue/useconfirm'
 import Dialog from 'primevue/dialog'
 import ManageMfaForm from '@/components/users-management-page/ManageMfaForm.vue'
@@ -22,6 +23,7 @@ import { useSettingsStore } from '@/stores/settings.store.ts'
 import WbAutoComplete, { WbAutoCompleteOption, WbAutoCompleteOptionTrueValue } from '@/components/webkit/WbAutoComplete.vue'
 import { useWbAutoCompleteHandleTrueValue } from '@/composables/wb-ui-components'
 import { usePrependOrAppendOnce } from '@/utils/helpers'
+
 const getId = usePrependOrAppendOnce('user-management')
 const selectedEmployee = ref<WbAutoCompleteOption[] | null>(null)
 const usersStore = useUsersStore()
@@ -42,14 +44,23 @@ const props = withDefaults(defineProps<UserDetailsFormProps>(), {
 
 /** Payload */
 const payload = reactive<Partial<UserPayload>>({
-  name: props.user.name || '',
   email: props.user.email || '',
-  mobile_number: props.user.user_profile?.mobile_number || null,
-  first_name: props.user.user_profile?.first_name || '',
-  last_name: props.user.user_profile?.last_name || '',
+  username: props.user.username || '',
   roles: props.user.roles.map((r) => r.id),
   active: props.user.active,
+  individual_basic_detail_id: 0,
 })
+
+watch(
+  () => payload.individual_basic_detail_id,
+  (newSelectedItem) => {
+    console.log(payload.individual_basic_detail_id)
+    if (!newSelectedItem) {
+      selectedEmployee.value = null
+      return
+    }
+  }
+)
 
 // We disabled editing and deletion for super users
 const userIsSuperUser = computed(() => {
@@ -73,31 +84,27 @@ const rolesOptions = computed(() => {
 })
 onBeforeMount(async () => {
   rolesOptionsIsLoading.value = true
-  await rolesStore.fetchRoles()
-  rolesOptionsIsLoading.value = false
+
+  try {
+    const response = await rolesStore.fetchRoles()
+
+    if (!response?.success) {
+      console.error('Failed to fetch roles:', response?.errors || response?.message)
+    }
+  } catch (error) {
+    console.error('Unexpected error while fetching roles:', error)
+  } finally {
+    rolesOptionsIsLoading.value = false
+  }
 })
 
-/** Form Validation */
-const globalStringMaxLength = import.meta.env.VITE_GLOBAL_STRING_MAX_LENGTH
-const globalStringMaxLengthRule = helpers.withMessage(
-  `Must not exceed ${globalStringMaxLength} characters`,
-  maxLength(globalStringMaxLength)
-)
 const formRules = {
   $lazy: true,
-  email: {
-    required: helpers.withMessage('Enter your email address', required),
-    email: helpers.withMessage('Email format is invalid', email),
-    unique: helpers.withAsync(
-      helpers.withMessage('This email is already taken', uniqueUserIdentifierRule('email', props.user.id))
-    ),
-  },
   roles: {
     required: helpers.withMessage('A user must have a role selected', required),
   },
-  first_name: {
-    required: helpers.withMessage('Please enter your first name', required),
-    maxLength: globalStringMaxLengthRule,
+  individual_basic_detail_id: {
+    required: helpers.withMessage('A user must have a Employee to Activate', required),
   },
 }
 
@@ -242,19 +249,20 @@ const settingsStore = useSettingsStore()
       <p class="create-user-creds-section text-xs font-medium uppercase">Credentials of {{ payload.name }}</p>
       <!-- Start Roles & Activation Select -->
       <div class="flex flex-col gap-4 md:flex-row">
-        <WbInputText
-          v-model="payload.email"
-          label="Email *"
-          :invalid="validator.email.$invalid"
-          :invalid-text="validator.email.$errors[0]?.$message"
-          @blur="validator.email.$touch"
-          @focusin="validator.email.$dirty = false"
-          :disabled="!editingEnabled"
-        >
+        <WbInputText v-model="payload.email" label="Email" :disabled="!editingEnabled">
           <template #prepend-icon>
             <i class="pi pi-envelope" />
           </template>
         </WbInputText>
+        <WbInputText v-model="payload.username" label="User Name" :disabled="!editingEnabled">
+          <template #prepend-icon>
+            <i class="pi pi-envelope" />
+          </template>
+        </WbInputText>
+      </div>
+      <!-- End Roles & Activation Select -->
+      <!-- Start Roles & Activation Select -->
+      <div class="flex flex-col gap-4 md:flex-row">
         <WbMultiSelect
           v-model="payload.roles"
           :options="rolesOptions"
@@ -272,46 +280,45 @@ const settingsStore = useSettingsStore()
           @blur="validator.roles.$touch"
           @focusin="validator.roles.$dirty = false"
         />
+        <WbDropdown
+          v-model="payload.active"
+          :options="activationOptions"
+          optionLabel="label"
+          optionValue="value"
+          label="Activation Status"
+          :disabled="!editingEnabled"
+        >
+          <template #prepend-icon>
+            <i class="pi pi-lock" />
+          </template>
+        </WbDropdown>
       </div>
-      <!-- End Roles & Activation Select -->
-      <!-- Start Roles & Activation Select -->
-      <div class="flex flex-col gap-4 md:flex-row">
-        <div class="flex md:w-[49%] md:flex-row">
-          <WbDropdown
-            v-model="payload.active"
-            :options="activationOptions"
-            optionLabel="label"
-            optionValue="value"
-            label="Activation Status"
-            :disabled="!editingEnabled"
-          >
-            <template #prepend-icon>
-              <i class="pi pi-lock" />
-            </template>
-          </WbDropdown>
-        </div>
-        <div class="flex md:w-[49%] md:flex-row">
-          <WbAutoComplete
-            :useApiFilter="true"
-            :apiEndpoint="'/individual-basic-details/search'"
-            :suggestions="usersStore.employeeOptions"
-            :loading="usersStore.employeeOptionsLoading"
-            apiOptionLabel="last_name"
-            label="Employee"
-            placeholder="Search Employee`s"
-            v-model="selectedEmployee"
-            :id="getId('input-user-management')"
-            optionLabel="label"
-            optionValue="value"
-            @on-true-value-computed="
-              (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
-                useWbAutoCompleteHandleTrueValue(value, toRef('individual_basic_details'))
-            "
-            label-class="text-sm text-start text-surface-600 dark:lg:text-surface-200"
-            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-          />
-        </div>
+      <div class="flex flex-col gap-4 md:flex-row" v-if="!props.user.user_profile">
+        <WbAutoComplete
+          :useApiFilter="true"
+          :apiEndpoint="'/individual-basic-details/search'"
+          :suggestions="usersStore.employeeOptions"
+          :loading="usersStore.employeeOptionsLoading"
+          apiOptionLabel="employee_name"
+          label="Employee Activation"
+          placeholder="Search Employee`s to activate SSO Account"
+          v-model="selectedEmployee"
+          :id="getId('input-user-management')"
+          optionLabel="label"
+          optionValue="value"
+          @on-true-value-computed="
+            (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
+              useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'individual_basic_detail_id'))
+          "
+          label-class="text-sm text-start text-surface-600 dark:lg:text-surface-200"
+          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+          validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+          :invalid="validator.individual_basic_detail_id.$invalid"
+          :invalid-text="validator.individual_basic_detail_id.$errors[0]?.$message"
+          @blur="validator.individual_basic_detail_id.$touch"
+          @focusin="validator.individual_basic_detail_id.$dirty = false"
+          :disabled="!editingEnabled"
+        />
       </div>
       <!-- End Roles & Activation Select -->
       <!-- End Credentials -->

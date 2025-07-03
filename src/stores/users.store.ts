@@ -10,6 +10,7 @@ import { WbAutoCompleteOption } from '@/components/webkit/WbAutoComplete.vue'
 export type UserPayload = {
   name: string
   email: string
+  username: string
   password: string
   password_confirmation: string
   active?: boolean
@@ -29,6 +30,7 @@ export type UserPayload = {
   region_id?: string | number | null
   postal_code?: string | null
   home_address?: string | null
+  individual_basic_detail_id?: string | number | null
 }
 
 export const useUsersStore = defineStore('users', () => {
@@ -41,8 +43,8 @@ export const useUsersStore = defineStore('users', () => {
   /** Actions */
   const fetchUsers = async (roleFilter: string | number | null = null, limit: number = 15, page: number | null = null) => {
     let uri = `/users?limit=${limit}&sort=asc`
-    if (roleFilter) uri += `role=${roleFilter}&`
-    if (page) uri += `page=${page}`
+    if (roleFilter) uri += `&role=${roleFilter}`
+    if (page) uri += `&page=${page}`
 
     const { data } = await useApiCall(uri, authStore.authenticationToken).get().json()
     const responseBody: ApiResponseBody = data.value
