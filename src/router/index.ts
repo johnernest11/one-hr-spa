@@ -41,6 +41,26 @@ const routes = [
       ],
     },
   },
+  {
+    path: '/profile',
+    name: 'profile',
+    component: () => import('@/views/ProfilePage.vue'),
+    meta: <RouteMeta>{
+      isSidebarMenu: false,
+      authType: AuthType.AUTHENTICATED,
+      roles: [
+        AuthRole.STANDARD_USER,
+        AuthRole.SECTION_HEAD,
+        AuthRole.DIVISION_HEAD,
+        AuthRole.HR_PPMS_ADMIN,
+        AuthRole.HR_PAS_ADMIN,
+        AuthRole.ADMIN,
+        AuthRole.SUPER_USER,
+        AuthRole.SYSTEM_SUPPORT,
+      ],
+    },
+  },
+
   /*Request Routes */
   {
     path: '/requests',
@@ -129,6 +149,7 @@ const routes = [
       },
     ],
   },
+  /*My Profile */
   {
     path: '/my-profile',
     name: 'my-profile',

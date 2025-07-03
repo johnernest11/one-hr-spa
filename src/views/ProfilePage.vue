@@ -1,16 +1,12 @@
 <script setup lang="ts">
 import Card from 'primevue/card'
 import { useAuthStore } from '@/stores/auth.store.ts'
-import { onBeforeMount, ref } from 'vue'
+import { onBeforeMount } from 'vue'
 import WbAvatarFileInput from '@/components/webkit/WbAvatarFileInput.vue'
 import UpdateProfileForm from '@/components/profile-page/UpdateProfileForm.vue'
 import { useProfileStore } from '@/stores/profile.store.ts'
-import ChangePasswordForm from '@/components/profile-page/ChangePasswordForm.vue'
 
 const authStore = useAuthStore()
-
-/** Tab Menu Items */
-const profileInfoShown = ref(true)
 const profileStore = useProfileStore()
 
 onBeforeMount(async () => {
@@ -37,28 +33,7 @@ onBeforeMount(async () => {
           </div>
         </div>
       </template>
-      <template #footer>
-        <!-- Start Tab Buttons -->
-        <div class="flex justify-center gap-x-1 text-sm md:justify-end">
-          <button
-            :class="`rounded-lg px-2 py-1 transition hover:scale-105 hover:bg-surface-200 dark:hover:bg-primary-500 dark:hover:text-surface-950 md:mr-6 ${
-              profileInfoShown ? 'bg-surface-200 dark:bg-primary-500 dark:text-surface-950' : ''
-            }`"
-            @click="profileInfoShown = true"
-          >
-            Profile Details
-          </button>
-          <button
-            :class="`rounded-lg px-2 py-1 transition hover:scale-105 hover:bg-surface-200 dark:hover:bg-primary-500 dark:hover:text-surface-950 md:mr-6 ${
-              !profileInfoShown ? 'bg-surface-200 dark:bg-primary-500 dark:text-surface-950' : ''
-            }`"
-            @click="profileInfoShown = false"
-          >
-            Change Password
-          </button>
-        </div>
-        <!-- End Tab Buttons -->
-      </template>
+      <template #footer> </template>
     </Card>
     <Card class="mt-4">
       <template #content>
@@ -67,8 +42,7 @@ onBeforeMount(async () => {
           enter-from-class="translate-y-[20%] opacity-0"
           leave-to-class="opacity-0"
         >
-          <UpdateProfileForm v-if="profileInfoShown" />
-          <ChangePasswordForm v-else />
+          <UpdateProfileForm />
         </transition>
       </template>
     </Card>
