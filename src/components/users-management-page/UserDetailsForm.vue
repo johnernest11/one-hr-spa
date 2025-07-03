@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeMount, reactive, ref, toRef, watch } from 'vue'
+import { computed, onBeforeMount, reactive, ref } from 'vue'
 import { UserPayload, useUsersStore } from '@/stores/users.store.ts'
 import { helpers, required } from '@vuelidate/validators'
 import useVuelidate from '@vuelidate/core'
@@ -21,9 +21,10 @@ import Dialog from 'primevue/dialog'
 import ManageMfaForm from '@/components/users-management-page/ManageMfaForm.vue'
 import { useSettingsStore } from '@/stores/settings.store.ts'
 import WbAutoComplete, { WbAutoCompleteOption, WbAutoCompleteOptionTrueValue } from '@/components/webkit/WbAutoComplete.vue'
-import { useWbAutoCompleteHandleTrueValue } from '@/composables/wb-ui-components'
+import { useWbAutoCompleteHandleTrueValueExtended } from '@/composables/wb-ui-components'
 import { usePrependOrAppendOnce } from '@/utils/helpers'
 
+const visible = ref(false)
 const getId = usePrependOrAppendOnce('user-management')
 const selectedEmployee = ref<WbAutoCompleteOption[] | null>(null)
 const usersStore = useUsersStore()
@@ -48,19 +49,14 @@ const payload = reactive<Partial<UserPayload>>({
   username: props.user.username || '',
   roles: props.user.roles.map((r) => r.id),
   active: props.user.active,
-  individual_basic_detail_id: 0,
+  individual_basic_detail_id: props.user.user_profile?.individual_basic_detail_id
+    ? (props.user.user_profile.individual_basic_detail_id as { id: number }).id
+    : null,
+  first_name: props.user.user_profile?.first_name,
+  middle_name: props.user.user_profile?.middle_name,
+  last_name: props.user.user_profile?.last_name,
+  ext_name: props.user.user_profile?.first_name,
 })
-
-watch(
-  () => payload.individual_basic_detail_id,
-  (newSelectedItem) => {
-    console.log(payload.individual_basic_detail_id)
-    if (!newSelectedItem) {
-      selectedEmployee.value = null
-      return
-    }
-  }
-)
 
 // We disabled editing and deletion for super users
 const userIsSuperUser = computed(() => {
@@ -104,7 +100,9 @@ const formRules = {
     required: helpers.withMessage('A user must have a role selected', required),
   },
   individual_basic_detail_id: {
-    required: helpers.withMessage('A user must have a Employee to Activate', required),
+    required: props.user.user_profile?.individual_basic_detail_id
+      ? false
+      : helpers.withMessage('A user must have an Employee to Activate', required),
   },
 }
 
@@ -116,6 +114,15 @@ const errorMessage = ref<string | null>(null)
 const errorDetails = ref<string[]>([])
 const userStore = useUsersStore()
 const toast = useToast()
+
+const handleUnlinkFormSubmission = async () => {
+  payload.individual_basic_detail_id = null
+  payload.active = false // optional: also deactivate the user
+  visible.value = false
+
+  await handleFormSubmission()
+}
+
 const handleFormSubmission = async () => {
   const valid = await validator.value.$validate()
   if (!valid) {
@@ -246,7 +253,6 @@ const settingsStore = useSettingsStore()
       <!-- End Toggle Edit Switch & MFA Pop-up -->
 
       <!-- Start Credentials -->
-      <p class="create-user-creds-section text-xs font-medium uppercase">Credentials of {{ payload.name }}</p>
       <!-- Start Roles & Activation Select -->
       <div class="flex flex-col gap-4 md:flex-row">
         <WbInputText v-model="payload.email" label="Email" :disabled="!editingEnabled">
@@ -293,7 +299,7 @@ const settingsStore = useSettingsStore()
           </template>
         </WbDropdown>
       </div>
-      <div class="flex flex-col gap-4 md:flex-row" v-if="!props.user.user_profile">
+      <div class="flex flex-col gap-4 md:flex-row" v-if="!props.user.user_profile?.individual_basic_detail_id">
         <WbAutoComplete
           :useApiFilter="true"
           :apiEndpoint="'/individual-basic-details/search'"
@@ -308,7 +314,7 @@ const settingsStore = useSettingsStore()
           optionValue="value"
           @on-true-value-computed="
             (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
-              useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'individual_basic_detail_id'))
+              useWbAutoCompleteHandleTrueValueExtended(value, payload)
           "
           label-class="text-sm text-start text-surface-600 dark:lg:text-surface-200"
           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
@@ -320,12 +326,13 @@ const settingsStore = useSettingsStore()
           :disabled="!editingEnabled"
         />
       </div>
+
       <!-- End Roles & Activation Select -->
       <!-- End Credentials -->
 
       <!-- Start Action Buttons -->
-      <div class="mt-2 flex justify-between">
-        <!-- Start Delete Button with Confirmation -->
+      <div class="mt-4 flex items-center justify-between">
+        <!-- Delete Button -->
         <Button
           @click="requireConfirmation($event)"
           label="Delete"
@@ -337,19 +344,33 @@ const settingsStore = useSettingsStore()
             <i class="pi pi-trash mr-2"></i>
           </template>
         </Button>
-        <!-- End Delete Button with Confirmation -->
-        <!-- Start Update Button -->
-        <Button
-          @click="handleFormSubmission"
-          label="Update"
-          :loading="formIsSubmitting"
-          :disabled="formIsSubmitting || !editingEnabled"
-        >
-          <template #icon>
-            <i class="pi pi-save mr-2"></i>
-          </template>
-        </Button>
+
+        <!-- Right-aligned Buttons: Unlink + Update -->
+        <div class="flex items-center gap-x-2">
+          <!-- Unlink Employee Button -->
+          <Button
+            v-if="props.user.user_profile?.individual_basic_detail_id"
+            label="Unlink Employee"
+            severity="warning"
+            icon="pi pi-ban"
+            @click="visible = true"
+            :disabled="formIsSubmitting || !editingEnabled"
+          />
+
+          <!-- Update Button -->
+          <Button
+            @click="handleFormSubmission"
+            label="Update"
+            :loading="formIsSubmitting"
+            :disabled="formIsSubmitting || !editingEnabled"
+          >
+            <template #icon>
+              <i class="pi pi-save mr-2"></i>
+            </template>
+          </Button>
+        </div>
       </div>
+
       <!-- End Update Button -->
       <!-- End Action Buttons -->
     </div>
@@ -366,6 +387,57 @@ const settingsStore = useSettingsStore()
         :user-full-name="props.user.user_profile?.full_name || ''"
         @mfa-config-updated="showMfaConfigDialog = false"
       />
+    </Dialog>
+
+    <!-- Start Dialog Confirmation Modal Action  -->
+    <Dialog v-model:visible="visible" modal :style="{ width: '25vw' }" :closable="false">
+      <template #header>
+        <div style="display: flex; justify-content: flex-end; width: 100%">
+          <div class="flex items-center sm:px-0 md:px-0">
+            <h1 class="font-base text-sm font-bold text-surface-900 sm:text-base md:text-sm">
+              Are you sure you want to Unlink this Employee to this Account?
+            </h1>
+          </div>
+          <Button
+            :loading="formIsSubmitting"
+            :disabled="formIsSubmitting"
+            class="dark:text-secondary-100 border-none text-xs text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
+            text
+            @click="visible = false"
+          >
+            <template #icon>
+              <i class="pi pi pi-times mr-2"></i>
+            </template>
+          </Button>
+        </div>
+      </template>
+      <p>Unlink this Employee will Deactivate this Account</p>
+      <template #footer>
+        <Button
+          label="Cancel"
+          :loading="formIsSubmitting"
+          :disabled="formIsSubmitting"
+          class="dark:text-secondary-100 border border-surface-400 text-xs text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
+          text
+          @click="visible = false"
+        >
+          <template #icon>
+            <i class="pi pi-ban mr-2"></i>
+          </template>
+        </Button>
+        <Button
+          @click="handleUnlinkFormSubmission"
+          label="Unlink "
+          :loading="formIsSubmitting"
+          :disabled="formIsSubmitting"
+          class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+          text
+        >
+          <template #icon>
+            <i class="pi pi-check mr-2"></i>
+          </template>
+        </Button>
+      </template>
     </Dialog>
   </form>
 </template>
