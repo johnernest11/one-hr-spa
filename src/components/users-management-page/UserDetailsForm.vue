@@ -331,7 +331,7 @@ const settingsStore = useSettingsStore()
           label="Delete"
           severity="danger"
           :loading="userIsBeingDeleted"
-          :disabled="formIsSubmitting || addressesAreLoading || !editingEnabled || userIsBeingDeleted"
+          :disabled="formIsSubmitting || !editingEnabled || userIsBeingDeleted"
         >
           <template #icon>
             <i class="pi pi-trash mr-2"></i>
@@ -343,7 +343,7 @@ const settingsStore = useSettingsStore()
           @click="handleFormSubmission"
           label="Update"
           :loading="formIsSubmitting"
-          :disabled="formIsSubmitting || addressesAreLoading || !editingEnabled"
+          :disabled="formIsSubmitting || !editingEnabled"
         >
           <template #icon>
             <i class="pi pi-save mr-2"></i>
