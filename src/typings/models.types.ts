@@ -277,6 +277,21 @@ export type DailyTimeRecordResponse = {
   warm_bodies: Array<WarmBodyResponse> | null | undefined
 }
 
+export type ViewTimeLogsResponse = {
+  dtr_date: string
+  time_log_id: number
+  is_in: boolean
+  scanned_time: string
+  time_log_date: string
+  id_number: string | null
+  first_name: string
+  middle_name: string | null
+  last_name: string
+  ext_name: string | null
+  division_name: string
+  section_name: string
+}
+
 export type WarmBodyResponse = {
   id: number
   employee_id: PersonnelEmployee | null
