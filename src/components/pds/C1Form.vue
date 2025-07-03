@@ -610,6 +610,13 @@ watch(
 )
 
 watch(
+  () => payload.employee.agency_employee_no,
+  (newAgencyNo) => {
+    payload.employee.id_number = newAgencyNo || null
+  }
+)
+
+watch(
   () => payload.employee.item_id,
   (newSelectedItem) => {
     if (!newSelectedItem) {
