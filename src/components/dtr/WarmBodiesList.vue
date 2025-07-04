@@ -10,10 +10,12 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { useDailyTimeRecordsStore } from '@/stores/daily-time-record.store'
 import { ApiResponsePagination } from '@/typings/http-resources.types.ts'
 import { formatTimeTo12Hour, DateToday } from '@/utils/helpers.ts'
+import { useToast } from 'primevue/usetoast'
 const warmBodiesStore = useDailyTimeRecordsStore()
 const warmBodiesIsLoading = ref(false)
 const paginationLimit = 5
 const columnWidths = ['w-80', 'w-80', 'w-80', 'w-80']
+const toast = useToast()
 
 onMounted(async () => {
   warmBodiesIsLoading.value = true
@@ -22,6 +24,14 @@ onMounted(async () => {
     if (response.success && response.pagination) {
       pagination.value = response.pagination
     }
+  } catch (e) {
+    toast.add({
+      severity: 'error',
+      summary: 'Cannot view time logs.',
+      detail: 'Something went wrong.',
+      life: 5000,
+    })
+    console.log('Encountered error while attempting to fetch time logs. ', e)
   } finally {
     warmBodiesIsLoading.value = false
   }
