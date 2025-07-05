@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeMount, ref, watch } from 'vue'
+import { onBeforeMount, ref } from 'vue'
 import { PayrollResponse } from '@/typings/models.types.ts'
 import { usePayRollStore } from '@/stores/payroll.store'
 import { useRouter } from 'vue-router'
@@ -20,12 +20,10 @@ const paySlipsStore = usePayRollStore()
 const toast = useToast()
 const router = useRouter()
 
-const isSearching = ref(false)
 const searchSubmitted = ref(false)
 const paySlipsIsLoading = ref(false)
 
 const paginationLimit = 5
-const roleFilter = ref<number | null>(null)
 const searchQuery = ref<string | null>(null)
 
 const navigateToDetails = (paySlip: PayrollResponse) => {
@@ -60,20 +58,6 @@ const handlePaginationPageChange = async (event: PageState) => {
   }
   paySlipsIsLoading.value = false
 }
-
-watch(
-  () => roleFilter.value,
-  async () => {
-    paySlipsIsLoading.value = true
-    searchQuery.value = null
-    isSearching.value = false
-    const response = await paySlipsStore.fetchPayRoll(paginationLimit)
-    if (response.success && response.pagination) {
-      pagination.value = response.pagination
-    }
-    paySlipsIsLoading.value = false
-  }
-)
 
 const handleSearchPaySlip = async () => {
   paySlipsIsLoading.value = true
@@ -162,7 +146,12 @@ const exportPdf = async (paySlip: PayrollResponse) => {
                 :disabled="paySlipsIsLoading"
                 @keyup.enter="handleSearchPaySlip"
               />
-              <Button icon="pi pi-search" @click="handleSearchPaySlip" />
+              <Button
+                icon="pi pi-search"
+                @click="handleSearchPaySlip"
+                :loading="paySlipsIsLoading"
+                :disabled="paySlipsIsLoading"
+              />
             </InputGroup>
           </div>
         </div>
