@@ -203,16 +203,49 @@ export const usePayRollStore = defineStore('pay-roll', () => {
     return responseBody
   }
 
-  const searchPayRoll = async (query: string | null) => {
-    let uri = '/pay-rolls/search?'
-    if (query) uri += `query=${query}`
-    const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
-    const responseBody: ApiResponseBody = data.value
-    if (responseBody.success) {
-      const paySlipsList = responseBody.data as PayrollResponse[]
-      payRoll.value = [...paySlipsList]
+  const searchPayRoll = async (query: string | null, limit = 10, page = 1) => {
+    const start = (page - 1) * limit
+
+    const filtered = payrollMockData.filter((item) => {
+      if (!query) return true
+      const q = query.toLowerCase()
+      const formattedPeriod = (() => {
+        const [startStr, endStr] = item.period.split(',').map((date) => new Date(date.trim()))
+
+        const startDay = startStr.getDate()
+        const endDay = endStr.getDate()
+        const month = startStr.toLocaleString('default', { month: 'long' })
+        const year = startStr.getFullYear()
+
+        return `${startDay}–${endDay} ${month} ${year}`.toLowerCase()
+      })()
+      return (
+        formattedPeriod.includes(q) ||
+        item.employee_id.individual_basic_detail_id.first_name.toLowerCase().includes(q) ||
+        item.employee_id.individual_basic_detail_id.last_name.toLowerCase().includes(q)
+      )
+    })
+
+    const paginated = filtered.slice(start, start + limit)
+    payRoll.value = [...paginated]
+
+    return {
+      success: true,
+      data: paginated,
+      pagination: {
+        current_page: page,
+        last_page: Math.ceil(filtered.length / limit),
+        per_page: limit,
+        total: filtered.length,
+        from: start + 1,
+        to: start + paginated.length,
+        first_page_url: '',
+        last_page_url: '',
+        next_page_url: null,
+        previous_page_url: null,
+        path: '',
+      },
     }
-    return responseBody
   }
 
   const updatePayRoll = async (payroll: Partial<PayRollPayload>, id: string | number) => {

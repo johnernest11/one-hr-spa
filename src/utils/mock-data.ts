@@ -148,7 +148,7 @@ const item_id = [
       created_at: '2020-01-01',
       updated_at: '2020-01-01',
     },
-    employment_status: 'COS',
+    employment_status: 'Contract of Service',
     position_id: 1,
     position: {
       id: 1,
@@ -607,7 +607,89 @@ export const compensatorymockData = [
     updated_at: '2025-07-06',
   },
 ]
-
+/* Locator Slip */
+// Use a local mockId for locatorslipmockData
+export const locatorslipmockData = [
+  {
+    id: 1,
+    period_covered_from: '2025-05-01',
+    period_covered_to: '2025-05-15',
+    period_request: '1st request for this period',
+    locator_slip_no: '',
+    status: 'pending',
+    employee_id: individual_basic_details[0],
+    created_at: '2025-07-06',
+    updated_at: '2025-07-06',
+  },
+  {
+    id: 2,
+    period_covered_from: '2025-06-01',
+    period_covered_to: '2025-06-15',
+    period_request: '2nd request for this period',
+    locator_slip_no: '',
+    status: 'in progress',
+    employee_id: individual_basic_details[1],
+    created_at: '2025-08-01',
+    updated_at: '2025-08-01',
+  },
+  {
+    id: 3,
+    period_covered_from: '2025-07-01',
+    period_covered_to: '2025-07-15',
+    period_request: '2nd request for this period',
+    locator_slip_no: '062025220',
+    status: 'released',
+    employee_id: individual_basic_details[2],
+    created_at: '2025-09-01',
+    updated_at: '2025-09-01',
+  },
+]
+/* Document Request */
+// Use a local mockId for documentrequestmockData
+export const documentrequestmockData = [
+  {
+    id: 1,
+    employee_id: individual_basic_details[0],
+    request_date: '2025-06-01',
+    certificate_type: 'DULY ACCOMPLISHED OFFICE CLEARANCE CERTIFICATE FORM',
+    others_type: 'N/A',
+    additional_info: 'SALARY/COST OF SERVICE',
+    others_additional_info: 'yes',
+    purpose: 'Employment',
+    status: 'pending',
+    mode_of_receipt: 'Draft',
+    created_at: '2025-06-01',
+    updated_at: '2025-06-01',
+  },
+  {
+    id: 2,
+    employee_id: individual_basic_details[1],
+    request_date: '2025-06-01',
+    certificate_type: 'CERTIFICATE OF LEAVE WITHOUT PAY',
+    others_type: 'N/A',
+    additional_info: 'SERVICE/CONTRACT GAPS',
+    others_additional_info: 'yes',
+    purpose: 'Employment',
+    status: 'in progress',
+    mode_of_receipt: 'Draft',
+    created_at: '2025-06-01',
+    updated_at: '2025-06-01',
+  },
+  {
+    id: 3,
+    employee_id: individual_basic_details[2],
+    request_date: '2025-06-01',
+    certificate_type: 'CERTIFICATE OF EMPLOYMENT',
+    others_type: 'N/A',
+    additional_info: 'SERVICE/CONTRACT GAPS',
+    others_additional_info: 'yes',
+    purpose: 'Employment',
+    status: 'released',
+    mode_of_receipt: 'Draft',
+    created_at: '2025-06-01',
+    updated_at: '2025-06-01',
+  },
+]
 /* ApplicationLeave */
 // Use a local mockId for compensatorymockData
 let applicationLeaveMockId = 1
@@ -626,7 +708,7 @@ export const applicationLeavemockData = [
     detail_of_leave: 'Fever',
     specific_detail: 'High fever and fatigue',
     commutation: 'yes',
-    status: 'for review',
+    status: 'For Review',
     division_head_disapproval_notes: null,
     days_with_pay: '2',
     days_without_pay: '0',
@@ -654,7 +736,7 @@ export const applicationLeavemockData = [
     detail_of_leave: 'Family trip',
     specific_detail: 'Traveling to hometown',
     commutation: 'no',
-    status: 'for review',
+    status: 'For Review',
     division_head_disapproval_notes: null,
     days_with_pay: '5',
     days_without_pay: '0',
@@ -688,7 +770,7 @@ export const applicationLeavemockData = [
     detail_of_leave: 'Flu',
     specific_detail: 'Cough and fever',
     commutation: 'yes',
-    status: 'approved',
+    status: 'For Review',
     division_head_disapproval_notes: null,
     days_with_pay: '3',
     days_without_pay: '0',
