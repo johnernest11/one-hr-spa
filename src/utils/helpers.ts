@@ -424,6 +424,19 @@ export const formatDTRTime = (dateString: string | undefined): string => {
   })
 }
 
+export const formatTimeTo12Hour = (timeString: string | undefined): string => {
+  if (!timeString) return '—'
+
+  const [hourStr, minuteStr] = timeString.split(':')
+  let hour = parseInt(hourStr)
+  const minute = minuteStr.padStart(2, '0')
+
+  const period = hour >= 12 ? 'PM' : 'AM'
+  hour = hour % 12 || 12
+
+  return `${hour}:${minute} ${period}`
+}
+
 /** Helper to get formatted date like "1-Feb" */
 export const getFormattedDTRDate = (dateString: string): string => {
   if (!dateString) return ''

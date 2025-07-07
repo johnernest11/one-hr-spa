@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth.store.ts'
 import { useApiCall } from '@/composables/network'
 import { ApiResponseBody } from '@/typings/http-resources.types.ts'
-import { DailyTimeRecordResponse } from '@/typings/models.types'
+import { DailyTimeRecordResponse, ViewTimeLogsResponse } from '@/typings/models.types'
 import { dailyTimeRecordsmockData } from '@/utils/mock-data'
 
 export type DailyTimeRecordPayload = {
@@ -27,6 +27,7 @@ export type DailyTimeRecordPayload = {
 export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => {
   const auth = useAuthStore()
   const dailyTimeRecords = ref<DailyTimeRecordResponse[]>([])
+  const viewTimeLogs = ref<ViewTimeLogsResponse[]>([])
   const selectedDailyTimeRecords = ref<DailyTimeRecordResponse | null>(null)
 
   const fetchDailyTimeRecords = async (limit = 10, page = 1, status?: string | string[]) => {
@@ -124,6 +125,34 @@ export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => 
     }
   }
 
+  const fetchTimeLogsForToday = async (limit = 5, page = 1) => {
+    const uri = `/employees/view-warm-bodies-today?limit=${limit}&page=${page}`
+
+    const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
+    const responseBody: ApiResponseBody = data.value
+
+    if (responseBody.success && Array.isArray(responseBody.data)) {
+      viewTimeLogs.value = []
+      viewTimeLogs.value = responseBody.data as ViewTimeLogsResponse[]
+    }
+
+    return responseBody
+  }
+
+  const searchTimeLogs = async (query: string, is_my_profile: boolean, date: string | null, limit: number = 5) => {
+    let uri = `/employees/search-time-logs?limit=${limit}&`
+    if (query && is_my_profile) uri += `query=${query}&is_my_profile=${+is_my_profile}&`
+    if (date) uri += `date=${date}`
+    const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
+    const responseBody: ApiResponseBody = data.value
+    if (responseBody.success) {
+      viewTimeLogs.value = []
+      viewTimeLogs.value.unshift(responseBody.data as ViewTimeLogsResponse)
+      console.log(viewTimeLogs.value)
+    }
+    return responseBody
+  }
+
   return {
     dailyTimeRecords,
     createDailyTimeRecords,
@@ -132,5 +161,8 @@ export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => 
     searchDailyTimeRecords,
     updateDailyTimeRecords,
     generateDailyTimeRecords,
+    viewTimeLogs,
+    fetchTimeLogsForToday,
+    searchTimeLogs,
   }
 })
