@@ -1,5 +1,11 @@
 <script setup lang="ts">
 import { onBeforeMount, ref, watch, computed, reactive, onMounted, toRef } from 'vue'
+import { useLibrariesStore } from '@/stores/libraries.store'
+import { useLocatorSlipStore, LocatorSlipPayload } from '@/stores/locator-slip.store'
+import { LocatorSlipResponse } from '@/typings/models.types.ts'
+import { useToast } from 'primevue/usetoast'
+import { useRoute } from 'vue-router'
+
 import Button from 'primevue/button'
 import Card from 'primevue/card'
 import Chip from 'primevue/chip'
@@ -8,39 +14,124 @@ import DataTable from 'primevue/datatable'
 import Dialog from 'primevue/dialog'
 import InputText from 'primevue/inputtext'
 import InputGroup from 'primevue/inputgroup'
+import Paginator, { PageState } from 'primevue/paginator'
 import WbCalendar from '@/components/webkit/WbCalendar.vue'
 import WbDropdown from '@/components/webkit/WbDropdown.vue'
-import Paginator, { PageState } from 'primevue/paginator'
-import { LocatorSlipResponse } from '@/typings/models.types.ts'
-import { useLocatorSlipStore, LocatorSlipPayload } from '@/stores/locator-slip.store'
 import WbAutoComplete, { WbAutoCompleteOption, WbAutoCompleteOptionTrueValue } from '@/components/webkit/WbAutoComplete.vue'
 import { useWbAutoCompleteHandleTrueValue } from '@/composables/wb-ui-components'
+
 import useVuelidate from '@vuelidate/core'
 import { ApiResponsePagination } from '@/typings/http-resources.types.ts'
 import { parseApiResponseError } from '@/utils/error-handle.ts'
 import { helpers, maxLength, required } from '@vuelidate/validators'
 import { getMonthAndYear, formatDateRanges, snakeCaseToTitleCase, isAfterOrEqualFromDate } from '@/utils/helpers.ts'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-import { useToast } from 'primevue/usetoast'
-import { useRoute } from 'vue-router'
-import { useLibrariesStore } from '@/stores/libraries.store'
 import { usePrependOrAppendOnce } from '@/utils/helpers'
-const route = useRoute()
+
 const locatorSlipsStore = useLocatorSlipStore()
 const libraryStore = useLibrariesStore()
+const route = useRoute()
+const toast = useToast()
+const isHumanResourceActive = computed(() => route.name === 'locator-slips')
+const getId = usePrependOrAppendOnce('generate-payroll')
+
+const RequestLocatorSlip = ref(false)
+const searchSubmitted = ref(false)
 const locatorSlipsIsLoading = ref(false)
 const isLoading = ref(true)
+const formIsSubmitting = ref(false)
+const showModal = ref(false)
+const showErrorAlert = ref(false)
 const paginationLimit = 5
-const getId = usePrependOrAppendOnce('generate-payroll')
+
+const searchQuery = ref<string | null>(null)
+const errorMessage = ref<string | null>(null)
+const errorDetails = ref<string[]>([])
+const selectedStatus = ref<string | null>(null)
 const selectedDivision = ref<WbAutoCompleteOption[] | null>(null)
 const selectedSectionUnit = ref<WbAutoCompleteOption[] | null>(null)
 const selectedFundingSources = ref<WbAutoCompleteOption[] | null>(null)
+const pagination = ref<ApiResponsePagination | null>(null)
+
+const emit = defineEmits<{
+  (e: 'locator-created', value: boolean): void
+}>()
+
+const openLocatorSlipDialog = (slip: LocatorSlipResponse | null = null) => {
+  if (!slip || !slip.id) {
+    console.error('Cannot navigate to details: Locator Slip or ID is undefined', slip)
+    return
+  }
+  if (slip) {
+    updatePayloadFromReport(slip)
+  }
+  RequestLocatorSlip.value = true
+}
+
+const openNewLocatorSlipForm = () => {
+  resetPayload()
+  RequestLocatorSlip.value = true
+}
+
 const employementStatusOptions = [
   { label: 'Permanent', value: 'Permanent' },
   { label: 'Contractual', value: 'Contractual' },
   { label: 'Contract of Service', value: 'Contract of Service' },
   { label: 'Job Order', value: 'Job Order' },
 ]
+
+const requestOptions = ref([
+  { label: '1st request for this period', value: '1st request for this period' },
+  { label: '2nd request for this period', value: '2nd request for this period' },
+])
+
+const statusOptions = ref([
+  { label: 'Pending', value: 'pending' },
+  { label: 'In Progress', value: 'in progress' },
+  { label: 'Released', value: 'released' },
+])
+
+const payload = reactive<LocatorSlipPayload>({
+  period_covered_from: '',
+  period_covered_to: '',
+  period_request: '',
+  locator_slip_no: '',
+  status: '',
+})
+
+const resetPayload = () => {
+  payload.period_covered_from = ''
+  payload.period_covered_to = ''
+  payload.period_request = ''
+  payload.locator_slip_no = ''
+  payload.status = ''
+}
+
+const globalStringMaxLength = import.meta.env.VITE_GLOBAL_STRING_MAX_LENGTH
+const globalStringMaxLengthRule = helpers.withMessage(
+  `Must not exceed ${globalStringMaxLength} characters`,
+  maxLength(globalStringMaxLength)
+)
+
+const formRules = () => ({
+  $lazy: true,
+  period_covered_from: {
+    type_request: helpers.withMessage('Period Covered From is required', required),
+    maxLength: helpers.withMessage('', globalStringMaxLengthRule),
+  },
+  period_covered_to: {
+    required: helpers.withMessage('Period Covered To is required', required),
+    maxLength: helpers.withMessage('', globalStringMaxLengthRule),
+    isAfterOrEqualFromDate: helpers.withMessage(
+      'Period Covered To must be after or equal to  From',
+      isAfterOrEqualFromDate(() => payload.period_covered_from ?? '')
+    ),
+  },
+  period_request: {
+    required: helpers.withMessage('Period Request is required', required),
+    maxLength: helpers.withMessage('', globalStringMaxLengthRule),
+  },
+})
 
 onBeforeMount(async () => {
   locatorSlipsIsLoading.value = true
@@ -51,7 +142,6 @@ onBeforeMount(async () => {
   locatorSlipsIsLoading.value = false
 })
 
-const pagination = ref<ApiResponsePagination | null>(null)
 const handlePaginationPageChange = async (event: PageState) => {
   const pageSelected = event.page + 1
   locatorSlipsIsLoading.value = true
@@ -62,23 +152,6 @@ const handlePaginationPageChange = async (event: PageState) => {
   locatorSlipsIsLoading.value = false
 }
 
-const roleFilter = ref<number | null>(null)
-const searchQuery = ref<string | null>(null)
-const isSearching = ref(false)
-watch(
-  () => roleFilter.value,
-  async () => {
-    locatorSlipsIsLoading.value = true
-    searchQuery.value = null
-    isSearching.value = false
-    const response = await locatorSlipsStore.fetchLocatorSlip(paginationLimit)
-    if (response.success && response.pagination) {
-      pagination.value = response.pagination
-    }
-    locatorSlipsIsLoading.value = false
-  }
-)
-const searchSubmitted = ref(false)
 const handleSearchLocatorSlip = async () => {
   locatorSlipsIsLoading.value = true
   searchSubmitted.value = true
@@ -101,8 +174,27 @@ const handleSearchLocatorSlip = async () => {
   locatorSlipsIsLoading.value = false
 }
 
-const toast = useToast()
-const RequestLocatorSlip = ref(false)
+const handleFilterLocatorSlip = async () => {
+  locatorSlipsIsLoading.value = true
+  searchSubmitted.value = true
+  if (!selectedStatus.value) {
+    const response = await locatorSlipsStore.fetchLocatorSlip(paginationLimit) // 5 = pagination limit
+    if (response.success && response.pagination) {
+      pagination.value = response.pagination
+    }
+    return (locatorSlipsIsLoading.value = false)
+  }
+
+  const response = await locatorSlipsStore.filterLocatorSlip(selectedStatus.value)
+  if (response.success && response.pagination) {
+    pagination.value = response.pagination
+    searchQuery.value = null
+  }
+
+  locatorSlipsIsLoading.value = false
+  showModal.value = false
+}
+
 const exportPdf = async (locatorSlips: LocatorSlipResponse) => {
   const { period_covered_from, period_covered_to, id } = locatorSlips
 
@@ -149,38 +241,6 @@ const exportPdf = async (locatorSlips: LocatorSlipResponse) => {
   }
 }
 
-const payload = reactive<LocatorSlipPayload>({
-  period_covered_from: '',
-  period_covered_to: '',
-  period_request: '',
-  locator_slip_no: '',
-  status: '',
-})
-
-const openLocatorSlipDialog = (slip: LocatorSlipResponse | null = null) => {
-  if (!slip || !slip.id) {
-    console.error('Cannot navigate to details: accomplishmentRepor or ID is undefined', slip)
-    return
-  }
-  if (slip) {
-    updatePayloadFromReport(slip)
-  }
-  RequestLocatorSlip.value = true
-}
-
-const openNewLocatorSlipForm = () => {
-  resetPayload()
-  RequestLocatorSlip.value = true
-}
-
-const resetPayload = () => {
-  payload.period_covered_from = ''
-  payload.period_covered_to = ''
-  payload.period_request = ''
-  payload.locator_slip_no = ''
-  payload.status = ''
-}
-
 type LocatorSlipDetailsFormProps = {
   locatorSlip?: LocatorSlipResponse
 }
@@ -219,57 +279,8 @@ watch(
   },
   { immediate: true }
 )
-const requestOptions = ref([
-  { label: '1st request for this period', value: '1st request for this period' },
-  { label: '2nd request for this period', value: '2nd request for this period' },
-])
 
-const statusOptions = ref([
-  { label: 'In Progress', value: 'in progress' },
-  { label: 'Released', value: 'released' },
-])
-
-/** Validation */
-const globalStringMaxLength = import.meta.env.VITE_GLOBAL_STRING_MAX_LENGTH
-const globalStringMaxLengthRule = helpers.withMessage(
-  `Must not exceed ${globalStringMaxLength} characters`,
-  maxLength(globalStringMaxLength)
-)
-const formRules = () => ({
-  $lazy: true,
-  period_covered_from: {
-    type_request: helpers.withMessage('Period Covered From is required', required),
-    maxLength: helpers.withMessage('', globalStringMaxLengthRule),
-  },
-  period_covered_to: {
-    required: helpers.withMessage('Period Covered To is required', required),
-    maxLength: helpers.withMessage('', globalStringMaxLengthRule),
-    isAfterOrEqualFromDate: helpers.withMessage(
-      'Period Covered To must be after or equal to  From',
-      isAfterOrEqualFromDate(() => payload.period_covered_from ?? '')
-    ),
-  },
-  period_request: {
-    required: helpers.withMessage('Period Request is required', required),
-    maxLength: helpers.withMessage('', globalStringMaxLengthRule),
-  },
-})
-
-/** Handle Form Submission */
 const validator = useVuelidate<Partial<LocatorSlipPayload>>(formRules, payload)
-const formIsSubmitting = ref(false)
-const showErrorAlert = ref(false)
-const errorMessage = ref<string | null>(null)
-const errorDetails = ref<string[]>([])
-
-// Add showModal for Dialog visibility
-const showModal = ref(false)
-
-/** Emits */
-const emit = defineEmits<{
-  (e: 'locator-created', value: boolean): void
-}>()
-/** Confirm the action based on the dialog type */
 const handleSaveSubmissionif = async () => {
   const valid = await validator.value.$validate()
   if (!valid) {
@@ -323,8 +334,6 @@ const handleSaveSubmissionif = async () => {
     formIsSubmitting.value = false // Ensure formIsSubmitting is always set to false
   }
 }
-
-const isHumanResourceActive = computed(() => route.name === 'locator-slips')
 </script>
 <template>
   <div class="flex h-full w-full flex-col shadow-md">
@@ -458,7 +467,12 @@ const isHumanResourceActive = computed(() => route.name === 'locator-slips')
                 :disabled="locatorSlipsIsLoading"
                 @keyup.enter="handleSearchLocatorSlip"
               />
-              <Button icon="pi pi-search" @click="handleSearchLocatorSlip" />
+              <Button
+                icon="pi pi-search"
+                @click="handleSearchLocatorSlip"
+                :loading="locatorSlipsIsLoading"
+                :disabled="locatorSlipsIsLoading"
+              />
             </InputGroup>
           </div>
         </div>
@@ -466,8 +480,11 @@ const isHumanResourceActive = computed(() => route.name === 'locator-slips')
 
       <div class="mt-6 flex flex-col">
         <div class="w-full">
-          <div class="mx-auto flex h-full w-full flex-col">
-            <DataTable :value="locatorSlipsStore.locatorSlip" class="mt-6" dataKey="id">
+          <div
+            v-if="locatorSlipsStore.locatorSlip && locatorSlipsStore.locatorSlip.length > 0"
+            class="mx-auto flex h-full w-full flex-col"
+          >
+            <DataTable :value="locatorSlipsStore.locatorSlip" :loading="locatorSlipsIsLoading" class="mt-6" dataKey="id">
               <Column
                 field="period"
                 header="Period Request"
@@ -576,10 +593,7 @@ const isHumanResourceActive = computed(() => route.name === 'locator-slips')
           <i class="pi pi-exclamation-triangle mb-2 text-2xl"></i>
           <p>No Locator Slips found</p>
         </div>
-        <div
-          v-if="!locatorSlipsIsLoading && !locatorSlipsStore.locatorSlip.length && !searchSubmitted"
-          class="mx-auto flex h-full w-full flex-col"
-        >
+        <div v-if="!locatorSlipsIsLoading && !pagination?.total && !searchSubmitted" class="mx-auto flex h-full w-full flex-col">
           <Card class="w-full p-0 shadow-none">
             <template #content>
               <div class="flex flex-col items-center">
@@ -627,23 +641,23 @@ const isHumanResourceActive = computed(() => route.name === 'locator-slips')
     :breakpoints="{ '1199px': '75vw', '575px': '90vw' }"
     :pt="{
       root: {
-        class: 'w-full flex flex-col h-full bg-white shadow-lg p-4',
+        class: 'relative w-full h-full flex flex-col bg-white shadow-lg',
       },
     }"
   >
     <!-- Custom header slot -->
     <template #header>
-      <div class="flex w-full flex-col items-start md:flex-row">
-        <h1 class="mb-2 ml-12 text-2xl text-surface-600 dark:text-primary-100 md:ml-4">
-          <font-awesome-icon :icon="['fas', 'grip-lines']" class="h-5 text-surface-600 sm:h-6 md:h-7" />
-          Filter and Filed Options
-          <br />
+      <div class="flex w-full items-center justify-between p-4 pb-0">
+        <h1 class="text-xl font-semibold text-surface-600 dark:text-primary-100">
+          <font-awesome-icon icon="bars-staggered" class="mr-2" />
+          Filter and Field Options
         </h1>
       </div>
     </template>
-    <div class="flex-grow overflow-auto pr-2">
-      <h1 class="mb-2 text-xl text-surface-600 dark:text-primary-100">Filters</h1>
-      <div class="mb-4">
+    <!-- Scrollable Content (space reserved for footer height) -->
+    <div class="flex-1 overflow-auto px-4 pb-24">
+      <h2 class="mb-2 mt-4 text-sm font-medium text-surface-500 dark:text-primary-100">Filters</h2>
+      <div class="mb-4" v-if="isHumanResourceActive">
         <WbAutoComplete
           :useApiFilter="true"
           :apiEndpoint="'/libraries/divisions/search'"
@@ -665,7 +679,7 @@ const isHumanResourceActive = computed(() => route.name === 'locator-slips')
           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
         />
       </div>
-      <div class="mb-4">
+      <div class="mb-4" v-if="isHumanResourceActive">
         <WbAutoComplete
           :useApiFilter="true"
           :apiEndpoint="'/libraries/section-or-units/search'"
@@ -687,7 +701,7 @@ const isHumanResourceActive = computed(() => route.name === 'locator-slips')
           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
         />
       </div>
-      <div class="mb-4">
+      <div class="mb-4" v-if="isHumanResourceActive">
         <WbAutoComplete
           :useApiFilter="true"
           :apiEndpoint="'/libraries/fund-sources/search'"
@@ -709,7 +723,7 @@ const isHumanResourceActive = computed(() => route.name === 'locator-slips')
           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
         />
       </div>
-      <div class="mb-4">
+      <div class="mb-4" v-if="isHumanResourceActive">
         <WbDropdown
           :options="employementStatusOptions"
           optionLabel="label"
@@ -721,6 +735,7 @@ const isHumanResourceActive = computed(() => route.name === 'locator-slips')
       </div>
       <div class="mb-40">
         <WbDropdown
+          v-model="selectedStatus"
           :options="statusOptions"
           optionLabel="label"
           optionValue="value"
@@ -730,31 +745,34 @@ const isHumanResourceActive = computed(() => route.name === 'locator-slips')
         />
       </div>
     </div>
-
+    <!-- Fixed Footer (inside dialog container) -->
     <div
-      class="mt-48 flex w-full flex-col justify-center gap-2 border-t border-surface-200 pt-4 dark:border-surface-700 sm:flex-row"
+      class="absolute bottom-0 left-0 right-0 border-t border-surface-300 bg-surface-0 px-4 py-3 dark:border-surface-700 dark:bg-surface-900"
     >
-      <Button
-        label="Cancel"
-        class="dark:text-secondary-100 border border-surface-400 px-6 py-2 text-lg text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
-        @click="showModal = false"
-        text
-      >
-        <template #icon>
-          <i class="pi pi-ban mr-2 text-lg"></i>
-        </template>
-      </Button>
-      <Button
-        :loading="formIsSubmitting"
-        :disabled="formIsSubmitting"
-        label="Apply"
-        class="dark:text-secondary-100 border border-primary-500 px-6 py-3 text-lg text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-600"
-        text
-      >
-        <template #icon>
-          <font-awesome-icon :icon="['fas', 'check']" class="mr-2 text-lg" />
-        </template>
-      </Button>
+      <div class="flex flex-col items-center justify-center gap-2 sm:flex-row">
+        <Button
+          label="Cancel"
+          class="dark:text-secondary-100 w-full border border-surface-400 px-4 py-2 text-surface-500 dark:border-surface-700"
+          @click="showModal = false"
+          text
+        >
+          <template #icon>
+            <i class="pi pi-ban mr-2 text-lg"></i>
+          </template>
+        </Button>
+        <Button
+          :loading="locatorSlipsIsLoading"
+          :disabled="locatorSlipsIsLoading"
+          @click="handleFilterLocatorSlip"
+          label="Apply"
+          class="dark:text-secondary-100 w-full border border-primary-500 px-4 py-3 text-primary-600 dark:border-surface-700"
+          text
+        >
+          <template #icon>
+            <font-awesome-icon icon="check" class="mr-2 text-lg" />
+          </template>
+        </Button>
+      </div>
     </div>
   </Dialog>
 </template>

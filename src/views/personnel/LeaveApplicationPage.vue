@@ -39,7 +39,8 @@ const isHumanResourceActive = computed(() => route.name === 'leave-applications'
 
 const searchQuery = ref<string | null>(null)
 const showModal = ref(false)
-const formIsSubmitting = ref(false)
+const selectedStatus = ref<string | null>(null)
+const selectedEmploymentStatus = ref<string | null>(null)
 const searchSubmitted = ref(false)
 const toast = useToast()
 const applicationLeaveIsLoading = ref(false)
@@ -53,6 +54,7 @@ const employementStatusOptions = [
 ]
 
 const statusOptions = ref([
+  { label: 'N/A', value: '' },
   { label: 'For Review', value: 'For Review' },
   { label: 'Disapproved', value: 'Disapproved' },
   { label: 'Approved', value: 'Approved' },
@@ -124,6 +126,28 @@ const handleSearchApplicationLeave = async () => {
     searchQuery.value = null
   }
   applicationLeaveIsLoading.value = false
+}
+
+const handleFilterLeaveApplication = async () => {
+  applicationLeaveIsLoading.value = true
+  searchSubmitted.value = true
+
+  const filters = {
+    ...(selectedStatus.value && { status: selectedStatus.value }),
+    ...(selectedDivision.value?.[0]?.label && { division: selectedDivision.value[0].label }), // Using label for name
+    ...(selectedSectionUnit.value?.[0]?.label && { section: selectedSectionUnit.value[0].label }), // Using label for name
+    ...(selectedEmploymentStatus.value && { employment_status: selectedEmploymentStatus.value }),
+  }
+
+  const response = await applicationLeaveStore.filterLeaveApplication(filters, 10, 1)
+
+  if (response.success && response.pagination) {
+    pagination.value = response.pagination
+    searchQuery.value = null
+  }
+
+  applicationLeaveIsLoading.value = false
+  showModal.value = false
 }
 
 const exportPdf = async (leaveApplication: LeaveApplicationResponse) => {
@@ -212,15 +236,28 @@ const exportPdf = async (leaveApplication: LeaveApplicationResponse) => {
                 :disabled="applicationLeaveIsLoading"
                 @keyup.enter="handleSearchApplicationLeave"
               />
-              <Button icon="pi pi-search" @click="handleSearchApplicationLeave" />
+              <Button
+                icon="pi pi-search"
+                @click="handleSearchApplicationLeave"
+                :loading="applicationLeaveIsLoading"
+                :disabled="applicationLeaveIsLoading"
+              />
             </InputGroup>
           </div>
         </div>
       </div>
       <div class="mt-6 flex flex-col">
         <div class="w-full">
-          <div class="mx-auto flex h-full w-full flex-col">
-            <DataTable :value="applicationLeaveStore.leaveApplication" class="mt-6" dataKey="id">
+          <div
+            v-if="applicationLeaveStore.leaveApplication && applicationLeaveStore.leaveApplication.length > 0"
+            class="mx-auto flex h-full w-full flex-col"
+          >
+            <DataTable
+              :value="applicationLeaveStore.leaveApplication"
+              :loading="applicationLeaveIsLoading"
+              class="mt-6"
+              dataKey="id"
+            >
               <Column
                 v-if="!isHumanResourceActive"
                 field="period"
@@ -300,20 +337,20 @@ const exportPdf = async (leaveApplication: LeaveApplicationResponse) => {
                 headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
               >
                 <template #body="props">
-                  <template v-if="props.data.status === 'draft'">
+                  <template v-if="props.data.status === 'Draft'">
                     <Chip
                       label="Draft"
                       class="flex items-center justify-center !bg-surface-600 px-4 py-1 font-semibold !text-surface-0"
                     >
                     </Chip>
                   </template>
-                  <template v-else-if="props.data.status === 'for review'">
+                  <template v-else-if="props.data.status === 'For Review'">
                     <Chip
                       label="For Review"
                       class="flex items-center justify-center !bg-success-800 px-4 py-1 font-semibold !text-surface-0"
                     />
                   </template>
-                  <template v-else-if="props.data.status === 'approved'">
+                  <template v-else-if="props.data.status === 'Approved'">
                     <Chip
                       label="Approved"
                       class="flex items-center justify-center !bg-info-800 px-4 py-1 font-semibold !text-surface-0"
@@ -363,10 +400,10 @@ const exportPdf = async (leaveApplication: LeaveApplicationResponse) => {
           class="flex h-full w-full flex-col items-center justify-center font-menu text-lg dark:text-surface-300"
         >
           <i class="pi pi-exclamation-triangle mb-2 text-2xl"></i>
-          <p>No Leave Applications found</p>
+          <p>No Leave Application found</p>
         </div>
         <div
-          v-if="!applicationLeaveIsLoading && !applicationLeaveStore.leaveApplication.length && !searchSubmitted"
+          v-if="!applicationLeaveIsLoading && !pagination?.total && !searchSubmitted"
           class="mx-auto flex h-full w-full flex-col"
         >
           <Card class="w-full p-0 shadow-none">
@@ -433,6 +470,7 @@ const exportPdf = async (leaveApplication: LeaveApplicationResponse) => {
       <h2 class="mb-2 mt-4 text-sm font-medium text-surface-500 dark:text-primary-100">Filters</h2>
       <div class="mb-4">
         <WbAutoComplete
+          v-if="isHumanResourceActive"
           :useApiFilter="true"
           :apiEndpoint="'/libraries/divisions/search'"
           :suggestions="libraryStore.divisionOptions"
@@ -455,6 +493,7 @@ const exportPdf = async (leaveApplication: LeaveApplicationResponse) => {
       </div>
       <div class="mb-4">
         <WbAutoComplete
+          v-if="isHumanResourceActive"
           :useApiFilter="true"
           :apiEndpoint="'/libraries/section-or-units/search'"
           :suggestions="libraryStore.sectionUnitOptions"
@@ -478,6 +517,7 @@ const exportPdf = async (leaveApplication: LeaveApplicationResponse) => {
       <div class="mb-4">
         <WbDropdown
           v-if="isHumanResourceActive"
+          v-model="selectedEmploymentStatus"
           :options="employementStatusOptions"
           optionLabel="label"
           optionValue="value"
@@ -488,6 +528,7 @@ const exportPdf = async (leaveApplication: LeaveApplicationResponse) => {
       </div>
       <div class="mb-40">
         <WbDropdown
+          v-model="selectedStatus"
           :options="statusOptions"
           optionLabel="label"
           optionValue="value"
@@ -514,14 +555,15 @@ const exportPdf = async (leaveApplication: LeaveApplicationResponse) => {
           </template>
         </Button>
         <Button
-          :loading="formIsSubmitting"
-          :disabled="formIsSubmitting"
+          :loading="applicationLeaveIsLoading"
+          :disabled="applicationLeaveIsLoading"
+          @click="handleFilterLeaveApplication"
           label="Apply"
           class="dark:text-secondary-100 w-full border border-primary-500 px-4 py-3 text-primary-600 dark:border-surface-700"
           text
         >
           <template #icon>
-            <font-awesome-icon :icon="['fas', 'check']" class="mr-2 text-lg" />
+            <font-awesome-icon icon="check" class="mr-2 text-lg" />
           </template>
         </Button>
       </div>

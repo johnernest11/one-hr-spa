@@ -30,6 +30,13 @@ export type LeaveApplicationPayload = {
   }[]
 }
 
+export type LeaveApplicationFilters = {
+  division?: string | null
+  section?: string | null
+  employment_status?: string | null
+  status?: string | null
+}
+
 export const useLeaveApplicationStore = defineStore('leave-application', () => {
   const auth = useAuthStore()
   const leaveApplication = ref<LeaveApplicationResponse[]>([])
@@ -102,18 +109,6 @@ export const useLeaveApplicationStore = defineStore('leave-application', () => {
     return responseBody
   }
 
-  const searchLeaveApplication = async (query: string | null) => {
-    let uri = '/leave-applications/search?'
-    if (query) uri += `query=${query}`
-    const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
-    const responseBody: ApiResponseBody = data.value
-    if (responseBody.success) {
-      const leaveApplicationsList = responseBody.data as LeaveApplicationResponse[]
-      leaveApplication.value = [...leaveApplicationsList]
-    }
-    return responseBody
-  }
-
   const updateLeaveApplication = async (leave: Partial<LeaveApplicationPayload>, id: string | number) => {
     const formatDate = (date: Date | string | null | undefined): string | undefined => {
       return date ? useDateFormat(date, 'YYYY-MM-DD').value.toString() : undefined
@@ -128,6 +123,85 @@ export const useLeaveApplicationStore = defineStore('leave-application', () => {
       leaveApplication.value[index] = responseBody.data as LeaveApplicationResponse
     }
     return responseBody
+  }
+
+  const searchLeaveApplication = async (query: string | null, limit = 10, page = 1) => {
+    const start = (page - 1) * limit
+
+    const filtered = applicationLeavemockData.filter((item) => {
+      if (!query) return true
+      const q = query.toLowerCase()
+
+      const months =
+        item.dates?.map((dateItem) => {
+          const fromDate = new Date(dateItem.start_date)
+          return fromDate.toLocaleString('default', { month: 'long' }).toLowerCase()
+        }) || []
+
+      return (
+        months.some((month) => month.includes(q)) ||
+        item.leave_type_id.title.toLowerCase().includes(q) ||
+        item.date_of_filing?.toLowerCase().includes(q) ||
+        item.status.toLowerCase().includes(q) ||
+        item.employee_id.individual_basic_detail_id.first_name.toLowerCase().includes(q) ||
+        item.employee_id.individual_basic_detail_id.last_name.toLowerCase().includes(q)
+      )
+    })
+
+    const paginated = filtered.slice(start, start + limit)
+    leaveApplication.value = [...paginated]
+
+    return {
+      success: true,
+      data: paginated,
+      pagination: {
+        current_page: page,
+        last_page: Math.ceil(filtered.length / limit),
+        per_page: limit,
+        total: filtered.length,
+        from: start + 1,
+        to: start + paginated.length,
+        first_page_url: '',
+        last_page_url: '',
+        next_page_url: null,
+        previous_page_url: null,
+        path: '',
+      },
+    }
+  }
+
+  const filterLeaveApplication = async (filters: LeaveApplicationFilters, limit = 10, page = 1) => {
+    const start = (page - 1) * limit
+
+    const filtered = applicationLeavemockData.filter((item) => {
+      return (
+        (!filters.division || item.employee_id?.division_id.name === filters.division) &&
+        (!filters.section || item.employee_id?.section_or_unit_id.name === filters.section) &&
+        (!filters.employment_status || item.employee_id?.item.employment_status === filters.employment_status) &&
+        (!filters.status || item.status === filters.status)
+      )
+    })
+
+    const paginated = filtered.slice(start, start + limit)
+    leaveApplication.value = [...paginated]
+
+    return {
+      success: true,
+      data: paginated,
+      pagination: {
+        current_page: page,
+        last_page: Math.ceil(filtered.length / limit),
+        per_page: limit,
+        total: filtered.length,
+        from: start + 1,
+        to: start + paginated.length,
+        first_page_url: '',
+        last_page_url: '',
+        next_page_url: null,
+        previous_page_url: null,
+        path: '',
+      },
+    }
   }
 
   const generateLeaveApplication = async (id: string) => {
@@ -146,8 +220,9 @@ export const useLeaveApplicationStore = defineStore('leave-application', () => {
     createLeaveApplication,
     fetchLeaveApplication,
     fetchLeaveApplicationById,
-    searchLeaveApplication,
     updateLeaveApplication,
+    searchLeaveApplication,
+    filterLeaveApplication,
     generateLeaveApplication,
   }
 })
