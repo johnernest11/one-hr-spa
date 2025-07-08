@@ -112,6 +112,8 @@ export type DeductionResponse = {
 /** User (HTTP Responses) */
 export type UserResponse = {
   email: string
+  name: string
+  username: string
   active: boolean
   email_verified_at: string
   roles: Array<{ id: string | number; name: string }>
@@ -131,6 +133,7 @@ export type UserProfileResponse = {
   full_name: string
   profile_picture_url: string | null
   address: AddressResponse
+  individual_basic_detail_id?: PersonnelResponse | null
   personnel_accomplishment_report?: Array<PersonnelAccomplishmentReportResponse> | null | undefined
 } & ApiResponseData
 

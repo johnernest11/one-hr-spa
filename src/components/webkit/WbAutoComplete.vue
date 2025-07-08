@@ -53,6 +53,7 @@ type WbAutoCompleteProps = {
   wrapperClass?: string
   labelClass?: string
   required?: boolean
+  employeeMode?: boolean
   validationErrorMessageClass?: string
   validationSuccessMessageClass?: string
 }
@@ -68,6 +69,7 @@ const props = withDefaults(defineProps<WbAutoCompleteProps>(), {
   wrapperClass: '',
   labelClass: '',
   required: false,
+  employeeMode: false,
   validationErrorMessageClass: '',
   validationSuccessMessageClass: '',
 })
@@ -100,6 +102,16 @@ const search = useDebounceFn(async (event: AutoCompleteCompleteEvent) => {
           label: `SG-${element.salary_grade}-${element.step} FY: ${element.effective_date} Tranche: ${element.tranche} NBC no: ${element.nbc_no} (${element.amount})`,
           value: element[props.apiOptionValue],
         })
+      } else if (props.apiOptionLabel === 'employee_name') {
+        const first = element.first_name ?? ''
+        const middle = element.middle_name ? `${element.middle_name}. ` : ''
+        const last = element.last_name ?? ''
+        const ext = element.ext_name ?? ''
+
+        filteredSuggestions.value?.push({
+          label: `${first} ${middle}${last} ${ext}`.trim().toUpperCase(),
+          value: element[props.apiOptionValue],
+        })
       } else {
         filteredSuggestions.value?.push({
           label: label,
@@ -123,10 +135,19 @@ const search = useDebounceFn(async (event: AutoCompleteCompleteEvent) => {
 /** Send back the true value of an object to the parent */
 const handleItemSelect = (event: AutoCompleteItemSelectEvent): void => {
   const selectedOption: WbAutoCompleteOption = event.value
-  emit('onTrueValueComputed', selectedOption[props.trueValueKey])
+
+  if (props.employeeMode || props.apiOptionLabel === 'employee_name') {
+    // Emit the full employee object
+    emit('onTrueValueComputed', selectedOption)
+  } else {
+    // Emit only the specific field (e.g. value)
+    emit('onTrueValueComputed', selectedOption[props.trueValueKey])
+  }
 }
 
-/** We send back null as the true value when the clear event is emitted */
+/** We send back null as the true value when
+ *
+ * the clear event is emitted */
 const handleItemClear = (): void => {
   emit('onTrueValueComputed', null)
 }
