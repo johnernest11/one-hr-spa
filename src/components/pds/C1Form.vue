@@ -722,6 +722,35 @@ const handleRemoveChild = (childIndex: number) => {
 
 const handleSaveC1Form = async () => {
   isC1Loading.value = true
+  const valid = await validator.value.$validate()
+  if (!valid) {
+    const hasEmployeeError = validator.value.employee?.$error
+    const hasIndividualError = validator.value.individual?.$error
+    const hasContactInfoError = validator.value.contact_info?.$error
+    const hasAddressError = validator.value.individual_address_init?.$error
+    const hasSpouseError = validator.value.individual_family_spouse?.$error
+    const hasFatherError = validator.value.individual_family_father?.$error
+    const hasMotherError = validator.value.individual_family_mothers_maiden?.$error
+    const hasChildError = validator.value.individual_family_child?.$error
+    const hasEducationError = validator.value.educations?.$error
+
+    const errorFields: string[] = []
+    if (hasEmployeeError) errorFields.push('Employee')
+    if (hasIndividualError) errorFields.push('Individual')
+    if (hasContactInfoError) errorFields.push('Contact Info')
+    if (hasAddressError) errorFields.push('Address')
+    if (hasSpouseError) errorFields.push('Spouse')
+    if (hasFatherError) errorFields.push('Father')
+    if (hasMotherError) errorFields.push('Mother')
+    if (hasChildError) errorFields.push('Child')
+    if (hasEducationError) errorFields.push('Education')
+
+    const tabList = errorFields.join(', ')
+    showToast('error', 'Validation Error', `Please check the following section(s): ${tabList}`)
+
+    isC1Loading.value = false
+    return { valid: false, errorTabs: ['C1'] }
+  }
 
   /** Propagate indiividual family to required payload */
   const families = [{ ...payload.individual_family_father }, { ...payload.individual_family_mothers_maiden }]
@@ -760,7 +789,6 @@ const handleSaveC1Form = async () => {
     payload.individual_educational_background.push({ ...payload.educations.graduate })
   }
 
-  const valid = await validator.value.$validate()
   console.log(validator.value)
   if (!valid) return (isC1Loading.value = false)
 
@@ -772,7 +800,7 @@ const handleSaveC1Form = async () => {
     isPdsError.value = true
     errorMessage.value = result?.message
     pdsErrors.value = result?.errors
-    showToast('error', 'PDS C1 Error', 'PLease see the validation messages')
+    showToast('error', 'PDS Error', 'Pease see the validation messages')
   } else {
     showToast('success', 'PDS C1', 'PDS C1 Information has been saved')
     router.push({ name: 'employment' })
@@ -786,6 +814,10 @@ const c1Tabs = ref([
   { name: 'Family Background', index: 1 },
   { name: 'Educational Background', index: 2 },
 ])
+
+defineExpose({
+  handleSaveC1Form,
+})
 </script>
 
 <template>
@@ -1217,9 +1249,9 @@ const c1Tabs = ref([
                       @blur="validator.individual.gsis_no.$touch"
                     >
                     </WbInputText>
+
                     <WbInputText
                       v-model="payload.individual.pag_ibig_no"
-                      required
                       label="PAG-IBIG ID No."
                       label-class="text-md text-surface-600 dark:lg:text-surface-200"
                       class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
@@ -1710,10 +1742,12 @@ const c1Tabs = ref([
                       :invalid-text="validator.individual_family_spouse.middle_name.$errors[0]?.$message"
                       @blur="validator.individual_family_spouse.middle_name.$touch"
                     />
-
-                    <WbInputText
+                    <WbDropdown
                       v-model="payload.individual_family_spouse.ext_name"
-                      label="Name Extension"
+                      optionLabel="label"
+                      optionValue="value"
+                      :options="ExtensionTypeOptions"
+                      label="Extension Name"
                       label-class="text-md text-surface-600 dark:lg:text-surface-200"
                       class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                       validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -1762,9 +1796,12 @@ const c1Tabs = ref([
                       @blur="validator.individual_family_father.middle_name.$touch"
                     />
 
-                    <WbInputText
+                    <WbDropdown
                       v-model="payload.individual_family_father.ext_name"
-                      label="Name Extension"
+                      optionLabel="label"
+                      optionValue="value"
+                      :options="ExtensionTypeOptions"
+                      label="Extension Name"
                       label-class="text-md text-surface-600 dark:lg:text-surface-200"
                       class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                       validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -1813,9 +1850,12 @@ const c1Tabs = ref([
                       @blur="validator.individual_family_mothers_maiden.middle_name.$touch"
                     />
 
-                    <WbInputText
+                    <WbDropdown
                       v-model="payload.individual_family_mothers_maiden.ext_name"
-                      label="Name Extension"
+                      optionLabel="label"
+                      optionValue="value"
+                      :options="ExtensionTypeOptions"
+                      label="Extension Name"
                       label-class="text-md text-surface-600 dark:lg:text-surface-200"
                       class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                       validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -1865,9 +1905,12 @@ const c1Tabs = ref([
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         />
 
-                        <WbInputText
+                        <WbDropdown
                           v-model="payload.individual_family_children[childIdx - 1].ext_name"
-                          label="Name Extension"
+                          optionLabel="label"
+                          optionValue="value"
+                          :options="ExtensionTypeOptions"
+                          label="Extension Name"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -1959,24 +2002,28 @@ const c1Tabs = ref([
 
                     <div class="bg-light-black-600 flex w-full flex-col gap-x-12 gap-y-4 md:flex-row">
                       <div class="flex w-full flex-col gap-x-6 gap-y-4 md:flex-row">
-                        <WbInputText
+                        <WbCalendar
                           v-model="payload.educations.elementary.period_of_attendance_from"
                           required
                           label="From"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                          class="lg:text-md w-full text-sm placeholder:text-sm"
+                          :view="'year'"
+                          :dateFormat="'yy'"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           :invalid="validator.educations.elementary.period_of_attendance_from.$invalid"
                           :invalid-text="validator.educations.elementary.period_of_attendance_from.$errors[0]?.$message"
                           @blur="validator.educations.elementary.period_of_attendance_from.$touch"
                         />
 
-                        <WbInputText
+                        <WbCalendar
                           v-model="payload.educations.elementary.period_of_attendance_to"
                           required
-                          label="To "
+                          label="To"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                          class="lg:text-md w-full text-sm placeholder:text-sm"
+                          :view="'year'"
+                          :dateFormat="'yy'"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           :invalid="validator.educations.elementary.period_of_attendance_to.$invalid"
                           :invalid-text="validator.educations.elementary.period_of_attendance_to.$errors[0]?.$message"
@@ -1996,9 +2043,11 @@ const c1Tabs = ref([
                       </div>
 
                       <div class="flex w-full flex-col gap-x-6 gap-y-4 md:flex-row">
-                        <WbInputText
+                        <WbCalendar
                           v-model="payload.educations.elementary.year_graduated"
                           required
+                          :view="'year'"
+                          :dateFormat="'yy'"
                           label="Year Graduated"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
@@ -2058,24 +2107,28 @@ const c1Tabs = ref([
 
                     <div class="bg-light-black-600 flex w-full flex-col gap-x-12 gap-y-4 md:flex-row">
                       <div class="flex w-full flex-col gap-x-6 gap-y-4 md:flex-row">
-                        <WbInputText
+                        <WbCalendar
                           v-model="payload.educations.high_school.period_of_attendance_from"
                           required
                           label="From"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                          :view="'year'"
+                          :dateFormat="'yy'"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           :invalid="validator.educations.high_school.period_of_attendance_from.$invalid"
                           :invalid-text="validator.educations.high_school.period_of_attendance_from.$errors[0]?.$message"
                           @blur="validator.educations.high_school.period_of_attendance_from.$touch"
                         />
 
-                        <WbInputText
+                        <WbCalendar
                           v-model="payload.educations.high_school.period_of_attendance_to"
                           required
                           label="To "
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                          :view="'year'"
+                          :dateFormat="'yy'"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           :invalid="validator.educations.high_school.period_of_attendance_to.$invalid"
                           :invalid-text="validator.educations.high_school.period_of_attendance_to.$errors[0]?.$message"
@@ -2095,9 +2148,11 @@ const c1Tabs = ref([
                       </div>
 
                       <div class="flex w-full flex-col gap-x-6 gap-y-4 md:flex-row">
-                        <WbInputText
+                        <WbCalendar
                           v-model="payload.educations.high_school.year_graduated"
                           required
+                          :view="'year'"
+                          :dateFormat="'yy'"
                           label="Year Graduated"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
@@ -2155,23 +2210,27 @@ const c1Tabs = ref([
 
                     <div class="bg-light-black-600 flex w-full flex-col gap-x-12 gap-y-4 md:flex-row">
                       <div class="flex w-full flex-col gap-x-6 gap-y-4 md:flex-row">
-                        <WbInputText
+                        <WbCalendar
                           v-model="payload.educations.vocational.period_of_attendance_from"
                           label="From"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                          :view="'year'"
+                          :dateFormat="'yy'"
                           :invalid="validator.educations.vocational.period_of_attendance_from.$invalid"
                           :invalid-text="validator.educations.vocational.period_of_attendance_from.$errors[0]?.$message"
                           @blur="validator.educations.vocational.period_of_attendance_from.$touch"
                         />
 
-                        <WbInputText
+                        <WbCalendar
                           v-model="payload.educations.vocational.period_of_attendance_to"
                           label="To "
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                          :view="'year'"
+                          :dateFormat="'yy'"
                           :invalid="validator.educations.vocational.period_of_attendance_to.$invalid"
                           :invalid-text="validator.educations.vocational.period_of_attendance_to.$errors[0]?.$message"
                           @blur="validator.educations.vocational.period_of_attendance_to.$touch"
@@ -2190,10 +2249,12 @@ const c1Tabs = ref([
                       </div>
 
                       <div class="flex w-full flex-col gap-x-6 gap-y-4 md:flex-row">
-                        <WbInputText
+                        <WbCalendar
                           v-model="payload.educations.vocational.year_graduated"
                           label="Year Graduated"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                          :view="'year'"
+                          :dateFormat="'yy'"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           :invalid="validator.educations.vocational.year_graduated.$invalid"
@@ -2251,22 +2312,26 @@ const c1Tabs = ref([
 
                     <div class="bg-light-black-600 flex w-full flex-col gap-x-12 gap-y-4 md:flex-row">
                       <div class="flex w-full flex-col gap-x-6 gap-y-4 md:flex-row">
-                        <WbInputText
+                        <WbCalendar
                           v-model="payload.educations.college.period_of_attendance_from"
                           required
                           label="From"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                          :view="'year'"
+                          :dateFormat="'yy'"
                           :invalid="validator.educations.college.period_of_attendance_from.$invalid"
                           :invalid-text="validator.educations.college.period_of_attendance_from.$errors[0]?.$message"
                           @blur="validator.educations.college.period_of_attendance_from.$touch"
                         />
 
-                        <WbInputText
+                        <WbCalendar
                           v-model="payload.educations.college.period_of_attendance_to"
                           required
                           label="To "
+                          :view="'year'"
+                          :dateFormat="'yy'"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -2288,11 +2353,13 @@ const c1Tabs = ref([
                       </div>
 
                       <div class="flex w-full flex-col gap-x-6 gap-y-4 md:flex-row">
-                        <WbInputText
+                        <WbCalendar
                           v-model="payload.educations.college.year_graduated"
                           required
                           label="Year Graduated"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                          :view="'year'"
+                          :dateFormat="'yy'"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           :invalid="validator.educations.college.year_graduated.$invalid"
@@ -2346,23 +2413,27 @@ const c1Tabs = ref([
 
                     <div class="bg-light-black-600 flex w-full flex-col gap-x-12 gap-y-4 md:flex-row">
                       <div class="flex w-full flex-col gap-x-6 gap-y-4 md:flex-row">
-                        <WbInputText
+                        <WbCalendar
                           v-model="payload.educations.graduate.period_of_attendance_from"
                           label="From"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                          :view="'year'"
+                          :dateFormat="'yy'"
                           :invalid="validator.educations.graduate.period_of_attendance_from.$invalid"
                           :invalid-text="validator.educations.graduate.period_of_attendance_from.$errors[0]?.$message"
                           @blur="validator.educations.graduate.period_of_attendance_from.$touch"
                         />
 
-                        <WbInputText
+                        <WbCalendar
                           v-model="payload.educations.graduate.period_of_attendance_to"
                           label="To "
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                          :view="'year'"
+                          :dateFormat="'yy'"
                           :invalid="validator.educations.graduate.period_of_attendance_to.$invalid"
                           :invalid-text="validator.educations.graduate.period_of_attendance_to.$errors[0]?.$message"
                           @blur="validator.educations.graduate.period_of_attendance_to.$touch"
@@ -2381,10 +2452,12 @@ const c1Tabs = ref([
                       </div>
 
                       <div class="flex w-full flex-col gap-x-6 gap-y-4 md:flex-row">
-                        <WbInputText
+                        <WbCalendar
                           v-model="payload.educations.graduate.year_graduated"
                           label="Year Graduated"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                          :view="'year'"
+                          :dateFormat="'yy'"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           :invalid="validator.educations.graduate.year_graduated.$invalid"
@@ -2412,20 +2485,6 @@ const c1Tabs = ref([
             <!-- END EDUCATIONAL BACKGROUND -->
           </TabPanels>
         </TabGroup>
-
-        <Button
-          label="Save C1 Info"
-          @click.prevent="handleSaveC1Form"
-          :loading="isC1Loading"
-          type="button"
-          size="large"
-          class="dark:text-secondary-100 bottom-0 right-0 mt-4 w-full border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
-          text
-        >
-          <template #icon>
-            <i class="pi pi-plus mr-2"></i>
-          </template>
-        </Button>
       </div>
     </form>
   </div>

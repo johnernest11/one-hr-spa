@@ -100,14 +100,16 @@ export const usePayRollStore = defineStore('pay-roll', () => {
         },
         agency_employee_no: null,
         office_id: null,
-        division_id: {
+        division_id: null,
+        division: {
           id: '',
           name: null,
           head_user_id: null,
           added_by_user_id: null,
           last_modified_by_user_id: null,
         },
-        section_or_unit_id: {
+        section_or_unit_id: null,
+        section_or_unit: {
           id: '',
           name: null,
           division_id: null,

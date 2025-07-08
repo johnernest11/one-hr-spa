@@ -128,7 +128,8 @@ const updatePayloadFromReport = (payRoll: PayrollResponse | null) => {
         agency_employee_no: payRoll.employee_id.agency_employee_no ?? null,
         office_id: payRoll.employee_id.office_id ?? null,
         // Division info
-        division_id: payRoll.employee_id.division_id ?? {
+        division_id: payRoll.employee_id.division_id ?? null,
+        division: payRoll.employee_id.division ?? {
           id: '',
           name: null,
           head_user_id: null,
@@ -136,7 +137,8 @@ const updatePayloadFromReport = (payRoll: PayrollResponse | null) => {
           last_modified_by_user_id: null,
         },
         // Section/Unit info
-        section_or_unit_id: payRoll.employee_id.section_or_unit_id ?? {
+        section_or_unit_id: payRoll.employee_id.section_or_unit_id ?? null,
+        section_or_unit: payRoll.employee_id.section_or_unit ?? {
           id: '',
           name: null,
           division_id: null,

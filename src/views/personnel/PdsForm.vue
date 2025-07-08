@@ -1,21 +1,23 @@
 <script setup lang="ts">
-import { onBeforeMount, ref, shallowRef } from 'vue'
+import { onBeforeMount, ref } from 'vue'
 import { useProfileStore } from '@/stores/profile.store.ts'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { TabGroup, TabList, Tab, TabPanels, TabPanel } from '@headlessui/vue'
 import { TransitionRoot } from '@headlessui/vue'
 import C1Form from '@/components/pds/C1Form.vue'
+import C2Form from '@/components/pds/C2Form.vue'
 import { useRoute } from 'vue-router'
 import { lcFirst } from '@/utils/helpers.ts'
 import { usePdsStore } from '@/stores/pds.store'
-
+import Button from 'primevue/button'
 const route = useRoute()
 
 const pdsStore = usePdsStore()
-
-const pdsSections = ref([{ name: 'C1', component: shallowRef(C1Form) }])
-
 const profileStore = useProfileStore()
+const isC1Loading = ref(false)
+
+const c1FormRef = ref()
+const c2FormRef = ref()
 
 onBeforeMount(async () => {
   await profileStore.fetchProfile()
@@ -24,56 +26,108 @@ onBeforeMount(async () => {
     pdsStore.pdsMode = route.query.mode.replace(/-/g, ' ').replace(/(?:^|\s)\S/g, (a: string) => a.toUpperCase())
   }
 })
+
+const handleSubmit = async () => {
+  if (c1FormRef.value?.handleSaveC1Form) {
+    await c1FormRef.value.handleSaveC1Form()
+  }
+
+  if (c2FormRef.value?.handleSaveC2Form) {
+    await c2FormRef.value.handleSaveC2Form()
+  }
+}
 </script>
 
 <template>
   <div class="flex h-full w-full flex-col shadow-md">
     <div class="h-full w-full rounded-md bg-surface-0 p-6">
       <div
-        class="flex flex-row items-center space-x-4 font-medium text-primary-700 dark:text-primary-100 md:ml-4 md:mt-2 md:flex-row"
+        class="flex flex-row items-center justify-between space-x-4 font-medium text-primary-700 dark:text-primary-100 md:ml-4 md:mt-2"
       >
-        <FontAwesomeIcon :icon="['fas', 'users']" class="text-2xl md:text-4xl" />
-        <span class="flex flex-col justify-center">
-          <p class="text-xl md:text-3xl">Personal Data Sheet</p>
-          <p class="text-surface-500">{{ lcFirst(pdsStore.pdsMode) }}</p>
-        </span>
+        <!-- Icon + Text -->
+        <div class="flex flex-row items-center space-x-4">
+          <FontAwesomeIcon :icon="['fas', 'users']" class="text-2xl md:text-4xl" />
+          <span class="flex flex-col justify-center">
+            <p class="text-xl md:text-3xl">Personal Data Sheet</p>
+            <p class="text-surface-500">{{ lcFirst(pdsStore.pdsMode) }}</p>
+          </span>
+        </div>
+
+        <!-- Button aligned right -->
+        <div class="ml-auto">
+          <Button
+            label="Save C1 & C2 Info"
+            @click.prevent="handleSubmit"
+            :loading="isC1Loading"
+            type="button"
+            size="large"
+            class="dark:text-secondary-100 mt-4 w-full border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+            text
+          >
+            <template #icon>
+              <i class="pi pi-save mr-2"></i>
+            </template>
+          </Button>
+        </div>
       </div>
 
       <div class="mt-6 flex flex-col">
         <div class="w-full">
           <TabGroup>
             <TabList class="flex">
-              <Tab v-for="pdsPage in pdsSections" as="template" :key="pdsPage.name" v-slot="{ selected }">
+              <Tab v-slot="{ selected }" as="template">
                 <button
                   :class="[
-                    'w-full  border-b-2 border-solid py-4 text-sm font-medium leading-5 ring-transparent transition-all duration-300 ease-in-out focus:outline-none md:text-base ',
+                    'w-full border-b-2 border-solid py-4 text-sm font-medium leading-5 ring-transparent transition-all duration-300 ease-in-out focus:outline-none md:text-base',
                     selected
                       ? 'border-b-2 border-solid border-primary-600 bg-primary-100 text-primary-600'
                       : 'border-surface-300 text-surface-400 hover:bg-white/[0.12]',
                   ]"
                 >
-                  {{ pdsPage.name }}
+                  C1
+                </button>
+              </Tab>
+              <Tab v-slot="{ selected }" as="template">
+                <button
+                  :class="[
+                    'w-full border-b-2 border-solid py-4 text-sm font-medium leading-5 ring-transparent transition-all duration-300 ease-in-out focus:outline-none md:text-base',
+                    selected
+                      ? 'border-b-2 border-solid border-primary-600 bg-primary-100 text-primary-600'
+                      : 'border-surface-300 text-surface-400 hover:bg-white/[0.12]',
+                  ]"
+                >
+                  C2
                 </button>
               </Tab>
             </TabList>
 
             <TabPanels>
-              <TabPanel
-                v-for="(pdsPage, idx) in pdsSections"
-                :key="idx"
-                :class="['h-full w-full', 'r ring-white/60 focus:outline-none ']"
-              >
+              <TabPanel>
                 <TransitionRoot
                   appear
                   :show="true"
-                  enter="transition-all ease-in-out duration-500 "
+                  enter="transition-all ease-in-out duration-500"
                   enterFrom="opacity-0 translate-y-6"
                   enterTo="opacity-100 translate-y-0"
                   leave="transition-all ease-in-out duration-800"
                   leaveFrom="opacity-100"
                   leaveTo="opacity-0"
                 >
-                  <component :is="pdsPage.component" :activeSubTab="0" />
+                  <C1Form ref="c1FormRef" :activeSubTab="0" />
+                </TransitionRoot>
+              </TabPanel>
+              <TabPanel>
+                <TransitionRoot
+                  appear
+                  :show="true"
+                  enter="transition-all ease-in-out duration-500"
+                  enterFrom="opacity-0 translate-y-6"
+                  enterTo="opacity-100 translate-y-0"
+                  leave="transition-all ease-in-out duration-800"
+                  leaveFrom="opacity-100"
+                  leaveTo="opacity-0"
+                >
+                  <C2Form ref="c2FormRef" :activeSubTab="0" />
                 </TransitionRoot>
               </TabPanel>
             </TabPanels>
