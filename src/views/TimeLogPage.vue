@@ -5,6 +5,7 @@ import { useDailyLogsStore } from '@/stores/daily-logs.store'
 import Dialog from 'primevue/dialog'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { getManilaTodayISO, formatTime } from '@/utils/helpers.ts'
+import type { DailyLogEntry, WarmBodyLogEntry } from '@/typings/http-resources.types.ts'
 
 const currentDate = ref('')
 const currentTime = ref('')
@@ -20,6 +21,26 @@ const isMobile = ref(false)
 let isProcessingScan = false
 let scanTimeoutId: ReturnType<typeof setTimeout> | null = null
 const SCAN_COOLDOWN_MS = 3000
+
+async function updateDailyLogsState(date: string) {
+  const fetchedLogs: WarmBodyLogEntry[] | null = await dailyLogsStore.fetchDailyLogs(date)
+
+  let todayLogEntry: DailyLogEntry | undefined = dailyLogsStore.dailyLogs.find((l) => l.date === date)
+
+  if (fetchedLogs) {
+    if (!todayLogEntry) {
+      todayLogEntry = { date: date, warm_bodies: [] }
+      dailyLogsStore.dailyLogs.push(todayLogEntry)
+    }
+    todayLogEntry.warm_bodies = fetchedLogs
+  } else {
+    if (todayLogEntry) {
+      todayLogEntry.warm_bodies = []
+    }
+  }
+
+  dailyLogsStore.dailyLogs = [...dailyLogsStore.dailyLogs]
+}
 
 function updateDateTime() {
   const now = new Date()
@@ -47,7 +68,7 @@ function updateDateTime() {
   if (newTodayISO !== todayISO.value) {
     todayISO.value = newTodayISO
     dailyLogsStore.fetchWarmBodySummary(todayISO.value)
-    dailyLogsStore.fetchDailyLogs(todayISO.value)
+    updateDailyLogsState(todayISO.value)
   }
 }
 
@@ -62,7 +83,7 @@ onMounted(() => {
     todayISO.value = getManilaTodayISO()
   }
   dailyLogsStore.fetchWarmBodySummary(todayISO.value)
-  dailyLogsStore.fetchDailyLogs(todayISO.value)
+  updateDailyLogsState(todayISO.value)
 })
 
 onUnmounted(() => {

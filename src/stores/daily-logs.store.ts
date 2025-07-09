@@ -121,7 +121,7 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     lastLogMessage.value = null
   }
 
-  const fetchDailyLogs = async (date: string) => {
+  const fetchDailyLogs = async (date: string): Promise<DailyLogEntry['warm_bodies'] | null> => {
     const { data } = await useApiCall<ApiResponseBody<TimeLogEntry[]>>(
       `employees/daily-time-records/time-logs?date=${date}`,
       authStore.authenticationToken
@@ -132,12 +132,6 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     const responseBody: ApiResponseBody<TimeLogEntry[]> = data.value
 
     if (responseBody.success && Array.isArray(responseBody.data)) {
-      let todayLogEntry = dailyLogs.value.find((l) => l.date === date)
-      if (!todayLogEntry) {
-        todayLogEntry = { date: date, warm_bodies: [] }
-        dailyLogs.value.push(todayLogEntry)
-      }
-
       const mappedLogs = (responseBody.data as TimeLogEntry[])
         .map((log: TimeLogEntry) => ({
           employee_id: log.id_number,
@@ -148,16 +142,10 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
         }))
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
 
-      todayLogEntry.warm_bodies = mappedLogs
-      dailyLogs.value = [...dailyLogs.value] // Trigger reactivity for the array itself
+      return mappedLogs
     } else {
-      const todayLogEntry = dailyLogs.value.find((l) => l.date === date)
-      if (todayLogEntry) {
-        todayLogEntry.warm_bodies = [] // Clear logs for the date if fetch failed
-      }
+      return null
     }
-
-    return responseBody
   }
 
   const fetchWarmBodySummary = async (date: string) => {
