@@ -12,7 +12,6 @@ import {
 import { useApiCall } from '@/composables/network'
 import { useAuthStore } from '@/stores/auth.store.ts'
 import { ApiResponseBody } from '@/typings/http-resources.types'
-import { useDateFormat } from '@vueuse/core'
 
 /** Typings */
 export type UploadProfilePictureResponse = { owner_id: string | number; path: string; url: string }
@@ -306,25 +305,6 @@ export const usePdsStore = defineStore('pds', () => {
       if (edu.year_graduated) {
         const year = new Date(edu.year_graduated).getFullYear()
         edu.year_graduated = isNaN(year) ? '' : year.toString()
-      }
-    })
-
-    payload.individual_eligibility.forEach((eligibility) => {
-      if (eligibility.date_of_examination_conferment) {
-        eligibility.date_of_examination_conferment = useDateFormat(eligibility.date_of_examination_conferment, 'YYYY-MM-DD').value
-      }
-
-      if (eligibility.license_date_of_validity) {
-        eligibility.license_date_of_validity = useDateFormat(eligibility.license_date_of_validity, 'YYYY-MM-DD').value
-      }
-    })
-
-    payload.individual_work_experience.forEach((work) => {
-      if (work.inclusive_date_from) {
-        work.inclusive_date_from = useDateFormat(work.inclusive_date_from, 'YYYY-MM-DD').value
-      }
-      if (work.inclusive_date_to) {
-        work.inclusive_date_to = useDateFormat(work.inclusive_date_to, 'YYYY-MM-DD').value
       }
     })
 
