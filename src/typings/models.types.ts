@@ -554,3 +554,12 @@ export type SettingsResponse = {
   name: string
   value: string
 } & ApiResponseData
+
+export interface ScannedEmployeeResponse {
+  id: string | number
+  name: string
+  position: string
+  is_in: boolean
+  timestamp: string
+  photo_url: string
+}

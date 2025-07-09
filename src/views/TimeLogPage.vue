@@ -4,7 +4,7 @@ import { QrcodeStream } from 'vue-qrcode-reader'
 import { useDailyLogsStore } from '@/stores/daily-logs.store'
 import Dialog from 'primevue/dialog'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-import { getManilaTodayISO } from '@/utils/helpers.ts'
+import { getManilaTodayISO, formatTime } from '@/utils/helpers.ts'
 
 const currentDate = ref('')
 const currentTime = ref('')
@@ -197,14 +197,6 @@ const handleCloseDialog = () => {
   showModal.value = false
   errorMessage.value = null
   dailyLogsStore.clearScannedEmployee()
-}
-
-const formatTime = (timestamp: string) => {
-  return new Date(timestamp).toLocaleTimeString('en-PH', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true,
-  })
 }
 
 const latestWarmBodyLogs = computed(() => {

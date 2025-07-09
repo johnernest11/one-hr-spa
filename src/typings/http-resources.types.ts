@@ -30,6 +30,42 @@ export type ApiResponseData = {
   deleted_at?: string
 }
 
+export interface WarmBodyLogEntry {
+  id: number
+  employee_id: string
+  timestamp: string
+  is_in: boolean
+  created_at?: string
+  updated_at?: string
+  daily_time_record?: {
+    id: number
+    date: string
+    employee_id: string
+    employee?: {
+      id_number: string
+      item?: {
+        position?: {
+          title: string
+        }
+      }
+      individual_basic_detail?: {
+        first_name: string
+        last_name: string
+        middle_name: string | null
+        ext_name: string | null
+        user_profile?: {
+          profile_picture_url: string | null
+        }
+      }
+    }
+  }
+}
+
+export interface DailyLogEntry {
+  date: string
+  warm_bodies: WarmBodyLogEntry[]
+}
+
 export enum ApiErrorCode {
   UNAUTHENTICATED_ERROR = 'UNAUTHENTICATED_ERROR',
   UNAUTHORIZED_ERROR = 'UNAUTHORIZED_ERROR',
