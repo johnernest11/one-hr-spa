@@ -1,33 +1,33 @@
 <script setup lang="ts">
-import { computed, onBeforeMount, reactive, ref, toRef, toRefs } from 'vue'
+import { computed, onBeforeMount, reactive, ref } from 'vue'
 import { UserPayload, useUsersStore } from '@/stores/users.store.ts'
-import WbAutoComplete, { WbAutoCompleteOption, WbAutoCompleteOptionTrueValue } from '@/components/webkit/WbAutoComplete.vue'
-import { useAddressStore } from '@/stores/address.store.ts'
-import { storeToRefs } from 'pinia'
-import { useClearSelectedAddressIfNotInParentList, useFilterByParentId } from '@/composables/address.options.ts'
-import { email, helpers, maxLength, required } from '@vuelidate/validators'
-import { digitCountRule, mobilePhoneRule, uniqueUserIdentifierRule } from '@/utils/custom-validations.ts'
+import { helpers, required } from '@vuelidate/validators'
 import useVuelidate from '@vuelidate/core'
 import { useRolesStore } from '@/stores/roles.store.ts'
 import { AuthRole } from '@/typings/auth.types.ts'
 import { useToast } from 'primevue/usetoast'
 import { UserResponse } from '@/typings/models.types.ts'
 import { parseApiResponseError } from '@/utils/error-handle.ts'
-import { useWbAutoCompleteHandleTrueValue } from '@/composables/wb-ui-components.ts'
+
 import Button from 'primevue/button'
 import WbMultiSelect from '@/components/webkit/WbMultiSelect.vue'
-import WbInputMask from '@/components/webkit/WbInputMask.vue'
 import WbInputText from '@/components/webkit/WbInputText.vue'
 import WbDropdown from '@/components/webkit/WbDropdown.vue'
-import WbCalendar from '@/components/webkit/WbCalendar.vue'
-import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import InputSwitch from 'primevue/inputswitch'
 import Message from 'primevue/message'
+
 import { useConfirm } from 'primevue/useconfirm'
 import Dialog from 'primevue/dialog'
 import ManageMfaForm from '@/components/users-management-page/ManageMfaForm.vue'
 import { useSettingsStore } from '@/stores/settings.store.ts'
+import WbAutoComplete, { WbAutoCompleteOption, WbAutoCompleteOptionTrueValue } from '@/components/webkit/WbAutoComplete.vue'
+import { useWbAutoCompleteHandleTrueValueExtended } from '@/composables/wb-ui-components'
+import { usePrependOrAppendOnce } from '@/utils/helpers'
 
+const visible = ref(false)
+const getId = usePrependOrAppendOnce('user-management')
+const selectedEmployee = ref<WbAutoCompleteOption[] | null>(null)
+const usersStore = useUsersStore()
 /** Emits */
 const emit = defineEmits<{
   (e: 'user-updated', value: boolean): void
@@ -46,21 +46,16 @@ const props = withDefaults(defineProps<UserDetailsFormProps>(), {
 /** Payload */
 const payload = reactive<Partial<UserPayload>>({
   email: props.user.email || '',
-  mobile_number: props.user.user_profile?.mobile_number || null,
-  first_name: props.user.user_profile?.first_name || '',
-  last_name: props.user.user_profile?.last_name || '',
-  middle_name: props.user.user_profile?.middle_name || null,
-  ext_name: props.user.user_profile?.ext_name || null,
-  birthday: props.user.user_profile?.birthday || null,
-  sex: props.user.user_profile?.sex || null,
-  home_address: props.user.user_profile?.address?.home_address || null,
-  city_id: props.user.user_profile?.address?.city?.id || null,
-  province_id: props.user.user_profile?.address?.province?.id || null,
-  region_id: props.user.user_profile?.address?.region?.id || null,
-  postal_code: props.user.user_profile?.address?.postal_code || null,
-  barangay_id: props.user.user_profile?.address?.barangay?.id || null,
+  username: props.user.username || '',
   roles: props.user.roles.map((r) => r.id),
   active: props.user.active,
+  individual_basic_detail_id: props.user.user_profile?.individual_basic_detail_id
+    ? (props.user.user_profile.individual_basic_detail_id as { id: number }).id
+    : null,
+  first_name: props.user.user_profile?.first_name,
+  middle_name: props.user.user_profile?.middle_name,
+  last_name: props.user.user_profile?.last_name,
+  ext_name: props.user.user_profile?.first_name,
 })
 
 // We disabled editing and deletion for super users
@@ -70,12 +65,6 @@ const userIsSuperUser = computed(() => {
 
 // Toggle Edit Button
 const editingEnabled = ref(false)
-
-// Start combo and select box options
-const genderOptions = [
-  { label: 'Male', value: 'male' },
-  { label: 'Female', value: 'female' },
-]
 
 const activationOptions = [
   { label: 'Activated', value: true },
@@ -91,100 +80,29 @@ const rolesOptions = computed(() => {
 })
 onBeforeMount(async () => {
   rolesOptionsIsLoading.value = true
-  await rolesStore.fetchRoles()
-  rolesOptionsIsLoading.value = false
+
+  try {
+    const response = await rolesStore.fetchRoles()
+
+    if (!response?.success) {
+      console.error('Failed to fetch roles:', response?.errors || response?.message)
+    }
+  } catch (error) {
+    console.error('Unexpected error while fetching roles:', error)
+  } finally {
+    rolesOptionsIsLoading.value = false
+  }
 })
 
-/** Address Section **/
-/** Address WbAutoComplete Object References */
-const selectedRegion = ref<WbAutoCompleteOption | null>(null)
-const selectedProvince = ref<WbAutoCompleteOption | null>(null)
-const selectedCity = ref<WbAutoCompleteOption | null>(null)
-const selectedBarangay = ref<WbAutoCompleteOption | null>(null)
-
-/** Initialize Address Options List */
-const publicStore = useAddressStore()
-const addressesAreLoading = ref(false)
-onBeforeMount(async () => {
-  addressesAreLoading.value = true
-  await Promise.allSettled([
-    publicStore.fetchRegions(),
-    publicStore.fetchProvinces(),
-    publicStore.fetchCities(),
-    publicStore.fetchBarangays(),
-  ])
-
-  // Set the initial value of the selected addresses
-  selectedRegion.value = publicStore.regionOptions.find((r) => r.value === props.user.user_profile?.address?.region?.id) || null
-  selectedProvince.value =
-    publicStore.provinceOptions.find((p) => p.value === props.user.user_profile?.address?.province?.id) || null
-  selectedCity.value = publicStore.cityOptions.find((c) => c.value === props.user.user_profile?.address?.city?.id) || null
-  selectedBarangay.value =
-    publicStore.barangayOptions.find((b) => b.value === props.user.user_profile?.address?.barangay?.id) || null
-
-  addressesAreLoading.value = false
-})
-
-/** We only display a list based on parent address */
-const { provinceOptions, cityOptions, barangayOptions } = storeToRefs(publicStore)
-const filteredProvinceOptionsByRegion = useFilterByParentId(toRef(payload, 'region_id', null), provinceOptions)
-const filteredCityOptionsByProvince = useFilterByParentId(toRef(payload, 'province_id', null), cityOptions)
-const filteredBarangayOptionsByCity = useFilterByParentId(toRef(payload, 'city_id', null), barangayOptions)
-
-/** We set the `selected<Address>` and `payload.<address>_id` to null if the parent is changed */
-useClearSelectedAddressIfNotInParentList(
-  toRefs(payload),
-  selectedProvince,
-  selectedCity,
-  selectedBarangay,
-  filteredProvinceOptionsByRegion,
-  filteredCityOptionsByProvince,
-  filteredBarangayOptionsByCity
-)
-
-/** Form Validation */
-const globalStringMaxLength = import.meta.env.VITE_GLOBAL_STRING_MAX_LENGTH
-const globalStringMaxLengthRule = helpers.withMessage(
-  `Must not exceed ${globalStringMaxLength} characters`,
-  maxLength(globalStringMaxLength)
-)
 const formRules = {
   $lazy: true,
-  email: {
-    required: helpers.withMessage('Enter your email address', required),
-    email: helpers.withMessage('Email format is invalid', email),
-    unique: helpers.withAsync(
-      helpers.withMessage('This email is already taken', uniqueUserIdentifierRule('email', props.user.id))
-    ),
-  },
-  mobile_number: {
-    mobile_number: helpers.withMessage('Must be a valid PH mobile number', mobilePhoneRule()),
-    unique: helpers.withAsync(
-      helpers.withMessage('This mobile number is already taken', uniqueUserIdentifierRule('mobile_number', props.user.id))
-    ),
-  },
   roles: {
     required: helpers.withMessage('A user must have a role selected', required),
   },
-  first_name: {
-    required: helpers.withMessage('Please enter your first name', required),
-    maxLength: globalStringMaxLengthRule,
-  },
-  last_name: {
-    required: helpers.withMessage('Please enter your last name', required),
-    maxLength: globalStringMaxLengthRule,
-  },
-  middle_name: {
-    maxLength: globalStringMaxLengthRule,
-  },
-  ext_name: {
-    maxLength: globalStringMaxLengthRule,
-  },
-  home_address: {
-    maxLength: globalStringMaxLengthRule,
-  },
-  postal_code: {
-    digitCount: helpers.withMessage('Enter your 4-digit zip code', digitCountRule(4)),
+  individual_basic_detail_id: {
+    required: props.user.user_profile?.individual_basic_detail_id
+      ? false
+      : helpers.withMessage('A user must have an Employee to Activate', required),
   },
 }
 
@@ -196,6 +114,15 @@ const errorMessage = ref<string | null>(null)
 const errorDetails = ref<string[]>([])
 const userStore = useUsersStore()
 const toast = useToast()
+
+const handleUnlinkFormSubmission = async () => {
+  payload.individual_basic_detail_id = null
+  payload.active = false // optional: also deactivate the user
+  visible.value = false
+
+  await handleFormSubmission()
+}
+
 const handleFormSubmission = async () => {
   const valid = await validator.value.$validate()
   if (!valid) {
@@ -326,300 +253,124 @@ const settingsStore = useSettingsStore()
       <!-- End Toggle Edit Switch & MFA Pop-up -->
 
       <!-- Start Credentials -->
-      <p class="create-user-creds-section text-xs font-medium uppercase">Credentials</p>
-      <!-- Start Email and Mobile Number -->
+      <!-- Start Roles & Activation Select -->
       <div class="flex flex-col gap-4 md:flex-row">
-        <WbInputText
-          v-model="payload.email"
-          label="Email *"
-          :invalid="validator.email.$invalid"
-          :invalid-text="validator.email.$errors[0]?.$message"
-          @blur="validator.email.$touch"
-          @focusin="validator.email.$dirty = false"
-          :disabled="!editingEnabled"
-        >
+        <WbInputText v-model="payload.email" label="Email" :disabled="!editingEnabled">
           <template #prepend-icon>
             <i class="pi pi-envelope" />
           </template>
         </WbInputText>
-        <WbInputMask
-          v-model="payload.mobile_number"
-          label="Mobile Number"
-          mask="+639999999999"
-          :invalid="validator.mobile_number.$invalid"
-          :invalid-text="validator.mobile_number.$errors[0]?.$message"
-          @blur="validator.mobile_number.$touch"
-          @focusin="validator.mobile_number.$dirty = false"
+        <WbInputText v-model="payload.username" label="User Name" :disabled="!editingEnabled">
+          <template #prepend-icon>
+            <i class="pi pi-envelope" />
+          </template>
+        </WbInputText>
+      </div>
+      <!-- End Roles & Activation Select -->
+      <!-- Start Roles & Activation Select -->
+      <div class="flex flex-col gap-4 md:flex-row">
+        <WbMultiSelect
+          v-model="payload.roles"
+          :options="rolesOptions"
+          label="Roles"
+          placeholder="-- Select Roles --"
+          optionLabel="label"
+          optionValue="value"
+          optionDisabled="disabled"
+          :loading="rolesOptionsIsLoading"
+          :disabled="rolesOptionsIsLoading || !editingEnabled"
+          display="chip"
+          class="text-xs"
+          :invalid="validator.roles.$invalid"
+          :invalid-text="validator.roles.$errors[0]?.$message"
+          @blur="validator.roles.$touch"
+          @focusin="validator.roles.$dirty = false"
+        />
+        <WbDropdown
+          v-model="payload.active"
+          :options="activationOptions"
+          optionLabel="label"
+          optionValue="value"
+          label="Activation Status"
           :disabled="!editingEnabled"
         >
           <template #prepend-icon>
-            <i class="pi pi-phone" />
+            <i class="pi pi-lock" />
           </template>
-        </WbInputMask>
+        </WbDropdown>
       </div>
-      <!-- End Email and Mobile Number -->
-      <!-- Start Roles & Activation Select -->
-      <div class="flex flex-col gap-4 md:flex-row">
-        <div class="flex md:w-[49%] md:flex-row">
-          <WbMultiSelect
-            v-model="payload.roles"
-            :options="rolesOptions"
-            label="Roles"
-            placeholder="-- Select Roles --"
-            optionLabel="label"
-            optionValue="value"
-            optionDisabled="disabled"
-            :loading="rolesOptionsIsLoading"
-            :disabled="rolesOptionsIsLoading || !editingEnabled"
-            display="chip"
-            class="text-xs"
-            :invalid="validator.roles.$invalid"
-            :invalid-text="validator.roles.$errors[0]?.$message"
-            @blur="validator.roles.$touch"
-            @focusin="validator.roles.$dirty = false"
-          />
-        </div>
-        <div class="flex md:w-[49%] md:flex-row">
-          <WbDropdown
-            v-model="payload.active"
-            :options="activationOptions"
-            optionLabel="label"
-            optionValue="value"
-            label="Activation Status"
-            :disabled="!editingEnabled"
-          >
-            <template #prepend-icon>
-              <i class="pi pi-lock" />
-            </template>
-          </WbDropdown>
-        </div>
+      <div class="flex flex-col gap-4 md:flex-row" v-if="!props.user.user_profile?.individual_basic_detail_id">
+        <WbAutoComplete
+          :useApiFilter="true"
+          :apiEndpoint="'/individual-basic-details/search'"
+          :suggestions="usersStore.employeeOptions"
+          :loading="usersStore.employeeOptionsLoading"
+          apiOptionLabel="employee_name"
+          label="Employee Activation"
+          placeholder="Search Employee`s to activate SSO Account"
+          v-model="selectedEmployee"
+          :id="getId('input-user-management')"
+          optionLabel="label"
+          optionValue="value"
+          @on-true-value-computed="
+            (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
+              useWbAutoCompleteHandleTrueValueExtended(value, payload)
+          "
+          label-class="text-sm text-start text-surface-600 dark:lg:text-surface-200"
+          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+          validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+          :invalid="validator.individual_basic_detail_id.$invalid"
+          :invalid-text="validator.individual_basic_detail_id.$errors[0]?.$message"
+          @blur="validator.individual_basic_detail_id.$touch"
+          @focusin="validator.individual_basic_detail_id.$dirty = false"
+          :disabled="!editingEnabled"
+        />
       </div>
+
       <!-- End Roles & Activation Select -->
       <!-- End Credentials -->
 
-      <!-- Start Personal Information -->
-      <p class="mt-4 text-xs font-medium uppercase md:mt-6">Basic Information</p>
-      <!-- Start First name and Middle name -->
-      <div class="flex flex-col gap-4 md:flex-row">
-        <WbInputText
-          v-model="payload.first_name"
-          label="First name *"
-          :invalid="validator.first_name.$invalid"
-          :invalid-text="validator.first_name.$errors[0]?.$message"
-          @blur="validator.first_name.$touch"
-          :disabled="!editingEnabled"
-        >
-          <template #prepend-icon>
-            <i class="pi pi-id-card" />
-          </template>
-        </WbInputText>
-        <WbInputText
-          v-model="payload.middle_name"
-          label="Middle name"
-          :invalid="validator.middle_name.$invalid"
-          :invalid-text="validator.middle_name.$errors[0]?.$message"
-          @blur="validator.middle_name.$touch"
-          :disabled="!editingEnabled"
-        >
-          <template #prepend-icon>
-            <i class="pi pi-id-card" />
-          </template>
-        </WbInputText>
-      </div>
-      <!-- End First name and Middle name -->
-      <!-- Start Last name and Extension name -->
-      <div class="flex flex-col gap-4 md:flex-row">
-        <WbInputText
-          v-model="payload.last_name"
-          label="Last name *"
-          :invalid="validator.last_name.$invalid"
-          :invalid-text="validator.last_name.$errors[0]?.$message"
-          @blur="validator.last_name.$touch"
-          :disabled="!editingEnabled"
-        >
-          <template #prepend-icon>
-            <i class="pi pi-id-card" />
-          </template>
-        </WbInputText>
-        <WbInputText
-          v-model="payload.ext_name"
-          label="Ext. name"
-          :invalid="validator.ext_name.$invalid"
-          :invalid-text="validator.ext_name.$errors[0]?.$message"
-          @blur="validator.ext_name.$touch"
-          :disabled="!editingEnabled"
-        >
-          <template #prepend-icon>
-            <i class="pi pi-id-card" />
-          </template>
-        </WbInputText>
-      </div>
-      <!-- End Last name and Extension name -->
-      <!-- Start Sex and Birthday -->
-      <div class="flex flex-col gap-4 md:flex-row">
-        <WbDropdown
-          v-model="payload.sex"
-          :options="genderOptions"
-          optionLabel="label"
-          optionValue="value"
-          label="Sex"
-          :disabled="!editingEnabled"
-        >
-          <template #prepend-icon>
-            <FontAwesomeIcon icon="fa-solid fa-mars-and-venus" />
-          </template>
-        </WbDropdown>
-        <WbCalendar
-          v-model="payload.birthday"
-          dateFormat="MM dd, yy"
-          :maxDate="new Date()"
-          label="Birthday"
-          :disabled="!editingEnabled"
-        >
-          <template #prepend-icon>
-            <i class="pi pi-gift" />
-          </template>
-        </WbCalendar>
-      </div>
-      <!-- End Sex and Birthday -->
-      <!-- End Personal Information -->
-
-      <!-- Start Address -->
-      <p class="md:6 mt-4 text-xs font-medium uppercase">Address</p>
-      <!-- Start Region and Province -->
-      <div class="flex flex-col gap-4 md:flex-row">
-        <WbAutoComplete
-          v-model="selectedRegion"
-          :suggestions="publicStore.regionOptions"
-          label="Region"
-          optionLabel="label"
-          forceSelection
-          @on-true-value-computed="
-            (value: WbAutoCompleteOptionTrueValue) => useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'region_id'))
-          "
-          :loading="publicStore.regionOptionsIsLoading"
-          :disabled="publicStore.regionOptionsIsLoading || !editingEnabled"
-          :virtualScrollerOptions="{ itemSize: 38 }"
-        >
-          <template #prepend-icon>
-            <i class="pi pi-map" />
-          </template>
-        </WbAutoComplete>
-        <WbAutoComplete
-          v-model="selectedProvince"
-          :suggestions="filteredProvinceOptionsByRegion"
-          label="Province"
-          optionLabel="label"
-          forceSelection
-          @on-true-value-computed="
-            (value: WbAutoCompleteOptionTrueValue) => useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'province_id'))
-          "
-          :loading="publicStore.provinceOptionsIsLoading"
-          :disabled="publicStore.provinceOptionsIsLoading || !editingEnabled"
-          :virtualScrollerOptions="{ itemSize: 38 }"
-        >
-          <template #prepend-icon>
-            <i class="pi pi-map" />
-          </template>
-        </WbAutoComplete>
-      </div>
-      <!-- End Region and Province -->
-      <!-- Start City and Barangay -->
-      <div class="flex flex-col gap-4 md:flex-row">
-        <WbAutoComplete
-          v-model="selectedCity"
-          :suggestions="filteredCityOptionsByProvince"
-          label="City"
-          optionLabel="label"
-          forceSelection
-          @on-true-value-computed="
-            (value: WbAutoCompleteOptionTrueValue) => useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'city_id'))
-          "
-          :loading="publicStore.cityOptionsIsLoading"
-          :disabled="publicStore.cityOptionsIsLoading || !editingEnabled"
-          :virtualScrollerOptions="{ itemSize: 38 }"
-        >
-          <template #prepend-icon>
-            <i class="pi pi-map" />
-          </template>
-        </WbAutoComplete>
-        <WbAutoComplete
-          v-model="selectedBarangay"
-          :suggestions="filteredBarangayOptionsByCity"
-          label="Barangay"
-          optionLabel="label"
-          forceSelection
-          @on-true-value-computed="
-            (value: WbAutoCompleteOptionTrueValue) => useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'barangay_id'))
-          "
-          :loading="publicStore.barangayOptionsIsLoading"
-          :disabled="publicStore.barangayOptionsIsLoading || !editingEnabled"
-          :virtualScrollerOptions="{ itemSize: 38 }"
-        >
-          <template #prepend-icon>
-            <i class="pi pi-map" />
-          </template>
-        </WbAutoComplete>
-      </div>
-      <!-- End City and Barangay -->
-      <!-- Start Home Address and Zip Code -->
-      <div class="flex flex-col gap-4 md:flex-row">
-        <WbInputText
-          v-model="payload.home_address"
-          label="Home Address"
-          :invalid="validator.home_address.$invalid"
-          :invalid-text="validator.home_address.$errors[0]?.$message"
-          @blur="validator.home_address.$touch"
-          :disabled="!editingEnabled"
-        >
-          <template #prepend-icon>
-            <i class="pi pi-map" />
-          </template>
-        </WbInputText>
-        <WbInputMask
-          v-model="payload.postal_code"
-          label="Zip Code"
-          mask="9999"
-          :invalid="validator.postal_code.$invalid"
-          :invalid-text="validator.postal_code.$errors[0]?.$message"
-          @blur="validator.postal_code.$touch"
-          :disabled="!editingEnabled"
-        >
-          <template #prepend-icon>
-            <i class="pi pi-map" />
-          </template>
-        </WbInputMask>
-      </div>
-      <!-- End Home Address and Zip Code -->
-      <!-- End Address -->
-
       <!-- Start Action Buttons -->
-      <div class="mt-2 flex justify-between">
-        <!-- Start Delete Button with Confirmation -->
+      <div class="mt-4 flex items-center justify-between">
+        <!-- Delete Button -->
         <Button
           @click="requireConfirmation($event)"
           label="Delete"
           severity="danger"
           :loading="userIsBeingDeleted"
-          :disabled="formIsSubmitting || addressesAreLoading || !editingEnabled || userIsBeingDeleted"
+          :disabled="formIsSubmitting || !editingEnabled || userIsBeingDeleted"
         >
           <template #icon>
             <i class="pi pi-trash mr-2"></i>
           </template>
         </Button>
-        <!-- End Delete Button with Confirmation -->
-        <!-- Start Update Button -->
-        <Button
-          @click="handleFormSubmission"
-          label="Update"
-          :loading="formIsSubmitting"
-          :disabled="formIsSubmitting || addressesAreLoading || !editingEnabled"
-        >
-          <template #icon>
-            <i class="pi pi-save mr-2"></i>
-          </template>
-        </Button>
+
+        <!-- Right-aligned Buttons: Unlink + Update -->
+        <div class="flex items-center gap-x-2">
+          <!-- Unlink Employee Button -->
+          <Button
+            v-if="props.user.user_profile?.individual_basic_detail_id"
+            label="Unlink Employee"
+            severity="warning"
+            icon="pi pi-ban"
+            @click="visible = true"
+            :disabled="formIsSubmitting || !editingEnabled"
+          />
+
+          <!-- Update Button -->
+          <Button
+            @click="handleFormSubmission"
+            label="Update"
+            :loading="formIsSubmitting"
+            :disabled="formIsSubmitting || !editingEnabled"
+          >
+            <template #icon>
+              <i class="pi pi-save mr-2"></i>
+            </template>
+          </Button>
+        </div>
       </div>
+
       <!-- End Update Button -->
       <!-- End Action Buttons -->
     </div>
@@ -636,6 +387,57 @@ const settingsStore = useSettingsStore()
         :user-full-name="props.user.user_profile?.full_name || ''"
         @mfa-config-updated="showMfaConfigDialog = false"
       />
+    </Dialog>
+
+    <!-- Start Dialog Confirmation Modal Action  -->
+    <Dialog v-model:visible="visible" modal :style="{ width: '25vw' }" :closable="false">
+      <template #header>
+        <div style="display: flex; justify-content: flex-end; width: 100%">
+          <div class="flex items-center sm:px-0 md:px-0">
+            <h1 class="font-base text-sm font-bold text-surface-900 sm:text-base md:text-sm">
+              Are you sure you want to Unlink this Employee to this Account?
+            </h1>
+          </div>
+          <Button
+            :loading="formIsSubmitting"
+            :disabled="formIsSubmitting"
+            class="dark:text-secondary-100 border-none text-xs text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
+            text
+            @click="visible = false"
+          >
+            <template #icon>
+              <i class="pi pi pi-times mr-2"></i>
+            </template>
+          </Button>
+        </div>
+      </template>
+      <p>Unlink this Employee will Deactivate this Account</p>
+      <template #footer>
+        <Button
+          label="Cancel"
+          :loading="formIsSubmitting"
+          :disabled="formIsSubmitting"
+          class="dark:text-secondary-100 border border-surface-400 text-xs text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
+          text
+          @click="visible = false"
+        >
+          <template #icon>
+            <i class="pi pi-ban mr-2"></i>
+          </template>
+        </Button>
+        <Button
+          @click="handleUnlinkFormSubmission"
+          label="Unlink "
+          :loading="formIsSubmitting"
+          :disabled="formIsSubmitting"
+          class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+          text
+        >
+          <template #icon>
+            <i class="pi pi-check mr-2"></i>
+          </template>
+        </Button>
+      </template>
     </Dialog>
   </form>
 </template>

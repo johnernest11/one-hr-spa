@@ -4,14 +4,12 @@ import Button from 'primevue/button'
 import Dropdown from 'primevue/dropdown'
 import InputText from 'primevue/inputtext'
 import InputGroup from 'primevue/inputgroup'
-import Dialog from 'primevue/dialog'
 import { onBeforeMount, ref, watch } from 'vue'
 import { useUsersStore } from '@/stores/users.store.ts'
 import { ApiResponsePagination } from '@/typings/http-resources.types.ts'
 import UserCard from '@/components/users-management-page/UserCard.vue'
 import { useRolesStore } from '@/stores/roles.store.ts'
 import { useToast } from 'primevue/usetoast'
-import CreateUserForm from '@/components/users-management-page/CreateUserForm.vue'
 
 /** Initial Users Fetch & Role Options */
 const usersStore = useUsersStore()
@@ -46,10 +44,6 @@ const handlePaginationPageChange = async (event: PageState) => {
 
   usersListIsLoading.value = false
 }
-
-/** Create User Dialog */
-const showCreateUserDialog = ref(false)
-const toggleCreateUserDialog = () => (showCreateUserDialog.value = !showCreateUserDialog.value)
 
 /** Search and Filters */
 const roleFilter = ref<number | null>(null)
@@ -103,29 +97,7 @@ const handleSearchUser = async () => {
       class="my-6 flex w-full flex-col items-center justify-between gap-4 rounded-lg bg-surface-0 px-6 py-6 shadow-sm dark:bg-surface-800 md:my-4 md:flex-row md:px-4 md:py-4"
     >
       <!-- Start Create User Button -->
-      <div class="flex w-full">
-        <Button
-          label="Create User"
-          severity="secondary"
-          outlined
-          class="h-8 w-full !ring-surface-400 dark:text-surface-400 md:mx-0 md:h-fit md:w-fit md:text-xs"
-          @click="toggleCreateUserDialog"
-        >
-          <template #icon>
-            <i class="pi pi-plus mr-2" />
-          </template>
-        </Button>
-      </div>
-      <Dialog
-        v-model:visible="showCreateUserDialog"
-        header="User Creation"
-        modal
-        :draggable="false"
-        maximizable
-        class="mx-2 w-full sm:mx-0"
-      >
-        <CreateUserForm :current-role-filter="roleFilter" @user-created="toggleCreateUserDialog" />
-      </Dialog>
+      <div class="flex w-full"></div>
       <!-- End Create User Button -->
       <!-- Start Filter & Search Inputs -->
       <div class="flex w-full flex-col justify-end gap-4 md:flex-row">
@@ -161,7 +133,7 @@ const handleSearchUser = async () => {
     <!-- Start User Cards -->
     <div
       v-if="!usersListIsLoading"
-      class="mt-6 grid grid-cols-1 gap-x-4 gap-y-12 rounded-2xl md:mt-8 md:grid-cols-3 lg:grid-cols-4"
+      class="mt-6 grid grid-cols-1 gap-x-4 gap-y-10 rounded-2xl md:mt-8 md:grid-cols-3 lg:grid-cols-4"
     >
       <UserCard
         v-for="user in usersStore.users"
