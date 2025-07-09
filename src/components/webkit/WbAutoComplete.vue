@@ -102,6 +102,11 @@ const search = useDebounceFn(async (event: AutoCompleteCompleteEvent) => {
           label: `SG-${element.salary_grade}-${element.step} FY: ${element.effective_date} Tranche: ${element.tranche} NBC no: ${element.nbc_no} (${element.amount})`,
           value: element[props.apiOptionValue],
         })
+      } else if (props.apiOptionLabel === 'work_experience_salary_grade') {
+        filteredSuggestions.value?.push({
+          label: `SG-${element.salary_grade}-${element.step} FY: ${element.effective_date} Tranche: ${element.tranche}`,
+          value: element[props.apiOptionValue],
+        })
       } else if (props.apiOptionLabel === 'employee_name') {
         const first = element.first_name ?? ''
         const middle = element.middle_name ? `${element.middle_name}. ` : ''

@@ -26,6 +26,17 @@ export enum ExtensionType {
   V = 'V',
 }
 
+export enum EmploymentStatusType {
+  PERMANENT = 'Permanent',
+  CONTRACTUAL = 'Contractual',
+  CASUAL = 'Casual',
+  CONTRACT_OF_SERVICE = 'Contract of Service',
+  TEMPORARY = 'Temporary',
+  COTERMINOUS = 'Coterminous',
+  JOB_ORDER = 'Job Order',
+  PROBATIONARY = 'Probationary',
+}
+
 export enum FilipinoByType {
   NATURALIZATION = 'NATURALIZATION',
   BIRTH = 'BIRTH',
@@ -39,7 +50,7 @@ export enum CountryType {
 
 export interface Option {
   label: string
-  value: BloodType | SexType | ExtensionType | FilipinoByType | CountryType
+  value: BloodType | SexType | ExtensionType | EmploymentStatusType | FilipinoByType | CountryType
 }
 
 export const bloodTypeOptions: Option[] = [
@@ -69,6 +80,17 @@ export const ExtensionTypeOptions: Option[] = [
   { label: 'V', value: ExtensionType.V },
 ]
 
+export const EmploymentStatusOptions: Option[] = [
+  { label: 'Permanent', value: EmploymentStatusType.PERMANENT },
+  { label: 'Contractual', value: EmploymentStatusType.CONTRACTUAL },
+  { label: 'Casual', value: EmploymentStatusType.CASUAL },
+  { label: 'Contract of Service', value: EmploymentStatusType.CONTRACT_OF_SERVICE },
+  { label: 'Temporary', value: EmploymentStatusType.TEMPORARY },
+  { label: 'Coterminous', value: EmploymentStatusType.COTERMINOUS },
+  { label: 'Job Order', value: EmploymentStatusType.JOB_ORDER },
+  { label: 'Probationary', value: EmploymentStatusType.PROBATIONARY },
+]
+
 export const FilipinobyTypeOptions: Option[] = [
   { label: 'NATURALIZATION', value: FilipinoByType.NATURALIZATION },
   { label: 'BIRTH', value: FilipinoByType.BIRTH },
@@ -78,4 +100,9 @@ export const CountryTypeOptions: Option[] = [
   { label: 'USA', value: CountryType.USA },
   { label: 'Canada', value: CountryType.CANADA },
   { label: 'Japan', value: CountryType.JAPAN },
+]
+
+export const isGovServiceYesNoOptions = [
+  { label: 'Yes', value: true },
+  { label: 'No', value: false },
 ]

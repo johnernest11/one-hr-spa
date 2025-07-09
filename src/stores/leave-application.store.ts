@@ -175,8 +175,8 @@ export const useLeaveApplicationStore = defineStore('leave-application', () => {
 
     const filtered = applicationLeavemockData.filter((item) => {
       return (
-        (!filters.division || item.employee_id?.division_id.name === filters.division) &&
-        (!filters.section || item.employee_id?.section_or_unit_id.name === filters.section) &&
+        (!filters.division || item.employee_id?.division.name === filters.division) &&
+        (!filters.section || item.employee_id?.section_or_unit.name === filters.section) &&
         (!filters.employment_status || item.employee_id?.item.employment_status === filters.employment_status) &&
         (!filters.status || item.status === filters.status)
       )

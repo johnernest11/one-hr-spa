@@ -1,6 +1,14 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
-import { PersonnelEmployee } from '@/typings/models.types.ts'
+import {
+  IndividualAddress,
+  IndividualContactInfo,
+  IndividualEducBg,
+  IndividualEligibility,
+  IndividualFamily,
+  IndividualWorkExperience,
+  PersonnelEmployee,
+} from '@/typings/models.types.ts'
 import { useApiCall } from '@/composables/network'
 import { useAuthStore } from '@/stores/auth.store.ts'
 import { ApiResponseBody } from '@/typings/http-resources.types'
@@ -9,6 +17,7 @@ import { ApiResponseBody } from '@/typings/http-resources.types'
 export type UploadProfilePictureResponse = { owner_id: string | number; path: string; url: string }
 
 export type PersonalDataSheetPayload = {
+  /** PDS-C1 */
   individual: {
     first_name: string | null
     last_name: string | null
@@ -59,7 +68,9 @@ export type PersonalDataSheetPayload = {
   individual_family_father: IndividualFamily
   individual_family_mothers_maiden: IndividualFamily
   individual_family_children: IndividualFamily[]
-  individual_eligibility?: IndividualEducBg[]
+  /** PDS-C2 */
+  individual_eligibility: IndividualEligibility[]
+  individual_work_experience: IndividualWorkExperience[]
   employee: PersonnelEmployee
   individual_educational_background: IndividualEducBg[]
   educations: {
@@ -69,64 +80,6 @@ export type PersonalDataSheetPayload = {
     college: IndividualEducBg
     graduate: IndividualEducBg
   }
-}
-
-export type IndividualContactInfo = {
-  tel_no: string | null
-  mobile_no: string | null
-  email_address: string | null
-}
-
-export type IndividualAddress = {
-  residential_house_block_lot_no: string | null
-  residential_street: string | null
-  residential_subdivision_village: string | null
-  residential_brgy_id: string | number | null
-  residential_citymun_id: string | number | null
-  residential_province_id: string | number | null
-  residential_region_id: string | number | null
-  residential_zip_code: string | null
-  permanent_house_block_lot_no: string | null
-  permanent_street: string | null
-  permanent_subdivision_village: string | null
-  permanent_brgy_id: string | number | null
-  permanent_citymun_id: string | number | null
-  permanent_province_id: string | number | null
-  permanent_region_id: string | number | null
-  permanent_zip_code: string | null
-}
-
-export type IndividualEligibility = {
-  eligibility: string
-  rating: number
-  date_of_examination_conferment: string
-  place_of_examination: string
-  license_number: string | null
-  license_date_of_validity: string | null
-}
-
-export type IndividualFamily = {
-  first_name: string | null
-  last_name: string | null
-  middle_name?: string | null
-  ext_name?: string | null
-  occupation: string | null
-  employers_business_name: string | null
-  business_address: string | null
-  telephone_no?: string | null
-  class: string
-  date_of_birth?: string | null
-}
-
-export type IndividualEducBg = {
-  schools_name: string | null
-  education_description: string | null
-  level: 'Elementary' | 'Secondary' | 'College' | 'Vocational' | 'Graduate' | null
-  period_of_attendance_from: string | null
-  period_of_attendance_to: string | null
-  highest_level_units_earned: string | null
-  year_graduated: string | null
-  scholarship_academic_honors_received: string | null
 }
 
 export const usePdsStore = defineStore('pds', () => {
@@ -288,12 +241,38 @@ export const usePdsStore = defineStore('pds', () => {
       },
     },
     individual_educational_background: [],
+    individual_eligibility: [
+      {
+        eligibility: '',
+        rating: '',
+        date_of_examination_conferment: '',
+        place_of_examination: '',
+        license_number: null,
+        license_date_of_validity: null,
+      },
+    ],
+    individual_work_experience: [
+      {
+        is_current_work: false,
+        inclusive_date_from: '',
+        inclusive_date_to: '',
+        position_title: '',
+        department_agency_office_company: '',
+        monthly_salary: '',
+        salary_grade_id: null,
+        salary_grade: null,
+        custom_salary_grade: '',
+        status_of_appointment: null,
+        is_gov_service: false,
+      },
+    ],
     employee: {
       id: null,
       individual_basic_detail_id: null,
       id_number: null,
-      item_id: 0,
+      item_id: null,
       salary_grade_id: null,
+      position: null,
       fund_source: {
         id: null,
         name: null,
@@ -301,13 +280,33 @@ export const usePdsStore = defineStore('pds', () => {
       agency_employee_no: null,
       office_id: null,
       division_id: null,
+      division: null,
       section_or_unit_id: null,
+      section_or_unit: null,
       item: null,
     },
   })
 
   const saveC1 = async (payload: PersonalDataSheetPayload) => {
     const uri = '/individual-basic-details'
+
+    // Format education dates to YYYY
+    payload.individual_educational_background.forEach((edu) => {
+      if (edu.period_of_attendance_from) {
+        const year = new Date(edu.period_of_attendance_from).getFullYear()
+        edu.period_of_attendance_from = isNaN(year) ? '' : year.toString()
+      }
+
+      if (edu.period_of_attendance_to) {
+        const year = new Date(edu.period_of_attendance_to).getFullYear()
+        edu.period_of_attendance_to = isNaN(year) ? '' : year.toString()
+      }
+
+      if (edu.year_graduated) {
+        const year = new Date(edu.year_graduated).getFullYear()
+        edu.year_graduated = isNaN(year) ? '' : year.toString()
+      }
+    })
 
     const { data } = await useApiCall(uri, authStore.authenticationToken).post(payload).json()
     const responseBody: ApiResponseBody = data.value

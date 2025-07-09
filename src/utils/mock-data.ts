@@ -201,14 +201,16 @@ const employee_data = [
     },
     agency_employee_no: 'AGY-000123',
     office_id: 10,
-    division_id: {
+    division_id: 3,
+    division: {
       id: 3,
       name: 'FINANCE AND MANAGEMENT DIVISION',
       head_user_id: null,
       added_by_user_id: null,
       last_modified_by_user_id: null,
     },
-    section_or_unit_id: {
+    section_or_unit_id: 5,
+    section_or_unit: {
       id: 5,
       name: 'ACCOUNTING SECTION',
       division_id: null,
@@ -230,14 +232,16 @@ const employee_data = [
     },
     agency_employee_no: 'AGY-000124',
     office_id: 11,
-    division_id: {
+    division_id: 4,
+    division: {
       id: 4,
       name: 'HUMAN RESOURCE DIVISION',
       head_user_id: null,
       added_by_user_id: null,
       last_modified_by_user_id: null,
     },
-    section_or_unit_id: {
+    section_or_unit_id: 6,
+    section_or_unit: {
       id: 6,
       name: 'RECRUITMENT SECTION',
       division_id: null,
@@ -259,14 +263,16 @@ const employee_data = [
     },
     agency_employee_no: 'AGY-000125',
     office_id: 12,
-    division_id: {
+    division_id: 5,
+    division: {
       id: 5,
       name: 'INFORMATION TECHNOLOGY DIVISION',
       head_user_id: null,
       added_by_user_id: null,
       last_modified_by_user_id: null,
     },
-    section_or_unit_id: {
+    section_or_unit_id: 7,
+    section_or_unit: {
       id: 7,
       name: 'TECHNICAL SUPPORT SECTION',
       division_id: null,
@@ -288,14 +294,16 @@ const employee_data = [
     },
     agency_employee_no: 'AGY-000126',
     office_id: 13,
-    division_id: {
+    division_id: 6,
+    division: {
       id: 6,
       name: 'ADMINISTRATIVE DIVISION',
       head_user_id: null,
       added_by_user_id: null,
       last_modified_by_user_id: null,
     },
-    section_or_unit_id: {
+    section_or_unit_id: 8,
+    section_or_unit: {
       id: 8,
       name: 'RECORDS SECTION',
       division_id: null,
@@ -317,14 +325,16 @@ const employee_data = [
     },
     agency_employee_no: 'AGY-000127',
     office_id: 14,
-    division_id: {
+    division_id: 7,
+    division: {
       id: 7,
       name: 'BUDGET DIVISION',
       head_user_id: null,
       added_by_user_id: null,
       last_modified_by_user_id: null,
     },
-    section_or_unit_id: {
+    section_or_unit_id: 9,
+    section_or_unit: {
       id: 9,
       name: 'BUDGET MONITORING SECTION',
       division_id: null,
