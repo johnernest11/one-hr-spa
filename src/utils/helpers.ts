@@ -15,6 +15,12 @@ export const sleep = (seconds: number): Promise<boolean> => {
   })
 }
 
+export const getManilaTodayISO = (): string => {
+  const now = new Date()
+  const manilaDateTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Manila' }))
+  return manilaDateTime.toISOString().split('T')[0]
+}
+
 export const snakeCaseToTitleCase = (s: string) =>
   s.replace(/^_*(.)|_+(.)/g, (_s, c, d) => (c ? c.toUpperCase() : ' ' + d.toUpperCase()))
 

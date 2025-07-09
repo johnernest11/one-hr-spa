@@ -4,13 +4,14 @@ import { QrcodeStream } from 'vue-qrcode-reader'
 import { useDailyLogsStore } from '@/stores/daily-logs.store'
 import Dialog from 'primevue/dialog'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
+import { getManilaTodayISO } from '@/utils/helpers.ts'
 
 const currentDate = ref('')
 const currentTime = ref('')
 const meridiem = ref('')
 const showModal = ref(false)
 const dailyLogsStore = useDailyLogsStore()
-const todayISO = ref('') // This will store the 'YYYY-MM-DD' for Manila
+const todayISO = ref('')
 const errorMessage = ref<string | null>(null)
 const cameraError = ref<string | null>(null)
 
@@ -19,12 +20,6 @@ const isMobile = ref(false)
 let isProcessingScan = false
 let scanTimeoutId: ReturnType<typeof setTimeout> | null = null
 const SCAN_COOLDOWN_MS = 3000
-
-const getManilaTodayISO = () => {
-  const now = new Date()
-  const manilaDateTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Manila' }))
-  return manilaDateTime.toISOString().split('T')[0]
-}
 
 function updateDateTime() {
   const now = new Date()
@@ -204,6 +199,14 @@ const handleCloseDialog = () => {
   dailyLogsStore.clearScannedEmployee()
 }
 
+const formatTime = (timestamp: string) => {
+  return new Date(timestamp).toLocaleTimeString('en-PH', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  })
+}
+
 const latestWarmBodyLogs = computed(() => {
   const today = getManilaTodayISO()
   return dailyLogsStore.getTodayWarmBodies(today).slice(0, 10)
@@ -212,7 +215,7 @@ const latestWarmBodyLogs = computed(() => {
 
 <template>
   <div class="flex h-screen w-screen flex-col-reverse overflow-hidden md:flex-row">
-    <div class="flex w-full flex-col overflow-hidden bg-blue-500 p-4 text-white md:w-1/3">
+    <div class="flex w-full flex-col overflow-hidden bg-primary-500 p-4 text-white md:w-1/3">
       <div class="mb-4 flex items-center space-x-2">
         <img src="@/assets/image/fo-bp.png" alt="DSWD Logo" class="h-8" />
       </div>
@@ -230,23 +233,17 @@ const latestWarmBodyLogs = computed(() => {
       <div class="scrollbar-hide flex-1 space-y-1 overflow-y-auto text-center font-mono text-sm md:text-base">
         <template v-for="entry in latestWarmBodyLogs" :key="entry.id">
           <p>
-            {{
-              new Date(entry.timestamp).toLocaleTimeString('en-PH', {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: true,
-              })
-            }}
+            {{ formatTime(entry.timestamp) }}
             - {{ entry.employee_id }} ({{ entry.is_in ? 'IN' : 'OUT' }})
           </p>
         </template>
       </div>
     </div>
 
-    <div class="flex w-full flex-col items-center space-y-4 bg-blue-100 p-4 md:w-2/3">
+    <div class="flex w-full flex-col items-center space-y-4 bg-primary-100 p-4 md:w-2/3">
       <div class="w-full text-left">
-        <div class="text-lg text-gray-600">{{ currentDate }}</div>
-        <div class="text-4xl font-bold text-gray-500 md:text-6xl">
+        <div class="text-lg text-surface-600">{{ currentDate }}</div>
+        <div class="text-4xl font-bold text-surface-500 md:text-6xl">
           {{ currentTime }} <span class="text-lg md:text-2xl">{{ meridiem }}</span>
         </div>
       </div>
@@ -264,9 +261,9 @@ const latestWarmBodyLogs = computed(() => {
         </div>
       </div>
 
-      <div v-if="cameraError" class="text-center font-semibold text-red-600">{{ cameraError }}</div>
+      <div v-if="cameraError" class="text-center font-semibold text-error-600">{{ cameraError }}</div>
 
-      <div class="text-center text-sm text-gray-700 md:text-base">Scan your QR Code here</div>
+      <div class="text-center text-sm text-surface-700 md:text-base">Scan your QR Code here</div>
     </div>
 
     <Dialog
@@ -284,20 +281,20 @@ const latestWarmBodyLogs = computed(() => {
       }"
     >
       <template v-if="dailyLogsStore.lastLogMessage && !dailyLogsStore.currentScannedEmployee">
-        <hr class="mb-6 border-t border-gray-300" />
+        <hr class="mb-6 border-t border-surface-300" />
 
-        <div class="flex items-center text-4xl font-semibold text-red-600 md:text-4xl">
-          <FontAwesomeIcon :icon="['fas', 'circle-xmark']" class="mr-4 md:mr-6" />Error!
+        <div class="flex items-center text-4xl font-semibold text-error-600 md:text-4xl">
+          <FontAwesomeIcon icon="fas fa-circle-xmark" class="mr-4 md:mr-6" />Error!
         </div>
-        <p class="text-center text-xl font-medium text-gray-800 md:text-3xl">
+        <p class="text-center text-xl font-medium text-surface-800 md:text-3xl">
           {{ dailyLogsStore.lastLogMessage || errorMessage || 'An unexpected error occurred.' }}
         </p>
       </template>
 
       <template v-else>
-        <hr class="mb-6 border-t border-gray-300" />
+        <hr class="mb-6 border-t border-surface-300" />
 
-        <div class="flex items-center text-4xl font-semibold text-green-600 md:text-4xl">
+        <div class="flex items-center text-4xl font-semibold text-success-600 md:text-4xl">
           <FontAwesomeIcon :icon="['fas', 'circle-check']" class="mr-4 md:mr-6" />
           {{ dynamicSuccessMessage }}
         </div>
@@ -312,22 +309,22 @@ const latestWarmBodyLogs = computed(() => {
 
         <div class="w-full space-y-4 px-4 text-left md:space-y-8 md:pl-0 md:pr-0">
           <div>
-            <span class="mb-2 block text-xl font-semibold uppercase text-gray-500 md:mb-4 md:text-xl">Name:</span>
-            <p class="text-2xl font-bold text-gray-800 md:text-2xl">
+            <span class="mb-2 block text-xl font-semibold uppercase text-surface-500 md:mb-4 md:text-xl">Name:</span>
+            <p class="text-2xl font-bold text-surface-800 md:text-2xl">
               {{ dailyLogsStore.currentScannedEmployee?.name || 'N/A' }}
             </p>
           </div>
 
           <div>
-            <span class="mb-2 block text-xl font-semibold uppercase text-gray-500 md:mb-4 md:text-xl">ID Number:</span>
-            <p class="font-mono text-2xl text-blue-700 md:text-2xl">
+            <span class="mb-2 block text-xl font-semibold uppercase text-surface-500 md:mb-4 md:text-xl">ID Number:</span>
+            <p class="font-mono text-2xl text-primary-700 md:text-2xl">
               {{ dailyLogsStore.currentScannedEmployee?.id || 'N/A' }}
             </p>
           </div>
 
           <div>
-            <span class="mb-2 block text-xl font-semibold uppercase text-gray-500 md:mb-4 md:text-xl">Position:</span>
-            <p class="text-2xl font-bold text-gray-800 md:text-2xl">
+            <span class="mb-2 block text-xl font-semibold uppercase text-surface-500 md:mb-4 md:text-xl">Position:</span>
+            <p class="text-2xl font-bold text-surface-800 md:text-2xl">
               {{ dailyLogsStore.currentScannedEmployee?.position || 'N/A' }}
             </p>
           </div>

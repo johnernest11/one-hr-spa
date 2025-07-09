@@ -5,10 +5,16 @@ import { useAuthStore } from '@/stores/auth.store'
 import type { ApiResponseBody, WarmBodyLogEntry, DailyLogEntry } from '@/typings/http-resources.types.ts'
 import type { ScannedEmployeeResponse } from '@/typings/models.types'
 
-// Define a type for individual division/section summary entries
+// New interface for validation error details
+interface ValidationErrorDetail {
+  messages?: string[]
+  // Add any other properties that might exist on an individual error object in the 'errors' array
+  // e.g., field?: string; code?: string;
+}
+
 interface DivisionSectionSummary {
-  name: string // e.g., "HR Division", "Marketing Section"
-  count: number // e.g., 15 (number of employees in that division/section)
+  name: string
+  count: number
   in_office_count?: number
   out_of_office_count?: number
 }
@@ -45,6 +51,82 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
   const currentScannedEmployee = ref<ScannedEmployeeResponse | null>(null)
   const lastLogMessage = ref<string | null>(null)
   const warmBodySummary = ref<WarmBodySummary | null>(null)
+  const isFetching = ref(false)
+  const errorMessage = ref<string | null>(null)
+
+  const executeApiCall = async <T>(
+    apiCallInstance: ReturnType<typeof useApiCall<T>>,
+    timeoutMs: number = 5000,
+    actionName: string = 'data operation'
+  ): Promise<{ data: T | null; success: boolean; message: string | null }> => {
+    let stopWatch: (() => void) | null = null
+    let timeoutId: ReturnType<typeof setTimeout> | null = null
+    let hasResolved = false
+
+    try {
+      await new Promise<void>((resolve, reject) => {
+        stopWatch = watch(
+          apiCallInstance.isFinished,
+          (newValue) => {
+            if (newValue) {
+              if (stopWatch) stopWatch()
+              if (timeoutId) clearTimeout(timeoutId)
+              if (!hasResolved) {
+                hasResolved = true
+                resolve()
+              }
+            }
+          },
+          { immediate: true }
+        )
+
+        timeoutId = setTimeout(() => {
+          if (stopWatch) stopWatch()
+          if (!hasResolved) {
+            hasResolved = true
+            reject(new Error(`Request timed out for ${actionName}. Please try again later.`))
+          }
+        }, timeoutMs)
+      })
+
+      const responseData = apiCallInstance.data.value as ApiResponseBody<T>
+      const statusCode = apiCallInstance.statusCode.value
+      const apiError = apiCallInstance.error.value
+
+      const isSuccessStatus = statusCode >= 200 && statusCode < 300
+
+      if (isSuccessStatus && responseData && responseData.success) {
+        return { data: responseData.data || null, success: true, message: responseData.message || 'Operation successful.' }
+      } else {
+        let msg = `Failed to ${actionName}.`
+        if (responseData && typeof responseData === 'object') {
+          if ('error_message' in responseData && responseData.error_message) {
+            msg = responseData.error_message
+          } else if ('message' in responseData && responseData.message) {
+            msg = responseData.message
+          } else if ('errors' in responseData && Array.isArray(responseData.errors) && responseData.errors.length > 0) {
+            // Cast responseData.errors to the new interface
+            const validationErrors = (responseData.errors as ValidationErrorDetail[])
+              .map((err) => (err.messages && Array.isArray(err.messages) ? err.messages.join(' ') : ''))
+              .filter(Boolean)
+              .join('; ')
+            msg = `Validation Error: ${validationErrors || 'Unknown validation error.'}`
+          } else if (statusCode) {
+            msg = `Server responded with status ${statusCode}. No specific error message provided.`
+          }
+        } else if (apiError) {
+          msg = apiError.message || `Network error during ${actionName}. Status: ${statusCode || 'Unknown'}.`
+          if (statusCode === 404) msg = `API endpoint not found (404) for ${actionName}. Please verify the URL.`
+          else if (statusCode === 401) msg = `Unauthorized (401) for ${actionName}. Session expired or invalid token.`
+          else if (statusCode === 403) msg = `Forbidden (403) for ${actionName}. You do not have permission.`
+        }
+        return { data: null, success: false, message: msg }
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'An unexpected system error occurred during API call.'
+      return { data: null, success: false, message: msg }
+    }
+  }
 
   const countIn = computed(() => (date: string) => {
     const log = dailyLogs.value.find((l) => l.date === date)
@@ -65,6 +147,7 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     rawQrText: string
   ): Promise<{ success: boolean; message?: string; data?: ScannedEmployeeResponse | null }> => {
     isLoggingTime.value = true
+    errorMessage.value = null
     currentScannedEmployee.value = null
     lastLogMessage.value = null
 
@@ -85,55 +168,13 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
         scanned_time: timePart,
       }
 
-      const { data, statusCode, error, isFinished } = useApiCall<ApiResponseBody>(
-        'employees/log-time',
-        authStore.authenticationToken
-      )
-        .post(payload)
-        .json()
+      const apiCall = useApiCall<ApiResponseBody>('employees/log-time', authStore.authenticationToken).post(payload).json()
 
-      let stopWatch: (() => void) | null = null
-      let timeoutId: ReturnType<typeof setTimeout> | null = null
+      const { data, success, message } = await executeApiCall(apiCall, 5000, 'log employee time')
+      lastLogMessage.value = message
 
-      await new Promise<void>((resolve, reject) => {
-        stopWatch = watch(
-          isFinished,
-          (newValue) => {
-            if (newValue) {
-              if (stopWatch) {
-                stopWatch()
-              }
-              if (timeoutId) {
-                clearTimeout(timeoutId)
-              }
-              resolve()
-            }
-          },
-          { immediate: true }
-        )
-
-        timeoutId = setTimeout(() => {
-          if (stopWatch) {
-            stopWatch()
-          }
-          lastLogMessage.value = 'Request Timed Out. Please try again later.'
-          if (error.value) {
-            reject(new Error(error.value.message || 'API call timed out and resulted in an error.'))
-          } else {
-            resolve()
-          }
-        }, 5000)
-      })
-
-      const isSuccessStatus = statusCode.value >= 200 && statusCode.value < 300
-      let messageToDisplay: string = 'An unexpected error occurred.'
-
-      if (lastLogMessage.value === 'Request Timed Out. Please try again later.') {
-        return { success: false, message: lastLogMessage.value }
-      }
-
-      if (isSuccessStatus && data.value && data.value.success) {
-        const warmBodyLog = data.value.data as WarmBodyLogEntry
+      if (success && data) {
+        const warmBodyLog = data.data as WarmBodyLogEntry
 
         const employeeDetails = warmBodyLog?.daily_time_record?.employee?.individual_basic_detail
         const employeeItem = warmBodyLog?.daily_time_record?.employee?.item
@@ -158,70 +199,23 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
           }
         }
 
-        messageToDisplay =
-          data.value && typeof data.value === 'object' && 'message' in data.value && data.value.message
-            ? data.value.message
-            : currentScannedEmployee.value?.is_in
-              ? 'Successfully Timed In!'
-              : 'Successfully Timed Out!'
-        lastLogMessage.value = messageToDisplay
-
         const today = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Manila' })).toISOString().split('T')[0]
 
         await fetchWarmBodySummary(today)
         await fetchDailyLogs(today)
 
-        return { success: true, message: messageToDisplay, data: currentScannedEmployee.value }
+        return { success: true, message: message, data: currentScannedEmployee.value }
       } else {
         currentScannedEmployee.value = null
-
-        if (data.value && typeof data.value === 'object') {
-          const apiResponse = data.value as ApiResponseBody
-          if ('error_message' in apiResponse && apiResponse.error_message) {
-            messageToDisplay = apiResponse.error_message
-          } else if ('message' in apiResponse && apiResponse.message) {
-            messageToDisplay = apiResponse.message
-          } else if ('errors' in apiResponse && Array.isArray(apiResponse.errors)) {
-            const validationErrors = apiResponse.errors
-              .map((err) => {
-                if (err.messages && Array.isArray(err.messages)) {
-                  return err.messages.join(' ')
-                }
-                return ''
-              })
-              .filter(Boolean)
-              .join('; ')
-            messageToDisplay = `Validation Error: ${validationErrors || 'Unknown validation error.'}`
-          } else {
-            messageToDisplay = `Server responded with status ${statusCode.value || 'Unknown'}, but no specific error message provided.`
-          }
-        } else if (error.value) {
-          messageToDisplay = error.value.message || `Network error. Status: ${statusCode.value || 'Unknown'}.`
-          if (statusCode.value === 404) {
-            messageToDisplay = 'API endpoint not found (404). Please verify the URL on the server.'
-          } else if (statusCode.value === 401) {
-            messageToDisplay = 'Unauthorized (401). Session expired or invalid token.'
-          } else if (statusCode.value === 403) {
-            messageToDisplay = 'Forbidden (403). You do not have permission to access this resource.'
-          }
-        } else {
-          messageToDisplay = `API Error: Status ${statusCode.value || 'Unknown'}. No specific error details available.`
-        }
-
-        lastLogMessage.value = messageToDisplay
-        return { success: false, message: messageToDisplay }
+        errorMessage.value = message
+        return { success: false, message: message }
       }
     } catch (err: unknown) {
-      if (err instanceof Error) {
-        lastLogMessage.value = err.message || 'Failed to log time: An unexpected system error occurred.'
-      } else if (typeof err === 'string') {
-        lastLogMessage.value = err
-      } else {
-        lastLogMessage.value = 'Failed to log time: An unexpected system error occurred.'
-      }
-
+      const msg = err instanceof Error ? err.message : 'Failed to log time: An unexpected system error occurred.'
+      lastLogMessage.value = msg
+      errorMessage.value = msg
       currentScannedEmployee.value = null
-      return { success: false, message: lastLogMessage.value }
+      return { success: false, message: msg }
     } finally {
       isLoggingTime.value = false
     }
@@ -230,59 +224,31 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
   const clearScannedEmployee = () => {
     currentScannedEmployee.value = null
     lastLogMessage.value = null
+    errorMessage.value = null
   }
 
   const fetchDailyLogs = async (date: string) => {
+    isFetching.value = true
+    errorMessage.value = null
+
     try {
-      const { data, statusCode, isFinished } = useApiCall<ApiResponseBody<TimeLogEntry[]>>(
+      const apiCall = useApiCall<ApiResponseBody<TimeLogEntry[]>>(
         `employees/daily-time-records/time-logs?date=${date}`,
         authStore.authenticationToken
       )
         .get()
         .json()
 
-      let stopWatch: (() => void) | null = null
-      let timeoutId: ReturnType<typeof setTimeout> | null = null
+      const { data, success, message } = await executeApiCall(apiCall, 5000, `fetching daily logs for ${date}`)
 
-      await new Promise<void>((resolve, reject) => {
-        stopWatch = watch(
-          isFinished,
-          (newValue) => {
-            if (newValue) {
-              if (stopWatch) {
-                stopWatch()
-              }
-              if (timeoutId) {
-                clearTimeout(timeoutId)
-              }
-              resolve()
-            }
-          },
-          { immediate: true }
-        )
-
-        timeoutId = setTimeout(() => {
-          if (stopWatch) {
-            stopWatch()
-          }
-          reject(new Error('Daily logs fetch timed out.'))
-        }, 5000)
-      })
-
-      if (
-        statusCode.value >= 200 &&
-        statusCode.value < 300 &&
-        data.value &&
-        data.value.success &&
-        Array.isArray(data.value.data)
-      ) {
-        let todayLogEntry = dailyLogs.value.find((log) => log.date === date)
+      if (success && data) {
+        let todayLogEntry = dailyLogs.value.find((l) => l.date === date)
         if (!todayLogEntry) {
           todayLogEntry = { date: date, warm_bodies: [] }
           dailyLogs.value.push(todayLogEntry)
         }
 
-        const mappedLogs = data.value.data
+        const mappedLogs = (data as TimeLogEntry[])
           .map((log: TimeLogEntry) => ({
             employee_id: log.id_number,
             timestamp: `${log.time_log_date}T${log.scanned_time}`,
@@ -294,64 +260,58 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
 
         todayLogEntry.warm_bodies = mappedLogs
         dailyLogs.value = [...dailyLogs.value]
+
+        return { success: true, message: message, data: dailyLogs.value }
       } else {
-        const todayLogEntry = dailyLogs.value.find((log) => log.date === date)
+        const todayLogEntry = dailyLogs.value.find((l) => l.date === date)
         if (todayLogEntry) {
           todayLogEntry.warm_bodies = []
         }
+        errorMessage.value = message
+        return { success: false, message: message, data: null }
       }
-    } catch (err) {
-      const todayLogEntry = dailyLogs.value.find((log) => log.date === date)
+    } catch (err: unknown) {
+      const todayLogEntry = dailyLogs.value.find((l) => l.date === date)
       if (todayLogEntry) {
         todayLogEntry.warm_bodies = []
       }
+      const msg = err instanceof Error ? err.message : 'An unexpected error occurred during daily logs fetch.'
+      errorMessage.value = msg
+      return { success: false, message: msg, data: null }
+    } finally {
+      isFetching.value = false
     }
   }
 
   const fetchWarmBodySummary = async (date: string) => {
+    isFetching.value = true
+    errorMessage.value = null
+
     try {
-      const { data, statusCode, isFinished } = useApiCall<ApiResponseBody<WarmBodySummary>>(
+      const apiCall = useApiCall<ApiResponseBody<WarmBodySummary>>(
         `/employees/daily-time-records/warm-bodies/count?date=${date}`,
         authStore.authenticationToken
       )
         .get()
         .json()
 
-      let stopWatch: (() => void) | null = null
-      let timeoutId: ReturnType<typeof setTimeout> | null = null
+      const { data, success, message } = await executeApiCall(apiCall, 5000, `fetching warm body summary for ${date}`)
 
-      await new Promise<void>((resolve, reject) => {
-        stopWatch = watch(
-          isFinished,
-          (newValue) => {
-            if (newValue) {
-              if (stopWatch) {
-                stopWatch()
-              }
-              if (timeoutId) {
-                clearTimeout(timeoutId)
-              }
-              resolve()
-            }
-          },
-          { immediate: true }
-        )
-
-        timeoutId = setTimeout(() => {
-          if (stopWatch) {
-            stopWatch()
-          }
-          reject(new Error('Warm body summary fetch timed out.'))
-        }, 5000)
-      })
-
-      if (statusCode.value >= 200 && statusCode.value < 300 && data.value && data.value.success) {
-        warmBodySummary.value = data.value.data
+      if (success && data) {
+        warmBodySummary.value = data as WarmBodySummary
+        return { success: true, message: message, data: warmBodySummary.value }
       } else {
         warmBodySummary.value = null
+        errorMessage.value = message
+        return { success: false, message: message, data: null }
       }
-    } catch (err) {
+    } catch (err: unknown) {
       warmBodySummary.value = null
+      const msg = err instanceof Error ? err.message : 'An unexpected error occurred during warm body summary fetch.'
+      errorMessage.value = msg
+      return { success: false, message: msg, data: null }
+    } finally {
+      isFetching.value = false
     }
   }
 
@@ -361,6 +321,8 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     currentScannedEmployee,
     lastLogMessage,
     warmBodySummary,
+    isFetching,
+    errorMessage,
     countIn,
     countOut,
     getTodayWarmBodies,
