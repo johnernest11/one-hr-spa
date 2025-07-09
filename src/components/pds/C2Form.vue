@@ -367,7 +367,7 @@ defineExpose({
                           <WbInputText
                             v-model="payload.individual_eligibility[eligibilityIndex - 1].eligibility"
                             label="Eligibility"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                            label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           />
@@ -377,7 +377,7 @@ defineExpose({
                           <WbInputText
                             v-model="payload.individual_eligibility[eligibilityIndex - 1].rating"
                             label="Rating"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                            label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           />
@@ -386,8 +386,8 @@ defineExpose({
                         <div>
                           <WbCalendar
                             v-model="payload.individual_eligibility[eligibilityIndex - 1].date_of_examination_conferment"
-                            label="Date of Examination / Conferment"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                            label="Date of Exam / Conferment"
+                            label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-xs"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             :dateFormat="'yy-mm-dd'"
                             :invalid="
@@ -407,7 +407,7 @@ defineExpose({
                           <WbInputText
                             v-model="payload.individual_eligibility[eligibilityIndex - 1].place_of_examination"
                             label="Place of Examination"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                            label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           />
@@ -417,7 +417,7 @@ defineExpose({
                           <WbInputText
                             v-model="payload.individual_eligibility[eligibilityIndex - 1].license_number"
                             label="License Number"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                            label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           />
@@ -427,8 +427,8 @@ defineExpose({
                           <!-- WbInputText takes most of the space -->
                           <WbCalendar
                             v-model="payload.individual_eligibility[eligibilityIndex - 1].license_date_of_validity"
-                            label="License Date of Validity"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                            label="License Validity"
+                            label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                             :dateFormat="'yy-mm-dd'"
                             class="lg:text-md lg:placeholder:text-md flex-1 text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -531,7 +531,7 @@ defineExpose({
                             v-model="payload.individual_work_experience[workExperienceIndex - 1].inclusive_date_from"
                             label="From"
                             required
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                            label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             :dateFormat="'yy-mm-dd'"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -552,7 +552,7 @@ defineExpose({
                             label="To"
                             :dateFormat="'yy-mm-dd'"
                             class="w-full text-sm"
-                            label-class="text-md text-surface-600"
+                            label-class="text-md text-surface-600 md:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold"
                             :invalidText="validator.individual_work_experience[0].inclusive_date_to.$errors[0]?.$message"
                             :invalid="validator.individual_work_experience[0].inclusive_date_to.$error"
@@ -568,7 +568,7 @@ defineExpose({
                             disabled
                             readonly
                             class="w-full text-sm"
-                            label-class="text-md text-surface-600"
+                            label-class="text-md text-surface-600 md:text-sm"
                             required
                           />
                         </div>
@@ -580,7 +580,7 @@ defineExpose({
                             label="To"
                             :dateFormat="'yy-mm-dd'"
                             class="w-full text-sm"
-                            label-class="text-md text-surface-600"
+                            label-class="text-md text-surface-600 md:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold"
                             :invalidText="
                               validator.individual_work_experience[workExperienceIndex - 1].inclusive_date_to.$errors[0]?.$message
@@ -595,7 +595,7 @@ defineExpose({
                           <WbInputText
                             v-model="payload.individual_work_experience[workExperienceIndex - 1].position_title"
                             label="Position Title"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                            label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                             :invalidText="
@@ -636,7 +636,7 @@ defineExpose({
                             v-model="payload.individual_work_experience[workExperienceIndex - 1].monthly_salary"
                             label="Monthly Salary"
                             required
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                            label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                             :invalidText="
@@ -668,7 +668,7 @@ defineExpose({
                                   toRef(payload.individual_work_experience[workExperienceIndex - 1], 'salary_grade_id')
                                 )
                             "
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                            label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                             :invalidText="
@@ -685,7 +685,7 @@ defineExpose({
                             label="Salary Grade"
                             required
                             placeholder="e.g 01-0 ,01-1 ,02-0"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                            label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                             :invalidText="
@@ -739,7 +739,7 @@ defineExpose({
                             :options="isGovServiceYesNoOptions"
                             required
                             label="Gov’t Service"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                            label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                             :invalidText="
@@ -758,7 +758,7 @@ defineExpose({
                             @click="handleRemoveWorkExperience(workExperienceIndex - 1)"
                             v-tooltip.top="'Remove Work Experience'"
                             severity="danger"
-                            class="mb-8 text-lg font-semibold dark:text-primary-100"
+                            class="mb-8 text-lg font-semibold dark:text-primary-100 md:mb-2"
                             text
                           />
                         </div>
