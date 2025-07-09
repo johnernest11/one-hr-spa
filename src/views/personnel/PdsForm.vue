@@ -6,6 +6,7 @@ import { TabGroup, TabList, Tab, TabPanels, TabPanel } from '@headlessui/vue'
 import { TransitionRoot } from '@headlessui/vue'
 import C1Form from '@/components/pds/C1Form.vue'
 import C2Form from '@/components/pds/C2Form.vue'
+import C3Form from '@/components/pds/C3Form.vue'
 import { useRoute } from 'vue-router'
 import { lcFirst } from '@/utils/helpers.ts'
 import { usePdsStore } from '@/stores/pds.store'
@@ -18,7 +19,7 @@ const isC1Loading = ref(false)
 
 const c1FormRef = ref()
 const c2FormRef = ref()
-
+const c3FormRef = ref()
 onBeforeMount(async () => {
   await profileStore.fetchProfile()
 
@@ -34,6 +35,10 @@ const handleSubmit = async () => {
 
   if (c2FormRef.value?.handleSaveC2Form) {
     await c2FormRef.value.handleSaveC2Form()
+  }
+
+  if (c3FormRef.value?.handleSaveC3Form) {
+    await c3FormRef.value.handleSaveC3Form()
   }
 }
 </script>
@@ -56,7 +61,7 @@ const handleSubmit = async () => {
         <!-- Button aligned right -->
         <div class="ml-auto">
           <Button
-            label="Save C1 & C2 Info"
+            label="Save C1 ,C2 & C3 Info"
             @click.prevent="handleSubmit"
             :loading="isC1Loading"
             type="button"
@@ -99,6 +104,18 @@ const handleSubmit = async () => {
                   C2
                 </button>
               </Tab>
+              <Tab v-slot="{ selected }" as="template">
+                <button
+                  :class="[
+                    'w-full border-b-2 border-solid py-4 text-sm font-medium leading-5 ring-transparent transition-all duration-300 ease-in-out focus:outline-none md:text-base',
+                    selected
+                      ? 'border-b-2 border-solid border-primary-600 bg-primary-100 text-primary-600'
+                      : 'border-surface-300 text-surface-400 hover:bg-white/[0.12]',
+                  ]"
+                >
+                  C3
+                </button>
+              </Tab>
             </TabList>
 
             <TabPanels>
@@ -128,6 +145,20 @@ const handleSubmit = async () => {
                   leaveTo="opacity-0"
                 >
                   <C2Form ref="c2FormRef" :activeSubTab="0" />
+                </TransitionRoot>
+              </TabPanel>
+              <TabPanel>
+                <TransitionRoot
+                  appear
+                  :show="true"
+                  enter="transition-all ease-in-out duration-500"
+                  enterFrom="opacity-0 translate-y-6"
+                  enterTo="opacity-100 translate-y-0"
+                  leave="transition-all ease-in-out duration-800"
+                  leaveFrom="opacity-100"
+                  leaveTo="opacity-0"
+                >
+                  <C3Form ref="c3FormRef" :activeSubTab="0" />
                 </TransitionRoot>
               </TabPanel>
             </TabPanels>

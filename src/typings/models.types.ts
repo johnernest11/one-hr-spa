@@ -337,6 +337,38 @@ export type IndividualWorkExperience = {
   is_gov_service: boolean
 }
 
+/**Personnel Data Sheet (C3 FORM) (HTTP Responses) */
+export type IndividualVoluntaryWork = {
+  is_current_org: boolean
+  org_name: string | null
+  org_address: string | null
+  from: string | Date | null
+  to: string | Date | null
+  number_of_hours: string | null
+  position_nature_of_work: string | null
+}
+
+export type IndividualLearningDevelopment = {
+  title: string | null
+  from: string | null
+  to: string | null
+  number_of_hours: string | null
+  type: string | null
+  conducted_sponsor: string | null
+}
+
+export type IndividualSkills = {
+  skill_hobby: string | null
+}
+
+export type IndividualRecognition = {
+  recognition: string | null
+}
+
+export type IndividualMembership = {
+  association_organization: string | null
+}
+
 /**Daily Time Record (HTTP Responses) */
 export type DailyTimeRecordResponse = {
   id: number | null

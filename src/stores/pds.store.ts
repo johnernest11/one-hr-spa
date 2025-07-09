@@ -6,6 +6,11 @@ import {
   IndividualEducBg,
   IndividualEligibility,
   IndividualFamily,
+  IndividualLearningDevelopment,
+  IndividualMembership,
+  IndividualRecognition,
+  IndividualSkills,
+  IndividualVoluntaryWork,
   IndividualWorkExperience,
   PersonnelEmployee,
 } from '@/typings/models.types.ts'
@@ -72,6 +77,13 @@ export type PersonalDataSheetPayload = {
   /** PDS-C2 */
   individual_eligibility: IndividualEligibility[]
   individual_work_experience: IndividualWorkExperience[]
+  /** PDS-C3 */
+  individual_voluntary_work: IndividualVoluntaryWork[]
+  individual_lnd: IndividualLearningDevelopment[]
+  individual_skills_hobby: IndividualSkills[]
+  individual_recognition: IndividualRecognition[]
+  individual_membership: IndividualMembership[]
+  /** PDS-C4 */
   employee: PersonnelEmployee
   individual_educational_background: IndividualEducBg[]
   educations: {
@@ -242,6 +254,7 @@ export const usePdsStore = defineStore('pds', () => {
       },
     },
     individual_educational_background: [],
+    /** PDS C2 */
     individual_eligibility: [
       {
         eligibility: '',
@@ -265,6 +278,43 @@ export const usePdsStore = defineStore('pds', () => {
         custom_salary_grade: '',
         status_of_appointment: null,
         is_gov_service: false,
+      },
+    ],
+    /** PDS C3 */
+    individual_voluntary_work: [
+      {
+        is_current_org: false,
+        org_name: '',
+        org_address: '',
+        from: null,
+        to: null,
+        number_of_hours: null,
+        position_nature_of_work: null,
+      },
+    ],
+    individual_lnd: [
+      {
+        title: '',
+        from: '',
+        to: null,
+        number_of_hours: null,
+        type: null,
+        conducted_sponsor: null,
+      },
+    ],
+    individual_skills_hobby: [
+      {
+        skill_hobby: '',
+      },
+    ],
+    individual_recognition: [
+      {
+        recognition: '',
+      },
+    ],
+    individual_membership: [
+      {
+        association_organization: '',
       },
     ],
     employee: {
