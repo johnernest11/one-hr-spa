@@ -708,6 +708,17 @@ const routes = [
         },
       },
       {
+        path: '/warm-bodies',
+        name: 'warm-bodies',
+        component: () => import('@/views/human-resources/WarmBodiesPage.vue'),
+        meta: <RouteMeta>{
+          label: 'Warm Bodies',
+          isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+      {
         path: '/employees/:id?',
         name: 'employees',
         component: () => import('@/views/human-resources/EmployeesPage.vue'),

@@ -292,6 +292,29 @@ export type ViewTimeLogsResponse = {
   section_name: string
 }
 
+export type CountWarmBodiesResponse = {
+  date: string
+  total_employees: number
+  in_office: number
+  out_of_office: number
+  per_division: Array<{
+    division_id: number
+    division_name: string
+    total_employees: number
+    in_office: number
+    out_of_office: number
+  }>
+  per_section: Array<{
+    division_id: number
+    division_name: string
+    section_id: number
+    section_name: string
+    total_employees: number
+    in_office: number
+    out_of_office: number
+  }>
+}
+
 export type WarmBodyResponse = {
   id: number
   employee_id: PersonnelEmployee | null
