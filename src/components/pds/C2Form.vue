@@ -40,7 +40,8 @@ const isCurrentlyEmployed = ref(false)
 const activeToasts = ref<number>(0)
 const useCustomSalaryGrade = ref<boolean[]>([])
 const today = new Date()
-const selectedWorkExperienceSG = ref<WbAutoCompleteOption | null>(null)
+const selectedWorkExperienceSG = ref<(WbAutoCompleteOption | null)[]>([])
+
 const c1Tabs = ref([
   { name: 'Civil Service Eligibility', index: 0 },
   { name: 'Work Experience', index: 1 },
@@ -195,9 +196,9 @@ watch(useCustomSalaryGrade, (newVal) => {
 watch(
   () => payload.individual_work_experience[workExperienceIndex.value - 1].salary_grade_id,
   (newSelectedItem) => {
+    const idx = workExperienceIndex.value - 1
     if (!newSelectedItem) {
-      selectedWorkExperienceSG.value = null
-      return
+      selectedWorkExperienceSG.value[idx] = null
     }
   }
 )
