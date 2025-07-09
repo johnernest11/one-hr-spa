@@ -59,33 +59,19 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     return log ? [...log.warm_bodies].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) : []
   })
 
-  const logEmployeeTime = async (
-    rawQrText: string
-  ): Promise<{ success: boolean; message?: string; data?: ScannedEmployeeResponse | null }> => {
+  const logEmployeeTime = async (rawQrText: string) => {
     currentScannedEmployee.value = null
     lastLogMessage.value = null
 
-    const now = new Date()
-    const manilaDateTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Manila' }))
-    const datePart = manilaDateTime.toISOString().split('T')[0]
-    const timePart = manilaDateTime.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false,
-    })
-
     const payload = {
       scanned_qr: rawQrText,
-      date: datePart,
-      scanned_time: timePart,
     }
 
     const { data } = await useApiCall<ApiResponseBody<WarmBodyLogEntry>>('employees/log-time', authStore.authenticationToken)
       .post(payload)
       .json()
 
-    const responseBody: ApiResponseBody = data.value
+    const responseBody: ApiResponseBody<WarmBodyLogEntry> = data.value
 
     if (responseBody.success) {
       lastLogMessage.value = responseBody.message || 'Time logged successfully.'
@@ -94,6 +80,11 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
       const employeeDetails = warmBodyLog?.daily_time_record?.employee?.individual_basic_detail
       const employeeItem = warmBodyLog?.daily_time_record?.employee?.item
 
+      const photoUrl =
+        employeeDetails?.user_profile?.profile_picture_url && employeeDetails.user_profile.profile_picture_url.trim() !== ''
+          ? employeeDetails.user_profile.profile_picture_url
+          : '/src/assets/image/Photo Card.png'
+
       if (warmBodyLog && employeeDetails && employeeItem) {
         currentScannedEmployee.value = {
           id: warmBodyLog.daily_time_record.employee.id_number || 'N/A',
@@ -101,7 +92,7 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
           position: employeeItem.position?.title || 'N/A',
           is_in: warmBodyLog.is_in,
           timestamp: warmBodyLog.created_at || new Date().toISOString(),
-          photo_url: employeeDetails.user_profile?.profile_picture_url || '/src/assets/image/placeholder-profile.png',
+          photo_url: photoUrl,
         }
       } else {
         currentScannedEmployee.value = {
@@ -113,9 +104,6 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
           photo_url: '/src/assets/image/placeholder-profile.png',
         }
       }
-      const today = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Manila' })).toISOString().split('T')[0]
-      await fetchWarmBodySummary(today)
-      await fetchDailyLogs(today)
     } else {
       lastLogMessage.value = responseBody.message || 'Failed to log time.'
       currentScannedEmployee.value = null
@@ -141,7 +129,7 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
       .get()
       .json()
 
-    const responseBody: ApiResponseBody = data.value
+    const responseBody: ApiResponseBody<TimeLogEntry[]> = data.value
 
     if (responseBody.success && Array.isArray(responseBody.data)) {
       let todayLogEntry = dailyLogs.value.find((l) => l.date === date)
@@ -161,11 +149,11 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
 
       todayLogEntry.warm_bodies = mappedLogs
-      dailyLogs.value = [...dailyLogs.value]
+      dailyLogs.value = [...dailyLogs.value] // Trigger reactivity for the array itself
     } else {
       const todayLogEntry = dailyLogs.value.find((l) => l.date === date)
       if (todayLogEntry) {
-        todayLogEntry.warm_bodies = []
+        todayLogEntry.warm_bodies = [] // Clear logs for the date if fetch failed
       }
     }
 
@@ -180,7 +168,7 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
       .get()
       .json()
 
-    const responseBody: ApiResponseBody = data.value
+    const responseBody: ApiResponseBody<WarmBodySummary> = data.value
 
     if (responseBody.success) {
       warmBodySummary.value = responseBody.data as WarmBodySummary
