@@ -28,17 +28,22 @@ onBeforeMount(async () => {
   }
 })
 
+const isSubmitting = ref(false)
+
 const handleSubmit = async () => {
-  if (c1FormRef.value?.handleSaveC1Form) {
-    await c1FormRef.value.handleSaveC1Form()
-  }
+  isSubmitting.value = true
 
-  if (c2FormRef.value?.handleSaveC2Form) {
-    await c2FormRef.value.handleSaveC2Form()
-  }
+  try {
+    const resultC1 = await c1FormRef.value?.handleSaveC1Form?.()
+    if (resultC1?.valid === false) return
 
-  if (c3FormRef.value?.handleSaveC3Form) {
-    await c3FormRef.value.handleSaveC3Form()
+    const resultC2 = await c2FormRef.value?.handleSaveC2Form?.()
+    if (resultC2?.valid === false) return
+
+    const resultC3 = await c3FormRef.value?.handleSaveC3Form?.()
+    if (resultC3?.valid === false) return
+  } finally {
+    isSubmitting.value = false
   }
 }
 </script>

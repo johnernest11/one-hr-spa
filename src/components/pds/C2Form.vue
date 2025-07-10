@@ -21,7 +21,6 @@ import { helpers, maxLength, required, numeric } from '@vuelidate/validators'
 import { TabGroup, TabList, Tab, TabPanels, TabPanel } from '@headlessui/vue'
 import { isAfterOrEqualFromDate, usePrependOrAppendOnce } from '@/utils/helpers.js'
 import { TransitionRoot } from '@headlessui/vue'
-import { formatDateSafe } from '@/utils/helpers.js'
 
 const getId = usePrependOrAppendOnce('pds-c2-section-form')
 const sgStore = useSalaryGradesStore()
@@ -306,18 +305,7 @@ const handleSaveC2Form = async () => {
     return { valid: false, errorTabs: ['C2'] }
   }
 
-  //Format dates before sending
-  payload.individual_eligibility.forEach((eligibility) => {
-    eligibility.license_date_of_validity = formatDateSafe(eligibility.license_date_of_validity)
-    eligibility.license_date_of_validity = formatDateSafe(eligibility.license_date_of_validity)
-  })
-
-  payload.individual_work_experience.forEach((work) => {
-    work.inclusive_date_from = formatDateSafe(work.inclusive_date_from)
-    work.inclusive_date_to = formatDateSafe(work.inclusive_date_to)
-  })
-
-  const response = await pdsStore.saveC1(payload)
+  const response = await pdsStore.savePds(payload)
 
   if (response.success === false) {
     const result = parseApiResponseError(response)

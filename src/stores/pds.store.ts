@@ -17,6 +17,7 @@ import {
 import { useApiCall } from '@/composables/network'
 import { useAuthStore } from '@/stores/auth.store.ts'
 import { ApiResponseBody } from '@/typings/http-resources.types'
+import { formatDateFields, formatYear } from '@/utils/helpers.js'
 
 /** Typings */
 export type UploadProfilePictureResponse = { owner_id: string | number; path: string; url: string }
@@ -337,36 +338,29 @@ export const usePdsStore = defineStore('pds', () => {
     },
   })
 
-  const saveC1 = async (payload: PersonalDataSheetPayload) => {
+  const savePds = async (payload: PersonalDataSheetPayload) => {
     const uri = '/individual-basic-details'
 
-    // Format education dates to YYYY
+    // Format education dates to 'YYYY'
     payload.individual_educational_background.forEach((edu) => {
-      if (edu.period_of_attendance_from) {
-        const year = new Date(edu.period_of_attendance_from).getFullYear()
-        edu.period_of_attendance_from = isNaN(year) ? '' : year.toString()
-      }
-
-      if (edu.period_of_attendance_to) {
-        const year = new Date(edu.period_of_attendance_to).getFullYear()
-        edu.period_of_attendance_to = isNaN(year) ? '' : year.toString()
-      }
-
-      if (edu.year_graduated) {
-        const year = new Date(edu.year_graduated).getFullYear()
-        edu.year_graduated = isNaN(year) ? '' : year.toString()
-      }
+      edu.period_of_attendance_from = formatYear(edu.period_of_attendance_from)
+      edu.period_of_attendance_to = formatYear(edu.period_of_attendance_to)
+      edu.year_graduated = formatYear(edu.year_graduated)
     })
 
-    const { data } = await useApiCall(uri, authStore.authenticationToken).post(payload).json()
-    const responseBody: ApiResponseBody = data.value
+    //  Format all other date-based fields to 'YYYY-MM-DD'
+    formatDateFields(payload.individual_eligibility, ['date_of_examination_conferment', 'license_date_of_validity'])
+    formatDateFields(payload.individual_work_experience, ['inclusive_date_from', 'inclusive_date_to'])
+    formatDateFields(payload.individual_voluntary_work, ['from', 'to'])
+    formatDateFields(payload.individual_lnd, ['from', 'to'])
 
-    return responseBody
+    const { data } = await useApiCall(uri, authStore.authenticationToken).post(payload).json()
+    return data.value as ApiResponseBody
   }
 
   return {
     pdsInfo,
-    saveC1,
+    savePds,
     pdsMode,
   }
 })

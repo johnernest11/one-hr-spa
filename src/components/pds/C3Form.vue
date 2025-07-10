@@ -15,7 +15,6 @@ import { helpers, maxLength, required } from '@vuelidate/validators'
 import { TabGroup, TabList, Tab, TabPanels, TabPanel } from '@headlessui/vue'
 import { isAfterOrEqualFromDate, usePrependOrAppendOnce } from '@/utils/helpers.js'
 import { TransitionRoot } from '@headlessui/vue'
-import { formatDateSafe } from '@/utils/helpers.js'
 
 const getId = usePrependOrAppendOnce('pds-c3-section-form')
 const pdsStore = usePdsStore()
@@ -54,6 +53,7 @@ const globalStringMaxLengthRule = helpers.withMessage(
   `Must not exceed ${globalStringMaxLength} characters`,
   maxLength(globalStringMaxLength)
 )
+
 const formRules = computed(() => ({
   individual_lnd: payload.individual_lnd.map(() => ({
     title: {
@@ -256,18 +256,7 @@ const handleSaveC3Form = async () => {
     return { valid: false, errorTabs: ['C3'] }
   }
 
-  //Format dates before sending
-  payload.individual_voluntary_work.forEach((vw) => {
-    vw.from = formatDateSafe(vw.from)
-    vw.to = formatDateSafe(vw.to)
-  })
-
-  payload.individual_lnd.forEach((lnd) => {
-    lnd.from = formatDateSafe(lnd.from)
-    lnd.to = formatDateSafe(lnd.to)
-  })
-
-  const response = await pdsStore.saveC1(payload)
+  const response = await pdsStore.savePds(payload)
 
   if (response.success === false) {
     const result = parseApiResponseError(response)
@@ -393,7 +382,7 @@ defineExpose({
                           <!-- If NOT currently involved, show calendar -->
                           <WbCalendar
                             v-if="!currentlyInvolved"
-                            v-model="payload.individual_voluntary_work[0].to"
+                            v-model="payload.individual_voluntary_work[voluntaryWorkIndex - 1].to"
                             label="To"
                             :dateFormat="'yy-mm-dd'"
                             class="w-full text-sm"
@@ -696,7 +685,7 @@ defineExpose({
                             @click="handleRemoveSkillHobbies(skillHobbiesIndex - 1)"
                             v-tooltip.top="'Remove Special Skills and Hobbies'"
                             severity="danger"
-                            class="mb-8 text-lg font-semibold dark:text-primary-100 md:mb-2"
+                            class="mb-2 text-lg font-semibold dark:text-primary-100 md:mb-2"
                             text
                           />
                         </div>
@@ -758,7 +747,7 @@ defineExpose({
                             @click="handleRemoveRecognition(recognitionIndex - 1)"
                             v-tooltip.top="'Remove Non-Academic Distinctions / Recognition'"
                             severity="danger"
-                            class="mb-8 text-lg font-semibold dark:text-primary-100 md:mb-2"
+                            class="mb-2 text-lg font-semibold dark:text-primary-100 md:mb-2"
                             text
                           />
                         </div>
@@ -821,7 +810,7 @@ defineExpose({
                             @click="handleRemoveMembership(membershipIndex - 1)"
                             v-tooltip.top="'Remove Membership in Association / Organization'"
                             severity="danger"
-                            class="mb-8 text-lg font-semibold dark:text-primary-100 md:mb-2"
+                            class="mb-2 text-lg font-semibold dark:text-primary-100 md:mb-2"
                             text
                           />
                         </div>
@@ -844,8 +833,9 @@ defineExpose({
 
                   <span class="mb-6 mt-2 flex flex-col justify-center space-y-4 font-medium text-surface-600">
                     <p class="md:text-md text-lg italic">
-                      Note: A maximum of 28 Work Experience entries are allowed in a page, if the number of your work experience
-                      exceeds in the aforementioned limit, it will be in a separate sheet.
+                      Note: A maximum of seven (7) Membership in Association / Organization entries are allowed in a page, if the
+                      number of your Membership in Association / Organization exceeds in the aforementioned limit, it will be in a
+                      separate sheet.
                     </p>
                   </span>
                 </div>
