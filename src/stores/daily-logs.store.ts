@@ -4,6 +4,7 @@ import { useApiCall } from '@/composables/network.ts'
 import { useAuthStore } from '@/stores/auth.store'
 import type { ApiResponseBody, WarmBodyLogEntry, DailyLogEntry } from '@/typings/http-resources.types.ts'
 import type { ScannedEmployeeResponse } from '@/typings/models.types'
+import { getManilaTodayISO } from '@/utils/helpers.ts'
 
 interface DivisionSectionSummary {
   name: string
@@ -104,6 +105,10 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
           photo_url: '/src/assets/image/placeholder-profile.png',
         }
       }
+
+      const today = getManilaTodayISO()
+      await fetchWarmBodySummary(today)
+      await fetchDailyLogs(today)
     } else {
       lastLogMessage.value = responseBody.message || 'Failed to log time.'
       currentScannedEmployee.value = null
@@ -121,7 +126,7 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     lastLogMessage.value = null
   }
 
-  const fetchDailyLogs = async (date: string): Promise<DailyLogEntry['warm_bodies'] | null> => {
+  const fetchDailyLogs = async (date: string) => {
     const { data } = await useApiCall<ApiResponseBody<TimeLogEntry[]>>(
       `employees/daily-time-records/time-logs?date=${date}`,
       authStore.authenticationToken
@@ -142,10 +147,22 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
         }))
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
 
-      return mappedLogs
+      const logEntry = dailyLogs.value.find((l) => l.date === date)
+      if (logEntry) {
+        logEntry.warm_bodies = mappedLogs
+      } else {
+        dailyLogs.value.push({
+          date: date,
+          warm_bodies: mappedLogs,
+        })
+      }
     } else {
-      return null
+      const logEntry = dailyLogs.value.find((l) => l.date === date)
+      if (logEntry) {
+        logEntry.warm_bodies = []
+      }
     }
+    return responseBody
   }
 
   const fetchWarmBodySummary = async (date: string) => {

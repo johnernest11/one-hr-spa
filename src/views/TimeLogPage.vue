@@ -5,7 +5,6 @@ import { useDailyLogsStore } from '@/stores/daily-logs.store'
 import Dialog from 'primevue/dialog'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { getManilaTodayISO, formatTime } from '@/utils/helpers.ts'
-import type { DailyLogEntry, WarmBodyLogEntry } from '@/typings/http-resources.types.ts'
 
 const currentDate = ref('')
 const currentTime = ref('')
@@ -22,24 +21,13 @@ let isProcessingScan = false
 let scanTimeoutId: ReturnType<typeof setTimeout> | null = null
 const SCAN_COOLDOWN_MS = 3000
 
+/**
+ * Updates the daily logs state by fetching data from the store.
+ * The store's fetchDailyLogs action is responsible for updating its internal dailyLogs ref.
+ * @param date The date for which to fetch logs.
+ */
 async function updateDailyLogsState(date: string) {
-  const fetchedLogs: WarmBodyLogEntry[] | null = await dailyLogsStore.fetchDailyLogs(date)
-
-  let todayLogEntry: DailyLogEntry | undefined = dailyLogsStore.dailyLogs.find((l) => l.date === date)
-
-  if (fetchedLogs) {
-    if (!todayLogEntry) {
-      todayLogEntry = { date: date, warm_bodies: [] }
-      dailyLogsStore.dailyLogs.push(todayLogEntry)
-    }
-    todayLogEntry.warm_bodies = fetchedLogs
-  } else {
-    if (todayLogEntry) {
-      todayLogEntry.warm_bodies = []
-    }
-  }
-
-  dailyLogsStore.dailyLogs = [...dailyLogsStore.dailyLogs]
+  await dailyLogsStore.fetchDailyLogs(date)
 }
 
 function updateDateTime() {
