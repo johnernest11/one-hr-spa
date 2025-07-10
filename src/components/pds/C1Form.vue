@@ -792,7 +792,7 @@ const handleSaveC1Form = async () => {
   console.log(validator.value)
   if (!valid) return (isC1Loading.value = false)
 
-  const response = await pdsStore.saveC1(payload)
+  const response = await pdsStore.savePds(payload)
 
   if (response.success === false) {
     const result = parseApiResponseError(response)

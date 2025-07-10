@@ -6,12 +6,18 @@ import {
   IndividualEducBg,
   IndividualEligibility,
   IndividualFamily,
+  IndividualLearningDevelopment,
+  IndividualMembership,
+  IndividualRecognition,
+  IndividualSkills,
+  IndividualVoluntaryWork,
   IndividualWorkExperience,
   PersonnelEmployee,
 } from '@/typings/models.types.ts'
 import { useApiCall } from '@/composables/network'
 import { useAuthStore } from '@/stores/auth.store.ts'
 import { ApiResponseBody } from '@/typings/http-resources.types'
+import { formatDateFields, formatYear } from '@/utils/helpers.js'
 
 /** Typings */
 export type UploadProfilePictureResponse = { owner_id: string | number; path: string; url: string }
@@ -71,6 +77,13 @@ export type PersonalDataSheetPayload = {
   /** PDS-C2 */
   individual_eligibility: IndividualEligibility[]
   individual_work_experience: IndividualWorkExperience[]
+  /** PDS-C3 */
+  individual_voluntary_work: IndividualVoluntaryWork[]
+  individual_lnd: IndividualLearningDevelopment[]
+  individual_skills_hobby: IndividualSkills[]
+  individual_recognition: IndividualRecognition[]
+  individual_membership: IndividualMembership[]
+  /** PDS-C4 */
   employee: PersonnelEmployee
   individual_educational_background: IndividualEducBg[]
   educations: {
@@ -241,6 +254,7 @@ export const usePdsStore = defineStore('pds', () => {
       },
     },
     individual_educational_background: [],
+    /** PDS C2 */
     individual_eligibility: [
       {
         eligibility: '',
@@ -266,6 +280,43 @@ export const usePdsStore = defineStore('pds', () => {
         is_gov_service: false,
       },
     ],
+    /** PDS C3 */
+    individual_voluntary_work: [
+      {
+        is_current_org: false,
+        org_name: '',
+        org_address: '',
+        from: null,
+        to: null,
+        number_of_hours: null,
+        position_nature_of_work: null,
+      },
+    ],
+    individual_lnd: [
+      {
+        title: '',
+        from: '',
+        to: null,
+        number_of_hours: null,
+        type: null,
+        conducted_sponsor: null,
+      },
+    ],
+    individual_skills_hobby: [
+      {
+        skill_hobby: '',
+      },
+    ],
+    individual_recognition: [
+      {
+        recognition: '',
+      },
+    ],
+    individual_membership: [
+      {
+        association_organization: '',
+      },
+    ],
     employee: {
       id: null,
       individual_basic_detail_id: null,
@@ -287,36 +338,29 @@ export const usePdsStore = defineStore('pds', () => {
     },
   })
 
-  const saveC1 = async (payload: PersonalDataSheetPayload) => {
+  const savePds = async (payload: PersonalDataSheetPayload) => {
     const uri = '/individual-basic-details'
 
-    // Format education dates to YYYY
+    // Format education dates to 'YYYY'
     payload.individual_educational_background.forEach((edu) => {
-      if (edu.period_of_attendance_from) {
-        const year = new Date(edu.period_of_attendance_from).getFullYear()
-        edu.period_of_attendance_from = isNaN(year) ? '' : year.toString()
-      }
-
-      if (edu.period_of_attendance_to) {
-        const year = new Date(edu.period_of_attendance_to).getFullYear()
-        edu.period_of_attendance_to = isNaN(year) ? '' : year.toString()
-      }
-
-      if (edu.year_graduated) {
-        const year = new Date(edu.year_graduated).getFullYear()
-        edu.year_graduated = isNaN(year) ? '' : year.toString()
-      }
+      edu.period_of_attendance_from = formatYear(edu.period_of_attendance_from)
+      edu.period_of_attendance_to = formatYear(edu.period_of_attendance_to)
+      edu.year_graduated = formatYear(edu.year_graduated)
     })
 
-    const { data } = await useApiCall(uri, authStore.authenticationToken).post(payload).json()
-    const responseBody: ApiResponseBody = data.value
+    //  Format all other date-based fields to 'YYYY-MM-DD'
+    formatDateFields(payload.individual_eligibility, ['date_of_examination_conferment', 'license_date_of_validity'])
+    formatDateFields(payload.individual_work_experience, ['inclusive_date_from', 'inclusive_date_to'])
+    formatDateFields(payload.individual_voluntary_work, ['from', 'to'])
+    formatDateFields(payload.individual_lnd, ['from', 'to'])
 
-    return responseBody
+    const { data } = await useApiCall(uri, authStore.authenticationToken).post(payload).json()
+    return data.value as ApiResponseBody
   }
 
   return {
     pdsInfo,
-    saveC1,
+    savePds,
     pdsMode,
   }
 })

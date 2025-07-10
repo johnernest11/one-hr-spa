@@ -21,7 +21,6 @@ import { helpers, maxLength, required, numeric } from '@vuelidate/validators'
 import { TabGroup, TabList, Tab, TabPanels, TabPanel } from '@headlessui/vue'
 import { isAfterOrEqualFromDate, usePrependOrAppendOnce } from '@/utils/helpers.js'
 import { TransitionRoot } from '@headlessui/vue'
-import { formatDateSafe } from '@/utils/helpers.js'
 
 const getId = usePrependOrAppendOnce('pds-c2-section-form')
 const sgStore = useSalaryGradesStore()
@@ -95,6 +94,12 @@ const formRules = computed(() => ({
         }
       ),
       maxLength: globalStringMaxLengthRule,
+    },
+    rating: {
+      mustBeNumber: helpers.withMessage('Rating must be a number', (val: unknown) => {
+        if (val === null || val === '') return true // allow empty
+        return !isNaN(Number(val))
+      }),
     },
   })),
   individual_work_experience: payload.individual_work_experience.map(() => ({
@@ -306,18 +311,7 @@ const handleSaveC2Form = async () => {
     return { valid: false, errorTabs: ['C2'] }
   }
 
-  //Format dates before sending
-  payload.individual_eligibility.forEach((eligibility) => {
-    eligibility.license_date_of_validity = formatDateSafe(eligibility.license_date_of_validity)
-    eligibility.license_date_of_validity = formatDateSafe(eligibility.license_date_of_validity)
-  })
-
-  payload.individual_work_experience.forEach((work) => {
-    work.inclusive_date_from = formatDateSafe(work.inclusive_date_from)
-    work.inclusive_date_to = formatDateSafe(work.inclusive_date_to)
-  })
-
-  const response = await pdsStore.saveC1(payload)
+  const response = await pdsStore.savePds(payload)
 
   if (response.success === false) {
     const result = parseApiResponseError(response)
@@ -418,6 +412,9 @@ defineExpose({
                             label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                            :invalid="validator.individual_eligibility[eligibilityIndex - 1].rating.$error"
+                            :invalidText="validator.individual_eligibility[eligibilityIndex - 1].rating.$errors[0]?.$message"
+                            @blur="validator.individual_eligibility[eligibilityIndex - 1].rating.$touch()"
                           />
                         </div>
 

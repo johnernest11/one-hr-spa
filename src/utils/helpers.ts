@@ -533,3 +533,17 @@ export const formatDateSafe = (input: unknown): string => {
 
   return useDateFormat(date, 'YYYY-MM-DD').value
 }
+
+// Helper to safely extract year from a value
+export const formatYear = (val: unknown): string => {
+  const date = new Date(val as string | number | Date)
+  return isNaN(date.getTime()) ? '' : date.getFullYear().toString()
+}
+
+export const formatDateFields = <T extends Record<string, unknown>>(entries: T[], fields: (keyof T)[]) => {
+  entries.forEach((entry) => {
+    fields.forEach((field) => {
+      entry[field] = formatDateSafe(entry[field]) as T[keyof T]
+    })
+  })
+}
