@@ -1,16 +1,20 @@
 <script setup lang="ts">
 import { onBeforeMount, ref } from 'vue'
 import { useProfileStore } from '@/stores/profile.store.ts'
-import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-import { TabGroup, TabList, Tab, TabPanels, TabPanel } from '@headlessui/vue'
-import { TransitionRoot } from '@headlessui/vue'
+import { useRoute } from 'vue-router'
+import { usePdsStore } from '@/stores/pds.store'
+
 import C1Form from '@/components/pds/C1Form.vue'
 import C2Form from '@/components/pds/C2Form.vue'
 import C3Form from '@/components/pds/C3Form.vue'
-import { useRoute } from 'vue-router'
+import C4Form from '@/components/pds/C4Form.vue'
+
 import { lcFirst } from '@/utils/helpers.ts'
-import { usePdsStore } from '@/stores/pds.store'
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
+import { TabGroup, TabList, Tab, TabPanels, TabPanel } from '@headlessui/vue'
+import { TransitionRoot } from '@headlessui/vue'
 import Button from 'primevue/button'
+
 const route = useRoute()
 
 const pdsStore = usePdsStore()
@@ -91,7 +95,7 @@ const handleSubmit = async () => {
                     'w-full border-b-2 border-solid py-4 text-sm font-medium leading-5 ring-transparent transition-all duration-300 ease-in-out focus:outline-none md:text-base',
                     selected
                       ? 'border-b-2 border-solid border-primary-600 bg-primary-100 text-primary-600'
-                      : 'border-surface-300 text-surface-400 hover:bg-white/[0.12]',
+                      : 'border-surface-300 text-surface-400 hover:bg-surface-0/[0.12]',
                   ]"
                 >
                   C1
@@ -103,7 +107,7 @@ const handleSubmit = async () => {
                     'w-full border-b-2 border-solid py-4 text-sm font-medium leading-5 ring-transparent transition-all duration-300 ease-in-out focus:outline-none md:text-base',
                     selected
                       ? 'border-b-2 border-solid border-primary-600 bg-primary-100 text-primary-600'
-                      : 'border-surface-300 text-surface-400 hover:bg-white/[0.12]',
+                      : 'border-surface-300 text-surface-400 hover:bg-surface-0/[0.12]',
                   ]"
                 >
                   C2
@@ -115,10 +119,22 @@ const handleSubmit = async () => {
                     'w-full border-b-2 border-solid py-4 text-sm font-medium leading-5 ring-transparent transition-all duration-300 ease-in-out focus:outline-none md:text-base',
                     selected
                       ? 'border-b-2 border-solid border-primary-600 bg-primary-100 text-primary-600'
-                      : 'border-surface-300 text-surface-400 hover:bg-white/[0.12]',
+                      : 'border-surface-300 text-surface-400 hover:bg-surface-0/[0.12]',
                   ]"
                 >
                   C3
+                </button>
+              </Tab>
+              <Tab v-slot="{ selected }" as="template">
+                <button
+                  :class="[
+                    'w-full border-b-2 border-solid py-4 text-sm font-medium leading-5 ring-transparent transition-all duration-300 ease-in-out focus:outline-none md:text-base',
+                    selected
+                      ? 'border-b-2 border-solid border-primary-600 bg-primary-100 text-primary-600'
+                      : 'border-surface-300 text-surface-400 hover:bg-surface-0/[0.12]',
+                  ]"
+                >
+                  C4
                 </button>
               </Tab>
             </TabList>
@@ -164,6 +180,20 @@ const handleSubmit = async () => {
                   leaveTo="opacity-0"
                 >
                   <C3Form ref="c3FormRef" :activeSubTab="0" />
+                </TransitionRoot>
+              </TabPanel>
+              <TabPanel>
+                <TransitionRoot
+                  appear
+                  :show="true"
+                  enter="transition-all ease-in-out duration-500"
+                  enterFrom="opacity-0 translate-y-6"
+                  enterTo="opacity-100 translate-y-0"
+                  leave="transition-all ease-in-out duration-800"
+                  leaveFrom="opacity-100"
+                  leaveTo="opacity-0"
+                >
+                  <C4Form ref="c3FormRef" :activeSubTab="0" />
                 </TransitionRoot>
               </TabPanel>
             </TabPanels>
