@@ -1,5 +1,6 @@
 import { CountryCode, isValidPhoneNumber, parsePhoneNumber } from 'libphonenumber-js'
 import { WarmBodyResponse } from '@/typings/models.types.ts'
+import { useDateFormat } from '@vueuse/core'
 /**
  * @description Halt code execution for x seconds
  * @example
@@ -518,4 +519,31 @@ export const resolveDTRSlots = (entries: WarmBodyResponse[] = []) => {
   if (out2Candidate) slots.out2 = out2Candidate.timestamp
 
   return slots
+}
+
+export const formatDateSafe = (input: unknown): string => {
+  const date = new Date(input as string | number | Date)
+
+  // Invalid date check
+  if (isNaN(date.getTime())) return ''
+
+  // Today cutoff
+  const today = new Date()
+  if (date > today) return ''
+
+  return useDateFormat(date, 'YYYY-MM-DD').value
+}
+
+// Helper to safely extract year from a value
+export const formatYear = (val: unknown): string => {
+  const date = new Date(val as string | number | Date)
+  return isNaN(date.getTime()) ? '' : date.getFullYear().toString()
+}
+
+export const formatDateFields = <T extends Record<string, unknown>>(entries: T[], fields: (keyof T)[]) => {
+  entries.forEach((entry) => {
+    fields.forEach((field) => {
+      entry[field] = formatDateSafe(entry[field]) as T[keyof T]
+    })
+  })
 }

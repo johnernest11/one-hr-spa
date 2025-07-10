@@ -120,7 +120,7 @@ export type UserResponse = {
   user_profile?: UserProfileResponse
 } & ApiResponseData
 
-/** User (HTTP Responses) */
+/** User Profile (HTTP Responses) */
 export type UserProfileResponse = {
   first_name: string
   last_name: string
@@ -170,6 +170,7 @@ export type PersonnelCompensatoryDayTimeOffDetailsResponse = {
   authorized_claim: string | null
 } & ApiResponseData
 
+/**Work Experience Sheet (WES) (HTTP Responses) */
 export type WorkExperienceSheetResponse = {
   duration: string
   position: string
@@ -180,6 +181,28 @@ export type WorkExperienceSheetResponse = {
   summary_duties: string | null
 } & ApiResponseData
 
+/**Employee Data  (HTTP Responses) */
+export type PersonnelEmployee = {
+  id: number | null
+  individual_basic_detail_id: PersonnelResponse | null
+  id_number: string | null
+  item_id: number | null
+  salary_grade_id: SalaryGradeResponse | null
+  position?: string | null
+  fund_source?: {
+    id: number | null
+    name: string | null
+  }
+  agency_employee_no: string | null
+  office_id: number | null
+  division_id: number | null
+  division: DivisionResponse | null
+  section_or_unit_id: number | null
+  section_or_unit: SectionorUnitResponse | null
+  item: ItemNumberResponse | null
+}
+
+/**Personnel Data Sheet (C1 FORM) (HTTP Responses) */
 export type PersonnelResponse = {
   id: number
   first_name: string
@@ -203,14 +226,6 @@ export type PersonnelResponse = {
   individual_address: PersonnelAddress | null
   individual_contact_info: PersonnelContactInfo | null
   employee: PersonnelEmployee | null
-} & ApiResponseData
-
-export type QrCodeResponse = {
-  id: number
-  employee: PersonnelEmployee | null
-  qr_code_value: string | null
-  last_generated_at: string | null
-  is_active: boolean
 } & ApiResponseData
 
 export type PersonnelAddress = {
@@ -249,24 +264,112 @@ export type PersonnelContactInfo = {
   email_address: string | null
 }
 
-export type PersonnelEmployee = {
-  id: number | null
-  individual_basic_detail_id: PersonnelResponse | null
-  id_number: string | null
-  item_id: number | null
-  salary_grade_id: SalaryGradeResponse | null
-  position?: string | null
-  fund_source?: {
-    id: number | null
-    name: string | null
-  }
-  agency_employee_no: string | null
-  office_id: number | null
-  division_id: DivisionResponse | null
-  section_or_unit_id: SectionorUnitResponse | null
-  item: ItemNumberResponse | null
+export type IndividualContactInfo = {
+  tel_no: string | null
+  mobile_no: string | null
+  email_address: string | null
 }
 
+export type IndividualAddress = {
+  residential_house_block_lot_no: string | null
+  residential_street: string | null
+  residential_subdivision_village: string | null
+  residential_brgy_id: string | number | null
+  residential_citymun_id: string | number | null
+  residential_province_id: string | number | null
+  residential_region_id: string | number | null
+  residential_zip_code: string | null
+  permanent_house_block_lot_no: string | null
+  permanent_street: string | null
+  permanent_subdivision_village: string | null
+  permanent_brgy_id: string | number | null
+  permanent_citymun_id: string | number | null
+  permanent_province_id: string | number | null
+  permanent_region_id: string | number | null
+  permanent_zip_code: string | null
+}
+
+export type IndividualFamily = {
+  first_name: string | null
+  last_name: string | null
+  middle_name?: string | null
+  ext_name?: string | null
+  occupation: string | null
+  employers_business_name: string | null
+  business_address: string | null
+  telephone_no?: string | null
+  class: string
+  date_of_birth?: string | null
+}
+
+export type IndividualEducBg = {
+  schools_name: string | null
+  education_description: string | null
+  level: 'Elementary' | 'Secondary' | 'College' | 'Vocational' | 'Graduate' | null
+  period_of_attendance_from: string | null
+  period_of_attendance_to: string | null
+  highest_level_units_earned: string | null
+  year_graduated: string | null
+  scholarship_academic_honors_received: string | null
+}
+
+/**Personnel Data Sheet (C2 FORM) (HTTP Responses) */
+export type IndividualEligibility = {
+  eligibility: string | null
+  rating: string | null
+  date_of_examination_conferment: string | null
+  place_of_examination: string | null
+  license_number: string | null
+  license_date_of_validity: string | null
+}
+
+export type IndividualWorkExperience = {
+  is_current_work: boolean
+  inclusive_date_from: string | null
+  inclusive_date_to: string | null
+  position_title: string | null
+  department_agency_office_company: string | null
+  monthly_salary: string | null
+  salary_grade_id: number | null
+  salary_grade: SalaryGradeResponse | null
+  custom_salary_grade: string | null
+  status_of_appointment: string | null
+  is_gov_service: boolean
+}
+
+/**Personnel Data Sheet (C3 FORM) (HTTP Responses) */
+export type IndividualVoluntaryWork = {
+  is_current_org: boolean
+  org_name: string | null
+  org_address: string | null
+  from: string | Date | null
+  to: string | Date | null
+  number_of_hours: string | null
+  position_nature_of_work: string | null
+}
+
+export type IndividualLearningDevelopment = {
+  title: string | null
+  from: string | null
+  to: string | null
+  number_of_hours: string | null
+  type: string | null
+  conducted_sponsor: string | null
+}
+
+export type IndividualSkills = {
+  skill_hobby: string | null
+}
+
+export type IndividualRecognition = {
+  recognition: string | null
+}
+
+export type IndividualMembership = {
+  association_organization: string | null
+}
+
+/**Daily Time Record (HTTP Responses) */
 export type DailyTimeRecordResponse = {
   id: number | null
   date: string
@@ -326,6 +429,13 @@ export type WarmBodyResponse = {
   is_in: boolean // true = IN, false = OUT
 }
 
+export type QrCodeResponse = {
+  id: number
+  employee: PersonnelEmployee | null
+  qr_code_value: string | null
+  last_generated_at: string | null
+  is_active: boolean
+} & ApiResponseData
 /** Leave Application (HTTP Responses) */
 export type LeaveApplicationResponse = {
   id: number | null
