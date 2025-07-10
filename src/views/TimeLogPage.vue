@@ -5,6 +5,7 @@ import { useDailyLogsStore } from '@/stores/daily-logs.store'
 import Dialog from 'primevue/dialog'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { getManilaTodayISO, formatTime } from '@/utils/helpers.ts'
+import { DetectedBarcode } from 'vue-qrcode-reader'
 
 const currentDate = ref('')
 const currentTime = ref('')
@@ -250,7 +251,7 @@ const latestWarmBodyLogs = computed(() => {
         <div class="flex h-[500px] w-full max-w-[500px] items-center justify-center overflow-hidden rounded-lg bg-white shadow">
           <qrcode-stream
             @detect="onDetect"
-            :constraints="{ video: { facingMode: 'environment' } }"
+            :constraints="{ facingMode: 'environment' }"
             @decode="onDecode"
             @init="onInit"
             @camera-error="onCameraError"

@@ -61,6 +61,7 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
   })
 
   const logEmployeeTime = async (rawQrText: string) => {
+    console.log('API called')
     currentScannedEmployee.value = null
     lastLogMessage.value = null
 
@@ -68,11 +69,9 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
       scanned_qr: rawQrText,
     }
 
-    const { data } = await useApiCall<ApiResponseBody<WarmBodyLogEntry>>('employees/log-time', authStore.authenticationToken)
-      .post(payload)
-      .json()
+    const { data } = await useApiCall('employees/log-time', authStore.authenticationToken).post(payload).json()
 
-    const responseBody: ApiResponseBody<WarmBodyLogEntry> = data.value
+    const responseBody: ApiResponseBody = data.value
 
     if (responseBody.success) {
       lastLogMessage.value = responseBody.message || 'Time logged successfully.'
@@ -88,7 +87,7 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
 
       if (warmBodyLog && employeeDetails && employeeItem) {
         currentScannedEmployee.value = {
-          id: warmBodyLog.daily_time_record.employee.id_number || 'N/A',
+          id: warmBodyLog.daily_time_record?.employee?.id_number || 'N/A',
           name: `${employeeDetails.first_name || ''} ${employeeDetails.last_name || ''}`.trim() || 'N/A',
           position: employeeItem.position?.title || 'N/A',
           is_in: warmBodyLog.is_in,
@@ -127,14 +126,11 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
   }
 
   const fetchDailyLogs = async (date: string) => {
-    const { data } = await useApiCall<ApiResponseBody<TimeLogEntry[]>>(
-      `employees/daily-time-records/time-logs?date=${date}`,
-      authStore.authenticationToken
-    )
+    const { data } = await useApiCall(`employees/daily-time-records/time-logs?date=${date}`, authStore.authenticationToken)
       .get()
       .json()
 
-    const responseBody: ApiResponseBody<TimeLogEntry[]> = data.value
+    const responseBody: ApiResponseBody = data.value
 
     if (responseBody.success && Array.isArray(responseBody.data)) {
       const mappedLogs = (responseBody.data as TimeLogEntry[])
@@ -166,14 +162,14 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
   }
 
   const fetchWarmBodySummary = async (date: string) => {
-    const { data } = await useApiCall<ApiResponseBody<WarmBodySummary>>(
+    const { data } = await useApiCall(
       `/employees/daily-time-records/warm-bodies/count?date=${date}`,
       authStore.authenticationToken
     )
       .get()
       .json()
 
-    const responseBody: ApiResponseBody<WarmBodySummary> = data.value
+    const responseBody: ApiResponseBody = data.value
 
     if (responseBody.success) {
       warmBodySummary.value = responseBody.data as WarmBodySummary

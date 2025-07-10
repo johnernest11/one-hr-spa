@@ -1,5 +1,7 @@
 import { CountryCode, isValidPhoneNumber, parsePhoneNumber } from 'libphonenumber-js'
-import { Ref } from 'vue' // Added Ref import for simulateScan if it's used with Ref type
+import { Ref } from 'vue'
+import { WarmBodyResponse } from '@/typings/models.types.ts'
+import { useDateFormat } from '@vueuse/core'
 /**
  * @description Halt code execution for x seconds
  * @example
@@ -351,4 +353,232 @@ export const simulateScan = (manualInput: Ref<string>, onDecode: (value: string)
     onDecode(manualInput.value.trim())
     manualInput.value = ''
   }
+}
+
+/**
+ * @description Returns today’s full date in the format "Monday  23 June, 2025".
+ * @example dateToday() // "Monday  23 June, 2025"
+ */
+export const dateToday = (): string => {
+  const dateObj = new Date()
+
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+  const months = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ]
+
+  const dayOfWeek = days[dateObj.getDay()]
+  const dayOfMonth = dateObj.getDate()
+  const monthName = months[dateObj.getMonth()]
+  const year = dateObj.getFullYear()
+
+  return `${dayOfWeek}  ${dayOfMonth} ${monthName}, ${year}`
+}
+
+/**
+ * @description Constant string of today's date from `dateToday()`.
+ * @example DateToday // "Monday  23 June, 2025"
+ */
+export const DateToday = dateToday()
+
+/**
+ * @description Validator to ensure end date is not before start date.
+ */
+export const isAfterOrEqualFromDate = (getFromDate: () => string | null) => (value: string | null) => {
+  if (!value) return true
+  const fromDate = getFromDate()
+  if (!fromDate) return true
+  return new Date(value) >= new Date(fromDate)
+}
+
+/**
+ * Summarizes leave date ranges by grouping consecutive dates into ranges.
+ * Formats multiple ranges (or single dates) into a compact string.
+ *
+ * @param dates - Array of objects with `start_date` and `end_date`.
+ * @returns A string like "11-14, 10 June 2025".
+ */
+export const summarizeLeaveDates = (dates: { start_date: string; end_date: string }[]): string => {
+  if (!dates.length) return ''
+
+  const pad2 = (n: number) => n.toString().padStart(2, '0')
+
+  // Expand each range into day numbers
+  const days = new Set<number>()
+  dates.forEach(({ start_date, end_date }) => {
+    const s = new Date(start_date)
+    const e = new Date(end_date)
+    for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+      days.add(d.getDate())
+    }
+  })
+
+  // Sorted unique days
+  const sorted = Array.from(days).sort((a, b) => a - b)
+
+  // Group into ranges
+  const groups: [number, number][] = []
+  sorted.forEach((day) => {
+    const last = groups[groups.length - 1]
+    if (last && day === last[1] + 1) {
+      last[1] = day
+    } else {
+      groups.push([day, day])
+    }
+  })
+
+  const dayStrings = groups.map(([start, end]) => (start === end ? pad2(start) : `${pad2(start)}–${pad2(end)}`))
+
+  // Month & year from first date
+  const first = new Date(dates[0].start_date)
+  const monthYear = first.toLocaleDateString(undefined, {
+    month: 'long',
+    year: 'numeric',
+  })
+
+  return `${dayStrings.join(', ')} ${monthYear}`
+}
+
+export const formatDTRTime = (dateString: string | undefined): string => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  return date.toLocaleString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  })
+}
+
+export const formatTimeTo12Hour = (timeString: string | undefined): string => {
+  if (!timeString) return '—'
+
+  const [hourStr, minuteStr] = timeString.split(':')
+  let hour = parseInt(hourStr)
+  const minute = minuteStr.padStart(2, '0')
+
+  const period = hour >= 12 ? 'PM' : 'AM'
+  hour = hour % 12 || 12
+
+  return `${hour}:${minute} ${period}`
+}
+
+/** Helper to get formatted date like "1-Feb" */
+export const getFormattedDTRDate = (dateString: string): string => {
+  if (!dateString) return ''
+
+  const date = new Date(dateString)
+  // Format with short month and numeric day
+  const formatted = new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'short',
+  }).format(date)
+  // Intl yields "5 Jun" → convert to "5-Jun"
+  return formatted.replace(' ', '-')
+}
+
+// Helper to get the day of the week like "Sat"
+export const getDTRDayOfWeek = (dateString: string): string => {
+  if (!dateString) return ''
+
+  const date = new Date(dateString)
+  const options: Intl.DateTimeFormatOptions = {
+    weekday: 'short',
+  }
+
+  return date.toLocaleDateString('en-US', options)
+}
+
+export const resolveDTRSlots = (entries: WarmBodyResponse[] = []) => {
+  const inLogs = entries.filter((e) => e.is_in).sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+  const outLogs = entries
+    .filter((e) => !e.is_in)
+    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+
+  const slots = {
+    in1: '',
+    out1: '',
+    in2: '',
+    out2: '',
+  }
+
+  // Helper function to check if a timestamp falls within a specific time window
+  const isBetween = (timestamp: string | number | Date, startHour: number, endHour: number) => {
+    const date = new Date(timestamp)
+    const hours = date.getHours()
+    return hours >= startHour && hours < endHour
+  }
+
+  // 1. Assign in1: between 6:00 - 9:00
+  const in1Candidate = inLogs.find((e) => isBetween(e.timestamp, 6, 9))
+  if (in1Candidate) slots.in1 = in1Candidate.timestamp
+
+  // 2. Assign out1: between 12:00 - 13:00
+  const out1Candidate = outLogs.find((e) => isBetween(e.timestamp, 12, 13))
+  if (out1Candidate) slots.out1 = out1Candidate.timestamp
+
+  // 3. Assign in2: between 12:00 - 14:00, but not within 15 mins after out1
+  if (slots.out1) {
+    const out1Time = new Date(slots.out1).getTime()
+    const in2Candidates = inLogs.filter((e) => {
+      const time = new Date(e.timestamp).getTime()
+      return (
+        isBetween(e.timestamp, 12, 14) && time >= out1Time + 15 * 60 * 1000 // at least 15 mins after out1
+      )
+    })
+    if (in2Candidates.length) {
+      // pick the earliest valid in2
+      slots.in2 = in2Candidates[0].timestamp
+    }
+  } else {
+    // fallback: pick earliest in between 12-14 if out1 not found
+    const in2Candidate = inLogs.find((e) => isBetween(e.timestamp, 12, 14))
+    if (in2Candidate) slots.in2 = in2Candidate.timestamp
+  }
+
+  // 4. Assign out2: from 14:00 onwards
+  const out2Candidate = outLogs.find((e) => {
+    const date = new Date(e.timestamp)
+    return date.getHours() >= 14
+  })
+  if (out2Candidate) slots.out2 = out2Candidate.timestamp
+
+  return slots
+}
+
+export const formatDateSafe = (input: unknown): string => {
+  const date = new Date(input as string | number | Date)
+
+  // Invalid date check
+  if (isNaN(date.getTime())) return ''
+
+  // Today cutoff
+  const today = new Date()
+  if (date > today) return ''
+
+  return useDateFormat(date, 'YYYY-MM-DD').value
+}
+
+// Helper to safely extract year from a value
+export const formatYear = (val: unknown): string => {
+  const date = new Date(val as string | number | Date)
+  return isNaN(date.getTime()) ? '' : date.getFullYear().toString()
+}
+
+export const formatDateFields = <T extends Record<string, unknown>>(entries: T[], fields: (keyof T)[]) => {
+  entries.forEach((entry) => {
+    fields.forEach((field) => {
+      entry[field] = formatDateSafe(entry[field]) as T[keyof T]
+    })
+  })
 }

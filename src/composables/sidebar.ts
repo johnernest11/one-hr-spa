@@ -47,6 +47,9 @@ export const useSidebarNavLinks = () => {
           case 'dashboard':
             navLink.icon = 'pi pi-home'
             break
+          case 'time-logs':
+            navLink.icon = 'pi pi-hourglass'
+            break
           case 'requests':
             navLink.icon = 'pi pi-bookmark'
             break
