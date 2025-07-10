@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth.store.ts'
 import { useApiCall } from '@/composables/network'
 import { ApiResponseBody } from '@/typings/http-resources.types.ts'
-import { DailyTimeRecordResponse, ViewTimeLogsResponse } from '@/typings/models.types'
+import { CountWarmBodiesResponse, DailyTimeRecordResponse, ViewTimeLogsResponse } from '@/typings/models.types'
 import { dailyTimeRecordsmockData } from '@/utils/mock-data'
 
 export type DailyTimeRecordPayload = {
@@ -24,10 +24,16 @@ export type DailyTimeRecordPayload = {
   }[]
 }
 
+export type ViewWarmBodiesPayload = {
+  division: number | null
+  section: number | null
+}
+
 export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => {
   const auth = useAuthStore()
   const dailyTimeRecords = ref<DailyTimeRecordResponse[]>([])
   const viewTimeLogs = ref<ViewTimeLogsResponse[]>([])
+  const countTimeLogs = ref<CountWarmBodiesResponse[]>([])
   const selectedDailyTimeRecords = ref<DailyTimeRecordResponse | null>(null)
 
   const fetchDailyTimeRecords = async (limit = 10, page = 1, status?: string | string[]) => {
@@ -125,8 +131,15 @@ export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => 
     }
   }
 
-  const fetchTimeLogsForToday = async (limit = 5, page = 1) => {
-    const uri = `/employees/view-warm-bodies-today?limit=${limit}&page=${page}`
+  const fetchTimeLogsForToday = async (
+    limit: number = 5,
+    page: number = 1,
+    division: number | null = null,
+    section: number | null = null
+  ) => {
+    let uri = `/employees/daily-time-records/warm-bodies/today?limit=${limit}&page=${page}&`
+    if (division) uri += `division=${division}&`
+    if (section) uri += `section=${section}`
 
     const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
     const responseBody: ApiResponseBody = data.value
@@ -139,8 +152,20 @@ export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => 
     return responseBody
   }
 
+  const fetchCountWarmBodies = async () => {
+    const uri = '/employees/daily-time-records/warm-bodies/count'
+    const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
+    const responseBody: ApiResponseBody = data.value
+    if (responseBody.success) {
+      countTimeLogs.value = []
+      countTimeLogs.value.unshift(responseBody.data as CountWarmBodiesResponse)
+      console.log(countTimeLogs.value)
+    }
+    return responseBody
+  }
+
   const searchTimeLogs = async (query: string, is_my_profile: boolean, date: string | null, limit: number = 5) => {
-    let uri = `/employees/search-time-logs?limit=${limit}&`
+    let uri = `/employees/daily-time-records/time-logs/search?limit=${limit}&`
     if (query && is_my_profile) uri += `query=${query}&is_my_profile=${+is_my_profile}&`
     if (date) uri += `date=${date}`
     const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
@@ -163,6 +188,8 @@ export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => 
     generateDailyTimeRecords,
     viewTimeLogs,
     fetchTimeLogsForToday,
+    countTimeLogs,
+    fetchCountWarmBodies,
     searchTimeLogs,
   }
 })

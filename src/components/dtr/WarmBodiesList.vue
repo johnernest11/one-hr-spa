@@ -9,7 +9,7 @@ import Paginator, { PageState } from 'primevue/paginator'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { useDailyTimeRecordsStore } from '@/stores/daily-time-record.store'
 import { ApiResponsePagination } from '@/typings/http-resources.types.ts'
-import { formatTimeTo12Hour, DateToday } from '@/utils/helpers.ts'
+import { DateToday } from '@/utils/helpers.ts'
 import { useToast } from 'primevue/usetoast'
 const warmBodiesStore = useDailyTimeRecordsStore()
 const warmBodiesIsLoading = ref(false)
@@ -169,18 +169,6 @@ const handleSearchTimeLogs = async () => {
                     <p class="uppercase text-surface-600">
                       {{ props.data.section_name }}
                     </p>
-                  </template>
-                </Column>
-                <Column
-                  field="timein"
-                  header="Time Logs"
-                  headerClass="w-80 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
-                >
-                  <template #body="props">
-                    <div class="flex items-center gap-x-2 text-surface-600">
-                      <span class="whitespace-nowrap">{{ props.data.is_in ? 'Time-in:' : 'Time-out:' }}</span>
-                      <span class="font-medium">{{ formatTimeTo12Hour(props.data.scanned_time) }}</span>
-                    </div>
                   </template>
                 </Column>
               </DataTable>
