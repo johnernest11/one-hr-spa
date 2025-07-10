@@ -95,6 +95,12 @@ const formRules = computed(() => ({
       ),
       maxLength: globalStringMaxLengthRule,
     },
+    rating: {
+      mustBeNumber: helpers.withMessage('Rating must be a number', (val: unknown) => {
+        if (val === null || val === '') return true // allow empty
+        return !isNaN(Number(val))
+      }),
+    },
   })),
   individual_work_experience: payload.individual_work_experience.map(() => ({
     inclusive_date_from: {
@@ -406,6 +412,9 @@ defineExpose({
                             label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                            :invalid="validator.individual_eligibility[eligibilityIndex - 1].rating.$error"
+                            :invalidText="validator.individual_eligibility[eligibilityIndex - 1].rating.$errors[0]?.$message"
+                            @blur="validator.individual_eligibility[eligibilityIndex - 1].rating.$touch()"
                           />
                         </div>
 

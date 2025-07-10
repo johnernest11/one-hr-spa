@@ -66,7 +66,7 @@ const handleSubmit = async () => {
         <!-- Button aligned right -->
         <div class="ml-auto">
           <Button
-            label="Save C1 ,C2 & C3 Info"
+            label="Save PDS"
             @click.prevent="handleSubmit"
             :loading="isC1Loading"
             type="button"

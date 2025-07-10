@@ -89,6 +89,10 @@ const formRules = computed(() => ({
     },
     number_of_hours: {
       required: helpers.withMessage('Number of hours is required.', required),
+      mustBeInteger: helpers.withMessage('Number of hours must be a whole number.', (val: unknown) => {
+        if (val === null || val === '') return true // allow empty (if not required)
+        return Number.isInteger(Number(val))
+      }),
     },
     type: {
       required: helpers.withMessage('Type is required.', required),
@@ -559,9 +563,11 @@ defineExpose({
                             label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                            :invalidText="validator.individual_lnd[learningDevelopmentIndex - 1].type.$errors[0]?.$message"
-                            :invalid="validator.individual_lnd[learningDevelopmentIndex - 1].type.$error"
-                            @blur="validator.individual_lnd[learningDevelopmentIndex - 1].type.$touch()"
+                            :invalidText="
+                              validator.individual_lnd[learningDevelopmentIndex - 1].number_of_hours.$errors[0]?.$message
+                            "
+                            :invalid="validator.individual_lnd[learningDevelopmentIndex - 1].number_of_hours.$error"
+                            @blur="validator.individual_lnd[learningDevelopmentIndex - 1].number_of_hours.$touch()"
                             required
                           />
                         </div>
