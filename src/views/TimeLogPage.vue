@@ -21,23 +21,20 @@ let isProcessingScan = false
 let scanTimeoutId: ReturnType<typeof setTimeout> | null = null
 const SCAN_COOLDOWN_MS = 3000
 
-/**
- * Updates the daily logs state by fetching data from the store.
- * The store's fetchDailyLogs action is responsible for updating its internal dailyLogs ref.
- * @param date The date for which to fetch logs.
- */
-async function updateDailyLogsState(date: string) {
+const updateDailyLogsState = async (date: string) => {
   await dailyLogsStore.fetchDailyLogs(date)
 }
 
-function updateDateTime() {
+const updateDateTime = () => {
   const now = new Date()
+
   const optionsDate = {
     timeZone: 'Asia/Manila',
     weekday: 'long',
     month: 'long',
     day: 'numeric',
   } as const
+
   const optionsTime = {
     timeZone: 'Asia/Manila',
     hour: 'numeric',
