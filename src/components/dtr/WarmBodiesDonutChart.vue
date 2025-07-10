@@ -9,7 +9,7 @@ type DonutChartPayload = {
   darkMode: boolean
 }
 
-interface DonutFormatterOptions {
+export interface DonutFormatterOptions {
   w: {
     config: {
       series: number[]

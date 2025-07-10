@@ -12,6 +12,7 @@ import WbAutoComplete from '@/components/webkit/WbAutoComplete.vue'
 import { WbAutoCompleteOption, WbAutoCompleteOptionTrueValue } from '@/components/webkit/WbAutoComplete.vue'
 import { useWbAutoCompleteHandleTrueValue } from '@/composables/wb-ui-components.ts'
 import WarmBodiesDonutChart from '@/components/dtr/WarmBodiesDonutChart.vue'
+import { DonutFormatterOptions } from '@/components/dtr/WarmBodiesDonutChart.vue'
 import WarmBodiesBarGraph from '@/components/dtr/WarmBodiesBarGraph.vue'
 import { useThemeConfig } from '@/composables/theme.ts'
 import { useDailyTimeRecordsStore, ViewWarmBodiesPayload } from '@/stores/daily-time-record.store'
@@ -99,6 +100,7 @@ const isMyProfile = ref(true)
 const handleSearchTimeLogs = async () => {
   warmBodiesIsLoading.value = true
   searchSubmitted.value = true
+  isSearching.value = true
 
   if (!searchQuery.value) {
     const response = await warmBodiesStore.fetchTimeLogsForToday()
@@ -112,10 +114,9 @@ const handleSearchTimeLogs = async () => {
   const response = await warmBodiesStore.searchTimeLogs(searchQuery.value, isMyProfile.value, null)
   if (response.success && response.pagination) {
     pagination.value = response.pagination
-
-    searchQuery.value = null
   }
   warmBodiesIsLoading.value = false
+  isSearching.value = false
 }
 
 /* -------------------------------------------------------------------------- */
@@ -185,15 +186,6 @@ const barSeries = computed(() => [
   },
 ])
 
-interface DonutFormatterOptions {
-  w: {
-    config: {
-      series: number[]
-    }
-  }
-  seriesIndex: number
-}
-
 const donutValueFormatter = (_: number, opts: DonutFormatterOptions) => {
   return String(opts.w.config.series[opts.seriesIndex])
 }
@@ -213,12 +205,19 @@ watch(
 /* -------------------------------------------------------------------------- */
 /*                              Handling Filters                              */
 /* -------------------------------------------------------------------------- */
-const selectedDivision = ref<WbAutoCompleteOption[] | null>(null)
-const selectedSectionUnit = ref<WbAutoCompleteOption[] | null>(null)
+const selectedDivision = ref<WbAutoCompleteOption | null>(null)
+const selectedSectionUnit = ref<WbAutoCompleteOption | null>(null)
+
+const selectedDivisionLabel = ref<string | null>(null)
+const selectedSectionLabel = ref<string | null>(null)
 
 const handleFilterWarmBodies = async () => {
   warmBodiesIsLoading.value = true
   searchSubmitted.value = true
+
+  selectedDivisionLabel.value = selectedDivision.value?.label ?? null
+  selectedSectionLabel.value = selectedSectionUnit.value?.label ?? null
+
   if (!selectedDivision.value && !selectedSectionUnit.value) {
     const response = await warmBodiesStore.fetchTimeLogsForToday()
     if (response.success && response.pagination) {
@@ -239,7 +238,7 @@ const handleFilterWarmBodies = async () => {
 </script>
 <template>
   <div class="flex h-full w-full flex-col">
-    <template v-if="!warmBodiesIsLoading">
+    <template v-if="!warmBodiesIsLoading || isSearching">
       <div class="h-full w-full rounded-md bg-surface-0 p-6">
         <div class="flex flex-col font-medium text-primary-700 dark:text-primary-100 md:ml-4 md:mt-2">
           <h1 class="mb-1 text-xl text-surface-700 dark:text-primary-100 md:text-xl lg:text-4xl">Daily Time-in/Time-out</h1>
@@ -254,7 +253,7 @@ const handleFilterWarmBodies = async () => {
         >
           <div class="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2">
             <div class="flex h-[40vh] max-h-[450px] min-h-[300px] w-full flex-col rounded-lg bg-white">
-              <div class="flex flex-grow flex-col items-center justify-center gap-6 shadow-md md:flex-row md:gap-10">
+              <div class="flex flex-grow flex-col items-center justify-center gap-6 rounded-lg shadow-md md:flex-row md:gap-10">
                 <WarmBodiesDonutChart
                   :dark-mode="chartsInDarkMode"
                   :series="filteredDonutSeries"
@@ -279,31 +278,45 @@ const handleFilterWarmBodies = async () => {
               </div>
             </div>
           </div>
-        </div>
 
-        <div
-          v-if="!warmBodiesIsLoading && (searchSubmitted || flatViewTimeLogs.length > 0)"
-          class="mt-8 flex w-full items-center md:w-1/2"
-        >
-          <InputGroup v-model="searchQuery" class="w-full">
-            <InputText
-              v-model="searchQuery"
-              placeholder="Search Name"
-              :disabled="warmBodiesIsLoading"
-              @keyup.enter="handleSearchTimeLogs"
-            />
-            <Button icon="pi pi-search" @click="handleSearchTimeLogs" />
-          </InputGroup>
-          <button
-            @click="showModal = true"
-            class="ml-2 rounded-md bg-white px-2 text-2xl text-blue-500 transition-colors duration-200 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400"
-          >
-            <font-awesome-icon :icon="['fas', 'filter']" />
-          </button>
+          <div v-if="searchSubmitted || flatViewTimeLogs.length > 0" class="flex flex-row items-center">
+            <div class="mt-8 flex w-full items-center md:w-1/2">
+              <InputGroup v-model="searchQuery" class="w-full">
+                <InputText
+                  v-model="searchQuery"
+                  placeholder="Search Name"
+                  :disabled="warmBodiesIsLoading"
+                  @keyup.enter="handleSearchTimeLogs"
+                />
+                <Button icon="pi pi-search" @click="handleSearchTimeLogs" />
+              </InputGroup>
+              <button
+                @click="showModal = true"
+                class="ml-2 rounded-md bg-white px-2 text-2xl text-primary-500 transition-colors duration-200 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400"
+              >
+                <font-awesome-icon :icon="['fas', 'filter']" />
+              </button>
+            </div>
+
+            <div class="text-m mb-2 ml-4 mt-8 w-1/2 text-surface-500">
+              <div v-if="selectedDivisionLabel">
+                Filtered by Division:
+                <span class="font-semibold text-primary-600">{{ selectedDivisionLabel }}</span>
+              </div>
+              <div v-if="selectedSectionLabel">
+                Filtered by Section:
+                <span class="font-semibold text-primary-600">{{ selectedSectionLabel }}</span>
+              </div>
+              <span v-if="!selectedDivisionLabel && !selectedSectionLabel">Showing all data</span>
+            </div>
+          </div>
         </div>
         <div class="flex flex-col">
           <div class="w-full">
-            <div v-if="warmBodiesStore.viewTimeLogs && flatViewTimeLogs.length > 0" class="mx-auto flex h-full w-full flex-col">
+            <div
+              v-if="(warmBodiesStore.viewTimeLogs && flatViewTimeLogs.length > 0) || isSearching"
+              class="mx-auto flex h-full w-full flex-col"
+            >
               <DataTable :value="flatViewTimeLogs" class="mt-6" dataKey="time_log_id" :loading="warmBodiesIsLoading">
                 <Column field="employee" headerClass="w-80 bg-surface-100 border-surface-300 opacity-70 font-bold py-2">
                   <template #header>
@@ -425,7 +438,7 @@ const handleFilterWarmBodies = async () => {
             </div>
           </template>
           <!-- Scrollable Content (space reserved for footer height) -->
-          <div class="flex-1 overflow-auto px-4 pb-24">
+          <div class="flex-1 px-4 pb-24">
             <h2 class="mb-2 mt-4 text-lg font-semibold text-surface-500 dark:text-primary-100">Filters</h2>
             <div class="mb-4">
               <WbAutoComplete
@@ -446,7 +459,7 @@ const handleFilterWarmBodies = async () => {
                     useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'division'))
                   }
                 "
-                label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                label-class="mt-4 text-md text-surface-600 dark:lg:text-surface-200"
                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
               >
@@ -468,8 +481,8 @@ const handleFilterWarmBodies = async () => {
                   (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
                     useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'section'))
                 "
-                label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                label-class="mt-4 text-md text-surface-600 dark:lg:text-surface-200"
+                class="lg:text-md lg:placeholder:text-md relative w-full max-w-[600px] text-sm placeholder:text-sm"
                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
               >
               </WbAutoComplete>
@@ -507,7 +520,7 @@ const handleFilterWarmBodies = async () => {
         </Dialog>
       </div>
     </template>
-    <template v-else>
+    <template v-else-if="warmBodiesIsLoading && !isSearching">
       <div class="bg-surface-2 h-full w-full animate-pulse rounded-md p-6">
         <!-- --------------------------- Title and Subtitle Skeleton --------------------------- -->
         <div class="flex flex-col md:ml-4 md:mt-2">
@@ -527,16 +540,16 @@ const handleFilterWarmBodies = async () => {
         </div>
 
         <!-- ----------------------------- Search Bar Skeleton ---------------------------- -->
-        <div class="mt-8 w-1/2">
+        <div class="mt-6 w-1/2">
           <div class="flex w-full items-center gap-4">
-            <div class="h-10 flex-grow rounded bg-surface-300"></div>
-            <div class="h-10 w-12 rounded bg-surface-300"></div>
-            <div class="h-10 w-12 rounded bg-surface-300"></div>
+            <div class="h-8 flex-grow rounded bg-surface-300"></div>
+            <div class="h-8 w-12 rounded bg-surface-300"></div>
+            <div class="h-8 w-12 rounded bg-surface-300"></div>
           </div>
         </div>
 
         <!-- ----------------------------- Table Skeleton ---------------------------- -->
-        <table class="w-full">
+        <table class="mt-4 w-full">
           <thead class="bg-surface-0">
             <tr class="border-[1px] border-surface-300">
               <td v-for="(width, index) in columnWidths" :key="'header-' + index">

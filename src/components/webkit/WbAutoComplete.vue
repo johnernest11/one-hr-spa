@@ -8,7 +8,7 @@ import { useDebounceFn } from '@vueuse/core'
 import { useAuthStore } from '@/stores/auth.store.ts'
 import { useApiCall } from '@/composables/network.ts'
 import { createUrlWithParams, getObjectValueUsingPath } from '@/utils/helpers.ts'
-import { ref } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { storeToRefs } from 'pinia'
 
 const auth = storeToRefs(useAuthStore())
@@ -73,6 +73,37 @@ const props = withDefaults(defineProps<WbAutoCompleteProps>(), {
   validationErrorMessageClass: '',
   validationSuccessMessageClass: '',
 })
+
+interface PrimeVueAutoCompleteInstance extends InstanceType<typeof AutoComplete> {
+  $el: HTMLElement
+}
+
+/** Refs for managing input width */
+const autoCompleteRef = ref<PrimeVueAutoCompleteInstance | null>(null)
+const dropdownCalculatedWidth = ref('auto')
+
+const updateDropdownWidth = () => {
+  // Get width of the wrapper element of the AutoComplete as basis for the size of the dropdown.
+  if (autoCompleteRef.value && autoCompleteRef.value.$el) {
+    const inputWrapperElement = autoCompleteRef.value.$el
+    dropdownCalculatedWidth.value = `${inputWrapperElement.offsetWidth}px`
+  }
+}
+
+// Set width on mount
+onMounted(() => {
+  nextTick(() => {
+    updateDropdownWidth()
+  })
+})
+
+// Recalculate width when the dropdown is shown (to handle dynamic changes like dialog resizing)
+// This is important because the dialog might affect the input's rendered width.
+const onShowHandler = () => {
+  nextTick(() => {
+    updateDropdownWidth()
+  })
+}
 
 /** Search functionality */
 const filteredSuggestions = ref<WbAutoCompleteOption[]>()
@@ -172,6 +203,7 @@ const handleItemClear = (): void => {
       </div>
       <!-- End Prepend Icon -->
       <AutoComplete
+        ref="autoCompleteRef"
         v-bind="$attrs"
         :aria-describedby="`${$.uid.toString()}-help`"
         :class="`h-12 w-full transition-all duration-300 ease-in-out ${$attrs.class}`"
@@ -184,7 +216,16 @@ const handleItemClear = (): void => {
         :fluid="true"
         @item-select="(event: AutoCompleteItemSelectEvent) => handleItemSelect(event)"
         @clear="handleItemClear"
-      />
+        :panelStyle="{ width: dropdownCalculatedWidth, 'box-sizing': 'border-box' }"
+        :panelClass="['autocomplete-panel-wrap-text']"
+        @show="onShowHandler"
+      >
+        <template #item="slotProps">
+          <div class="p-autocomplete-item-text-wrapper">
+            {{ slotProps.item.label }}
+          </div>
+        </template>
+      </AutoComplete>
     </div>
     <!-- End AutoComplete -->
     <!-- Start Validation Messages -->
@@ -205,3 +246,57 @@ const handleItemClear = (): void => {
     <!-- End Validation Messages -->
   </div>
 </template>
+
+<style>
+/* Ensure the panel itself allows content to flow */
+.autocomplete-panel-wrap-text.p-autocomplete-panel {
+  /* Set a defined max-width if you want to ensure it doesn't go wider than the input.
+     The dropdownCalculatedWidth should ideally handle this, but for long text,
+     sometimes a max-width on the panel can help it respect bounds. */
+  max-width: v-bind(dropdownCalculatedWidth);
+  /* Use v-bind for reactivity from script setup */
+  width: v-bind(dropdownCalculatedWidth) !important;
+  /* Ensure the width is strictly applied */
+  box-sizing: border-box !important;
+  /* Critical for width calculation */
+  overflow: hidden;
+  /* Hide horizontal overflow on the panel if content still pushes it */
+}
+
+/* Target the list items within the panel */
+.autocomplete-panel-wrap-text.p-autocomplete-panel .p-autocomplete-items .p-autocomplete-item {
+  display: block !important;
+  /* Ensure it behaves like a block element, taking full width */
+  padding: 0.5rem 1rem !important;
+  /* Adjust padding as needed for visual spacing */
+  white-space: normal !important;
+  /* Allow text to wrap within the item */
+  /* Remove other text overflow properties if they are present elsewhere */
+  text-overflow: unset !important;
+  overflow: visible !important;
+  /* Ensure the item itself doesn't hide its children's overflow */
+}
+
+/* Target your custom text wrapper within each list item (MOST IMPORTANT for wrapping) */
+.p-autocomplete-item-text-wrapper {
+  /* Apply word wrapping properties with !important */
+  white-space: normal !important;
+  word-break: break-word !important;
+  /* Breaks words if they are too long for the container */
+  overflow-wrap: break-word !important;
+  /* Modern alias for word-break, for compatibility */
+
+  /* Ensure no fixed width or flex shrinking prevents wrapping */
+  width: 100% !important;
+  /* Take full width of its parent (.p-autocomplete-item) */
+  min-width: 0 !important;
+  /* Prevent content from forcing min-width */
+  flex-shrink: 1 !important;
+  /* If parent is flex, allow it to shrink */
+
+  /* Remove text-overflow ellipsis if present */
+  text-overflow: unset !important;
+  overflow: visible !important;
+  /* Ensure content is not hidden */
+}
+</style>
