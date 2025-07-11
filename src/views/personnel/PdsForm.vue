@@ -24,6 +24,7 @@ const isC1Loading = ref(false)
 const c1FormRef = ref()
 const c2FormRef = ref()
 const c3FormRef = ref()
+const c4FormRef = ref()
 onBeforeMount(async () => {
   await profileStore.fetchProfile()
 
@@ -46,6 +47,9 @@ const handleSubmit = async () => {
 
     const resultC3 = await c3FormRef.value?.handleSaveC3Form?.()
     if (resultC3?.valid === false) return
+
+    const resultC4 = await c4FormRef.value?.handleSaveC4Form?.()
+    if (resultC4?.valid === false) return
   } finally {
     isSubmitting.value = false
   }
@@ -193,7 +197,7 @@ const handleSubmit = async () => {
                   leaveFrom="opacity-100"
                   leaveTo="opacity-0"
                 >
-                  <C4Form ref="c3FormRef" :activeSubTab="0" />
+                  <C4Form ref="c4FormRef" :activeSubTab="0" />
                 </TransitionRoot>
               </TabPanel>
             </TabPanels>

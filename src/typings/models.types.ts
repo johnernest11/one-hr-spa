@@ -369,6 +369,46 @@ export type IndividualMembership = {
   association_organization: string | null
 }
 
+/**Personnel Data Sheet (C4 FORM) (HTTP Responses) */
+export type IndividualQuestion = {
+  q34_a: boolean
+  q34_b: boolean
+  q34_details: string | null
+  q35_a: boolean
+  q35_a_details: string | null
+  q35_b: boolean
+  q35_b_date_filed: string | null
+  q35_b_status: string | null
+  q36: boolean
+  q36_details: string | null
+  q37: boolean
+  q37_details: string | null
+  q38_a: boolean
+  q38_a_details: string | null
+  q38_b: boolean
+  q38_b_details: string | null
+  q39: boolean
+  country_id: number | null
+  q40_a_indigenous_group: boolean
+  q40_a_details: string | null
+  q40_b_pwd: boolean
+  q40_b_details: string | null
+  q40_c_solo_parent: boolean
+  q40_c_details: string | null
+}
+
+export type IndividualReference = {
+  name: string | null
+  address: string | null
+  tel_no: string | null
+}
+
+export type IndividualGovernmentIssue = {
+  gov_id_name: string | null
+  gov_id_no: string | null
+  gov_id_issuance: string | null
+}
+
 /**Daily Time Record (HTTP Responses) */
 export type DailyTimeRecordResponse = {
   id: number | null

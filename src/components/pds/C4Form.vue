@@ -1,23 +1,30 @@
 <script setup lang="ts">
-import { reactive, ref, computed, watch } from 'vue'
+import { reactive, ref, computed, watch, toRef } from 'vue'
 import { usePdsStore, PersonalDataSheetPayload } from '@/stores/pds.store.ts'
+import { useLibrariesStore } from '@/stores/libraries.store.ts'
 import { useRouter } from 'vue-router'
+import { IndividualQuestion } from '@/typings/models.types.ts'
 
 import useVuelidate from '@vuelidate/core'
 import WbInputText from '@/components/webkit/WbInputText.vue'
 import WbCalendar from '@/components/webkit/WbCalendar.vue'
+import WbAutoComplete from '@/components/webkit/WbAutoComplete.vue'
 import Button from 'primevue/button'
-import Checkbox from 'primevue/checkbox'
+import RadioButton from 'primevue/radiobutton'
+import { WbAutoCompleteOption, WbAutoCompleteOptionTrueValue } from '@/components/webkit/WbAutoComplete.vue'
+import { useWbAutoCompleteHandleTrueValue } from '@/composables/wb-ui-components.ts'
 
 import { useToast } from 'primevue/usetoast'
 import { parseApiResponseError } from '@/utils/error-handle.ts'
-import { helpers, maxLength, required } from '@vuelidate/validators'
+import { helpers, required } from '@vuelidate/validators'
 import { TabGroup, TabList, Tab, TabPanels, TabPanel } from '@headlessui/vue'
-import { isAfterOrEqualFromDate, usePrependOrAppendOnce } from '@/utils/helpers.js'
+import { mobilePhoneRule } from '@/utils/custom-validations'
+import { usePrependOrAppendOnce } from '@/utils/helpers.js'
 import { TransitionRoot } from '@headlessui/vue'
 
 const getId = usePrependOrAppendOnce('pds-c3-section-form')
 const pdsStore = usePdsStore()
+const libraryStore = useLibrariesStore()
 const toast = useToast()
 const router = useRouter()
 
@@ -25,11 +32,11 @@ const maxToasts = 5
 const pdsErrors = ref()
 const errorMessage = ref()
 
-const isC3Loading = ref(false)
+const isC4Loading = ref(false)
 const isPdsError = ref(false)
 const currentlyInvolved = ref(false)
 const activeToasts = ref<number>(0)
-
+const selectedCountry = ref<WbAutoCompleteOption[] | null>(null)
 const c1Tabs = ref([
   { name: ' Other Information Continued', index: 0 },
   { name: ' References & Gov` Issued ID', index: 1 },
@@ -47,85 +54,74 @@ const payload = reactive<PersonalDataSheetPayload>({
   ...pdsStore.pdsInfo,
 })
 
-const globalStringMaxLength = import.meta.env.VITE_GLOBAL_STRING_MAX_LENGTH
-const globalStringMaxLengthRule = helpers.withMessage(
-  `Must not exceed ${globalStringMaxLength} characters`,
-  maxLength(globalStringMaxLength)
-)
+const conditionalRequiredIfTrue = (fields: keyof IndividualQuestion | (keyof IndividualQuestion)[]) =>
+  helpers.withMessage('Please provide details if you answered YES.', (val: unknown, vm: IndividualQuestion) => {
+    const fieldList = Array.isArray(fields) ? fields : [fields]
+    return fieldList.some((field) => vm[field] === true) ? helpers.req(val) : true
+  })
 
 const formRules = computed(() => ({
-  individual_lnd: payload.individual_lnd.map(() => ({
-    title: {
-      required: helpers.withMessage('Title is required.', required),
-      maxLength: globalStringMaxLengthRule,
+  individual_question: {
+    q34_details: {
+      required: conditionalRequiredIfTrue(['q34_a', 'q34_b']),
     },
-    from: {
-      required: helpers.withMessage('Start date is required.', required),
-      isAfterOrEqualTo: helpers.withMessage(
-        'Inclusive "From" date must not be after "To" date.',
-        (
-          val: string | number | Date | null,
-          vm: {
-            to: string | number | Date | null
-          }
-        ) => {
-          if (!helpers.req(vm.to)) return true
-
-          const from = val ? new Date(val) : null
-          const to = vm.to ? new Date(vm.to) : null
-
-          if (!from || !to || isNaN(from.getTime()) || isNaN(to.getTime())) return true
-
-          return from <= to
-        }
-      ),
+    q35_a_details: {
+      required: conditionalRequiredIfTrue('q35_a'),
     },
-    to: {
-      required: helpers.withMessage('Inclusive "To" date is required', (val, vm) => {
-        return vm.is_current_work === true ? true : helpers.req(val)
-      }),
-      isAfterOrEqualFromDate,
+    q35_b_date_filed: {
+      required: conditionalRequiredIfTrue('q35_b'),
     },
-    number_of_hours: {
-      required: helpers.withMessage('Number of hours is required.', required),
+    q35_b_status: {
+      required: conditionalRequiredIfTrue('q35_b'),
     },
-    type: {
-      required: helpers.withMessage('Type is required.', required),
+    q36_details: {
+      required: conditionalRequiredIfTrue('q36'),
     },
-    conducted_sponsor: {
-      required: helpers.withMessage('Conducted Sponsor is required.', required),
+    q37_details: {
+      required: conditionalRequiredIfTrue('q37'),
     },
-  })),
-  individual_voluntary_work: payload.individual_voluntary_work.map(() => ({
-    from: {
-      required: helpers.withMessage('Start date is required.', required),
-      isAfterOrEqualTo: helpers.withMessage(
-        'Inclusive "From" date must not be after "To" date.',
-        (
-          val: string | number | Date | null,
-          vm: {
-            to: string | number | Date | null
-            is_current_org: boolean
-          }
-        ) => {
-          if (vm.is_current_org || !helpers.req(vm.to)) return true
-
-          const from = val ? new Date(val) : null
-          const to = vm.to ? new Date(vm.to) : null
-
-          if (!from || !to || isNaN(from.getTime()) || isNaN(to.getTime())) return true
-
-          return from <= to
-        }
-      ),
+    q38_a_details: {
+      required: conditionalRequiredIfTrue('q38_a'),
     },
-    to: {
-      required: helpers.withMessage('Inclusive "To" date is required', (val, vm) => {
-        return vm.is_current_work === true ? true : helpers.req(val)
-      }),
-      isAfterOrEqualFromDate,
+    q38_b_details: {
+      required: conditionalRequiredIfTrue('q38_b'),
+    },
+    country_id: {
+      required: conditionalRequiredIfTrue('q39'),
+    },
+    q40_a_details: {
+      required: conditionalRequiredIfTrue('q40_a_indigenous_group'),
+    },
+    q40_b_details: {
+      required: conditionalRequiredIfTrue('q40_b_pwd'),
+    },
+    q40_c_details: {
+      required: conditionalRequiredIfTrue('q40_c_solo_parent'),
+    },
+  },
+  individual_reference: payload.individual_reference.map(() => ({
+    name: {
+      required: helpers.withMessage('Name is required.', required),
+    },
+    address: {
+      required: helpers.withMessage('Address is required.', required),
+    },
+    tel_no: {
+      required: helpers.withMessage('Tel No. Sponsor is required.', required),
+      tel_no: helpers.withMessage('Must be a valid PH mobile number', mobilePhoneRule()),
     },
   })),
+  individual_government_id: {
+    gov_id_name: {
+      required: helpers.withMessage('Goverment Id is required.', required),
+    },
+    gov_id_no: {
+      required: helpers.withMessage('ID No is required.', required),
+    },
+    gov_id_issuance: {
+      required: helpers.withMessage('Date/Place of Issuance Sponsor is required.', required),
+    },
+  },
 }))
 
 watch(currentlyInvolved, (newVal) => {
@@ -165,60 +161,49 @@ const showToast = (
   }
 }
 
-const handleAdditionalVoluntaryWork = () => {
-  if (payload.individual_voluntary_work.length < 7) {
-    payload.individual_voluntary_work.push({
-      is_current_org: false,
-      org_name: null,
-      org_address: null,
-      from: null,
-      to: null,
-      number_of_hours: null,
-      position_nature_of_work: null,
+const handleAdditionalReference = () => {
+  if (payload.individual_reference.length < 3) {
+    payload.individual_reference.push({
+      name: null,
+      address: null,
+      tel_no: null,
     })
   }
 }
 
-const handleRemoveVoluntaryWork = (voluntaryWorkIndex: number) => {
-  payload.individual_voluntary_work?.splice(voluntaryWorkIndex, 1)
+const handleRemoveReference = (referenceIndex: number) => {
+  payload.individual_reference?.splice(referenceIndex, 1)
 }
 
-const handleAdditionalLearningDevelopment = () => {
-  if (payload.individual_lnd.length < 21) {
-    payload.individual_lnd.push({
-      title: null,
-      from: null,
-      to: null,
-      number_of_hours: null,
-      type: null,
-      conducted_sponsor: null,
-    })
-  }
-}
-
-const handleRemoveLearningDevelopment = (learningDevelopmentIndex: number) => {
-  payload.individual_lnd?.splice(learningDevelopmentIndex, 1)
-}
-
-const handleSaveC3Form = async () => {
-  isC3Loading.value = true
+const handleSaveC4Form = async () => {
+  isC4Loading.value = true
 
   const valid = await validator.value.$validate()
   if (!valid) {
-    const hasLearningDevelopmentError = Object.values(validator.value.individual_lnd).some(
+    const hasIndividualQuestionError = Object.values(validator.value.individual_question).some(
+      (entry) => (entry as { $error: boolean })?.$error
+    )
+
+    const hasIndividualReferenceError = Object.values(validator.value.individual_reference).some(
+      (entry) => (entry as { $error: boolean })?.$error
+    )
+
+    const hasIndividualGovermentIDError = Object.values(validator.value.individual_government_id).some(
       (entry) => (entry as { $error: boolean })?.$error
     )
 
     let errorTabs = []
-    if (hasLearningDevelopmentError) errorTabs.push(' Learning and Development (L&D) Interventions / Training Programs Attended')
+    if (hasIndividualQuestionError) errorTabs.push('Other Information Continued')
+    if (hasIndividualReferenceError) errorTabs.push('References & Gov` Issued ID')
+    if (hasIndividualGovermentIDError) errorTabs.push('References & Gov` Issued ID')
 
     const tabList = errorTabs.join(', ')
     showToast('error', 'Validation Error', `Please check the following tab(s): ${tabList}`)
 
-    isC3Loading.value = false
-    return { valid: false, errorTabs: ['C3'] }
+    isC4Loading.value = false
+    return { valid: false, errorTabs: ['C4'] }
   }
-
+  console.log('Payload before save:', payload)
   const response = await pdsStore.savePds(payload)
 
   if (response.success === false) {
@@ -227,17 +212,17 @@ const handleSaveC3Form = async () => {
     isPdsError.value = true
     errorMessage.value = result?.message
     pdsErrors.value = result?.errors
-    showToast('error', 'PDS C3 Error', 'Please see the validation messages')
+    showToast('error', 'PDS C4 Error', 'Please see the validation messages')
   } else {
     showToast('success', 'PDS', 'PDS Information has been saved')
     router.push({ name: 'employment' })
   }
 
-  isC3Loading.value = false
+  isC4Loading.value = false
 }
 
 defineExpose({
-  handleSaveC3Form,
+  handleSaveC4Form,
 })
 </script>
 
@@ -262,7 +247,7 @@ defineExpose({
           </TabList>
 
           <TabPanels>
-            <!-- START VOLUNTARY WORK SECTION -->
+            <!-- START OTHER INFORMATION CONTINUATION SECTION -->
             <TabPanel :class="['my-8 md:mx-12 ', ' ring-surface-0/60 focus:outline-none ']">
               <TransitionRoot
                 appear
@@ -278,162 +263,634 @@ defineExpose({
                   <span class="flex flex-col justify-center space-y-2 font-medium">
                     <p class="text-xl italic text-primary-700 md:text-2xl">VIII. Other Information cont...</p>
                   </span>
-                  <div class="col-span-2 my-4 ml-4">
-                    <div class="align-items-center flex items-center">
-                      <Checkbox
-                        v-model="currentlyInvolved"
-                        :id="getId('input-currently-involve')"
-                        :inputId="getId('input-currently-involve')"
-                        name="currentlyInvolved"
-                        :binary="true"
-                      />
-                      <label :for="getId('input-currently-involve')" class="ml-2 text-surface-600">
-                        I am currently involve in this organization
-                      </label>
+
+                  <template v-if="true">
+                    <!-- Question # 34 -->
+                    <div>
+                      <div class="mb-4 flex items-start gap-2">
+                        <span class="w-6 shrink-0 text-base font-medium text-surface-600">34.</span>
+                        <p class="text-lg font-medium text-surface-600">
+                          Are you related by consanguinity or affinity to the appointing or recommending authority, or to the
+                          chief of bureau or office or to the person who has immediate supervision over you in the Office, Bureau
+                          or Department where you will be appointed,
+                        </p>
+                      </div>
+
+                      <div class="grid grid-cols-1 gap-4 md:grid-cols-5">
+                        <div class="mb-4 ml-10 flex items-start gap-2 md:col-span-4">
+                          <span class="shrink-0 text-base font-medium text-surface-600">a.</span>
+                          <p class="md:text-md text-lg text-surface-600">within the third degree ?</p>
+                        </div>
+                        <div class="flex flex-row items-center justify-center gap-12 p-4 md:justify-start md:p-2">
+                          <div class="flex items-center">
+                            <RadioButton
+                              v-model="payload.individual_question[0].q34_a"
+                              :id="getId('input-question-34a-yes')"
+                              name="q34_a"
+                              :value="true"
+                              class="scale-150 transform"
+                            />
+                            <label :for="getId('input-question-34a-yes')" class="ml-2 cursor-pointer">Yes</label>
+                          </div>
+                          <div class="flex items-center">
+                            <RadioButton
+                              v-model="payload.individual_question[0].q34_a"
+                              :id="getId('input-question-34a-no')"
+                              name="q34_a"
+                              :value="false"
+                              class="scale-150 transform"
+                            />
+                            <label :for="getId('input-question-34a-no')" class="ml-2 cursor-pointer">No</label>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="grid grid-cols-1 gap-4 md:grid-cols-5">
+                        <div class="ml-10 flex items-start gap-2 md:col-span-4">
+                          <span class="shrink-0 text-base font-medium text-surface-600">b.</span>
+                          <p class="md:text-md text-lg text-surface-600">
+                            within the fourth degree (for Local Government Unit - Career Employees)?
+                          </p>
+                        </div>
+                        <div class="flex flex-row items-center justify-center gap-12 p-4 md:justify-start md:p-2">
+                          <div class="flex items-center">
+                            <RadioButton
+                              v-model="payload.individual_question[0].q34_b"
+                              :id="getId('input-question-34b-yes')"
+                              name="q34_b"
+                              :value="true"
+                              class="scale-150 transform"
+                            />
+                            <label :for="getId('input-question-34b-yes')" class="ml-2 cursor-pointer">Yes</label>
+                          </div>
+                          <div class="flex items-center">
+                            <RadioButton
+                              v-model="payload.individual_question[0].q34_b"
+                              :id="getId('input-question-34b-no')"
+                              name="q34_b"
+                              :value="false"
+                              class="scale-150 transform"
+                            />
+                            <label :for="getId('input-question-34b-no')" class="ml-2 cursor-pointer">No</label>
+                          </div>
+                        </div>
+                      </div>
+                      <!-- Conditional input shown only if any answer is "Yes" -->
+                      <div
+                        v-if="payload.individual_question[0].q34_a === true || payload.individual_question[0].q34_b === true"
+                        class="mb-2 ml-10 flex items-start gap-2 md:col-span-4"
+                      >
+                        <WbInputText
+                          v-model="payload.individual_question[0].q34_details"
+                          label="If YES, give details"
+                          label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                          validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                          :invalid="validator.individual_question.q34_details.$error"
+                          :invalid-text="validator.individual_question.q34_details.$errors[0]?.$message"
+                          @blur="validator.individual_question.q34_details.$touch"
+                        />
+                      </div>
                     </div>
-                  </div>
-
-                  <template v-for="voluntaryWorkIndex in payload.individual_voluntary_work.length" :key="voluntaryWorkIndex">
-                    <TransitionRoot
-                      appear
-                      :show="true"
-                      enter="transition-all ease-in-out duration-500 "
-                      enterFrom="opacity-0 translate-y-6"
-                      enterTo="opacity-100 translate-y-0"
-                      leave="transition-all ease-in-out duration-800"
-                      leaveFrom="opacity-100"
-                      leaveTo="opacity-0"
-                    >
-                      <div class="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-                        <div>
-                          <WbInputText
-                            v-model="payload.individual_voluntary_work[voluntaryWorkIndex - 1].org_name"
-                            label="Name of Organization"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                    <hr />
+                    <!-- Question # 35 -->
+                    <!-- a. Have you ever been found guilty of any administrative offense? -->
+                    <div>
+                      <div class="grid grid-cols-1 gap-4 md:grid-cols-5">
+                        <div class="flex items-start gap-2 md:col-span-4">
+                          <span class="shrink-0 text-base font-medium text-surface-600">35.</span>
+                          <p class="md:text-md text-lg text-surface-600">
+                            a. Have you ever been found guilty of any administrative offense?
+                          </p>
+                        </div>
+                        <div class="flex flex-row items-center justify-center gap-12 p-4 md:justify-start md:p-2">
+                          <div class="flex items-center">
+                            <RadioButton
+                              v-model="payload.individual_question[0].q35_a"
+                              :id="getId('input-question-35a-yes')"
+                              name="q35_a"
+                              :value="true"
+                              class="scale-150 transform"
+                            />
+                            <label :for="getId('input-question-34a-yes')" class="ml-2 cursor-pointer">Yes</label>
+                          </div>
+                          <div class="flex items-center">
+                            <RadioButton
+                              v-model="payload.individual_question[0].q35_a"
+                              :id="getId('input-question-35a-no')"
+                              name="q35_a"
+                              :value="false"
+                              class="scale-150 transform"
+                            />
+                            <label :for="getId('input-question-35a-no')" class="ml-2 cursor-pointer">No</label>
+                          </div>
+                        </div>
+                      </div>
+                      <!-- Conditional input shown only if any answer is "Yes" -->
+                      <div
+                        v-if="payload.individual_question[0].q35_a === true"
+                        class="mb-2 ml-10 flex items-start gap-2 md:col-span-4"
+                      >
+                        <WbInputText
+                          v-model="payload.individual_question[0].q35_a_details"
+                          label="If YES, give details"
+                          label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                          :invalid="validator.individual_question.q35_a_details.$error"
+                          :invalid-text="validator.individual_question.q35_a_details.$errors[0]?.$message"
+                          @blur="validator.individual_question.q35_a_details.$touch"
+                          required
+                        />
+                      </div>
+                      <!-- b. Have you been criminally charged before any court? -->
+                      <div class="grid grid-cols-1 gap-4 md:grid-cols-5">
+                        <div class="ml-10 flex items-start gap-2 md:col-span-4">
+                          <span class="shrink-0 text-base font-medium text-surface-600">b.</span>
+                          <p class="md:text-md text-lg text-surface-600">Have you been criminally charged before any court?</p>
+                        </div>
+                        <div class="flex flex-row items-center justify-center gap-12 p-4 md:justify-start md:p-2">
+                          <div class="flex items-center">
+                            <RadioButton
+                              v-model="payload.individual_question[0].q35_b"
+                              :id="getId('input-question-35b-yes')"
+                              name="q35_b"
+                              :value="true"
+                              class="scale-150 transform"
+                            />
+                            <label :for="getId('input-question-34b-yes')" class="ml-2 cursor-pointer">Yes</label>
+                          </div>
+                          <div class="flex items-center">
+                            <RadioButton
+                              v-model="payload.individual_question[0].q35_b"
+                              :id="getId('input-question-35b-no')"
+                              name="q35_b"
+                              :value="false"
+                              class="scale-150 transform"
+                            />
+                            <label :for="getId('input-question-35b-no')" class="ml-2 cursor-pointer">No</label>
+                          </div>
+                        </div>
+                      </div>
+                      <!-- Conditional input shown only if any answer is "Yes" -->
+                      <div
+                        v-if="payload.individual_question[0].q35_b === true"
+                        class="mb-2 ml-10 grid grid-cols-1 items-start gap-4 md:grid-cols-4"
+                      >
+                        <div class="md:col-span-2">
+                          <WbCalendar
+                            v-model="payload.individual_question[0].q35_b_date_filed"
+                            label="Date Filed"
+                            label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm md:mb-1"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                            :invalid="validator.individual_question.q35_b_date_filed.$error"
+                            :invalid-text="validator.individual_question.q35_b_date_filed.$errors[0]?.$message"
+                            @blur="validator.individual_question.q35_b_date_filed.$touch"
+                            required
                           />
                         </div>
-                        <div>
+                        <div class="md:col-span-2">
                           <WbInputText
-                            v-model="payload.individual_voluntary_work[voluntaryWorkIndex - 1].org_address"
-                            label="Address of Organization"
+                            v-model="payload.individual_question[0].q35_b_status"
+                            label="Status of Case/s"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                            :invalid="validator.individual_question.q35_b_status.$error"
+                            :invalid-text="validator.individual_question.q35_b_status.$errors[0]?.$message"
+                            @blur="validator.individual_question.q35_b_status.$touch"
+                            required
                           />
                         </div>
                       </div>
-                      <div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-6">
-                        <div>
-                          <WbCalendar
-                            v-model="payload.individual_voluntary_work[voluntaryWorkIndex - 1].from"
-                            label="From"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                            :dateFormat="'yy-mm-dd'"
-                            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                            :invalidText="validator.individual_voluntary_work[voluntaryWorkIndex - 1].from.$errors[0]?.$message"
-                            :invalid="validator.individual_voluntary_work[voluntaryWorkIndex - 1].from.$error"
-                            @blur="validator.individual_voluntary_work[voluntaryWorkIndex - 1].from.$touch()"
-                          />
+                    </div>
+                    <hr />
+                    <!-- Question # 36 -->
+                    <div>
+                      <div class="grid grid-cols-1 gap-4 md:grid-cols-5">
+                        <div class="flex items-start gap-2 md:col-span-4">
+                          <span class="shrink-0 text-base font-medium text-surface-600">36.</span>
+                          <p class="md:text-md text-lg text-surface-600">
+                            Have you ever been convicted of any crime or violation of any law, decree, ordinance or regulation by
+                            any court or tribunal?
+                          </p>
                         </div>
-                        <!-- For the first entry -->
-                        <div v-if="voluntaryWorkIndex === 1">
-                          <!-- If NOT currently involved, show calendar -->
-                          <WbCalendar
-                            v-if="!currentlyInvolved"
-                            v-model="payload.individual_voluntary_work[voluntaryWorkIndex - 1].to"
-                            label="To"
-                            :dateFormat="'yy-mm-dd'"
-                            class="w-full text-sm"
-                            label-class="text-md text-surface-600 md:text-sm"
-                            validation-error-message-class="text-xs text-error-500 font-bold"
-                            :invalidText="validator.individual_voluntary_work[voluntaryWorkIndex - 1].to.$errors[0]?.$message"
-                            :invalid="validator.individual_voluntary_work[voluntaryWorkIndex - 1].to.$error"
-                            @blur="validator.individual_voluntary_work[voluntaryWorkIndex - 1].to.$touch()"
-                          />
-
-                          <!-- If currently involved, show "PRESENT" input -->
-                          <WbInputText
-                            v-else
-                            :modelValue="'PRESENT'"
-                            label="To"
-                            disabled
-                            readonly
-                            class="w-full text-sm"
-                            label-class="text-md text-surface-600 md:text-sm"
-                          />
-                        </div>
-
-                        <!-- For all entries after the first -->
-                        <div v-else>
-                          <WbCalendar
-                            v-model="payload.individual_voluntary_work[voluntaryWorkIndex - 1].to"
-                            label="To"
-                            :dateFormat="'yy-mm-dd'"
-                            class="w-full text-sm"
-                            label-class="text-md text-surface-600 md:text-sm"
-                            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                            :invalidText="validator.individual_voluntary_work[voluntaryWorkIndex - 1].to.$errors[0]?.$message"
-                            :invalid="validator.individual_voluntary_work[voluntaryWorkIndex - 1].to.$error"
-                            @blur="validator.individual_voluntary_work[voluntaryWorkIndex - 1].to.$touch()"
-                          />
-                        </div>
-
-                        <div>
-                          <WbInputText
-                            v-model="payload.individual_voluntary_work[voluntaryWorkIndex - 1].number_of_hours"
-                            label="No of Hours"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                          />
-                        </div>
-                        <div class="flex items-end gap-2 md:col-span-3">
-                          <WbInputText
-                            v-model="payload.individual_voluntary_work[voluntaryWorkIndex - 1].position_nature_of_work"
-                            label="Position / Nature of Work"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                          />
-                          <!-- Delete button aligned right, below label -->
-                          <Button
-                            v-show="voluntaryWorkIndex - 1 > 0"
-                            :id="getId(`button-remove-voluntary-work-${voluntaryWorkIndex - 1}`)"
-                            icon="pi pi-trash"
-                            @click="handleRemoveVoluntaryWork(voluntaryWorkIndex - 1)"
-                            v-tooltip.top="'Remove Voluntary Work'"
-                            severity="danger"
-                            class="mb-2 text-lg font-semibold dark:text-primary-100"
-                            text
-                          />
+                        <div class="flex flex-row items-center justify-center gap-12 p-4 md:justify-start md:p-2">
+                          <div class="flex items-center">
+                            <RadioButton
+                              v-model="payload.individual_question[0].q36"
+                              :id="getId('input-question-36-yes')"
+                              name="q36"
+                              :value="true"
+                              class="scale-150 transform"
+                            />
+                            <label :for="getId('input-question-36-yes')" class="ml-2 cursor-pointer">Yes</label>
+                          </div>
+                          <div class="flex items-center">
+                            <RadioButton
+                              v-model="payload.individual_question[0].q36"
+                              :id="getId('input-question-36-no')"
+                              name="q36"
+                              :value="false"
+                              class="scale-150 transform"
+                            />
+                            <label :for="getId('input-question-36-no')" class="ml-2 cursor-pointer">No</label>
+                          </div>
                         </div>
                       </div>
-                      <hr />
-                    </TransitionRoot>
+                      <!-- Conditional input shown only if any answer is "Yes" -->
+                      <div
+                        v-if="payload.individual_question[0].q36 === true"
+                        class="mb-2 ml-10 flex items-start gap-2 md:col-span-4"
+                      >
+                        <WbInputText
+                          v-model="payload.individual_question[0].q36_details"
+                          label="If YES, give details"
+                          label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                          :invalid="validator.individual_question.q36_details.$error"
+                          :invalid-text="validator.individual_question.q36_details.$errors[0]?.$message"
+                          @blur="validator.individual_question.q36_details.$touch"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <hr />
+                    <!-- Question # 37 -->
+                    <div>
+                      <div class="grid grid-cols-1 gap-4 md:grid-cols-5">
+                        <div class="mb-2 flex items-start gap-2 md:col-span-4">
+                          <span class="shrink-0 text-base font-medium text-surface-600">37.</span>
+                          <p class="md:text-md text-lg text-surface-600">
+                            Have you ever been separated from the service in any of the following modes: resignation, retirement,
+                            dropped from the rolls, dismissal, termination, end of term, finished contract or phased out
+                            (abolition) in the public or private sector?
+                          </p>
+                        </div>
+                        <div class="flex flex-row items-center justify-center gap-12 p-4 md:justify-start md:p-2">
+                          <div class="flex items-center">
+                            <RadioButton
+                              v-model="payload.individual_question[0].q37"
+                              :id="getId('input-question-37-yes')"
+                              name="q37"
+                              :value="true"
+                              class="scale-150 transform"
+                            />
+                            <label :for="getId('input-question-37-yes')" class="ml-2 cursor-pointer">Yes</label>
+                          </div>
+                          <div class="flex items-center">
+                            <RadioButton
+                              v-model="payload.individual_question[0].q37"
+                              :id="getId('input-question-37-no')"
+                              name="q37"
+                              :value="false"
+                              class="scale-150 transform"
+                            />
+                            <label :for="getId('input-question-37-no')" class="ml-2 cursor-pointer">No</label>
+                          </div>
+                        </div>
+                      </div>
+                      <!-- Conditional input shown only if any answer is "Yes" -->
+                      <div
+                        v-if="payload.individual_question[0].q37 === true"
+                        class="mb-2 ml-10 flex items-start gap-2 md:col-span-4"
+                      >
+                        <WbInputText
+                          v-model="payload.individual_question[0].q37_details"
+                          label="If YES, give details"
+                          label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                          :invalid="validator.individual_question.q37_details.$error"
+                          :invalid-text="validator.individual_question.q37_details.$errors[0]?.$message"
+                          @blur="validator.individual_question.q37_details.$touch"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <hr />
+                    <!-- Question # 38 -->
+                    <!--  a. Have you ever been a candidate in a nation or local election held within the last year(except Barangay election)? -->
+                    <div>
+                      <div class="grid grid-cols-1 gap-4 md:grid-cols-5">
+                        <div class="flex items-start gap-2 md:col-span-4">
+                          <span class="shrink-0 text-base font-medium text-surface-600">38.</span>
+                          <p class="md:text-md text-lg text-surface-600">
+                            a. Have you ever been a candidate in a nation or local election held within the last year(except
+                            Barangay election)?
+                          </p>
+                        </div>
+                        <div class="flex flex-row items-center justify-center gap-12 p-4 md:justify-start md:p-2">
+                          <div class="flex items-center">
+                            <RadioButton
+                              v-model="payload.individual_question[0].q38_a"
+                              :id="getId('input-question-38_a-yes')"
+                              name="q38_a"
+                              :value="true"
+                              class="scale-150 transform"
+                            />
+                            <label :for="getId('input-question-38_a-yes')" class="ml-2 cursor-pointer">Yes</label>
+                          </div>
+                          <div class="flex items-center">
+                            <RadioButton
+                              v-model="payload.individual_question[0].q38_a"
+                              :id="getId('input-question-38_a-no')"
+                              name="q38_a"
+                              :value="false"
+                              class="scale-150 transform"
+                            />
+                            <label :for="getId('input-question-38_a-no')" class="ml-2 cursor-pointer">No</label>
+                          </div>
+                        </div>
+                      </div>
+                      <!-- Conditional input shown only if any answer is "Yes" -->
+                      <div
+                        v-if="payload.individual_question[0].q38_a === true"
+                        class="mb-2 ml-10 flex items-start gap-2 md:col-span-4"
+                      >
+                        <WbInputText
+                          v-model="payload.individual_question[0].q38_a_details"
+                          label="If YES, give details"
+                          label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                          :invalid="validator.individual_question.q38_a_details.$error"
+                          :invalid-text="validator.individual_question.q38_a_details.$errors[0]?.$message"
+                          @blur="validator.individual_question.q38_a_details.$touch"
+                          required
+                        />
+                      </div>
+                      <!-- b. Have you resigned from the government service during the three (3)-month period      
+                             before the last election to promote/actively campaign for a national or local candidate? -->
+                      <div class="grid grid-cols-1 gap-4 md:grid-cols-5">
+                        <div class="mb-2 ml-10 flex items-start gap-2 md:col-span-4">
+                          <span class="shrink-0 text-base font-medium text-surface-600">b.</span>
+                          <p class="md:text-md text-lg text-surface-600">
+                            Have you resigned from the government service during the three (3)-month period before the last
+                            election to promote/actively campaign for a national or local candidate?
+                          </p>
+                        </div>
+                        <div class="flex flex-row items-center justify-center gap-12 p-4 md:justify-start md:p-2">
+                          <div class="flex items-center">
+                            <RadioButton
+                              v-model="payload.individual_question[0].q38_b"
+                              :id="getId('input-question-38_b-yes')"
+                              name="q38_b"
+                              :value="true"
+                              class="scale-150 transform"
+                            />
+                            <label :for="getId('input-question-38_b-yes')" class="ml-2 cursor-pointer">Yes</label>
+                          </div>
+                          <div class="flex items-center">
+                            <RadioButton
+                              v-model="payload.individual_question[0].q38_b"
+                              :id="getId('input-question-38_b-no')"
+                              name="q38_b"
+                              :value="false"
+                              class="scale-150 transform"
+                            />
+                            <label :for="getId('input-question-38_b-no')" class="ml-2 cursor-pointer">No</label>
+                          </div>
+                        </div>
+                      </div>
+                      <!-- Conditional input shown only if any answer is "Yes" -->
+                      <div
+                        v-if="payload.individual_question[0].q38_b === true"
+                        class="mb-2 ml-10 flex items-start gap-2 md:col-span-4"
+                      >
+                        <WbInputText
+                          v-model="payload.individual_question[0].q38_b_details"
+                          label="If YES, give details"
+                          label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                          :invalid="validator.individual_question.q38_b_details.$error"
+                          :invalid-text="validator.individual_question.q38_b_details.$errors[0]?.$message"
+                          @blur="validator.individual_question.q38_b_details.$touch"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <hr />
+                    <!-- Question # 39 -->
+                    <div>
+                      <div class="grid grid-cols-1 gap-4 md:grid-cols-5">
+                        <div class="flex items-start gap-2 md:col-span-4">
+                          <span class="shrink-0 text-base font-medium text-surface-600">39.</span>
+                          <p class="md:text-md text-lg text-surface-600">
+                            Have you acquired the status of an immigration or permanent resident of another country?
+                          </p>
+                        </div>
+                        <div class="flex flex-row items-center justify-center gap-12 p-4 md:justify-start md:p-2">
+                          <div class="flex items-center">
+                            <RadioButton
+                              v-model="payload.individual_question[0].q39"
+                              :id="getId('input-question-39-yes')"
+                              name="q39"
+                              :value="true"
+                              class="scale-150 transform"
+                            />
+                            <label :for="getId('input-question-39-yes')" class="ml-2 cursor-pointer">Yes</label>
+                          </div>
+                          <div class="flex items-center">
+                            <RadioButton
+                              v-model="payload.individual_question[0].q39"
+                              :id="getId('input-question-39-no')"
+                              name="q39"
+                              :value="false"
+                              class="scale-150 transform"
+                            />
+                            <label :for="getId('input-question-39-no')" class="ml-2 cursor-pointer">No</label>
+                          </div>
+                        </div>
+                      </div>
+                      <!-- Conditional input shown only if any answer is "Yes" -->
+                      <div
+                        v-if="payload.individual_question[0].q39 === true"
+                        class="mb-2 ml-10 flex items-start gap-2 md:col-span-4"
+                      >
+                        <WbAutoComplete
+                          :useApiFilter="true"
+                          :apiEndpoint="'/libraries/countries/search'"
+                          :suggestions="libraryStore.countryOptions"
+                          :loading="libraryStore.countryOptionsLoading"
+                          apiOptionLabel="country_code"
+                          label="If YES, give details"
+                          placeholder="Type the Country"
+                          v-model="selectedCountry"
+                          :id="getId('input-office')"
+                          optionLabel="label"
+                          optionValue="value"
+                          required
+                          forceSelection
+                          @on-true-value-computed="
+                            (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
+                              useWbAutoCompleteHandleTrueValue(value, toRef(payload.individual_question[0], 'country_id'))
+                          "
+                          label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                          validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                          :invalid="validator.individual_question.country_id.$error"
+                          :invalid-text="validator.individual_question.country_id.$errors[0]?.$message"
+                          @blur="validator.individual_question.country_id.$touch"
+                        >
+                        </WbAutoComplete>
+                      </div>
+                    </div>
+                    <hr />
+                    <!-- Question # 40-->
+                    <div>
+                      <div class="flex items-start gap-2">
+                        <div class="flex items-start gap-2 md:col-span-4">
+                          <span class="shrink-0 text-base font-medium text-surface-600">40.</span>
+                          <p class="md:text-md text-lg text-surface-600">
+                            Pursuant to: (a) Indigenous People`s Act (RA 8371); (b) Magna Carta for Disabled Persons (RA 7277);
+                            and (c) Solo Parents Welfare Act of 2000 (RA 8972), please answer the following items:
+                          </p>
+                        </div>
+                      </div>
+
+                      <!--  a. Are you a member of any indigenous group? -->
+                      <div class="grid grid-cols-1 gap-4 md:grid-cols-5">
+                        <div class="ml-10 flex items-start gap-2 md:col-span-4">
+                          <span class="shrink-0 text-base font-medium text-surface-600">a.</span>
+                          <p class="md:text-md text-lg text-surface-600">Are you a member of any indigenous group?</p>
+                        </div>
+                        <div class="flex flex-row items-center justify-center gap-12 p-4 md:justify-start md:p-2">
+                          <div class="flex items-center">
+                            <RadioButton
+                              v-model="payload.individual_question[0].q40_a_indigenous_group"
+                              :id="getId('input-question-q40_a_indigenous_group-yes')"
+                              name="q40_a_indigenous_group"
+                              :value="true"
+                              class="scale-150 transform"
+                            />
+                            <label :for="getId('input-question-q40_a_indigenous_group-yes')" class="ml-2 cursor-pointer"
+                              >Yes</label
+                            >
+                          </div>
+                          <div class="flex items-center">
+                            <RadioButton
+                              v-model="payload.individual_question[0].q40_a_indigenous_group"
+                              :id="getId('input-question-q40_a_indigenous_group-no')"
+                              name="q40_a_indigenous_group"
+                              :value="false"
+                              class="scale-150 transform"
+                            />
+                            <label :for="getId('input-question-q40_a_indigenous_group-no')" class="ml-2 cursor-pointer">No</label>
+                          </div>
+                        </div>
+                      </div>
+                      <!-- Conditional input shown only if any answer is "Yes" -->
+                      <div
+                        v-if="payload.individual_question[0].q40_a_indigenous_group === true"
+                        class="mb-2 ml-10 flex items-start gap-2 md:col-span-4"
+                      >
+                        <WbInputText
+                          v-model="payload.individual_question[0].q40_a_details"
+                          label="If YES, give details"
+                          label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                          :invalid="validator.individual_question.q40_a_details.$error"
+                          :invalid-text="validator.individual_question.q40_a_details.$errors[0]?.$message"
+                          @blur="validator.individual_question.q40_a_details.$touch"
+                          required
+                        />
+                      </div>
+
+                      <!--  b. Are you a person with disability? -->
+                      <div class="grid grid-cols-1 gap-4 md:grid-cols-5">
+                        <div class="ml-10 flex items-start gap-2 md:col-span-4">
+                          <span class="shrink-0 text-base font-medium text-surface-600">b.</span>
+                          <p class="md:text-md text-lg text-surface-600">Are you a person with disability?</p>
+                        </div>
+                        <div class="flex flex-row items-center justify-center gap-12 p-4 md:justify-start md:p-2">
+                          <div class="flex items-center">
+                            <RadioButton
+                              v-model="payload.individual_question[0].q40_b_pwd"
+                              :id="getId('input-question-q40_b_pwd-yes')"
+                              name="q40_b_pwd"
+                              :value="true"
+                              class="scale-150 transform"
+                            />
+                            <label :for="getId('input-question-q40_b_pwd-yes')" class="ml-2 cursor-pointer">Yes</label>
+                          </div>
+                          <div class="flex items-center">
+                            <RadioButton
+                              v-model="payload.individual_question[0].q40_b_pwd"
+                              :id="getId('input-question-q40_b_pwd-no')"
+                              name="q40_b_pwd"
+                              :value="false"
+                              class="scale-150 transform"
+                            />
+                            <label :for="getId('input-question-q40_b_pwd-no')" class="ml-2 cursor-pointer">No</label>
+                          </div>
+                        </div>
+                      </div>
+                      <!-- Conditional input shown only if any answer is "Yes" -->
+                      <div
+                        v-if="payload.individual_question[0].q40_b_pwd === true"
+                        class="mb-2 ml-10 flex items-start gap-2 md:col-span-4"
+                      >
+                        <WbInputText
+                          v-model="payload.individual_question[0].q40_b_details"
+                          label="If YES, give details"
+                          label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                          :invalid="validator.individual_question.q40_b_details.$error"
+                          :invalid-text="validator.individual_question.q40_b_details.$errors[0]?.$message"
+                          @blur="validator.individual_question.q40_b_details.$touch"
+                          required
+                        />
+                      </div>
+
+                      <!--  c. Are you a solo parent? -->
+                      <div class="grid grid-cols-1 gap-4 md:grid-cols-5">
+                        <div class="ml-10 flex items-start gap-2 md:col-span-4">
+                          <span class="shrink-0 text-base font-medium text-surface-600">c.</span>
+                          <p class="md:text-md text-lg text-surface-600">Are you a solo parent?</p>
+                        </div>
+                        <div class="flex flex-row items-center justify-center gap-12 p-4 md:justify-start md:p-2">
+                          <div class="flex items-center">
+                            <RadioButton
+                              v-model="payload.individual_question[0].q40_c_solo_parent"
+                              :id="getId('input-question-q40_c_solo_parent-yes')"
+                              name="q40_c_solo_parent"
+                              :value="true"
+                              class="scale-150 transform"
+                            />
+                            <label :for="getId('input-question-q40_c_solo_parent-yes')" class="ml-2 cursor-pointer">Yes</label>
+                          </div>
+                          <div class="flex items-center">
+                            <RadioButton
+                              v-model="payload.individual_question[0].q40_c_solo_parent"
+                              :id="getId('input-question-q40_c_solo_parent-no')"
+                              name="q40_c_solo_parent"
+                              :value="false"
+                              class="scale-150 transform"
+                            />
+                            <label :for="getId('input-question-q40_c_solo_parent-no')" class="ml-2 cursor-pointer">No</label>
+                          </div>
+                        </div>
+                      </div>
+                      <!-- Conditional input shown only if any answer is "Yes" -->
+                      <div
+                        v-if="payload.individual_question[0].q40_c_solo_parent === true"
+                        class="mb-2 ml-10 flex items-start gap-2 md:col-span-4"
+                      >
+                        <WbInputText
+                          v-model="payload.individual_question[0].q40_c_details"
+                          label="If YES, give details"
+                          label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                          :invalid="validator.individual_question.q40_c_details.$error"
+                          :invalid-text="validator.individual_question.q40_c_details.$errors[0]?.$message"
+                          @blur="validator.individual_question.q40_c_details.$touch"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <hr />
                   </template>
-                  <Button
-                    v-if="payload.individual_voluntary_work.length < 7"
-                    label="Add additional Voluntary Work field"
-                    @click="handleAdditionalVoluntaryWork"
-                    size="large"
-                    class="dark:text-secondary-100 mt-4 !w-72 border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
-                    text
-                  >
-                    <template #icon>
-                      <i class="pi pi-plus mr-2"></i>
-                    </template>
-                  </Button>
                 </div>
-
-                <span class="mt-10 flex flex-col justify-center space-y-4 font-medium text-surface-600">
-                  <p class="md:text-md text-lg italic">
-                    Note: A maximum of seven (7) Voluntary Work entries are allowed in a page, if the number of your Voluntary
-                    Works exceeds in the aforementioned limit, it will be in a separate sheet..
-                  </p>
-                </span>
               </TransitionRoot>
             </TabPanel>
             <!-- END VOLUNTARY WORK  SECTION -->
@@ -458,7 +915,7 @@ defineExpose({
                     </p>
                   </span>
 
-                  <template v-for="learningDevelopmentIndex in payload.individual_lnd.length" :key="learningDevelopmentIndex">
+                  <template v-for="referenceIndex in payload.individual_reference.length" :key="referenceIndex">
                     <TransitionRoot
                       appear
                       :show="true"
@@ -469,54 +926,54 @@ defineExpose({
                       leaveFrom="opacity-100"
                       leaveTo="opacity-0"
                     >
-                      <p class="mb-4 text-surface-700">Reference # {{ learningDevelopmentIndex }}</p>
+                      <p class="mb-4 text-surface-700">Reference # {{ referenceIndex }}</p>
                       <div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-5">
                         <div class="md:col-span-2">
                           <WbInputText
-                            v-model="payload.individual_lnd[learningDevelopmentIndex - 1].title"
+                            v-model="payload.individual_reference[referenceIndex - 1].name"
                             label="Name"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-xs md:mb-1"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                            :invalidText="validator.individual_lnd[learningDevelopmentIndex - 1].title.$errors[0]?.$message"
-                            :invalid="validator.individual_lnd[learningDevelopmentIndex - 1].title.$error"
-                            @blur="validator.individual_lnd[learningDevelopmentIndex - 1].title.$touch()"
+                            :invalidText="validator.individual_reference[referenceIndex - 1].name.$errors[0]?.$message"
+                            :invalid="validator.individual_reference[referenceIndex - 1].name.$error"
+                            @blur="validator.individual_reference[referenceIndex - 1].name.$touch()"
                             required
                           />
                         </div>
                         <div class="md:col-span-2">
                           <WbInputText
-                            v-model="payload.individual_lnd[learningDevelopmentIndex - 1].number_of_hours"
+                            v-model="payload.individual_reference[referenceIndex - 1].address"
                             label="Address"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                            :invalidText="validator.individual_lnd[learningDevelopmentIndex - 1].type.$errors[0]?.$message"
-                            :invalid="validator.individual_lnd[learningDevelopmentIndex - 1].type.$error"
-                            @blur="validator.individual_lnd[learningDevelopmentIndex - 1].type.$touch()"
+                            :invalidText="validator.individual_reference[referenceIndex - 1].address.$errors[0]?.$message"
+                            :invalid="validator.individual_reference[referenceIndex - 1].address.$error"
+                            @blur="validator.individual_reference[referenceIndex - 1].address.$touch()"
                             required
                           />
                         </div>
                         <div class="flex items-end gap-2">
                           <!-- WbInputText takes most of the space -->
                           <WbInputText
-                            v-model="payload.individual_lnd[learningDevelopmentIndex - 1].number_of_hours"
+                            v-model="payload.individual_reference[referenceIndex - 1].tel_no"
                             label="Tel. No"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                            :invalidText="validator.individual_lnd[learningDevelopmentIndex - 1].type.$errors[0]?.$message"
-                            :invalid="validator.individual_lnd[learningDevelopmentIndex - 1].type.$error"
-                            @blur="validator.individual_lnd[learningDevelopmentIndex - 1].type.$touch()"
+                            :invalidText="validator.individual_reference[referenceIndex - 1].tel_no.$errors[0]?.$message"
+                            :invalid="validator.individual_reference[referenceIndex - 1].tel_no.$error"
+                            @blur="validator.individual_reference[referenceIndex - 1].tel_no.$touch()"
                             required
                           />
 
                           <!-- Delete button aligned right, below label -->
                           <Button
-                            v-show="learningDevelopmentIndex - 1 > 0"
-                            :id="getId(`button-remove-learning-development-${learningDevelopmentIndex - 1}`)"
+                            v-show="referenceIndex - 1 > 0"
+                            :id="getId(`button-remove-learning-development-${referenceIndex - 1}`)"
                             icon="pi pi-trash"
-                            @click="handleRemoveLearningDevelopment(learningDevelopmentIndex - 1)"
+                            @click="handleRemoveReference(referenceIndex - 1)"
                             v-tooltip.top="'Remove L&D'"
                             severity="danger"
                             class="mb-2 text-lg font-semibold dark:text-primary-100"
@@ -529,9 +986,9 @@ defineExpose({
                   </template>
 
                   <Button
-                    v-if="payload.individual_lnd.length < 21"
+                    v-if="payload.individual_reference.length < 3"
                     label="Add additional References field"
-                    @click="handleAdditionalLearningDevelopment"
+                    @click="handleAdditionalReference"
                     size="large"
                     class="dark:text-secondary-100 mt-4 !w-64 border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
                     text
@@ -556,7 +1013,7 @@ defineExpose({
                     </p>
                   </span>
 
-                  <template v-for="learningDevelopmentIndex in payload.individual_lnd.length" :key="learningDevelopmentIndex">
+                  <template v-if="true">
                     <TransitionRoot
                       appear
                       :show="true"
@@ -567,45 +1024,43 @@ defineExpose({
                       leaveFrom="opacity-100"
                       leaveTo="opacity-0"
                     >
-                      <p class="mb-4 text-surface-700">Reference # {{ learningDevelopmentIndex }}</p>
                       <div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-5">
                         <div class="md:col-span-2">
                           <WbInputText
-                            v-model="payload.individual_lnd[learningDevelopmentIndex - 1].title"
+                            v-model="payload.individual_government_id.gov_id_name"
                             label="Government Issued ID"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm md:mb-1"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                            :invalidText="validator.individual_lnd[learningDevelopmentIndex - 1].title.$errors[0]?.$message"
-                            :invalid="validator.individual_lnd[learningDevelopmentIndex - 1].title.$error"
-                            @blur="validator.individual_lnd[learningDevelopmentIndex - 1].title.$touch()"
+                            :invalid="validator.individual_government_id.gov_id_name.$error"
+                            :invalid-text="validator.individual_government_id.gov_id_name.$errors[0]?.$message"
+                            @blur="validator.individual_government_id.gov_id_name.$touch"
                             required
                           />
                         </div>
                         <div class="md:col-span-2">
                           <WbInputText
-                            v-model="payload.individual_lnd[learningDevelopmentIndex - 1].number_of_hours"
+                            v-model="payload.individual_government_id.gov_id_no"
                             label="ID/License/Passport No."
                             label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                            :invalidText="validator.individual_lnd[learningDevelopmentIndex - 1].type.$errors[0]?.$message"
-                            :invalid="validator.individual_lnd[learningDevelopmentIndex - 1].type.$error"
-                            @blur="validator.individual_lnd[learningDevelopmentIndex - 1].type.$touch()"
+                            :invalid="validator.individual_government_id.gov_id_no.$error"
+                            :invalid-text="validator.individual_government_id.gov_id_no.$errors[0]?.$message"
+                            @blur="validator.individual_government_id.gov_id_no.$touch"
                             required
                           />
                         </div>
                         <div class="flex items-end gap-2">
-                          <!-- WbInputText takes most of the space -->
                           <WbInputText
-                            v-model="payload.individual_lnd[learningDevelopmentIndex - 1].number_of_hours"
+                            v-model="payload.individual_government_id.gov_id_issuance"
                             label="Date/Place of Issuance"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                            :invalidText="validator.individual_lnd[learningDevelopmentIndex - 1].type.$errors[0]?.$message"
-                            :invalid="validator.individual_lnd[learningDevelopmentIndex - 1].type.$error"
-                            @blur="validator.individual_lnd[learningDevelopmentIndex - 1].type.$touch()"
+                            :invalid="validator.individual_government_id.gov_id_issuance.$error"
+                            :invalid-text="validator.individual_government_id.gov_id_issuance.$errors[0]?.$message"
+                            @blur="validator.individual_government_id.gov_id_issuance.$touch"
                             required
                           />
                         </div>
