@@ -109,7 +109,7 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
         const photoUrl =
           employeeDetails?.user_profile?.profile_picture_url && employeeDetails.user_profile.profile_picture_url.trim() !== ''
             ? employeeDetails.user_profile.profile_picture_url
-            : '/src/assets/image/placeholder-profile.png'
+            : '/src/assets/image/DSWD logo_Mark.png'
 
         if (warmBodyLog && employeeDetails && employeeItem) {
           currentScannedEmployee.value = {
@@ -127,7 +127,7 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
             position: 'N/A',
             is_in: warmBodyLog?.is_in || false,
             timestamp: warmBodyLog?.created_at || new Date().toISOString(),
-            photo_url: '/src/assets/image/placeholder-profile.png',
+            photo_url: '/src/assets/image/DSWD logo_Mark.png',
           }
         }
 

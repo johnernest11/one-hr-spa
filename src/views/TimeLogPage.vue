@@ -16,7 +16,7 @@ const errorMessage = ref<string | null>(null)
 const cameraError = ref<string | null>(null)
 const isMobile = ref(false)
 
-const MODAL_DISPLAY_DURATION_MS = 1000
+const MODAL_DISPLAY_DURATION_MS = 1500
 const isProcessingScan = ref(false)
 const scannerPaused = ref(false) // New: Controls the 'paused' prop of QrcodeStream
 
@@ -215,9 +215,9 @@ const latestWarmBodyLogs = computed(() => {
 
 <template>
   <div class="flex h-screen w-screen flex-col-reverse overflow-hidden md:flex-row">
-    <div class="flex w-full flex-col overflow-hidden bg-primary-500 p-4 text-white md:w-1/3">
-      <div class="mb-4 flex items-center space-x-2">
-        <img src="@/assets/image/fo-bp.png" alt="DSWD Logo" class="h-8" />
+    <div class="flex w-full flex-col overflow-hidden bg-primary-500 p-4 text-white md:w-1/4">
+      <div class="mb-8 flex items-center space-x-2">
+        <img src="@/assets/image/fo-bp.png" alt="DSWD Logo" class="h-16" />
       </div>
       <h2 class="mb-4 text-center text-2xl font-semibold md:text-3xl">WARM BODIES</h2>
       <div class="mb-4 grid grid-cols-2 gap-4 text-center text-lg md:text-2xl">
@@ -240,10 +240,10 @@ const latestWarmBodyLogs = computed(() => {
       </div>
     </div>
 
-    <div class="flex w-full flex-col items-center space-y-4 bg-primary-100 p-4 md:w-2/3">
+    <div class="flex w-full flex-col items-center space-y-4 bg-primary-100 p-4 md:w-3/4">
       <div class="w-full text-left">
-        <div class="text-lg text-surface-600">{{ currentDate }}</div>
-        <div class="text-4xl font-bold text-surface-500 md:text-6xl">
+        <div class="text-2xl text-surface-500">{{ currentDate }}</div>
+        <div class="text-8xl font-bold text-surface-500">
           {{ currentTime }} <span class="text-lg md:text-2xl">{{ meridiem }}</span>
         </div>
       </div>
@@ -279,13 +279,12 @@ const latestWarmBodyLogs = computed(() => {
       :pt="{
         root: 'flex flex-col h-full bg-white shadow-lg p-4 md:p-12',
         header: 'hidden',
-        content: 'flex-grow flex flex-col items-center space-y-6 overflow-auto pb-4 text-center md:space-y-12',
+        // Modified content classes for top and center alignment
+        content: 'flex-grow flex flex-col items-center justify-start space-y-6 md:space-y-12 text-center h-full',
       }"
     >
       <template v-if="dailyLogsStore.lastLogMessage && !dailyLogsStore.currentScannedEmployee">
-        <hr class="mb-6 border-t border-surface-300" />
-
-        <div class="flex items-center text-4xl font-semibold text-error-600 md:text-4xl">
+        <div class="flex items-center justify-center text-4xl font-semibold text-error-600 md:text-4xl">
           <FontAwesomeIcon icon="fas fa-circle-xmark" class="mr-4 md:mr-6" />Error!
         </div>
         <p class="text-center text-xl font-medium text-surface-800 md:text-3xl">
@@ -303,7 +302,7 @@ const latestWarmBodyLogs = computed(() => {
 
         <div class="mb-4 flex justify-center">
           <img
-            :src="dailyLogsStore.currentScannedEmployee?.photo_url || '/src/assets/image/placeholder-profile.png'"
+            :src="dailyLogsStore.currentScannedEmployee?.photo_url || '@/assets/image/DSWD logo_Mark.png'"
             alt="Employee Profile Photo"
             class="h-64 w-48 rounded-lg object-cover shadow md:h-80 md:w-64"
           />
@@ -331,11 +330,6 @@ const latestWarmBodyLogs = computed(() => {
             </p>
           </div>
         </div>
-      </template>
-      <template v-else>
-        <p class="text-center text-xl font-medium text-surface-800 md:text-3xl">
-          {{ errorMessage || 'Processing...' }}
-        </p>
       </template>
     </Dialog>
   </div>
