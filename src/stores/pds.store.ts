@@ -6,9 +6,12 @@ import {
   IndividualEducBg,
   IndividualEligibility,
   IndividualFamily,
+  IndividualGovernmentIssue,
   IndividualLearningDevelopment,
   IndividualMembership,
+  IndividualQuestion,
   IndividualRecognition,
+  IndividualReference,
   IndividualSkills,
   IndividualVoluntaryWork,
   IndividualWorkExperience,
@@ -84,6 +87,9 @@ export type PersonalDataSheetPayload = {
   individual_recognition: IndividualRecognition[]
   individual_membership: IndividualMembership[]
   /** PDS-C4 */
+  individual_question: IndividualQuestion[]
+  individual_reference: IndividualReference[]
+  individual_government_id: IndividualGovernmentIssue
   employee: PersonnelEmployee
   individual_educational_background: IndividualEducBg[]
   educations: {
@@ -317,6 +323,47 @@ export const usePdsStore = defineStore('pds', () => {
         association_organization: '',
       },
     ],
+    /** PDS C4 */
+    individual_question: [
+      {
+        q34_a: false,
+        q34_b: false,
+        q34_details: null,
+        q35_a: false,
+        q35_a_details: null,
+        q35_b: false,
+        q35_b_date_filed: null,
+        q35_b_status: null,
+        q36: false,
+        q36_details: null,
+        q37: false,
+        q37_details: null,
+        q38_a: false,
+        q38_a_details: null,
+        q38_b: false,
+        q38_b_details: null,
+        q39: false,
+        country_id: null,
+        q40_a_indigenous_group: false,
+        q40_a_details: null,
+        q40_b_pwd: false,
+        q40_b_details: null,
+        q40_c_solo_parent: false,
+        q40_c_details: null,
+      },
+    ],
+    individual_reference: [
+      {
+        name: '',
+        address: '',
+        tel_no: '',
+      },
+    ],
+    individual_government_id: {
+      gov_id_name: '',
+      gov_id_no: '',
+      gov_id_issuance: '',
+    },
     employee: {
       id: null,
       individual_basic_detail_id: null,

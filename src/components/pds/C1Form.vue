@@ -802,7 +802,7 @@ const handleSaveC1Form = async () => {
     pdsErrors.value = result?.errors
     showToast('error', 'PDS Error', 'Pease see the validation messages')
   } else {
-    showToast('success', 'PDS C1', 'PDS C1 Information has been saved')
+    showToast('success', 'PDS', 'PDS has been saved')
     router.push({ name: 'employment' })
   }
 

@@ -103,7 +103,6 @@ const formRules = computed(() => ({
   })),
   individual_voluntary_work: payload.individual_voluntary_work.map(() => ({
     from: {
-      required: helpers.withMessage('Start date is required.', required),
       isAfterOrEqualTo: helpers.withMessage(
         'Inclusive "From" date must not be after "To" date.',
         (
@@ -125,9 +124,6 @@ const formRules = computed(() => ({
       ),
     },
     to: {
-      required: helpers.withMessage('Inclusive "To" date is required', (val, vm) => {
-        return vm.is_current_work === true ? true : helpers.req(val)
-      }),
       isAfterOrEqualFromDate,
     },
   })),
@@ -270,7 +266,7 @@ const handleSaveC3Form = async () => {
     pdsErrors.value = result?.errors
     showToast('error', 'PDS C3 Error', 'Please see the validation messages')
   } else {
-    showToast('success', 'PDS', 'PDS Information has been saved')
+    showToast('success', 'PDS', 'PDS has been saved')
     router.push({ name: 'employment' })
   }
 

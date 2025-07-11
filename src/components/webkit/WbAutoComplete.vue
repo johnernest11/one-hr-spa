@@ -148,6 +148,11 @@ const search = useDebounceFn(async (event: AutoCompleteCompleteEvent) => {
           label: `${first} ${middle}${last} ${ext}`.trim().toUpperCase(),
           value: element[props.apiOptionValue],
         })
+      } else if (props.apiOptionLabel === 'country_code') {
+        filteredSuggestions.value?.push({
+          label: `${element.official_name}`,
+          value: element[props.apiOptionValue],
+        })
       } else {
         filteredSuggestions.value?.push({
           label: label,
