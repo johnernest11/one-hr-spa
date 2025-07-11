@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref, computed, watch, toRef } from 'vue'
+import { reactive, ref, computed, toRef } from 'vue'
 import { usePdsStore, PersonalDataSheetPayload } from '@/stores/pds.store.ts'
 import { useLibrariesStore } from '@/stores/libraries.store.ts'
 import { useRouter } from 'vue-router'
@@ -34,10 +34,9 @@ const errorMessage = ref()
 
 const isC4Loading = ref(false)
 const isPdsError = ref(false)
-const currentlyInvolved = ref(false)
 const activeToasts = ref<number>(0)
 const selectedCountry = ref<WbAutoCompleteOption[] | null>(null)
-const c1Tabs = ref([
+const c4Tabs = ref([
   { name: ' Other Information Continued', index: 0 },
   { name: ' References & Gov` Issued ID', index: 1 },
 ])
@@ -124,21 +123,6 @@ const formRules = computed(() => ({
   },
 }))
 
-watch(currentlyInvolved, (newVal) => {
-  payload.individual_voluntary_work.forEach((entry, index) => {
-    if (index === 0) {
-      // Only first Voluntary Work is current if employed
-      entry.is_current_org = newVal ? true : false
-      // If currently Voluntary Work, clear the to field
-      if (newVal) {
-        entry.to = null
-      }
-    } else {
-      entry.is_current_org = false
-    }
-  })
-})
-
 const validator = useVuelidate<PersonalDataSheetPayload>(formRules, payload)
 
 const showToast = (
@@ -214,7 +198,7 @@ const handleSaveC4Form = async () => {
     pdsErrors.value = result?.errors
     showToast('error', 'PDS C4 Error', 'Please see the validation messages')
   } else {
-    showToast('success', 'PDS', 'PDS Information has been saved')
+    showToast('success', 'PDS', 'PDS has been saved')
     router.push({ name: 'employment' })
   }
 
@@ -232,7 +216,7 @@ defineExpose({
       <div class="w-full">
         <TabGroup>
           <TabList class="flex">
-            <Tab v-for="subSection in c1Tabs" as="template" :key="subSection.index" v-slot="{ selected }">
+            <Tab v-for="subSection in c4Tabs" as="template" :key="subSection.index" v-slot="{ selected }">
               <button
                 :class="[
                   'w-full border-b-2 border-solid py-4 text-sm font-medium italic leading-5 ring-transparent transition-all duration-300 ease-in-out focus:outline-none md:text-base ',

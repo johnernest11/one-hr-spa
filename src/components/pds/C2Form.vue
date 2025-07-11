@@ -313,9 +313,9 @@ const handleSaveC2Form = async () => {
     isPdsError.value = true
     errorMessage.value = result?.message
     pdsErrors.value = result?.errors
-    showToast('error', 'PDS C1 Error', 'PLease see the validation messages')
+    showToast('error', 'PDS C2 Error', 'PLease see the validation messages')
   } else {
-    showToast('success', 'PDS C1', 'PDS C1 Information has been saved')
+    showToast('success', 'PDS', 'PDS has been saved')
     router.push({ name: 'employment' })
   }
 

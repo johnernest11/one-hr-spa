@@ -262,7 +262,7 @@ const handleSaveC3Form = async () => {
     pdsErrors.value = result?.errors
     showToast('error', 'PDS C3 Error', 'Please see the validation messages')
   } else {
-    showToast('success', 'PDS', 'PDS Information has been saved')
+    showToast('success', 'PDS', 'PDS has been saved')
     router.push({ name: 'employment' })
   }
 
