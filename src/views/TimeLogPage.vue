@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-import { QrcodeStream } from 'vue-qrcode-reader'
+import { QrcodeStream, DetectedBarcode } from 'vue-qrcode-reader'
 import { useDailyLogsStore } from '@/stores/daily-logs.store'
 import Dialog from 'primevue/dialog'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { getManilaTodayISO, formatTime } from '@/utils/helpers.ts'
-import { DetectedBarcode } from 'vue-qrcode-reader'
 
 const currentDate = ref('')
 const currentTime = ref('')
@@ -15,12 +14,13 @@ const dailyLogsStore = useDailyLogsStore()
 const todayISO = ref('')
 const errorMessage = ref<string | null>(null)
 const cameraError = ref<string | null>(null)
-
 const isMobile = ref(false)
 
-let isProcessingScan = false
-let scanTimeoutId: ReturnType<typeof setTimeout> | null = null
-const SCAN_COOLDOWN_MS = 3000
+const MODAL_DISPLAY_DURATION_MS = 1000
+const isProcessingScan = ref(false)
+const scannerPaused = ref(false) // New: Controls the 'paused' prop of QrcodeStream
+
+let scanTimeoutId: number | undefined
 
 const updateDailyLogsState = async (date: string) => {
   await dailyLogsStore.fetchDailyLogs(date)
@@ -53,23 +53,25 @@ const updateDateTime = () => {
 
   if (newTodayISO !== todayISO.value) {
     todayISO.value = newTodayISO
-    dailyLogsStore.fetchWarmBodySummary(todayISO.value)
-    updateDailyLogsState(todayISO.value)
+    void dailyLogsStore.fetchWarmBodySummary(todayISO.value)
+    void updateDailyLogsState(todayISO.value)
   }
 }
 
 let intervalId: number | undefined
 
-onMounted(() => {
+onMounted(async () => {
+  const today = getManilaTodayISO()
+  todayISO.value = today
+
   updateDateTime()
   intervalId = window.setInterval(updateDateTime, 1000)
+
   checkScreenSize()
   window.addEventListener('resize', checkScreenSize)
-  if (!todayISO.value) {
-    todayISO.value = getManilaTodayISO()
-  }
-  dailyLogsStore.fetchWarmBodySummary(todayISO.value)
-  updateDailyLogsState(todayISO.value)
+
+  await dailyLogsStore.fetchWarmBodySummary(today)
+  await updateDailyLogsState(today)
 })
 
 onUnmounted(() => {
@@ -82,28 +84,34 @@ onUnmounted(() => {
   }
 })
 
-const onDetect = async (detectedCodes: DetectedBarcode[]) => {
-  if (detectedCodes.length > 0 && !isProcessingScan) {
+const onDetect = (detectedCodes: DetectedBarcode[]) => {
+  if (detectedCodes.length > 0 && !isProcessingScan.value) {
     const firstCode = detectedCodes[0]
     const decodedString = firstCode.rawValue
 
-    isProcessingScan = true
-    onDecode(decodedString)
+    isProcessingScan.value = true
+    scannerPaused.value = true // Pause the scanner immediately upon detection
+
+    void onDecode(decodedString)
   }
 }
 
 const onDecode = async (result: string) => {
   errorMessage.value = null
-  cameraError.value = null
   dailyLogsStore.clearScannedEmployee()
 
+  if (scanTimeoutId) {
+    clearTimeout(scanTimeoutId)
+    scanTimeoutId = undefined
+  }
+
   if (!result || result.trim() === '') {
-    errorMessage.value = 'Empty QR code scanned. Please try again.'
+    dailyLogsStore.lastLogMessage = 'Empty QR code scanned. Please try again.'
     showModal.value = true
+    isProcessingScan.value = false
     scanTimeoutId = setTimeout(() => {
       handleCloseDialog()
-      isProcessingScan = false
-    }, SCAN_COOLDOWN_MS)
+    }, MODAL_DISPLAY_DURATION_MS) as unknown as number
     return
   }
 
@@ -112,25 +120,14 @@ const onDecode = async (result: string) => {
   try {
     await dailyLogsStore.logEmployeeTime(employeeIdentifierToSend)
     showModal.value = true
-
-    scanTimeoutId = setTimeout(() => {
-      handleCloseDialog()
-      isProcessingScan = false
-    }, SCAN_COOLDOWN_MS)
   } catch (err: unknown) {
-    if (err instanceof Error) {
-      errorMessage.value = err.message || 'An unexpected client-side error occurred.'
-    } else if (typeof err === 'string') {
-      errorMessage.value = err
-    } else {
-      errorMessage.value = 'An unexpected client-side error occurred.'
-    }
-
     showModal.value = true
+  } finally {
+    isProcessingScan.value = false
+
     scanTimeoutId = setTimeout(() => {
       handleCloseDialog()
-      isProcessingScan = false
-    }, SCAN_COOLDOWN_MS)
+    }, MODAL_DISPLAY_DURATION_MS) as unknown as number
   }
 }
 
@@ -151,7 +148,7 @@ const onInit = (promise: Promise<void>) => {
       } else if (err.name === 'StreamApiNotSupportedError') {
         cameraError.value = 'Browser does not support camera API.'
       } else {
-        cameraError.value = 'An unknown camera error occurred.'
+        cameraError.value = 'An unknown camera error occurred during initialization.'
       }
     })
 }
@@ -191,19 +188,23 @@ const dialogDynamicPosition = computed(() => {
 })
 
 const dynamicSuccessMessage = computed(() => {
-  if (dailyLogsStore.lastLogMessage && !dailyLogsStore.currentScannedEmployee) {
-    return dailyLogsStore.lastLogMessage
-  }
   if (dailyLogsStore.currentScannedEmployee) {
     return dailyLogsStore.currentScannedEmployee.is_in ? 'Timed In!' : 'Timed Out!'
   }
-  return 'Time Logged Successfully!'
+  if (dailyLogsStore.lastLogMessage) {
+    return dailyLogsStore.lastLogMessage
+  }
+  if (errorMessage.value) {
+    return errorMessage.value
+  }
+  return 'Processing...'
 })
 
 const handleCloseDialog = () => {
   showModal.value = false
   errorMessage.value = null
   dailyLogsStore.clearScannedEmployee()
+  scannerPaused.value = false // Resume the scanner when the dialog closes
 }
 
 const latestWarmBodyLogs = computed(() => {
@@ -230,12 +231,12 @@ const latestWarmBodyLogs = computed(() => {
         </div>
       </div>
       <div class="scrollbar-hide flex-1 space-y-1 overflow-y-auto text-center font-mono text-sm md:text-base">
-        <template v-for="entry in latestWarmBodyLogs" :key="entry.id">
-          <p>
-            {{ formatTime(entry.timestamp) }}
-            - {{ entry.employee_id }} ({{ entry.is_in ? 'IN' : 'OUT' }})
-          </p>
+        <template v-if="latestWarmBodyLogs.length">
+          <template v-for="entry in latestWarmBodyLogs" :key="entry.id">
+            <p>{{ formatTime(entry.timestamp) }} - {{ entry.employee_id }} ({{ entry.is_in ? 'IN' : 'OUT' }})</p>
+          </template>
         </template>
+        <p v-else class="text-gray-400">No logs found for today.</p>
       </div>
     </div>
 
@@ -248,13 +249,15 @@ const latestWarmBodyLogs = computed(() => {
       </div>
 
       <div class="flex max-h-[500px] w-full items-center justify-center">
-        <div class="flex h-[500px] w-full max-w-[500px] items-center justify-center overflow-hidden rounded-lg bg-white shadow">
+        <div
+          class="relative flex h-[500px] w-full max-w-[500px] items-center justify-center overflow-hidden rounded-lg bg-white shadow"
+        >
           <qrcode-stream
             @detect="onDetect"
             :constraints="{ facingMode: 'environment' }"
-            @decode="onDecode"
             @init="onInit"
             @camera-error="onCameraError"
+            :paused="scannerPaused"
             class="h-full w-full object-cover"
           />
         </div>
@@ -286,11 +289,11 @@ const latestWarmBodyLogs = computed(() => {
           <FontAwesomeIcon icon="fas fa-circle-xmark" class="mr-4 md:mr-6" />Error!
         </div>
         <p class="text-center text-xl font-medium text-surface-800 md:text-3xl">
-          {{ dailyLogsStore.lastLogMessage || errorMessage || 'An unexpected error occurred.' }}
+          {{ dailyLogsStore.lastLogMessage }}
         </p>
       </template>
 
-      <template v-else>
+      <template v-else-if="dailyLogsStore.currentScannedEmployee">
         <hr class="mb-6 border-t border-surface-300" />
 
         <div class="flex items-center text-4xl font-semibold text-success-600 md:text-4xl">
@@ -328,6 +331,11 @@ const latestWarmBodyLogs = computed(() => {
             </p>
           </div>
         </div>
+      </template>
+      <template v-else>
+        <p class="text-center text-xl font-medium text-surface-800 md:text-3xl">
+          {{ errorMessage || 'Processing...' }}
+        </p>
       </template>
     </Dialog>
   </div>

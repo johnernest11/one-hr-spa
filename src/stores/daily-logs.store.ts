@@ -61,7 +61,6 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
   })
 
   const logEmployeeTime = async (rawQrText: string) => {
-    console.log('API called')
     currentScannedEmployee.value = null
     lastLogMessage.value = null
 
@@ -69,54 +68,98 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
       scanned_qr: rawQrText,
     }
 
-    const { data } = await useApiCall('employees/log-time', authStore.authenticationToken).post(payload).json()
+    try {
+      const { data, error } = await useApiCall('employees/log-time', authStore.authenticationToken).post(payload).json()
 
-    const responseBody: ApiResponseBody = data.value
+      if (error.value) {
+        let errorToDisplay = 'An unexpected network error occurred. Please try again.'
+        const backendErrorBody: ApiResponseBody | null = data.value as ApiResponseBody | null
 
-    if (responseBody.success) {
-      lastLogMessage.value = responseBody.message || 'Time logged successfully.'
-      const warmBodyLog = responseBody.data as WarmBodyLogEntry
-
-      const employeeDetails = warmBodyLog?.daily_time_record?.employee?.individual_basic_detail
-      const employeeItem = warmBodyLog?.daily_time_record?.employee?.item
-
-      const photoUrl =
-        employeeDetails?.user_profile?.profile_picture_url && employeeDetails.user_profile.profile_picture_url.trim() !== ''
-          ? employeeDetails.user_profile.profile_picture_url
-          : '/src/assets/image/Photo Card.png'
-
-      if (warmBodyLog && employeeDetails && employeeItem) {
-        currentScannedEmployee.value = {
-          id: warmBodyLog.daily_time_record?.employee?.id_number || 'N/A',
-          name: `${employeeDetails.first_name || ''} ${employeeDetails.last_name || ''}`.trim() || 'N/A',
-          position: employeeItem.position?.title || 'N/A',
-          is_in: warmBodyLog.is_in,
-          timestamp: warmBodyLog.created_at || new Date().toISOString(),
-          photo_url: photoUrl,
+        if (backendErrorBody) {
+          if (backendErrorBody.errors && backendErrorBody.errors.length > 0) {
+            const scannedQrError = backendErrorBody.errors.find((err) => err.field === 'scanned_qr')
+            if (scannedQrError && scannedQrError.messages && scannedQrError.messages.length > 0) {
+              errorToDisplay = scannedQrError.messages[0]
+            } else {
+              errorToDisplay = backendErrorBody.errors[0].messages[0] || backendErrorBody.message || errorToDisplay
+            }
+          } else if (backendErrorBody.error_message) {
+            errorToDisplay = backendErrorBody.error_message
+          } else if (backendErrorBody.message) {
+            errorToDisplay = backendErrorBody.message
+          }
+        } else {
+          errorToDisplay = error.value.message || 'Network unreachable or server down. Check your connection.'
         }
-      } else {
-        currentScannedEmployee.value = {
-          id: 'N/A',
-          name: 'Unknown Employee',
-          position: 'N/A',
-          is_in: warmBodyLog?.is_in || false,
-          timestamp: warmBodyLog?.created_at || new Date().toISOString(),
-          photo_url: '/src/assets/image/placeholder-profile.png',
-        }
+
+        lastLogMessage.value = errorToDisplay
+        currentScannedEmployee.value = null
+        throw new Error(lastLogMessage.value)
       }
 
-      const today = getManilaTodayISO()
-      await fetchWarmBodySummary(today)
-      await fetchDailyLogs(today)
-    } else {
-      lastLogMessage.value = responseBody.message || 'Failed to log time.'
-      currentScannedEmployee.value = null
-    }
+      const responseBody: ApiResponseBody = data.value
 
-    return {
-      success: responseBody.success,
-      message: lastLogMessage.value,
-      data: currentScannedEmployee.value,
+      if (responseBody.success) {
+        lastLogMessage.value = responseBody.message || 'Time logged successfully.'
+        const warmBodyLog = responseBody.data as WarmBodyLogEntry
+
+        const employeeDetails = warmBodyLog?.daily_time_record?.employee?.individual_basic_detail
+        const employeeItem = warmBodyLog?.daily_time_record?.employee?.item
+
+        const photoUrl =
+          employeeDetails?.user_profile?.profile_picture_url && employeeDetails.user_profile.profile_picture_url.trim() !== ''
+            ? employeeDetails.user_profile.profile_picture_url
+            : '/src/assets/image/placeholder-profile.png'
+
+        if (warmBodyLog && employeeDetails && employeeItem) {
+          currentScannedEmployee.value = {
+            id: warmBodyLog.daily_time_record?.employee?.id_number || 'N/A',
+            name: `${employeeDetails.first_name || ''} ${employeeDetails.last_name || ''}`.trim() || 'N/A',
+            position: employeeItem.position?.title || 'N/A',
+            is_in: warmBodyLog.is_in,
+            timestamp: warmBodyLog.created_at || new Date().toISOString(),
+            photo_url: photoUrl,
+          }
+        } else {
+          currentScannedEmployee.value = {
+            id: 'N/A',
+            name: 'Unknown Employee',
+            position: 'N/A',
+            is_in: warmBodyLog?.is_in || false,
+            timestamp: warmBodyLog?.created_at || new Date().toISOString(),
+            photo_url: '/src/assets/image/placeholder-profile.png',
+          }
+        }
+
+        const today = getManilaTodayISO()
+        void fetchWarmBodySummary(today)
+        void fetchDailyLogs(today)
+      } else {
+        lastLogMessage.value = responseBody.error_message || responseBody.message || 'Failed to log time due to server logic.'
+        currentScannedEmployee.value = null
+        throw new Error(lastLogMessage.value)
+      }
+
+      return {
+        success: responseBody.success,
+        message: lastLogMessage.value,
+        data: currentScannedEmployee.value,
+      }
+    } catch (err: unknown) {
+      if (!lastLogMessage.value) {
+        if (err instanceof Error) {
+          lastLogMessage.value = err.message || 'An unexpected client-side error occurred.'
+        } else if (typeof err === 'string') {
+          lastLogMessage.value = err
+        } else {
+          lastLogMessage.value = 'An unexpected client-side error occurred.'
+        }
+      }
+      return {
+        success: false,
+        message: lastLogMessage.value,
+        data: null,
+      }
     }
   }
 
@@ -126,58 +169,85 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
   }
 
   const fetchDailyLogs = async (date: string) => {
-    const { data } = await useApiCall(`employees/daily-time-records/time-logs?date=${date}`, authStore.authenticationToken)
-      .get()
-      .json()
+    try {
+      const { data, error } = await useApiCall(
+        `employees/daily-time-records/time-logs?date=${date}`,
+        authStore.authenticationToken
+      )
+        .get()
+        .json()
 
-    const responseBody: ApiResponseBody = data.value
+      if (error.value) {
+        const logEntry = dailyLogs.value.find((l) => l.date === date)
+        if (logEntry) {
+          logEntry.warm_bodies = []
+        }
+        return { success: false, message: error.value.message }
+      }
 
-    if (responseBody.success && Array.isArray(responseBody.data)) {
-      const mappedLogs = (responseBody.data as TimeLogEntry[])
-        .map((log: TimeLogEntry) => ({
+      const responseBody: ApiResponseBody = data.value
+
+      if (responseBody.success && Array.isArray(responseBody.data)) {
+        const mappedLogs = (responseBody.data as TimeLogEntry[]).map((log: TimeLogEntry) => ({
           employee_id: log.id_number,
           timestamp: `${log.time_log_date}T${log.scanned_time}`,
           is_in: log.is_in,
           id: log.time_log_id,
           daily_time_record_id: undefined,
         }))
-        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
 
-      const logEntry = dailyLogs.value.find((l) => l.date === date)
-      if (logEntry) {
-        logEntry.warm_bodies = mappedLogs
+        const logEntry = dailyLogs.value.find((l) => l.date === date)
+        if (logEntry) {
+          logEntry.warm_bodies = mappedLogs
+        } else {
+          dailyLogs.value.push({
+            date: date,
+            warm_bodies: mappedLogs,
+          })
+        }
+        return { success: true, message: responseBody.message }
       } else {
-        dailyLogs.value.push({
-          date: date,
-          warm_bodies: mappedLogs,
-        })
+        const logEntry = dailyLogs.value.find((l) => l.date === date)
+        if (logEntry) {
+          logEntry.warm_bodies = []
+        }
+        return responseBody
       }
-    } else {
+    } catch (err) {
       const logEntry = dailyLogs.value.find((l) => l.date === date)
       if (logEntry) {
         logEntry.warm_bodies = []
       }
+      return { success: false, message: 'An unexpected error occurred while fetching daily logs.' }
     }
-    return responseBody
   }
 
   const fetchWarmBodySummary = async (date: string) => {
-    const { data } = await useApiCall(
-      `/employees/daily-time-records/warm-bodies/count?date=${date}`,
-      authStore.authenticationToken
-    )
-      .get()
-      .json()
+    try {
+      const { data, error } = await useApiCall(
+        `/employees/daily-time-records/warm-bodies/count?date=${date}`,
+        authStore.authenticationToken
+      )
+        .get()
+        .json()
 
-    const responseBody: ApiResponseBody = data.value
+      if (error.value) {
+        warmBodySummary.value = null
+        return { success: false, message: error.value.message }
+      }
 
-    if (responseBody.success) {
-      warmBodySummary.value = responseBody.data as WarmBodySummary
-    } else {
+      const responseBody: ApiResponseBody = data.value
+
+      if (responseBody.success) {
+        warmBodySummary.value = responseBody.data as WarmBodySummary
+      } else {
+        warmBodySummary.value = null
+      }
+      return responseBody
+    } catch (err) {
       warmBodySummary.value = null
+      return { success: false, message: 'An unexpected error occurred while fetching warm body summary.' }
     }
-
-    return responseBody
   }
 
   return {
