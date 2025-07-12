@@ -5,6 +5,11 @@ import { useAuthStore } from '@/stores/auth.store.ts'
 import { ApiResponseBody } from '@/typings/http-resources.types'
 import { PersonnelResponse, QrCodeResponse } from '@/typings/models.types.ts'
 
+export type FilterEmployeePayload = {
+  division: number | null
+  section: number | null
+}
+
 export const usePersonnelStore = defineStore('personnel', () => {
   /** States */
   const authStore = useAuthStore()
@@ -22,6 +27,36 @@ export const usePersonnelStore = defineStore('personnel', () => {
     if (responseBody.success) {
       const employeeList = responseBody.data as PersonnelResponse[]
       employees.value = [...employeeList]
+    }
+
+    return responseBody
+  }
+  const searchEmployees = async (query: string | null) => {
+    let uri = '/individual-basic-details/search?'
+    if (query) uri += `query=${query}`
+    const { data } = await useApiCall(uri, authStore.authenticationToken).get().json()
+    const responseBody: ApiResponseBody = data.value
+    if (responseBody.success) {
+      const itemNumbersList = responseBody.data as PersonnelResponse[]
+      employees.value = [...itemNumbersList]
+    }
+    return responseBody
+  }
+
+  const filterEmployees = async (divisionId?: number | null, sectionOrUnitId?: number | null) => {
+    const params = new URLSearchParams()
+
+    if (divisionId != null) params.append('division_id', divisionId.toString())
+    if (sectionOrUnitId != null) params.append('section_or_unit_id', sectionOrUnitId.toString())
+
+    const queryString = params.toString()
+    const uri = queryString ? `/individual-basic-details?${queryString}` : '/individual-basic-details' // ✅ clean fallback when no filter
+
+    const { data } = await useApiCall(uri, authStore.authenticationToken).get().json()
+    const responseBody: ApiResponseBody = data.value
+
+    if (responseBody.success) {
+      employees.value = [...(responseBody.data as PersonnelResponse[])]
     }
 
     return responseBody
@@ -57,6 +92,8 @@ export const usePersonnelStore = defineStore('personnel', () => {
     isEmployeesLoading,
     employees,
     fetchEmployees,
+    searchEmployees,
+    filterEmployees,
     fetchQrCode,
     generateQrCode,
   }

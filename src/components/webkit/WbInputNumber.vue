@@ -21,6 +21,7 @@ type WbInputTextProps = {
   labelClass?: string
   validationErrorMessageClass?: string
   validationSuccessMessageClass?: string
+  mode?: 'decimal' | 'currency' | 'integer' // ✅ Add this
 }
 
 const props = withDefaults(defineProps<WbInputTextProps>(), {
@@ -33,6 +34,7 @@ const props = withDefaults(defineProps<WbInputTextProps>(), {
   labelClass: '',
   validationErrorMessageClass: '',
   validationSuccessMessageClass: '',
+  mode: 'decimal', // ✅ Default to decimal
 })
 </script>
 

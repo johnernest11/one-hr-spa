@@ -25,11 +25,11 @@ export const useLibrariesStore = defineStore('libraries', () => {
   ])
 
   const civilStatusOptions = ref([
-    { value: 'Single', label: 'Single' },
-    { value: 'Married', label: 'Married' },
-    { value: 'Widowed', label: 'Widowed' },
-    { value: 'Divorced', label: 'Divorced' },
-    { value: 'Separated', label: 'Separated' },
+    { value: 'single', label: 'Single' },
+    { value: 'married', label: 'Married' },
+    { value: 'widowed', label: 'Widowed' },
+    { value: 'divorced', label: 'Divorced' },
+    { value: 'separated', label: 'Separated' },
   ])
 
   const citizenshipAcquisitionOptions = ref([
