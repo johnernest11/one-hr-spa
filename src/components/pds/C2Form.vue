@@ -422,7 +422,7 @@ defineExpose({
                           <WbCalendar
                             v-model="payload.individual_eligibility[eligibilityIndex - 1].date_of_examination_conferment"
                             label="Date of Exam / Conferment"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-xs"
+                            label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             :dateFormat="'yy-mm-dd'"
                             :invalid="
