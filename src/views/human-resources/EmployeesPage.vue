@@ -9,15 +9,17 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import Column from 'primevue/column'
 import DataTable from 'primevue/datatable'
 import Dialog from 'primevue/dialog'
+import { useToast } from 'primevue/usetoast'
 import QRCodeStyling from 'qr-code-styling'
 import { ApiResponsePagination } from '@/typings/http-resources.types.ts'
 import { useAuthStore } from '@/stores/auth.store.ts'
 import { usePersonnelStore } from '@/stores/personnel.store'
 import DSWDLogo from '@/assets/image/DSWD logo_Mark.png'
-import type { PersonnelResponse, QrCodeResponse } from '@/typings/models.types'
+import type { PersonnelEmployee, PersonnelResponse, QrCodeResponse } from '@/typings/models.types'
 import type { ApiResponseBody } from '@/typings/http-resources.types.ts'
 const personnelStore = usePersonnelStore()
 
+const toast = useToast()
 const columnWidths = ['w-32', 'w-24', 'w-64', 'w-24', 'w-40', 'w-32', 'w-48']
 const searchQuery = ref('')
 const menu = ref()
@@ -63,26 +65,56 @@ const handleSearchEmployee = () => {
 }
 
 const showQrModal = ref(false)
-const selectedEmployeeForQr = ref() // @todo Update this back to PersonnelResponse once the typings for it has been fixed.
+const selectedEmployeeForQr = ref()
 const fetchedQrCode = ref<QrCodeResponse | null>(null)
 const qrCodeIsLoading = ref(false)
 
-const openQrModal = async (employee: PersonnelResponse) => {
-  selectedEmployeeForQr.value = employee
+const openQrModal = async (individual: PersonnelResponse) => {
+  selectedEmployeeForQr.value = individual
   showQrModal.value = true
   fetchedQrCode.value = null
-  fetchedQrCode.value = await handleViewQr(employee)
+
+  // It is possible for an individual to have a different employee id to its individual id.
+  // Therefore, check if the individual has an employee connected to it, then proceed with the rest of the logic.
+  if (!individual.employee) {
+    toast.add({
+      severity: 'error',
+      summary: 'Invalid action.',
+      detail: 'Employee not found.',
+      life: 5000,
+    })
+    console.log('The selected individual has no employee record.')
+  } else {
+    fetchedQrCode.value = await handleViewQr(individual.employee)
+  }
 }
 
-const handleViewQr = async (employee: PersonnelResponse): Promise<QrCodeResponse> => {
+const canDownload = ref(false)
+const handleViewQr = async (employee: PersonnelEmployee): Promise<QrCodeResponse> => {
   let response: ApiResponseBody
   qrCodeIsLoading.value = true
+  canDownload.value = false // reset everytime user is attempting to view a QR.
   response = await personnelStore.fetchQrCode(employee.id)
 
   if (response.error_message === 'Employee has no QR code yet.' && !response.success) {
     response = await personnelStore.generateQrCode(employee.id)
+
+    if (response.error_message === 'This employee has no ID number.' && !response.success) {
+      toast.add({
+        severity: 'error',
+        summary: 'Cannot generate QR code.',
+        detail: response.error_message + ' Kindly contact the administrator for support.',
+        life: 5000,
+      })
+      console.log('Encountered error while attempting to generate QR code for the employee. ', response)
+
+      personnelStore.isEmployeesLoading = false
+      qrCodeIsLoading.value = false
+      return response.data as QrCodeResponse
+    }
   }
 
+  canDownload.value = true
   personnelStore.isEmployeesLoading = false
   qrCodeIsLoading.value = false
   return response.data as QrCodeResponse
@@ -414,6 +446,7 @@ const downloadQrCode = async () => {
                 severity="info"
                 type="button"
                 size="large"
+                :disabled="!canDownload"
                 class="dark:text-secondary-100 bottom-0 right-0 mt-4 w-full border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
                 text
               >

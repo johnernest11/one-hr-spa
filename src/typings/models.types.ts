@@ -183,7 +183,7 @@ export type WorkExperienceSheetResponse = {
 
 /**Employee Data  (HTTP Responses) */
 export type PersonnelEmployee = {
-  id: number | null
+  id: number
   individual_basic_detail_id: PersonnelResponse | null
   id_number: string | null
   item_id: number | null
