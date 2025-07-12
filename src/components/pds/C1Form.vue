@@ -1843,6 +1843,55 @@ defineExpose({
                       @blur="validator.individual_family_spouse.ext_name.$touch"
                     />
                   </div>
+                  <div class="flex flex-col gap-x-12 gap-y-4 md:flex-row">
+                    <WbInputText
+                      v-model="payload.individual_family_spouse.occupation"
+                      label="Occupation"
+                      label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                      class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                      :disabled="isSingle"
+                      validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                      :invalid="validator.individual_family_spouse.occupation.$invalid"
+                      :invalid-text="validator.individual_family_spouse.occupation.$errors[0]?.$message"
+                      @blur="validator.individual_family_spouse.occupation.$touch"
+                    />
+
+                    <WbInputText
+                      v-model="payload.individual_family_spouse.employers_business_name"
+                      label="Employer/Business Name"
+                      label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                      class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                      :disabled="isSingle"
+                      validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                      :invalid="validator.individual_family_spouse.employers_business_name.$invalid"
+                      :invalid-text="validator.individual_family_spouse.employers_business_name.$errors[0]?.$message"
+                      @blur="validator.individual_family_spouse.employers_business_name.$touch"
+                    />
+
+                    <WbInputText
+                      v-model="payload.individual_family_spouse.business_address"
+                      label="Business Address"
+                      label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                      class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                      :disabled="isSingle"
+                      validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                      :invalid="validator.individual_family_spouse.business_address.$invalid"
+                      :invalid-text="validator.individual_family_spouse.business_address.$errors[0]?.$message"
+                      @blur="validator.individual_family_spouse.business_address.$touch"
+                    />
+
+                    <WbInputText
+                      v-model="payload.individual_family_spouse.telephone_no"
+                      label="Telephone No"
+                      label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                      class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                      :disabled="isSingle"
+                      validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                      :invalid="validator.individual_family_spouse.telephone_no.$invalid"
+                      :invalid-text="validator.individual_family_spouse.telephone_no.$errors[0]?.$message"
+                      @blur="validator.individual_family_spouse.telephone_no.$touch"
+                    />
+                  </div>
                   <span class="mt-2 flex flex-col justify-center space-y-2 font-medium text-primary-700">
                     <p class="text-lg italic md:text-xl">Father</p>
                   </span>
