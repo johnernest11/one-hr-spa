@@ -43,7 +43,6 @@ const pdsStore = usePdsStore()
 const getId = usePrependOrAppendOnce('employee-filter')
 
 const itemNumberIsLoading = ref(false)
-const pdsImportIsLoading = ref(false)
 const searchSubmitted = ref(false)
 const showModal = ref(false)
 const showQrModal = ref(false)
@@ -255,14 +254,26 @@ const handleImportSubmission = async () => {
 
   const importResponse = await pdsStore.importPds(file, metadata)
 
-  if (importResponse.success === false) {
+  if (!importResponse.success) {
     const result = parseApiResponseError(importResponse)
 
     showErrorAlert.value = true
     errorMessage.value = result?.message
     errorDetails.value = result?.errors
+  } else {
+    toast.add({
+      severity: 'success',
+      summary: 'Import Successful',
+      detail: 'Personnel Data Sheet has been imported successfully.',
+      life: 5000,
+    })
+
+    setTimeout(() => {
+      window.location.reload()
+    }, 1000)
   }
-  pdsImportIsLoading.value = false
+
+  formIsSubmitting.value = false
 }
 
 onBeforeMount(async () => {
