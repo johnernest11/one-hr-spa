@@ -16,11 +16,12 @@ const errorMessage = ref<string | null>(null)
 const cameraError = ref<string | null>(null)
 const isMobile = ref(false)
 
-const MODAL_DISPLAY_DURATION_MS = 1500
+const MODAL_DISPLAY_DURATION_MS = 10000
 const isProcessingScan = ref(false)
-const scannerPaused = ref(false) // New: Controls the 'paused' prop of QrcodeStream
+const scannerPaused = ref(false)
 
-let scanTimeoutId: number | undefined
+const scanTimeoutId = ref<number | undefined>(undefined)
+const intervalId = ref<number | undefined>(undefined)
 
 const updateDailyLogsState = async (date: string) => {
   await dailyLogsStore.fetchDailyLogs(date)
@@ -58,14 +59,12 @@ const updateDateTime = () => {
   }
 }
 
-let intervalId: number | undefined
-
 onMounted(async () => {
   const today = getManilaTodayISO()
   todayISO.value = today
 
   updateDateTime()
-  intervalId = window.setInterval(updateDateTime, 1000)
+  intervalId.value = window.setInterval(updateDateTime, 1000)
 
   checkScreenSize()
   window.addEventListener('resize', checkScreenSize)
@@ -75,12 +74,12 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
-  if (intervalId) {
-    clearInterval(intervalId)
+  if (intervalId.value) {
+    clearInterval(intervalId.value)
   }
   window.removeEventListener('resize', checkScreenSize)
-  if (scanTimeoutId) {
-    clearTimeout(scanTimeoutId)
+  if (scanTimeoutId.value) {
+    clearTimeout(scanTimeoutId.value)
   }
 })
 
@@ -90,9 +89,8 @@ const onDetect = (detectedCodes: DetectedBarcode[]) => {
     const decodedString = firstCode.rawValue
 
     isProcessingScan.value = true
-    scannerPaused.value = true // Pause the scanner immediately upon detection
-
-    void onDecode(decodedString)
+    scannerPaused.value = true
+    onDecode(decodedString)
   }
 }
 
@@ -100,16 +98,16 @@ const onDecode = async (result: string) => {
   errorMessage.value = null
   dailyLogsStore.clearScannedEmployee()
 
-  if (scanTimeoutId) {
-    clearTimeout(scanTimeoutId)
-    scanTimeoutId = undefined
+  if (scanTimeoutId.value) {
+    clearTimeout(scanTimeoutId.value)
+    scanTimeoutId.value = undefined
   }
 
   if (!result || result.trim() === '') {
     dailyLogsStore.lastLogMessage = 'Empty QR code scanned. Please try again.'
     showModal.value = true
     isProcessingScan.value = false
-    scanTimeoutId = setTimeout(() => {
+    scanTimeoutId.value = setTimeout(() => {
       handleCloseDialog()
     }, MODAL_DISPLAY_DURATION_MS) as unknown as number
     return
@@ -125,7 +123,7 @@ const onDecode = async (result: string) => {
   } finally {
     isProcessingScan.value = false
 
-    scanTimeoutId = setTimeout(() => {
+    scanTimeoutId.value = setTimeout(() => {
       handleCloseDialog()
     }, MODAL_DISPLAY_DURATION_MS) as unknown as number
   }
@@ -204,7 +202,7 @@ const handleCloseDialog = () => {
   showModal.value = false
   errorMessage.value = null
   dailyLogsStore.clearScannedEmployee()
-  scannerPaused.value = false // Resume the scanner when the dialog closes
+  scannerPaused.value = false
 }
 
 const latestWarmBodyLogs = computed(() => {
@@ -279,7 +277,6 @@ const latestWarmBodyLogs = computed(() => {
       :pt="{
         root: 'flex flex-col h-full bg-white shadow-lg p-4 md:p-12',
         header: 'hidden',
-        // Modified content classes for top and center alignment
         content: 'flex-grow flex flex-col items-center justify-start space-y-6 md:space-y-12 text-center h-full',
       }"
     >
