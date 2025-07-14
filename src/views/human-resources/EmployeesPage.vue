@@ -74,8 +74,6 @@ const openQrModal = async (individual: PersonnelResponse) => {
   showQrModal.value = true
   fetchedQrCode.value = null
 
-  // It is possible for an individual to have a different employee id to its individual id.
-  // Therefore, check if the individual has an employee connected to it, then proceed with the rest of the logic.
   if (!individual.employee) {
     toast.add({
       severity: 'error',
