@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { Ref, ref } from 'vue'
 import { defineStore } from 'pinia'
 import {
   IndividualAddress,
@@ -16,6 +16,7 @@ import {
   IndividualVoluntaryWork,
   IndividualWorkExperience,
   PersonnelEmployee,
+  ImportPdsResponse,
 } from '@/typings/models.types.ts'
 import { useApiCall } from '@/composables/network'
 import { useAuthStore } from '@/stores/auth.store.ts'
@@ -105,6 +106,7 @@ export const usePdsStore = defineStore('pds', () => {
   /** States */
   const authStore = useAuthStore()
   const pdsMode = ref('')
+  const importResult: Ref<ApiResponseBody | null> = ref(null)
 
   const pdsInfo = ref<PersonalDataSheetPayload>({
     individual: {
@@ -410,9 +412,40 @@ export const usePdsStore = defineStore('pds', () => {
     return data.value as ApiResponseBody
   }
 
+  const importPds = async (file: File, metadata: ImportPdsResponse): Promise<ApiResponseBody> => {
+    const formData = new FormData()
+
+    // --- Required fields ---
+    formData.append('excel_file', file)
+    formData.append('is_update', '0')
+    formData.append('employee_id', '')
+
+    // --- Append optional metadata if present ---
+    const appendIfDefined = (key: string, value: unknown) => {
+      if (value !== null && value !== undefined && value !== '') {
+        formData.append(key, String(value))
+      }
+    }
+
+    appendIfDefined('item_id', metadata.item_id)
+    appendIfDefined('salary_grade_id', metadata.salary_grade_id)
+    appendIfDefined('office_id', metadata.office_id)
+    appendIfDefined('division_id', metadata.division_id)
+    appendIfDefined('section_or_unit_id', metadata.section_or_unit_id)
+    appendIfDefined('id_number', metadata.id_number)
+    appendIfDefined('agency_employee_no', metadata.agency_employee_no)
+
+    const { data } = await useApiCall('/individual-basic-details/import', authStore.authenticationToken).post(formData).json()
+
+    importResult.value = data.value
+    return data.value
+  }
+
   return {
     pdsInfo,
     savePds,
+    importPds,
     pdsMode,
+    importResult,
   }
 })

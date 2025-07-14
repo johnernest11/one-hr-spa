@@ -1,9 +1,16 @@
 <script setup lang="ts">
-import { onBeforeMount, ref, computed, watchEffect, toRef, reactive } from 'vue'
+import { onBeforeMount, ref, computed, watchEffect, toRef, reactive, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth.store.ts'
 import { usePersonnelStore, FilterEmployeePayload } from '@/stores/personnel.store'
+import { useItemNumberStore } from '@/stores/item-number.store.ts'
+import { useSalaryGradesStore } from '@/stores/salary-grades.store.ts'
 import { useLibrariesStore } from '@/stores/libraries.store'
+import { usePdsStore, PersonalDataSheetPayload } from '@/stores/pds.store.ts'
+import { helpers, required, maxLength } from '@vuelidate/validators'
+import type { PersonnelResponse, QrCodeResponse, ItemNumberResponse } from '@/typings/models.types'
 
+import QRCodeStyling from 'qr-code-styling'
+import Message from 'primevue/message'
 import Button from 'primevue/button'
 import Menu from 'primevue/menu'
 import InputGroup from 'primevue/inputgroup'
@@ -13,41 +20,55 @@ import DataTable from 'primevue/datatable'
 import Dialog from 'primevue/dialog'
 import Card from 'primevue/card'
 import DSWDLogo from '@/assets/image/DSWD logo_Mark.png'
-
+import FileUpload from 'primevue/fileupload'
+import WbInputText from '@/components/webkit/WbInputText.vue'
 import WbAutoComplete from '@/components/webkit/WbAutoComplete.vue'
 import { WbAutoCompleteOption, WbAutoCompleteOptionTrueValue } from '@/components/webkit/WbAutoComplete.vue'
 import { useWbAutoCompleteHandleTrueValue } from '@/composables/wb-ui-components.ts'
 
-import type { PersonnelResponse, QrCodeResponse } from '@/typings/models.types'
+import { parseApiResponseError } from '@/utils/error-handle.ts'
 import { ApiResponseBody, ApiResponsePagination } from '@/typings/http-resources.types.ts'
 import Paginator, { PageState } from 'primevue/paginator'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { usePrependOrAppendOnce } from '@/utils/helpers.js'
-import QRCodeStyling from 'qr-code-styling'
+import useVuelidate from '@vuelidate/core'
+import { useToast } from 'primevue/usetoast'
 
 const authStore = useAuthStore()
 const personnelStore = usePersonnelStore()
 const libraryStore = useLibrariesStore()
+const sgStore = useSalaryGradesStore()
+const employment = useItemNumberStore()
+const pdsStore = usePdsStore()
 const getId = usePrependOrAppendOnce('employee-filter')
+
 const itemNumberIsLoading = ref(false)
+const pdsImportIsLoading = ref(false)
 const searchSubmitted = ref(false)
 const showModal = ref(false)
 const showQrModal = ref(false)
 const selectedEmployeeForQr = ref() // @todo Update this back to PersonnelResponse once the typings for it has been fixed.
 const qrCodeIsLoading = ref(false)
+const isPositionLoading = ref(false)
+const formIsSubmitting = ref(false)
+const ImportPDS = ref(false)
+const showErrorAlert = ref(false)
 
 const searchQuery = ref<string | null>(null)
 const fetchedQrCode = ref<QrCodeResponse | null>(null)
 const pagination = ref<ApiResponsePagination | null>(null)
 
-const selectedDivision = ref<WbAutoCompleteOption | null>(null)
-const selectedSectionUnit = ref<WbAutoCompleteOption | null>(null)
+const selectedDivision = ref<WbAutoCompleteOption[] | null>(null)
+const selectedSectionUnit = ref<WbAutoCompleteOption[] | null>(null)
 
 const selectedDivisionLabel = ref<string | null>(null)
 const selectedSectionLabel = ref<string | null>(null)
-
+const errorMessage = ref()
+const errorDetails = ref()
 const paginationLimit = 5
+const fileUploadRef = ref()
 const menu = ref()
+const toast = useToast()
 
 const items = ref([
   {
@@ -66,11 +87,183 @@ const items = ref([
   },
 ])
 
+const openViaImportPDS = () => {
+  ImportPDS.value = true
+}
+
+const selectedItemNo = ref<WbAutoCompleteOption[] | null>(null)
+const selectedSalaryGrade = ref<WbAutoCompleteOption[] | null>(null)
+const selectedOffice = ref<WbAutoCompleteOption[] | null>(null)
+
 /** Payload */
 const payload = reactive<FilterEmployeePayload>({
   division: null,
   section: null,
 })
+
+/** import Payload */
+const importPayload = reactive<PersonalDataSheetPayload>({
+  ...pdsStore.pdsInfo,
+})
+
+const generateMessage = (fieldName: string): { required: string; maxLength: string } => ({
+  required: `Please enter your ${fieldName.replace(/_/g, ' ')}`,
+  maxLength: `${fieldName.replace(/_/g, ' ')} cannot exceed the maximum length`,
+})
+
+const globalStringMaxLength = import.meta.env.VITE_GLOBAL_STRING_MAX_LENGTH
+const globalStringMaxLengthRule = helpers.withMessage(
+  `Must not exceed ${globalStringMaxLength} characters`,
+  maxLength(globalStringMaxLength)
+)
+
+const formRules = computed(() => ({
+  $lazy: true,
+  /** User Profile */
+  employee: {
+    item_id: {
+      required: helpers.withMessage('Please choose the Item Number of this employee', required),
+    },
+    salary_grade_id: {
+      required: helpers.withMessage('Please choose the salary grade for this item', required),
+    },
+    office_id: {
+      required: helpers.withMessage('Please choose the office of the item', required),
+    },
+    division_id: {
+      required: helpers.withMessage('Please choose the division of the item', required),
+    },
+    section_or_unit_id: {
+      required: helpers.withMessage('Please choose the section/unit of the item', required),
+    },
+    agency_employee_no: {
+      required: helpers.withMessage('agency employee no is required', required),
+      maxLength: helpers.withMessage(() => generateMessage('agency_employee_no').maxLength, globalStringMaxLengthRule),
+    },
+  },
+}))
+
+watch(
+  () => importPayload.employee.agency_employee_no,
+  (newAgencyNo) => {
+    importPayload.employee.id_number = newAgencyNo || null
+  }
+)
+
+watch(
+  () => importPayload.employee.item_id,
+  (newSelectedItem) => {
+    if (!newSelectedItem) {
+      selectedItemNo.value = null
+      return
+    } else {
+      propPosition()
+    }
+  }
+)
+
+watch(
+  () => importPayload.employee.salary_grade_id,
+  (newSelectedItem) => {
+    if (!newSelectedItem) {
+      selectedSalaryGrade.value = null
+      return
+    }
+  }
+)
+
+watch(
+  () => importPayload.employee.office_id,
+  (newSelectedItem) => {
+    if (!newSelectedItem) {
+      selectedOffice.value = null
+      return
+    }
+  }
+)
+
+watch(
+  () => importPayload.employee.division_id,
+  (newSelectedItem) => {
+    if (!newSelectedItem) {
+      selectedDivision.value = null
+      return
+    }
+  }
+)
+
+watch(
+  () => importPayload.employee.section_or_unit_id,
+  (newSelectedItem) => {
+    if (!newSelectedItem) {
+      selectedSectionUnit.value = null
+      return
+    }
+  }
+)
+
+const propPosition = async () => {
+  isPositionLoading.value = true
+
+  if (importPayload.employee.item_id) {
+    const itemResp = await employment.fetchItemNumberById(importPayload.employee.item_id)
+    const itemRespData = itemResp.data as ItemNumberResponse
+    importPayload.employee.position = itemRespData.position?.title ?? null
+  }
+
+  isPositionLoading.value = false
+}
+
+const validator = useVuelidate<PersonalDataSheetPayload>(formRules, importPayload)
+
+const handleImportSubmission = async () => {
+  const valid = await validator.value.$validate()
+  if (!valid) {
+    toast.add({
+      severity: 'error',
+      summary: 'Import Personnel Data Sheet',
+      detail: 'Please see the validation messages',
+      life: 5000,
+    })
+    return
+  }
+
+  const file = fileUploadRef.value?.files?.[0]
+  if (!file) {
+    toast.add({
+      severity: 'error',
+      summary: 'Import Error',
+      detail: 'No Excel file selected.',
+      life: 3000,
+    })
+    return
+  }
+
+  formIsSubmitting.value = true
+
+  const metadata = {
+    is_update: 0,
+    item_id: importPayload.employee.item_id,
+    salary_grade_id: importPayload.employee.salary_grade_id,
+    office_id: importPayload.employee.office_id,
+    division_id: importPayload.employee.division_id,
+    section_or_unit_id: importPayload.employee.section_or_unit_id,
+    agency_employee_no: importPayload.employee.agency_employee_no,
+    id_number: importPayload.employee.id_number,
+    employee_id: null,
+  }
+
+  const importResponse = await pdsStore.importPds(file, metadata)
+
+  if (importResponse.success === false) {
+    const result = parseApiResponseError(importResponse)
+
+    showErrorAlert.value = true
+    errorMessage.value = result?.message
+    errorDetails.value = result?.errors
+  }
+  pdsImportIsLoading.value = false
+}
 
 onBeforeMount(async () => {
   itemNumberIsLoading.value = true
@@ -103,8 +296,8 @@ const handleFilterItemNumber = async () => {
   itemNumberIsLoading.value = true
   searchSubmitted.value = true
 
-  selectedDivisionLabel.value = selectedDivision.value?.label ?? null
-  selectedSectionLabel.value = selectedSectionUnit.value?.label ?? null
+  selectedDivisionLabel.value = selectedDivision.value?.[0]?.label ?? null
+  selectedSectionLabel.value = selectedSectionUnit.value?.[0]?.label ?? null
 
   if (!selectedDivision.value && !selectedSectionUnit.value) {
     const response = await personnelStore.fetchEmployees()
@@ -297,6 +490,15 @@ const downloadQrCode = async () => {
                     text
                     @click="toggleAddingList"
                   />
+                  <Button
+                    icon="pi pi-plus"
+                    v-tooltip.top="'New Employee'"
+                    severity="info"
+                    size="large"
+                    class="border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100"
+                    text
+                    @click="openViaImportPDS"
+                  />
                   <Menu ref="menu" id="overlay_menu" :model="items" :popup="true">
                     <template #item="{ item }">
                       <RouterLink :to="{ name: item.to, query: { mode: item.mode } }">
@@ -439,6 +641,231 @@ const downloadQrCode = async () => {
         </div>
       </template>
     </Card>
+    <!-- Import PDS Dialog -->
+    <Dialog v-model:visible="ImportPDS" modal header="Request Locator Slip" :style="{ width: '90vw' }">
+      <template #header>
+        <div class="flex items-center space-x-3 pt-4 sm:px-6 md:px-8">
+          <font-awesome-icon :icon="['fas', 'location-dot']" class="h-6 text-surface-600 sm:h-7 md:h-8" />
+          <h1 class="font-base text-2xl text-surface-600 sm:text-xl md:text-2xl">Import Personnel Data Sheet</h1>
+        </div>
+      </template>
+      <hr />
+      <!-- ✅ Import Error Alert Block -->
+      <div class="flex flex-col gap-4">
+        <div class=" ">
+          <transition
+            enter-active-class="transition duration-200"
+            enter-from-class="scale-50 opacity-0"
+            leave-to-class="opacity-0 "
+          >
+            <Message v-if="showErrorAlert" :closable="false" severity="error" class="h-96 space-y-4 overflow-y-auto">
+              <span>{{ errorMessage }}</span>
+              <div class="text-md flex flex-col space-y-2">
+                <div v-for="error in errorDetails" :key="error.field" class="mt-0.5">{{ '- ' + error }}</div>
+              </div>
+            </Message>
+          </transition>
+        </div>
+      </div>
+      <div class="px-4 py-4 sm:px-6 sm:py-6 md:px-12">
+        <div class="mb-2 flex flex-row items-center justify-center gap-4">
+          <WbAutoComplete
+            :useApiFilter="true"
+            :apiEndpoint="'/items/search'"
+            :suggestions="employment.itemNumbersSuggestions"
+            @item-select="propPosition"
+            apiOptionLabel="number"
+            label="Item Number"
+            placeholder="Type the item number"
+            v-model="selectedItemNo"
+            :id="getId('input-item-no')"
+            optionLabel="label"
+            optionValue="value"
+            required
+            @on-true-value-computed="
+              (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
+                useWbAutoCompleteHandleTrueValue(value, toRef(importPayload.employee, 'item_id'))
+            "
+            label-class="text-md text-surface-600 dark:lg:text-surface-200"
+            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+            :invalid="validator.employee.item_id.$invalid"
+            :invalid-text="validator.employee.item_id.$errors[0]?.$message"
+            @blur="validator.employee.item_id.$touch"
+            @focusin="validator.employee.item_id.$dirty = false"
+          >
+          </WbAutoComplete>
+
+          <RouterLink :to="{ name: 'support', state: { from: 'recruitment' } }" v-tooltip.top="'Add Item Number'">
+            <FontAwesomeIcon icon="fa-solid fa-plus" class="mt-8 text-3xl font-bold text-primary-500" />
+          </RouterLink>
+        </div>
+        <div class="mb-2 flex flex-row items-center justify-center gap-4">
+          <WbInputText
+            v-model="importPayload.employee.position"
+            :id="getId('input-item-position')"
+            label="Position"
+            :loading="isPositionLoading"
+            readonly
+            placeholder="Position will be auto populated upon item number selection"
+            class="lg:text-md lg:placeholder:text-md cursor-not-allowed bg-surface-200 text-sm placeholder:text-sm read-only:cursor-not-allowed disabled:cursor-not-allowed"
+            label-class="text-md text-surface-600 dark:lg:text-surface-200"
+            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+          />
+        </div>
+        <div class="mb-2 flex flex-row items-center justify-center gap-4">
+          <WbAutoComplete
+            :useApiFilter="true"
+            :apiEndpoint="'libraries/salary-grades/search'"
+            :suggestions="sgStore.salaryGradesOptions"
+            apiOptionLabel="salary_grade"
+            label="Salary Grade"
+            placeholder="Type Salary Grade with its tranche here"
+            v-model="selectedSalaryGrade"
+            :id="getId('input-salary-grade')"
+            optionLabel="label"
+            optionValue="value"
+            required
+            @on-true-value-computed="
+              (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
+                useWbAutoCompleteHandleTrueValue(value, toRef(importPayload.employee, 'salary_grade_id'))
+            "
+            label-class="text-md text-surface-600 dark:lg:text-surface-200"
+            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+            :invalid="validator.employee.salary_grade_id.$invalid"
+            :invalid-text="validator.employee.salary_grade_id.$errors[0]?.$message"
+            @blur="validator.employee.salary_grade_id.$touch"
+            @focusin="validator.employee.salary_grade_id.$dirty = false"
+          >
+          </WbAutoComplete>
+        </div>
+        <div class="mb-2 flex flex-col gap-2 md:flex-row md:gap-4">
+          <WbAutoComplete
+            :useApiFilter="true"
+            :apiEndpoint="'/libraries/offices/search'"
+            :suggestions="libraryStore.officeOptions"
+            :loading="libraryStore.officeOptionsLoading"
+            apiOptionLabel="name"
+            label="Office"
+            placeholder="Type the Employee's Office to search and select"
+            v-model="selectedOffice"
+            :id="getId('input-office')"
+            optionLabel="label"
+            optionValue="value"
+            required
+            forceSelection
+            @on-true-value-computed="
+              (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
+                useWbAutoCompleteHandleTrueValue(value, toRef(importPayload.employee, 'office_id'))
+            "
+            label-class="text-md text-surface-600 dark:lg:text-surface-200"
+            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+            :invalid="validator.employee.office_id.$invalid"
+            :invalid-text="validator.employee.office_id.$errors[0]?.$message"
+            @blur="validator.employee.office_id.$touch"
+            @focusin="validator.employee.office_id.$dirty = false"
+          >
+          </WbAutoComplete>
+          <WbAutoComplete
+            :useApiFilter="true"
+            :apiEndpoint="'/libraries/divisions/search'"
+            :suggestions="libraryStore.divisionOptions"
+            :loading="libraryStore.divisionOptionsLoading"
+            apiOptionLabel="name"
+            label="Division"
+            placeholder="Type the Division"
+            v-model="selectedDivision"
+            :id="getId('input-division')"
+            optionLabel="label"
+            optionValue="value"
+            required
+            @on-true-value-computed="
+              (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
+                useWbAutoCompleteHandleTrueValue(value, toRef(importPayload.employee, 'division_id'))
+            "
+            label-class="text-md text-surface-600 dark:lg:text-surface-200"
+            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+            :invalid="validator.employee.division_id.$invalid"
+            :invalid-text="validator.employee.division_id.$errors[0]?.$message"
+            @blur="validator.employee.division_id.$touch"
+            @focusin="validator.employee.division_id.$dirty = false"
+          >
+          </WbAutoComplete>
+          <WbAutoComplete
+            :useApiFilter="true"
+            :apiEndpoint="'/libraries/section-or-units/search'"
+            :suggestions="libraryStore.sectionUnitOptions"
+            :loading="libraryStore.sectionUnitOptionsLoading"
+            apiOptionLabel="name"
+            label="Section/Unit"
+            placeholder="Type the Section / Unit"
+            v-model="selectedSectionUnit"
+            :id="getId('input-section-unit')"
+            optionLabel="label"
+            optionValue="value"
+            required
+            @on-true-value-computed="
+              (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
+                useWbAutoCompleteHandleTrueValue(value, toRef(importPayload.employee, 'section_or_unit_id'))
+            "
+            label-class="text-md text-surface-600 dark:lg:text-surface-200"
+            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+            :invalid="validator.employee.section_or_unit_id.$invalid"
+            :invalid-text="validator.employee.section_or_unit_id.$errors[0]?.$message"
+            @blur="validator.employee.section_or_unit_id.$touch"
+            @focusin="validator.employee.section_or_unit_id.$dirty = false"
+          >
+          </WbAutoComplete>
+        </div>
+        <div class="mb-2 flex flex-col gap-2 md:flex-row md:gap-4">
+          <WbInputText
+            v-model="importPayload.employee.agency_employee_no"
+            required
+            label="Agency Employee No."
+            label-class="text-md text-surface-600 dark:lg:text-surface-200"
+            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+            :invalid="validator.employee.agency_employee_no.$invalid"
+            :invalid-text="validator.employee.agency_employee_no.$errors[0]?.$message"
+            @blur="validator.employee.agency_employee_no.$touch"
+          >
+          </WbInputText>
+        </div>
+
+        <div class="card flex flex-col gap-2">
+          <label class="text-sm font-medium text-surface-700 dark:text-surface-300"> Upload PDS * </label>
+          <FileUpload
+            ref="fileUploadRef"
+            mode="basic"
+            name="demo[]"
+            accept=".doc,.docx,.xls,.xlsx"
+            :maxFileSize="5 * 1024 * 1024"
+            :auto="false"
+            chooseLabel="Browse"
+          />
+        </div>
+
+        <div class="flex justify-end">
+          <Button
+            @click="handleImportSubmission"
+            :loading="formIsSubmitting"
+            :disabled="formIsSubmitting"
+            label="Submit"
+            class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-600"
+            text
+          >
+            <template #icon>
+              <font-awesome-icon :icon="['fas', 'save']" class="mr-2" />
+            </template>
+          </Button>
+        </div>
+      </div>
+    </Dialog>
+
     <!-- Modal of Filter -->
     <Dialog
       v-model:visible="showModal"

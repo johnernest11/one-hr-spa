@@ -182,6 +182,21 @@ export type WorkExperienceSheetResponse = {
 } & ApiResponseData
 
 /**Employee Data  (HTTP Responses) */
+export type ImportPdsResponse = {
+  id_number: string | null
+  is_update: number | null
+  item_id: number | null
+  item?: ItemNumberResponse | null
+  salary_grade_id: SalaryGradeResponse | null
+  office_id: number | null
+  division_id: number | null
+  division?: DivisionResponse | null
+  section_or_unit_id: number | null
+  section_or_unit?: SectionorUnitResponse | null
+  agency_employee_no: string | null
+  employee_id: number | null
+}
+
 export type PersonnelEmployee = {
   id: number | null
   individual_basic_detail_id: PersonnelResponse | null
