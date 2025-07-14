@@ -370,7 +370,7 @@ export const usePdsStore = defineStore('pds', () => {
       gov_id_issuance: '',
     },
     employee: {
-      id: null,
+      id: 0,
       individual_basic_detail_id: null,
       id_number: null,
       item_id: null,

@@ -11,6 +11,7 @@ import InputText from 'primevue/inputtext'
 import Column from 'primevue/column'
 import DataTable from 'primevue/datatable'
 import Dialog from 'primevue/dialog'
+import { useToast } from 'primevue/usetoast'
 import Card from 'primevue/card'
 import DSWDLogo from '@/assets/image/DSWD logo_Mark.png'
 
@@ -18,7 +19,7 @@ import WbAutoComplete from '@/components/webkit/WbAutoComplete.vue'
 import { WbAutoCompleteOption, WbAutoCompleteOptionTrueValue } from '@/components/webkit/WbAutoComplete.vue'
 import { useWbAutoCompleteHandleTrueValue } from '@/composables/wb-ui-components.ts'
 
-import type { PersonnelResponse, QrCodeResponse } from '@/typings/models.types'
+import type { PersonnelEmployee, PersonnelResponse, QrCodeResponse } from '@/typings/models.types'
 import { ApiResponseBody, ApiResponsePagination } from '@/typings/http-resources.types.ts'
 import Paginator, { PageState } from 'primevue/paginator'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
@@ -33,7 +34,7 @@ const itemNumberIsLoading = ref(false)
 const searchSubmitted = ref(false)
 const showModal = ref(false)
 const showQrModal = ref(false)
-const selectedEmployeeForQr = ref() // @todo Update this back to PersonnelResponse once the typings for it has been fixed.
+const selectedEmployeeForQr = ref()
 const qrCodeIsLoading = ref(false)
 
 const searchQuery = ref<string | null>(null)
@@ -47,6 +48,8 @@ const selectedDivisionLabel = ref<string | null>(null)
 const selectedSectionLabel = ref<string | null>(null)
 
 const paginationLimit = 5
+
+const toast = useToast()
 const menu = ref()
 
 const items = ref([
@@ -147,22 +150,50 @@ const handleSearchEmployee = async () => {
   itemNumberIsLoading.value = false
 }
 
-const openQrModal = async (employee: PersonnelResponse) => {
-  selectedEmployeeForQr.value = employee
+const openQrModal = async (individual: PersonnelResponse) => {
+  selectedEmployeeForQr.value = individual
   showQrModal.value = true
   fetchedQrCode.value = null
-  fetchedQrCode.value = await handleViewQr(employee)
+
+  if (!individual.employee) {
+    toast.add({
+      severity: 'error',
+      summary: 'Invalid action.',
+      detail: 'Employee not found.',
+      life: 5000,
+    })
+    console.log('The selected individual has no employee record.')
+  } else {
+    fetchedQrCode.value = await handleViewQr(individual.employee)
+  }
 }
 
-const handleViewQr = async (employee: PersonnelResponse): Promise<QrCodeResponse> => {
+const canDownload = ref(false)
+const handleViewQr = async (employee: PersonnelEmployee): Promise<QrCodeResponse> => {
   let response: ApiResponseBody
   qrCodeIsLoading.value = true
+  canDownload.value = false // reset everytime user is attempting to view a QR.
   response = await personnelStore.fetchQrCode(employee.id)
 
   if (response.error_message === 'Employee has no QR code yet.' && !response.success) {
     response = await personnelStore.generateQrCode(employee.id)
+
+    if (response.error_message === 'This employee has no ID number.' && !response.success) {
+      toast.add({
+        severity: 'error',
+        summary: 'Cannot generate QR code.',
+        detail: response.error_message + ' Kindly contact the administrator for support.',
+        life: 5000,
+      })
+      console.log('Encountered error while attempting to generate QR code for the employee. ', response)
+
+      personnelStore.isEmployeesLoading = false
+      qrCodeIsLoading.value = false
+      return response.data as QrCodeResponse
+    }
   }
 
+  canDownload.value = true
   personnelStore.isEmployeesLoading = false
   qrCodeIsLoading.value = false
   return response.data as QrCodeResponse
@@ -596,6 +627,7 @@ const downloadQrCode = async () => {
                   severity="info"
                   type="button"
                   size="large"
+                  :disabled="!canDownload"
                   class="dark:text-secondary-100 bottom-0 right-0 mt-4 w-full border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
                   text
                 >
