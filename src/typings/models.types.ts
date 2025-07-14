@@ -310,6 +310,7 @@ export type IndividualEducBg = {
   period_of_attendance_to: string | null
   highest_level_units_earned: string | null
   year_graduated: string | null
+  is_current_enrolled: boolean
   scholarship_academic_honors_received: string | null
 }
 

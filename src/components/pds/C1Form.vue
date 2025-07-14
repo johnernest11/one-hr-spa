@@ -2,7 +2,7 @@
 import Message from 'primevue/message'
 import { helpers, maxLength, required, email } from '@vuelidate/validators'
 import { digitCountRule, mobilePhoneRule, uniqueUserIdentifierRule } from '@/utils/custom-validations'
-import { reactive, ref, onBeforeMount, toRef, watch } from 'vue'
+import { reactive, ref, onBeforeMount, toRef, watch, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useFilterByParentId } from '@/composables/address.options.ts'
 import { useAddressStore } from '@/stores/address.store.ts'
@@ -28,7 +28,7 @@ import { WbAutoCompleteOption, WbAutoCompleteOptionTrueValue } from '@/component
 import { useWbAutoCompleteHandleTrueValue } from '@/composables/wb-ui-components.ts'
 import { bloodTypeOptions, SexTypeOptions, ExtensionTypeOptions } from '@/typings/employee-entry.types'
 import { TabGroup, TabList, Tab, TabPanels, TabPanel } from '@headlessui/vue'
-import { usePrependOrAppendOnce } from '@/utils/helpers.js'
+import { usePrependOrAppendOnce, isNotMoreThanYearsAgo } from '@/utils/helpers.js'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { TransitionRoot } from '@headlessui/vue'
 import { ItemNumberResponse } from '@/typings/models.types'
@@ -43,6 +43,8 @@ const pdsStore = usePdsStore()
 const toast = useToast()
 const router = useRouter()
 
+const currentlyEnrolledGraduate = ref(false)
+const currentlyEnrolledVocational = ref(false)
 const isPositionLoading = ref(false)
 const isSameResidential = ref(false)
 const activeToasts = ref<number>(0)
@@ -117,7 +119,7 @@ const globalStringMaxLengthRule = helpers.withMessage(
   maxLength(globalStringMaxLength)
 )
 
-const formRules = {
+const formRules = computed(() => ({
   $lazy: true,
   /** User Profile */
   employee: {
@@ -159,6 +161,7 @@ const formRules = {
     birthday: {
       required: helpers.withMessage(() => generateMessage('birthday').required, required),
       date: helpers.withMessage('Invalid date format, please use YYYY-MM-DD', required),
+      isNotTooOld: helpers.withMessage('Birthdate cannot be more than 130 years ago', isNotMoreThanYearsAgo(130)),
     },
     sex: {
       in: helpers.withMessage('Select a valid sex option: male or female', required),
@@ -302,6 +305,18 @@ const formRules = {
     ext_name: {
       maxLength: helpers.withMessage(() => generateMessage('spouse_ext_name').maxLength, globalStringMaxLengthRule),
     },
+    occupation: {
+      maxLength: helpers.withMessage(() => generateMessage('spouse_occupation').maxLength, globalStringMaxLengthRule),
+    },
+    employers_business_name: {
+      maxLength: helpers.withMessage(() => generateMessage('spouse_business_name').maxLength, globalStringMaxLengthRule),
+    },
+    business_address: {
+      maxLength: helpers.withMessage(() => generateMessage('spouse_business_address').maxLength, globalStringMaxLengthRule),
+    },
+    telephone_no: {
+      maxLength: helpers.withMessage(() => generateMessage('spouse_telephone_no').maxLength, globalStringMaxLengthRule),
+    },
   },
   individual_family_father: {
     last_name: {
@@ -335,7 +350,7 @@ const formRules = {
       maxLength: helpers.withMessage(() => generateMessage('mother_ext_name').maxLength, globalStringMaxLengthRule),
     },
   },
-  individual_family_child: {
+  individual_family_children: payload.individual_family_children.map(() => ({
     last_name: {
       maxLength: helpers.withMessage(() => generateMessage('child_last_name').maxLength, globalStringMaxLengthRule),
     },
@@ -350,8 +365,9 @@ const formRules = {
     },
     date_of_birth: {
       maxLength: helpers.withMessage(() => generateMessage('child_date_of_birth').maxLength, globalStringMaxLengthRule),
+      isNotTooOld: helpers.withMessage('Birthdate cannot be more than 130 years ago', isNotMoreThanYearsAgo(130)),
     },
-  },
+  })),
   educations: {
     elementary: {
       schools_name: {
@@ -386,23 +402,23 @@ const formRules = {
     },
     high_school: {
       schools_name: {
-        required: helpers.withMessage(() => generateMessage('elementary_school_name').required, required),
-        maxLength: helpers.withMessage(() => generateMessage('elementary_school_name').maxLength, globalStringMaxLengthRule),
+        required: helpers.withMessage(() => generateMessage('high_school_name').required, required),
+        maxLength: helpers.withMessage(() => generateMessage('high_school_name').maxLength, globalStringMaxLengthRule),
       },
       education_description: {
-        required: helpers.withMessage(() => generateMessage('elementary_basic_education_degree_course').required, required),
+        required: helpers.withMessage(() => generateMessage('high_school_basic_education_degree_course').required, required),
         maxLength: helpers.withMessage(
-          () => generateMessage('elementary_basic_education_degree_course').maxLength,
+          () => generateMessage('high_school_basic_education_degree_course').maxLength,
           globalStringMaxLengthRule
         ),
       },
       period_of_attendance_from: {
-        required: helpers.withMessage(() => generateMessage('elementary_from').required, required),
-        maxLength: helpers.withMessage(() => generateMessage('elementary_from').maxLength, globalStringMaxLengthRule),
+        required: helpers.withMessage(() => generateMessage('high_school_from').required, required),
+        maxLength: helpers.withMessage(() => generateMessage('high_school_from').maxLength, globalStringMaxLengthRule),
       },
       period_of_attendance_to: {
-        required: helpers.withMessage(() => generateMessage('elementary_to').required, required),
-        maxLength: helpers.withMessage(() => generateMessage('elementary_to').maxLength, globalStringMaxLengthRule),
+        required: helpers.withMessage(() => generateMessage('high_school_to').required, required),
+        maxLength: helpers.withMessage(() => generateMessage('schools_name_to').maxLength, globalStringMaxLengthRule),
       },
       highest_level_units_earned: {
         maxLength: helpers.withMessage(() => generateMessage('highest_level_units_earned').maxLength, globalStringMaxLengthRule),
@@ -443,23 +459,23 @@ const formRules = {
     },
     college: {
       schools_name: {
-        required: helpers.withMessage(() => generateMessage('elementary_school_name').required, required),
-        maxLength: helpers.withMessage(() => generateMessage('elementary_school_name').maxLength, globalStringMaxLengthRule),
+        required: helpers.withMessage(() => generateMessage('college_name').required, required),
+        maxLength: helpers.withMessage(() => generateMessage('college_name').maxLength, globalStringMaxLengthRule),
       },
       education_description: {
-        required: helpers.withMessage(() => generateMessage('elementary_basic_education_degree_course').required, required),
+        required: helpers.withMessage(() => generateMessage('college_basic_education_degree_course').required, required),
         maxLength: helpers.withMessage(
-          () => generateMessage('elementary_basic_education_degree_course').maxLength,
+          () => generateMessage('college_basic_education_degree_course').maxLength,
           globalStringMaxLengthRule
         ),
       },
       period_of_attendance_from: {
-        required: helpers.withMessage(() => generateMessage('elementary_from').required, required),
-        maxLength: helpers.withMessage(() => generateMessage('elementary_from').maxLength, globalStringMaxLengthRule),
+        required: helpers.withMessage(() => generateMessage('college_from').required, required),
+        maxLength: helpers.withMessage(() => generateMessage('college_from').maxLength, globalStringMaxLengthRule),
       },
       period_of_attendance_to: {
-        required: helpers.withMessage(() => generateMessage('elementary_to').required, required),
-        maxLength: helpers.withMessage(() => generateMessage('elementary_to').maxLength, globalStringMaxLengthRule),
+        required: helpers.withMessage(() => generateMessage('college_to').required, required),
+        maxLength: helpers.withMessage(() => generateMessage('college_to').maxLength, globalStringMaxLengthRule),
       },
       highest_level_units_earned: {
         maxLength: helpers.withMessage(() => generateMessage('highest_level_units_earned').maxLength, globalStringMaxLengthRule),
@@ -474,19 +490,19 @@ const formRules = {
     },
     graduate: {
       schools_name: {
-        maxLength: helpers.withMessage(() => generateMessage('elementary_school_name').maxLength, globalStringMaxLengthRule),
+        maxLength: helpers.withMessage(() => generateMessage('graduate_school_name').maxLength, globalStringMaxLengthRule),
       },
       education_description: {
         maxLength: helpers.withMessage(
-          () => generateMessage('elementary_basic_education_degree_course').maxLength,
+          () => generateMessage('graduate_basic_education_degree_course').maxLength,
           globalStringMaxLengthRule
         ),
       },
       period_of_attendance_from: {
-        maxLength: helpers.withMessage(() => generateMessage('elementary_from').maxLength, globalStringMaxLengthRule),
+        maxLength: helpers.withMessage(() => generateMessage('graduate_from').maxLength, globalStringMaxLengthRule),
       },
       period_of_attendance_to: {
-        maxLength: helpers.withMessage(() => generateMessage('elementary_to').maxLength, globalStringMaxLengthRule),
+        maxLength: helpers.withMessage(() => generateMessage('graduate_to').maxLength, globalStringMaxLengthRule),
       },
       highest_level_units_earned: {
         maxLength: helpers.withMessage(() => generateMessage('highest_level_units_earned').maxLength, globalStringMaxLengthRule),
@@ -499,8 +515,7 @@ const formRules = {
       },
     },
   },
-  individual_family_children: [],
-}
+}))
 
 const validator = useVuelidate<PersonalDataSheetPayload>(formRules, payload)
 
@@ -559,6 +574,36 @@ watch(
       payload.individual.birthday = `${formatBday[2]}-${formatBday[0]}-${formatBday[1]}`
     }
   }
+)
+
+const isSingle = computed(() => payload.individual.civil_status === 'Single')
+
+watch(
+  () => payload.individual.civil_status,
+  (newStatus) => {
+    const spouse = payload.individual_family_spouse
+
+    if (newStatus === 'Single') {
+      spouse.first_name = 'N/A'
+      spouse.middle_name = 'N/A'
+      spouse.last_name = 'N/A'
+      spouse.ext_name = 'N/A'
+      spouse.occupation = 'N/A'
+      spouse.employers_business_name = 'N/A'
+      spouse.business_address = 'N/A'
+      spouse.telephone_no = 'N/A'
+    } else {
+      spouse.first_name = ''
+      spouse.middle_name = ''
+      spouse.last_name = ''
+      spouse.ext_name = ''
+      spouse.occupation = ''
+      spouse.employers_business_name = ''
+      spouse.business_address = ''
+      spouse.telephone_no = ''
+    }
+  },
+  { immediate: true }
 )
 
 watch(
@@ -667,6 +712,44 @@ watch(
     }
   }
 )
+
+watch(
+  () => payload.educations.elementary.period_of_attendance_to,
+  (newVal) => {
+    if (newVal) {
+      payload.educations.elementary.year_graduated = newVal
+    }
+  }
+)
+
+watch(
+  () => payload.educations.high_school.period_of_attendance_to,
+  (newVal) => {
+    if (newVal) {
+      payload.educations.high_school.year_graduated = newVal
+    }
+  }
+)
+
+watch(currentlyEnrolledGraduate, (newVal) => {
+  if (newVal) {
+    currentlyEnrolledVocational.value = false
+    payload.educations.vocational.is_current_enrolled = false
+  }
+
+  payload.educations.graduate.is_current_enrolled = newVal
+  if (newVal) payload.educations.graduate.period_of_attendance_to = null
+})
+
+watch(currentlyEnrolledVocational, (newVal) => {
+  if (newVal) {
+    currentlyEnrolledGraduate.value = false
+    payload.educations.graduate.is_current_enrolled = false
+  }
+
+  payload.educations.vocational.is_current_enrolled = newVal
+  if (newVal) payload.educations.vocational.period_of_attendance_to = null
+})
 
 const showToast = (
   severityPararm: 'success' | 'error' | 'info' | 'warn' | 'secondary' | 'contrast' | undefined,
@@ -1556,7 +1639,7 @@ defineExpose({
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         optionLabel="label"
-                        :readonly="isSameResidential"
+                        :disabled="isSameResidential"
                         :placeholder="'Select or Type your Region'"
                         forceSelection
                         @on-true-value-computed="
@@ -1576,7 +1659,7 @@ defineExpose({
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         optionLabel="label"
-                        :readonly="isSameResidential"
+                        :disabled="isSameResidential"
                         :placeholder="'Select or Type your Province'"
                         forceSelection
                         @on-true-value-computed="
@@ -1599,7 +1682,7 @@ defineExpose({
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         optionLabel="label"
-                        :readonly="isSameResidential"
+                        :disabled="isSameResidential"
                         :placeholder="'Select or Type your City/Municipality'"
                         forceSelection
                         @on-true-value-computed="
@@ -1623,7 +1706,7 @@ defineExpose({
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         optionLabel="label"
-                        :readonly="isSameResidential"
+                        :disabled="isSameResidential"
                         :placeholder="'Select your Barangay'"
                         forceSelection
                         @on-true-value-computed="
@@ -1642,7 +1725,7 @@ defineExpose({
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                        :readonly="isSameResidential"
+                        :disabled="isSameResidential"
                         :invalid="validator.individual_address_init.permanent_subdivision_village.$invalid"
                         :invalid-text="validator.individual_address_init.permanent_subdivision_village.$errors[0]?.$message"
                         @blur="validator.individual_address_init.permanent_subdivision_village.$touch"
@@ -1654,7 +1737,7 @@ defineExpose({
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                        :readonly="isSameResidential"
+                        :disabled="isSameResidential"
                         :invalid="validator.individual_address_init.permanent_street.$invalid"
                         :invalid-text="validator.individual_address_init.permanent_street.$errors[0]?.$message"
                         @blur="validator.individual_address_init.permanent_street.$touch"
@@ -1666,7 +1749,7 @@ defineExpose({
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                        :readonly="isSameResidential"
+                        :disabled="isSameResidential"
                         :invalid="validator.individual_address_init.permanent_house_block_lot_no.$invalid"
                         :invalid-text="validator.individual_address_init.permanent_house_block_lot_no.$errors[0]?.$message"
                         @blur="validator.individual_address_init.permanent_house_block_lot_no.$touch"
@@ -1679,7 +1762,7 @@ defineExpose({
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                        :readonly="isSameResidential"
+                        :disabled="isSameResidential"
                         :invalid="validator.individual_address_init.permanent_zip_code.$invalid"
                         :invalid-text="validator.individual_address_init.permanent_zip_code.$errors[0]?.$message"
                         @blur="validator.individual_address_init.permanent_zip_code.$touch"
@@ -1715,6 +1798,7 @@ defineExpose({
                       label="Surname"
                       label-class="text-md text-surface-600 dark:lg:text-surface-200"
                       class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                      :disabled="isSingle"
                       validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                       :invalid="validator.individual_family_spouse.last_name.$invalid"
                       :invalid-text="validator.individual_family_spouse.last_name.$errors[0]?.$message"
@@ -1726,6 +1810,7 @@ defineExpose({
                       label="First Name"
                       label-class="text-md text-surface-600 dark:lg:text-surface-200"
                       class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                      :disabled="isSingle"
                       validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                       :invalid="validator.individual_family_spouse.first_name.$invalid"
                       :invalid-text="validator.individual_family_spouse.first_name.$errors[0]?.$message"
@@ -1737,6 +1822,7 @@ defineExpose({
                       label="Middle Name"
                       label-class="text-md text-surface-600 dark:lg:text-surface-200"
                       class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                      :disabled="isSingle"
                       validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                       :invalid="validator.individual_family_spouse.middle_name.$invalid"
                       :invalid-text="validator.individual_family_spouse.middle_name.$errors[0]?.$message"
@@ -1750,13 +1836,62 @@ defineExpose({
                       label="Extension Name"
                       label-class="text-md text-surface-600 dark:lg:text-surface-200"
                       class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                      :disabled="isSingle"
                       validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                       :invalid="validator.individual_family_spouse.ext_name.$invalid"
                       :invalid-text="validator.individual_family_spouse.ext_name.$errors[0]?.$message"
                       @blur="validator.individual_family_spouse.ext_name.$touch"
                     />
                   </div>
+                  <div class="flex flex-col gap-x-12 gap-y-4 md:flex-row">
+                    <WbInputText
+                      v-model="payload.individual_family_spouse.occupation"
+                      label="Occupation"
+                      label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                      class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                      :disabled="isSingle"
+                      validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                      :invalid="validator.individual_family_spouse.occupation.$invalid"
+                      :invalid-text="validator.individual_family_spouse.occupation.$errors[0]?.$message"
+                      @blur="validator.individual_family_spouse.occupation.$touch"
+                    />
 
+                    <WbInputText
+                      v-model="payload.individual_family_spouse.employers_business_name"
+                      label="Employer/Business Name"
+                      label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                      class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                      :disabled="isSingle"
+                      validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                      :invalid="validator.individual_family_spouse.employers_business_name.$invalid"
+                      :invalid-text="validator.individual_family_spouse.employers_business_name.$errors[0]?.$message"
+                      @blur="validator.individual_family_spouse.employers_business_name.$touch"
+                    />
+
+                    <WbInputText
+                      v-model="payload.individual_family_spouse.business_address"
+                      label="Business Address"
+                      label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                      class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                      :disabled="isSingle"
+                      validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                      :invalid="validator.individual_family_spouse.business_address.$invalid"
+                      :invalid-text="validator.individual_family_spouse.business_address.$errors[0]?.$message"
+                      @blur="validator.individual_family_spouse.business_address.$touch"
+                    />
+
+                    <WbInputText
+                      v-model="payload.individual_family_spouse.telephone_no"
+                      label="Telephone No"
+                      label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                      class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                      :disabled="isSingle"
+                      validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                      :invalid="validator.individual_family_spouse.telephone_no.$invalid"
+                      :invalid-text="validator.individual_family_spouse.telephone_no.$errors[0]?.$message"
+                      @blur="validator.individual_family_spouse.telephone_no.$touch"
+                    />
+                  </div>
                   <span class="mt-2 flex flex-col justify-center space-y-2 font-medium text-primary-700">
                     <p class="text-lg italic md:text-xl">Father</p>
                   </span>
@@ -1849,20 +1984,6 @@ defineExpose({
                       :invalid-text="validator.individual_family_mothers_maiden.middle_name.$errors[0]?.$message"
                       @blur="validator.individual_family_mothers_maiden.middle_name.$touch"
                     />
-
-                    <WbDropdown
-                      v-model="payload.individual_family_mothers_maiden.ext_name"
-                      optionLabel="label"
-                      optionValue="value"
-                      :options="ExtensionTypeOptions"
-                      label="Extension Name"
-                      label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                      class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                      validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                      :invalid="validator.individual_family_mothers_maiden.ext_name.$invalid"
-                      :invalid-text="validator.individual_family_mothers_maiden.ext_name.$errors[0]?.$message"
-                      @blur="validator.individual_family_mothers_maiden.ext_name.$touch"
-                    />
                   </div>
 
                   <span class="mt-2 flex flex-col justify-center font-medium text-primary-700">
@@ -1873,7 +1994,7 @@ defineExpose({
                     <TransitionRoot
                       appear
                       :show="true"
-                      enter="transition-all ease-in-out duration-500 "
+                      enter="transition-all ease-in-out duration-500"
                       enterFrom="opacity-0 translate-y-6"
                       enterTo="opacity-100 translate-y-0"
                       leave="transition-all ease-in-out duration-800"
@@ -1887,6 +2008,9 @@ defineExpose({
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                          :invalid="validator.individual_family_children?.[childIdx - 1]?.last_name?.$error"
+                          :invalid-text="validator.individual_family_children?.[childIdx - 1]?.last_name?.$errors[0]?.$message"
+                          @blur="validator.individual_family_children?.[childIdx - 1]?.last_name?.$touch()"
                         />
 
                         <WbInputText
@@ -1895,6 +2019,9 @@ defineExpose({
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                          :invalid="validator.individual_family_children?.[childIdx - 1]?.first_name?.$error"
+                          :invalid-text="validator.individual_family_children?.[childIdx - 1]?.first_name?.$errors[0]?.$message"
+                          @blur="validator.individual_family_children?.[childIdx - 1]?.first_name?.$touch()"
                         />
 
                         <WbInputText
@@ -1903,6 +2030,9 @@ defineExpose({
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                          :invalid="validator.individual_family_children?.[childIdx - 1]?.middle_name?.$error"
+                          :invalid-text="validator.individual_family_children?.[childIdx - 1]?.middle_name?.$errors[0]?.$message"
+                          @blur="validator.individual_family_children?.[childIdx - 1]?.middle_name?.$touch()"
                         />
 
                         <WbDropdown
@@ -1922,13 +2052,19 @@ defineExpose({
                           :maxDate="new Date()"
                           label="Date of Birth"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                          :invalid="validator.individual_family_children?.[childIdx - 1]?.date_of_birth?.$error"
+                          :invalid-text="
+                            validator.individual_family_children?.[childIdx - 1]?.date_of_birth?.$errors[0]?.$message
+                          "
+                          @blur="validator.individual_family_children?.[childIdx - 1]?.date_of_birth?.$touch()"
                         >
                           <template #prepend-icon>
                             <i class="pi pi-gift" />
                           </template>
                         </WbCalendar>
+
                         <Button
-                          v-show="childIdx - 1 > 1"
+                          v-show="childIdx > 0"
                           :id="getId(`button-remove-child-${childIdx - 1}`)"
                           icon="pi pi-trash"
                           @click="handleRemoveChild(childIdx - 1)"
@@ -1940,6 +2076,7 @@ defineExpose({
                       </div>
                     </TransitionRoot>
                   </template>
+
                   <Button
                     label="Add additional child field"
                     @click="handleAdditionalChild"
@@ -2048,6 +2185,7 @@ defineExpose({
                           required
                           :view="'year'"
                           :dateFormat="'yy'"
+                          disabled
                           label="Year Graduated"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
@@ -2154,6 +2292,7 @@ defineExpose({
                           :view="'year'"
                           :dateFormat="'yy'"
                           label="Year Graduated"
+                          disabled
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -2183,6 +2322,19 @@ defineExpose({
                   <span class="mt-4 flex flex-col justify-center space-y-2 font-medium text-primary-700">
                     <p class="text-lg italic md:text-xl">Vocational / Trade Course</p>
                   </span>
+                  <div v-if="!currentlyEnrolledGraduate" class="col-span-2 my-4 ml-4">
+                    <div class="align-items-center flex items-center">
+                      <Checkbox
+                        v-model="currentlyEnrolledVocational"
+                        :id="getId('input-currently-enrolled-vocational')"
+                        name="currentlyEnrolledVocational"
+                        :binary="true"
+                      />
+                      <label :for="getId('input-currently-enrolled-vocational')" class="ml-2 text-surface-600">
+                        I am currently Enrolled in this School
+                      </label>
+                    </div>
+                  </div>
                   <div class="flex flex-col gap-x-12 gap-y-4">
                     <div class="flex w-full flex-col gap-x-12 gap-y-4 md:flex-row">
                       <WbInputText
@@ -2224,6 +2376,7 @@ defineExpose({
                         />
 
                         <WbCalendar
+                          v-if="!currentlyEnrolledVocational"
                           v-model="payload.educations.vocational.period_of_attendance_to"
                           label="To "
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
@@ -2237,9 +2390,20 @@ defineExpose({
                         />
 
                         <WbInputText
+                          v-else
+                          :modelValue="'PRESENT'"
+                          label="To"
+                          disabled
+                          readonly
+                          class="w-full text-sm"
+                          label-class="text-md mb-1 text-surface-600 md:text-sm"
+                        />
+
+                        <WbInputText
                           v-model="payload.educations.vocational.highest_level_units_earned"
                           label="Highest Level / Units Earned "
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                          :disabled="currentlyEnrolledVocational"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           :invalid="validator.educations.vocational.highest_level_units_earned.$invalid"
@@ -2255,6 +2419,7 @@ defineExpose({
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           :view="'year'"
                           :dateFormat="'yy'"
+                          :disabled="currentlyEnrolledVocational"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           :invalid="validator.educations.vocational.year_graduated.$invalid"
@@ -2266,6 +2431,7 @@ defineExpose({
                           v-model="payload.educations.vocational.scholarship_academic_honors_received"
                           label="Scholarship / Academic Honors Received "
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                          :disabled="currentlyEnrolledVocational"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           :invalid="validator.educations.vocational.scholarship_academic_honors_received.$invalid"
@@ -2386,6 +2552,19 @@ defineExpose({
                   <span class="mt-4 flex flex-col justify-center space-y-2 font-medium text-primary-700">
                     <p class="text-lg italic md:text-xl">Graduate Studies</p>
                   </span>
+                  <div v-if="!currentlyEnrolledVocational" class="col-span-2 my-4 ml-4">
+                    <div class="align-items-center flex items-center">
+                      <Checkbox
+                        v-model="currentlyEnrolledGraduate"
+                        :id="getId('input-currently-enrolled-graduate')"
+                        name="currentlyEnrolledGraduate"
+                        :binary="true"
+                      />
+                      <label :for="getId('input-currently-enrolled-graduate')" class="ml-2 text-surface-600">
+                        I am currently Enrolled in this School
+                      </label>
+                    </div>
+                  </div>
                   <div class="flex flex-col gap-x-12 gap-y-4">
                     <div class="flex w-full flex-col gap-x-12 gap-y-4 md:flex-row">
                       <WbInputText
@@ -2427,6 +2606,7 @@ defineExpose({
                         />
 
                         <WbCalendar
+                          v-if="!currentlyEnrolledGraduate"
                           v-model="payload.educations.graduate.period_of_attendance_to"
                           label="To "
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
@@ -2437,6 +2617,16 @@ defineExpose({
                           :invalid="validator.educations.graduate.period_of_attendance_to.$invalid"
                           :invalid-text="validator.educations.graduate.period_of_attendance_to.$errors[0]?.$message"
                           @blur="validator.educations.graduate.period_of_attendance_to.$touch"
+                        />
+
+                        <WbInputText
+                          v-else
+                          :modelValue="'PRESENT'"
+                          label="To"
+                          disabled
+                          readonly
+                          class="w-full text-sm"
+                          label-class="text-md mb-1 text-surface-600 md:text-sm"
                         />
 
                         <WbInputText
@@ -2458,6 +2648,7 @@ defineExpose({
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           :view="'year'"
                           :dateFormat="'yy'"
+                          :disabled="currentlyEnrolledGraduate"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           :invalid="validator.educations.graduate.year_graduated.$invalid"
@@ -2469,6 +2660,7 @@ defineExpose({
                           v-model="payload.educations.graduate.scholarship_academic_honors_received"
                           label="Scholarship / Academic Honors Received "
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                          :disabled="currentlyEnrolledGraduate"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           :invalid="validator.educations.graduate.scholarship_academic_honors_received.$invalid"

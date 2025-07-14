@@ -2,6 +2,7 @@ import { CountryCode, isValidPhoneNumber, parsePhoneNumber } from 'libphonenumbe
 import { Ref } from 'vue'
 import { WarmBodyResponse } from '@/typings/models.types.ts'
 import { useDateFormat } from '@vueuse/core'
+import { helpers } from '@vuelidate/validators'
 /**
  * @description Halt code execution for x seconds
  * @example
@@ -556,6 +557,13 @@ export const resolveDTRSlots = (entries: WarmBodyResponse[] = []) => {
   return slots
 }
 
+/**
+ * Formats a date input (string, number, or Date) to 'YYYY-MM-DD'.
+ * Returns an empty string if the input is invalid or is a future date.
+ *
+ * @param input - A date in string, number, or Date format.
+ * @returns Formatted date string or empty string if invalid/future.
+ */
 export const formatDateSafe = (input: unknown): string => {
   const date = new Date(input as string | number | Date)
 
@@ -569,16 +577,47 @@ export const formatDateSafe = (input: unknown): string => {
   return useDateFormat(date, 'YYYY-MM-DD').value
 }
 
-// Helper to safely extract year from a value
+/**
+ * Extracts the year from a date input.
+ * Returns an empty string if the date is invalid.
+ *
+ * @param val - A date input (string, number, or Date).
+ * @returns Year as a string or empty string if invalid.
+ */
 export const formatYear = (val: unknown): string => {
   const date = new Date(val as string | number | Date)
   return isNaN(date.getTime()) ? '' : date.getFullYear().toString()
 }
 
+/**
+ * Applies `formatDateSafe` to specific fields of each object in an array.
+ *
+ * @param entries - Array of objects with potentially date fields.
+ * @param fields - List of keys to be formatted using `formatDateSafe`.
+ */
 export const formatDateFields = <T extends Record<string, unknown>>(entries: T[], fields: (keyof T)[]) => {
   entries.forEach((entry) => {
     fields.forEach((field) => {
       entry[field] = formatDateSafe(entry[field]) as T[keyof T]
     })
+  })
+}
+
+/**
+ * Creates a Vuelidate custom validator that checks if a date is not older than X years ago.
+ * Allows null or empty values.
+ *
+ * @param maxYearsAgo - The maximum number of years allowed (e.g., 130 for birthdays).
+ * @returns A Vuelidate validator function.
+ */
+export function isNotMoreThanYearsAgo(maxYearsAgo: number) {
+  return helpers.withParams({ type: 'isNotMoreThanYearsAgo', maxYearsAgo }, (value: string | null) => {
+    if (!value) return true // allow empty values
+    const inputDate = new Date(value)
+    if (isNaN(inputDate.getTime())) return false
+
+    const today = new Date()
+    const oldestAllowed = new Date(today.getFullYear() - maxYearsAgo, today.getMonth(), today.getDate())
+    return inputDate >= oldestAllowed
   })
 }

@@ -174,14 +174,23 @@ const formRules = computed(() => ({
     maxLength: helpers.withMessage(`Must not exceed ${globalStringMaxLength} characters`, maxLength(globalStringMaxLength)),
   },
   // Validate each row
-  rows: {
-    $each: {
-      week_num: { required: helpers.withMessage('Week is required', required) },
-      dates_in_week: { required: helpers.withMessage('Date/s or coverage is required', required) },
-      specific_activity: { required: helpers.withMessage('Specific activity is required', required) },
-      highlights: { required: helpers.withMessage('Highlights are required', required) },
+  rows: payload.rows.map(() => ({
+    week_num: {
+      required: helpers.withMessage('Week of Accomplishment is required', required),
     },
-  },
+    dates_in_week: {
+      required: helpers.withMessage('Dates or Coverage of Accomplishment is required', required),
+      maxLength: helpers.withMessage('Date/s or Coverage must not exceed 255 characters', maxLength(255)),
+    },
+    specific_activity: {
+      required: helpers.withMessage('Specific Activity of Accomplishment is required', required),
+      maxLength: helpers.withMessage(`Must not exceed ${globalStringMaxLength} characters`, maxLength(globalStringMaxLength)),
+    },
+    highlights: {
+      required: helpers.withMessage('Highlights of Accomplishment is required', required),
+      maxLength: helpers.withMessage(`Must not exceed ${globalStringMaxLength} characters`, maxLength(globalStringMaxLength)),
+    },
+  })),
 }))
 
 const validator = useVuelidate<Partial<PersonnelAccomplishmentReportPayload>>(formRules, payload)
@@ -351,28 +360,61 @@ const exportToFile = async (accomplishmentReport: PersonnelAccomplishmentReportR
 /** Handle updating the accomplishment report */
 const handleUpdated = async () => {
   IsBeingUpdated.value = true
+
   const id = route.params.id as string
 
+  // Trigger validation
+  validator.value.$touch()
+  const isValid = await validator.value.$validate()
+
+  if (!isValid) {
+    IsBeingUpdated.value = false
+
+    // Scroll to validation section
+    document.querySelector('.update-ar-creds-section')?.scrollIntoView({ behavior: 'smooth' })
+
+    // Show error toast
+    toast.add({
+      severity: 'error',
+      summary: 'Update Accomplishment Report',
+      detail: 'Please review the validation messages before submitting.',
+      life: 5000,
+    })
+
+    return
+  }
+
+  // Call update API
   const response = await accomplishmentReportStore.updateAccomplishment(payload, id)
 
+  // Handle unsuccessful API response
   if (!response.success) {
     const result = parseApiResponseError(response)
-    if (!result) return (formIsSubmitting.value = false)
+    if (!result) {
+      IsBeingUpdated.value = false
+      formIsSubmitting.value = false
+      return
+    }
 
     showErrorAlert.value = true
     errorMessage.value = result.message
     errorDetails.value = result.errors
+
     IsBeingUpdated.value = false
-    return document.getElementsByClassName('update-ar-creds-section')[0]?.scrollIntoView({ behavior: 'smooth' })
+
+    document.querySelector('.update-ar-creds-section')?.scrollIntoView({ behavior: 'smooth' })
+    return
   }
 
+  // Show success toast
   toast.add({
     severity: 'success',
-    summary: 'Accomplishment Report Details update',
-    detail: `${id || 'The Accomplishment Report '} was successfully updated`,
+    summary: 'Accomplishment Report Updated',
+    detail: `Accomplishment Report ${id} was successfully updated.`,
     life: 3000,
   })
 
+  // Reload page if needed
   if (shouldReloadPageAfterUpdate()) {
     setTimeout(() => {
       window.location.reload()
@@ -380,7 +422,9 @@ const handleUpdated = async () => {
   }
 
   emit('ar-updated', true)
+  IsBeingUpdated.value = false
 }
+
 /** Handle marking the accomplishment report as done */
 const handleMarkDone = async () => {
   IsBeingUpdated.value = true
@@ -516,12 +560,16 @@ const handleMarkDone = async () => {
           </div>
           <p class="create-ar-creds-section text-xs font-medium uppercase"></p>
 
-          <div v-for="(accomplishment, index) in payload.rows" :key="index" class="mb-4 flex flex-col md:flex-row">
+          <div
+            v-for="accomplishmentReportIndex in payload.rows.length"
+            :key="accomplishmentReportIndex"
+            class="mb-4 flex flex-col md:flex-row"
+          >
             <div class="mb-4 ml-0 flex w-full flex-col items-start justify-center gap-2 py-2 pt-8 md:ml-12 md:w-2/12">
               <div class="flex w-full flex-col">
                 <WbDropdown
-                  :id="'week-' + index"
-                  v-model="accomplishment.week_num"
+                  :id="'week-' + accomplishmentReportIndex"
+                  v-model="payload.rows[accomplishmentReportIndex - 1].week_num"
                   v-tooltip.top="'Choose a Week'"
                   :options="weekOptions"
                   optionLabel="label"
@@ -530,16 +578,20 @@ const handleMarkDone = async () => {
                   class="mb-4 w-full"
                   label-class="text-sm text-surface-600"
                   label="Week"
-                  required
                   placeholder="Choose a week"
+                  :invalidText="validator.rows[accomplishmentReportIndex - 1].week_num.$errors[0]?.$message"
+                  :invalid="validator.rows[accomplishmentReportIndex - 1].week_num.$error"
+                  @blur="validator.rows[accomplishmentReportIndex - 1].week_num.$touch()"
                 />
                 <WbInputText
-                  v-model="accomplishment.dates_in_week"
+                  v-model="payload.rows[accomplishmentReportIndex - 1].dates_in_week"
                   label="Date/s or Converage"
-                  required
                   label-class="text-sm text-surface-600"
                   placeholder="e.g. 16-17 January 2025 or 1, 3, 4 & 5 January 2025"
                   class="w-full"
+                  :invalidText="validator.rows[accomplishmentReportIndex - 1].dates_in_week.$errors[0]?.$message"
+                  :invalid="validator.rows[accomplishmentReportIndex - 1].dates_in_week.$error"
+                  @blur="validator.rows[accomplishmentReportIndex - 1].dates_in_week.$touch()"
                 />
               </div>
             </div>
@@ -547,22 +599,32 @@ const handleMarkDone = async () => {
             <div v-if="showTextAreaActivity" class="flex w-full flex-col items-start justify-center gap-3 py-2 md:w-5/12">
               <div class="flex w-full flex-col gap-2">
                 <textarea
-                  v-model="accomplishment.specific_activity"
+                  v-model="payload.rows[accomplishmentReportIndex - 1].specific_activity"
                   class="w-full border-b-2 border-surface-300 outline-none focus:outline-none focus:ring-primary-500"
                   placeholder="Enter your Specific Activity..."
                   rows="10"
+                  @blur="validator.rows[accomplishmentReportIndex - 1].specific_activity.$touch()"
+                  required
                 />
+                <p v-if="validator.rows[accomplishmentReportIndex - 1].specific_activity.$error" class="text-sm text-red-500">
+                  {{ validator.rows[accomplishmentReportIndex - 1].specific_activity.$errors[0]?.$message }}
+                </p>
               </div>
             </div>
             <Divider layout="vertical" class="hidden md:block"></Divider>
             <div v-if="showTextAreaHighlights" class="flex w-full flex-col items-start justify-center gap-3 py-2 md:w-5/12">
               <div class="flex w-full flex-col gap-2">
                 <textarea
-                  v-model="accomplishment.highlights"
+                  v-model="payload.rows[accomplishmentReportIndex - 1].highlights"
                   class="w-full border-b-2 border-surface-300 outline-none focus:outline-none focus:ring-primary-500"
                   placeholder="Enter your Highlights of Accomplishment..."
                   rows="10"
+                  @blur="validator.rows[accomplishmentReportIndex - 1].highlights.$touch()"
+                  required
                 />
+                <p v-if="validator.rows[accomplishmentReportIndex - 1].highlights.$error" class="text-sm text-red-500">
+                  {{ validator.rows[accomplishmentReportIndex - 1].highlights.$errors[0]?.$message }}
+                </p>
               </div>
             </div>
 
@@ -571,12 +633,12 @@ const handleMarkDone = async () => {
                 icon="pi pi-trash"
                 severity="danger"
                 rounded
-                @click="removeAccomplishment(index)"
+                @click="removeAccomplishment(accomplishmentReportIndex)"
                 v-if="payload.status !== 'done' && payload.rows.length > 1"
                 class="mt-2"
               />
             </div>
-            <Divider layout="horizontal" class="mt-4 md:hidden" v-if="index < payload.rows.length - 1" />
+            <Divider layout="horizontal" class="mt-4 md:hidden" v-if="accomplishmentReportIndex < payload.rows.length - 1" />
           </div>
 
           <Divider layout="horizontal" class="mb-14 hidden md:block"></Divider>

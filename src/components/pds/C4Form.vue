@@ -559,7 +559,7 @@ defineExpose({
                         <div class="flex items-start gap-2 md:col-span-4">
                           <span class="shrink-0 text-base font-medium text-surface-600">38.</span>
                           <p class="md:text-md text-lg text-surface-600">
-                            a. Have you ever been a candidate in a nation or local election held within the last year(except
+                            a. Have you ever been a candidate in a national or local election held within the last year(except
                             Barangay election)?
                           </p>
                         </div>
@@ -659,7 +659,7 @@ defineExpose({
                         <div class="flex items-start gap-2 md:col-span-4">
                           <span class="shrink-0 text-base font-medium text-surface-600">39.</span>
                           <p class="md:text-md text-lg text-surface-600">
-                            Have you acquired the status of an immigration or permanent resident of another country?
+                            Have you acquired the status of an immigrate or permanent resident of another country?
                           </p>
                         </div>
                         <div class="flex flex-row items-center justify-center gap-12 p-4 md:justify-start md:p-2">
