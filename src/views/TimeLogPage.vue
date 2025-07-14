@@ -16,15 +16,12 @@ const errorMessage = ref<string | null>(null)
 const cameraError = ref<string | null>(null)
 const isMobile = ref(false)
 
-const MODAL_DISPLAY_DURATION_MS = 10000 // 10 seconds
-const isProcessingScan = ref(false) // Indicates if a scan is currently being processed (dialog open, data being fetched)
+const MODAL_DISPLAY_DURATION_MS = 10000
+const isProcessingScan = ref(false)
+const scannerPaused = ref(false)
 
-// We'll manage scannerPaused directly based on isProcessingScan
-// If isProcessingScan is true, we briefly pause it to prevent re-detecting the same code
-// but we need it to be false most of the time, even when the modal is open.
-const scannerPaused = computed(() => isProcessingScan.value) // New computed property for scannerPaused
-
-let scanTimeoutId: number | undefined
+const scanTimeoutId = ref<number | undefined>(undefined)
+const intervalId = ref<number | undefined>(undefined)
 
 const updateDailyLogsState = async (date: string) => {
   await dailyLogsStore.fetchDailyLogs(date)
@@ -62,14 +59,12 @@ const updateDateTime = () => {
   }
 }
 
-let intervalId: number | undefined
-
 onMounted(async () => {
   const today = getManilaTodayISO()
   todayISO.value = today
 
   updateDateTime()
-  intervalId = window.setInterval(updateDateTime, 1000)
+  intervalId.value = window.setInterval(updateDateTime, 1000)
 
   checkScreenSize()
   window.addEventListener('resize', checkScreenSize)
@@ -79,60 +74,41 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
-  if (intervalId) {
-    clearInterval(intervalId)
+  if (intervalId.value) {
+    clearInterval(intervalId.value)
   }
   window.removeEventListener('resize', checkScreenSize)
-  if (scanTimeoutId) {
-    clearTimeout(scanTimeoutId)
+  if (scanTimeoutId.value) {
+    clearTimeout(scanTimeoutId.value)
   }
 })
 
 const onDetect = (detectedCodes: DetectedBarcode[]) => {
-  // If we are currently processing a scan (isProcessingScan is true)
-  // it means the modal is open. We can allow a new detection to override it.
-  // The scanner will be briefly paused by the computed property.
-  if (detectedCodes.length > 0) {
+  if (detectedCodes.length > 0 && !isProcessingScan.value) {
     const firstCode = detectedCodes[0]
     const decodedString = firstCode.rawValue
 
-    // If there's already a modal open and a timeout running, clear it.
-    // This allows the new scan to immediately take over.
-    if (showModal.value && scanTimeoutId) {
-      clearTimeout(scanTimeoutId)
-      scanTimeoutId = undefined
-      showModal.value = false // Hide previous modal immediately
-      dailyLogsStore.clearScannedEmployee() // Clear previous data
-      errorMessage.value = null
-    }
-
-    // Set processing to true to trigger the scannerPaused computed property to true (briefly)
     isProcessingScan.value = true
-    // Process the new decode
-    void onDecode(decodedString)
+    scannerPaused.value = true
+    onDecode(decodedString)
   }
 }
 
 const onDecode = async (result: string) => {
-  // Clear any existing timeout from a previous scan's modal display.
-  // This ensures a new scan always sets its own timeout.
-  if (scanTimeoutId) {
-    clearTimeout(scanTimeoutId)
-    scanTimeoutId = undefined
-  }
-
-  // Clear previous state for a fresh display
   errorMessage.value = null
   dailyLogsStore.clearScannedEmployee()
-  showModal.value = false // Ensure previous modal is closed before showing new one
+
+  if (scanTimeoutId.value) {
+    clearTimeout(scanTimeoutId.value)
+    scanTimeoutId.value = undefined
+  }
 
   if (!result || result.trim() === '') {
     dailyLogsStore.lastLogMessage = 'Empty QR code scanned. Please try again.'
     showModal.value = true
-    isProcessingScan.value = false // Done processing this specific scan
-    // Set timeout to close modal and potentially resume scanner if no new scan occurs
-    scanTimeoutId = setTimeout(() => {
-      handleCloseDialog(true) // Indicate closure initiated by timeout
+    isProcessingScan.value = false
+    scanTimeoutId.value = setTimeout(() => {
+      handleCloseDialog()
     }, MODAL_DISPLAY_DURATION_MS) as unknown as number
     return
   }
@@ -145,10 +121,10 @@ const onDecode = async (result: string) => {
   } catch (err: unknown) {
     showModal.value = true
   } finally {
-    isProcessingScan.value = false // Done processing this specific scan
-    // Set timeout to close modal and potentially resume scanner if no new scan occurs
-    scanTimeoutId = setTimeout(() => {
-      handleCloseDialog(true) // Indicate closure initiated by timeout
+    isProcessingScan.value = false
+
+    scanTimeoutId.value = setTimeout(() => {
+      handleCloseDialog()
     }, MODAL_DISPLAY_DURATION_MS) as unknown as number
   }
 }
@@ -222,17 +198,11 @@ const dynamicSuccessMessage = computed(() => {
   return 'Processing...'
 })
 
-const handleCloseDialog = (fromTimeout: boolean = false) => {
+const handleCloseDialog = () => {
   showModal.value = false
   errorMessage.value = null
   dailyLogsStore.clearScannedEmployee()
-  // Ensure scanTimeoutId is cleared if this was a manual close
-  if (!fromTimeout && scanTimeoutId) {
-    clearTimeout(scanTimeoutId)
-    scanTimeoutId = undefined
-  }
-  // The scanner will automatically unpause because isProcessingScan will be false
-  // isProcessingScan.value = false; // This is already set in onDecode finally, but safe to ensure here too for manual close scenarios.
+  scannerPaused.value = false
 }
 
 const latestWarmBodyLogs = computed(() => {
@@ -309,7 +279,6 @@ const latestWarmBodyLogs = computed(() => {
         header: 'hidden',
         content: 'flex-grow flex flex-col items-center justify-start space-y-6 md:space-y-12 text-center h-full',
       }"
-      @hide="handleCloseDialog(false)"
     >
       <template v-if="dailyLogsStore.lastLogMessage && !dailyLogsStore.currentScannedEmployee">
         <div class="flex items-center justify-center text-4xl font-semibold text-error-600 md:text-4xl">
