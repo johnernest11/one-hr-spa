@@ -36,7 +36,7 @@ export type PersonalDataSheetPayload = {
     sex: 'male' | 'female' | null
     /**Personnel Data Sheet  */
     place_of_birth: string | null
-    civil_status: 'single' | 'married' | 'separated' | 'divorced' | 'widowed' | null
+    civil_status: 'Single' | 'Married' | 'Widowed' | 'Divorced' | 'Separated' | null
     height: number | null
     weight: number | null
     blood_type: 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | '0+' | '0-' | null

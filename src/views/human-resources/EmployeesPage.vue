@@ -450,7 +450,7 @@ const downloadQrCode = async () => {
       :breakpoints="{ '1199px': '75vw', '575px': '90vw' }"
       :pt="{
         root: {
-          class: 'relative w-full h-full flex flex-col bg-white shadow-lg',
+          class: 'relative w-full h-full flex flex-col bg-surface-0 shadow-lg',
         },
       }"
     >
@@ -552,7 +552,7 @@ const downloadQrCode = async () => {
       :draggable="false"
       :dismissableMask="true"
       :closable="false"
-      class="w-[90vw] max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800"
+      class="w-[90vw] max-w-md rounded-lg bg-surface-0 p-6 shadow-xl dark:bg-surface-800"
       :pt="{
         mask: {
           style: 'backdrop-filter: blur(4px)',
@@ -560,12 +560,15 @@ const downloadQrCode = async () => {
       }"
     >
       <template #container="{}">
-        <div class="rounded-lg bg-white p-6 dark:bg-gray-800">
+        <div class="rounded-lg bg-surface-0 p-6 dark:bg-surface-800">
           <div class="mb-4 flex items-center justify-between">
-            <h2 class="text-xl font-semibold text-gray-500 dark:text-white">
+            <h2 class="text-xl font-semibold text-surface-500 dark:text-surface-0">
               <FontAwesomeIcon icon="fa-solid fa-qrcode" /> QR CODE Generation
             </h2>
-            <button @click="closeQrModal" class="text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-500">
+            <button
+              @click="closeQrModal"
+              class="text-surface-400 hover:text-surface-600 dark:text-surface-300 dark:hover:text-surface-500"
+            >
               <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
               </svg>
@@ -575,15 +578,15 @@ const downloadQrCode = async () => {
           <div v-if="selectedEmployeeForQr" class="text-left">
             <div class="mb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div class="text-center md:w-1/2 md:text-left">
-                <p class="text-lg font-bold uppercase text-gray-500 dark:text-white">
+                <p class="text-lg font-bold uppercase text-surface-500 dark:text-surface-0">
                   {{ selectedEmployeeForQr.last_name }}, {{ selectedEmployeeForQr.first_name }}
                   {{ selectedEmployeeForQr.middle_name ? selectedEmployeeForQr.middle_name + ' ' : '' }}
                   {{ selectedEmployeeForQr.ext_name ? selectedEmployeeForQr.ext_name : '' }}
                 </p>
-                <p class="text-sm text-gray-600 dark:text-gray-300">
+                <p class="text-sm text-surface-600 dark:text-surface-300">
                   {{ selectedEmployeeForQr.employee?.item?.position?.title || '' }}
                 </p>
-                <p class="text-sm text-gray-600 dark:text-gray-300">
+                <p class="text-sm text-surface-600 dark:text-surface-300">
                   {{ selectedEmployeeForQr.employee?.item?.number || '' }}
                 </p>
               </div>

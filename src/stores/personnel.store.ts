@@ -50,7 +50,7 @@ export const usePersonnelStore = defineStore('personnel', () => {
     if (sectionOrUnitId != null) params.append('section_or_unit_id', sectionOrUnitId.toString())
 
     const queryString = params.toString()
-    const uri = queryString ? `/individual-basic-details?${queryString}` : '/individual-basic-details' // ✅ clean fallback when no filter
+    const uri = queryString ? `/individual-basic-details?${queryString}` : '/individual-basic-details'
 
     const { data } = await useApiCall(uri, authStore.authenticationToken).get().json()
     const responseBody: ApiResponseBody = data.value

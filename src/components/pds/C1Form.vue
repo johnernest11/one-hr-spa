@@ -576,14 +576,14 @@ watch(
   }
 )
 
-const isSingle = computed(() => payload.individual.civil_status === 'single')
+const isSingle = computed(() => payload.individual.civil_status === 'Single')
 
 watch(
   () => payload.individual.civil_status,
   (newStatus) => {
     const spouse = payload.individual_family_spouse
 
-    if (newStatus === 'single') {
+    if (newStatus === 'Single') {
       spouse.first_name = 'N/A'
       spouse.middle_name = 'N/A'
       spouse.last_name = 'N/A'
