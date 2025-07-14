@@ -36,7 +36,7 @@ export type PersonalDataSheetPayload = {
     sex: 'male' | 'female' | null
     /**Personnel Data Sheet  */
     place_of_birth: string | null
-    civil_status: 'single' | 'married' | 'separated' | 'divorced' | 'widowed' | null
+    civil_status: 'Single' | 'Married' | 'Widowed' | 'Divorced' | 'Separated' | null
     height: number | null
     weight: number | null
     blood_type: 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | '0+' | '0-' | null
@@ -216,6 +216,7 @@ export const usePdsStore = defineStore('pds', () => {
         period_of_attendance_to: null,
         highest_level_units_earned: null,
         year_graduated: null,
+        is_current_enrolled: false,
         scholarship_academic_honors_received: null,
       },
       high_school: {
@@ -226,6 +227,7 @@ export const usePdsStore = defineStore('pds', () => {
         period_of_attendance_to: null,
         highest_level_units_earned: null,
         year_graduated: null,
+        is_current_enrolled: false,
         scholarship_academic_honors_received: null,
       },
       vocational: {
@@ -236,6 +238,7 @@ export const usePdsStore = defineStore('pds', () => {
         period_of_attendance_to: null,
         highest_level_units_earned: null,
         year_graduated: null,
+        is_current_enrolled: false,
         scholarship_academic_honors_received: null,
       },
       college: {
@@ -246,6 +249,7 @@ export const usePdsStore = defineStore('pds', () => {
         period_of_attendance_to: null,
         highest_level_units_earned: null,
         year_graduated: null,
+        is_current_enrolled: false,
         scholarship_academic_honors_received: null,
       },
       graduate: {
@@ -256,6 +260,7 @@ export const usePdsStore = defineStore('pds', () => {
         period_of_attendance_to: null,
         highest_level_units_earned: null,
         year_graduated: null,
+        is_current_enrolled: false,
         scholarship_academic_honors_received: null,
       },
     },
