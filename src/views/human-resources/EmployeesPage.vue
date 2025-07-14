@@ -168,25 +168,36 @@ const openQrModal = async (individual: PersonnelResponse) => {
   }
 }
 
+const employeeHasIdNumber = (response: ApiResponseBody): boolean => {
+  if (response.error_message === 'This employee has no ID number.' && !response.success) {
+    toast.add({
+      severity: 'error',
+      summary: 'Cannot generate QR code.',
+      detail: response.error_message + ' Kindly contact the administrator for support.',
+      life: 5000,
+    })
+    console.log('Encountered error while attempting to generate QR code for the employee. ', response)
+    return false
+  }
+  return true
+}
+
 const canDownload = ref(false)
 const handleViewQr = async (employee: PersonnelEmployee): Promise<QrCodeResponse> => {
-  let response: ApiResponseBody
   qrCodeIsLoading.value = true
-  canDownload.value = false // reset everytime user is attempting to view a QR.
-  response = await personnelStore.fetchQrCode(employee.id)
+  canDownload.value = false
+
+  let response = await personnelStore.fetchQrCode(employee.id)
+  if (!employeeHasIdNumber(response)) {
+    personnelStore.isEmployeesLoading = false
+    qrCodeIsLoading.value = false
+    return response.data as QrCodeResponse
+  }
 
   if (response.error_message === 'Employee has no QR code yet.' && !response.success) {
     response = await personnelStore.generateQrCode(employee.id)
 
-    if (response.error_message === 'This employee has no ID number.' && !response.success) {
-      toast.add({
-        severity: 'error',
-        summary: 'Cannot generate QR code.',
-        detail: response.error_message + ' Kindly contact the administrator for support.',
-        life: 5000,
-      })
-      console.log('Encountered error while attempting to generate QR code for the employee. ', response)
-
+    if (!employeeHasIdNumber(response)) {
       personnelStore.isEmployeesLoading = false
       qrCodeIsLoading.value = false
       return response.data as QrCodeResponse
