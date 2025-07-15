@@ -26,7 +26,7 @@ import WbAutoComplete from '@/components/webkit/WbAutoComplete.vue'
 import { WbAutoCompleteOption, WbAutoCompleteOptionTrueValue } from '@/components/webkit/WbAutoComplete.vue'
 import { useWbAutoCompleteHandleTrueValue } from '@/composables/wb-ui-components.ts'
 
-import { parseApiResponseError } from '@/utils/error-handle.ts'
+import { parseApiImportPDSResponseError } from '@/utils/error-handle.ts'
 import { ApiResponseBody, ApiResponsePagination } from '@/typings/http-resources.types.ts'
 import Paginator, { PageState } from 'primevue/paginator'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
@@ -80,15 +80,13 @@ const items = ref([
       {
         label: 'via PDS Importation',
         mode: 'via-pds-importation',
-        to: 'dashboard',
+        command: () => {
+          ImportPDS.value = true
+        },
       },
     ],
   },
 ])
-
-const openViaImportPDS = () => {
-  ImportPDS.value = true
-}
 
 const selectedItemNo = ref<WbAutoCompleteOption[] | null>(null)
 const selectedSalaryGrade = ref<WbAutoCompleteOption[] | null>(null)
@@ -255,7 +253,7 @@ const handleImportSubmission = async () => {
   const importResponse = await pdsStore.importPds(file, metadata)
 
   if (!importResponse.success) {
-    const result = parseApiResponseError(importResponse)
+    const result = parseApiImportPDSResponseError(importResponse)
 
     showErrorAlert.value = true
     errorMessage.value = result?.message
@@ -501,15 +499,6 @@ const downloadQrCode = async () => {
                     text
                     @click="toggleAddingList"
                   />
-                  <Button
-                    icon="pi pi-plus"
-                    v-tooltip.top="'New Employee'"
-                    severity="info"
-                    size="large"
-                    class="border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100"
-                    text
-                    @click="openViaImportPDS"
-                  />
                   <Menu ref="menu" id="overlay_menu" :model="items" :popup="true">
                     <template #item="{ item }">
                       <RouterLink :to="{ name: item.to, query: { mode: item.mode } }">
@@ -669,10 +658,10 @@ const downloadQrCode = async () => {
             enter-from-class="scale-50 opacity-0"
             leave-to-class="opacity-0 "
           >
-            <Message v-if="showErrorAlert" :closable="false" severity="error" class="h-96 space-y-4 overflow-y-auto">
+            <Message v-if="showErrorAlert" :closable="false" severity="error" class="space-y-4 overflow-y-auto">
               <span>{{ errorMessage }}</span>
               <div class="text-md flex flex-col space-y-2">
-                <div v-for="error in errorDetails" :key="error.field" class="mt-0.5">{{ '- ' + error }}</div>
+                <div v-for="(error, idx) in errorDetails" :key="idx" class="mt-0.5">- {{ error }}</div>
               </div>
             </Message>
           </transition>
