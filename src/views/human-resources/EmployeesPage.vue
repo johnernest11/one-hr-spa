@@ -7,7 +7,7 @@ import { useSalaryGradesStore } from '@/stores/salary-grades.store.ts'
 import { useLibrariesStore } from '@/stores/libraries.store'
 import { usePdsStore, PersonalDataSheetPayload } from '@/stores/pds.store.ts'
 import { helpers, required, maxLength } from '@vuelidate/validators'
-import type { PersonnelResponse, QrCodeResponse, ItemNumberResponse } from '@/typings/models.types'
+import type { PersonnelEmployee, PersonnelResponse, QrCodeResponse, ItemNumberResponse } from '@/typings/models.types'
 
 import QRCodeStyling from 'qr-code-styling'
 import Message from 'primevue/message'
@@ -18,6 +18,7 @@ import InputText from 'primevue/inputtext'
 import Column from 'primevue/column'
 import DataTable from 'primevue/datatable'
 import Dialog from 'primevue/dialog'
+import { useToast } from 'primevue/usetoast'
 import Card from 'primevue/card'
 import DSWDLogo from '@/assets/image/DSWD logo_Mark.png'
 import FileUpload from 'primevue/fileupload'
@@ -32,7 +33,6 @@ import Paginator, { PageState } from 'primevue/paginator'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { usePrependOrAppendOnce } from '@/utils/helpers.js'
 import useVuelidate from '@vuelidate/core'
-import { useToast } from 'primevue/usetoast'
 
 const authStore = useAuthStore()
 const personnelStore = usePersonnelStore()
@@ -46,7 +46,7 @@ const itemNumberIsLoading = ref(false)
 const searchSubmitted = ref(false)
 const showModal = ref(false)
 const showQrModal = ref(false)
-const selectedEmployeeForQr = ref() // @todo Update this back to PersonnelResponse once the typings for it has been fixed.
+const selectedEmployeeForQr = ref()
 const qrCodeIsLoading = ref(false)
 const isPositionLoading = ref(false)
 const formIsSubmitting = ref(false)
@@ -349,22 +349,50 @@ const handleSearchEmployee = async () => {
   itemNumberIsLoading.value = false
 }
 
-const openQrModal = async (employee: PersonnelResponse) => {
-  selectedEmployeeForQr.value = employee
+const openQrModal = async (individual: PersonnelResponse) => {
+  selectedEmployeeForQr.value = individual
   showQrModal.value = true
   fetchedQrCode.value = null
-  fetchedQrCode.value = await handleViewQr(employee)
+
+  if (!individual.employee) {
+    toast.add({
+      severity: 'error',
+      summary: 'Invalid action.',
+      detail: 'Employee not found.',
+      life: 5000,
+    })
+    console.log('The selected individual has no employee record.')
+  } else {
+    fetchedQrCode.value = await handleViewQr(individual.employee)
+  }
 }
 
-const handleViewQr = async (employee: PersonnelResponse): Promise<QrCodeResponse> => {
+const canDownload = ref(false)
+const handleViewQr = async (employee: PersonnelEmployee): Promise<QrCodeResponse> => {
   let response: ApiResponseBody
   qrCodeIsLoading.value = true
+  canDownload.value = false // reset everytime user is attempting to view a QR.
   response = await personnelStore.fetchQrCode(employee.id)
 
   if (response.error_message === 'Employee has no QR code yet.' && !response.success) {
     response = await personnelStore.generateQrCode(employee.id)
+
+    if (response.error_message === 'This employee has no ID number.' && !response.success) {
+      toast.add({
+        severity: 'error',
+        summary: 'Cannot generate QR code.',
+        detail: response.error_message + ' Kindly contact the administrator for support.',
+        life: 5000,
+      })
+      console.log('Encountered error while attempting to generate QR code for the employee. ', response)
+
+      personnelStore.isEmployeesLoading = false
+      qrCodeIsLoading.value = false
+      return response.data as QrCodeResponse
+    }
   }
 
+  canDownload.value = true
   personnelStore.isEmployeesLoading = false
   qrCodeIsLoading.value = false
   return response.data as QrCodeResponse
@@ -854,12 +882,12 @@ const downloadQrCode = async () => {
             @click="handleImportSubmission"
             :loading="formIsSubmitting"
             :disabled="formIsSubmitting"
-            label="Submit"
+            label="Upload"
             class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-600"
             text
           >
             <template #icon>
-              <font-awesome-icon :icon="['fas', 'save']" class="mr-2" />
+              <font-awesome-icon :icon="['fas', 'upload']" class="mr-2" />
             </template>
           </Button>
         </div>
@@ -1023,6 +1051,7 @@ const downloadQrCode = async () => {
                   severity="info"
                   type="button"
                   size="large"
+                  :disabled="!canDownload"
                   class="dark:text-secondary-100 bottom-0 right-0 mt-4 w-full border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
                   text
                 >

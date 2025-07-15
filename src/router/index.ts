@@ -8,6 +8,7 @@ import ItemNumberForm from '@/components/item-number/ItemNumberForm.vue'
 import AboutUsPage from '@/views/AboutUsPage.vue'
 import { AuthRole, AuthType } from '@/typings/auth.types.ts'
 import { useAuthStore } from '@/stores/auth.store.ts'
+import TimeLogPage from '@/views/TimeLogPage.vue'
 
 const enum RouteGroup {
   MAIN = 'Main',
@@ -60,7 +61,18 @@ const routes = [
       ],
     },
   },
-
+  {
+    path: '/time-logs',
+    name: 'time-logs',
+    component: TimeLogPage,
+    meta: <RouteMeta>{
+      group: RouteGroup.MAIN,
+      label: 'Time Logs',
+      isSidebarMenu: true,
+      authType: AuthType.OPEN,
+      hideNavigation: true,
+    },
+  },
   /*Request Routes */
   {
     path: '/requests',

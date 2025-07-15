@@ -1,4 +1,5 @@
 import { CountryCode, isValidPhoneNumber, parsePhoneNumber } from 'libphonenumber-js'
+import { Ref } from 'vue'
 import { WarmBodyResponse } from '@/typings/models.types.ts'
 import { useDateFormat } from '@vueuse/core'
 import { helpers } from '@vuelidate/validators'
@@ -14,6 +15,12 @@ export const sleep = (seconds: number): Promise<boolean> => {
       res(true)
     }, seconds * 1000)
   })
+}
+
+export const getManilaTodayISO = (): string => {
+  const now = new Date()
+  const manilaDateTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Manila' }))
+  return manilaDateTime.toISOString().split('T')[0]
 }
 
 export const snakeCaseToTitleCase = (s: string) =>
@@ -318,6 +325,34 @@ export const getMonthAndYear = (dateString: string | null | undefined): string =
   } catch (error) {
     console.error('Error formatting date:', error)
     return 'Invalid Date'
+  }
+}
+
+export const formatTime = (dateString: string | null | undefined): string => {
+  if (!dateString) return ''
+  try {
+    const date = new Date(dateString)
+    if (isNaN(date.getTime())) {
+      console.error('Invalid date string for time formatting:', dateString)
+      return 'Invalid Time'
+    }
+    const options: Intl.DateTimeFormatOptions = {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: 'Asia/Manila',
+    }
+    return date.toLocaleTimeString('en-PH', options)
+  } catch (error) {
+    console.error('Error formatting time:', error)
+    return 'Invalid Time'
+  }
+}
+
+export const simulateScan = (manualInput: Ref<string>, onDecode: (value: string) => void) => {
+  if (manualInput.value.trim()) {
+    onDecode(manualInput.value.trim())
+    manualInput.value = ''
   }
 }
 

@@ -198,7 +198,7 @@ export type ImportPdsResponse = {
 }
 
 export type PersonnelEmployee = {
-  id: number | null
+  id: number
   individual_basic_detail_id: PersonnelResponse | null
   id_number: string | null
   item_id: number | null
@@ -610,3 +610,12 @@ export type SettingsResponse = {
   name: string
   value: string
 } & ApiResponseData
+
+export interface ScannedEmployeeResponse {
+  id: string | number
+  name: string
+  position: string
+  is_in: boolean
+  timestamp: string
+  photo_url: string
+}
