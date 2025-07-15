@@ -441,10 +441,22 @@ export const usePdsStore = defineStore('pds', () => {
     return data.value
   }
 
+  const generatePDSFormTemplate = async (id: string) => {
+    const response = await fetch('/mock/CSC-FORM-212-Template.xlsx')
+    const blob = await response.blob()
+    const fileNameHeader = `Certificate-of-COC-Earned-${id}.docx`
+
+    return {
+      data: ref(blob),
+      fileNameHeader: ref(fileNameHeader),
+    }
+  }
+
   return {
     pdsInfo,
     savePds,
     importPds,
+    generatePDSFormTemplate,
     pdsMode,
     importResult,
   }

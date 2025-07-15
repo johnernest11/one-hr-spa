@@ -125,16 +125,16 @@ const formRules = computed(() => ({
       required: helpers.withMessage('Please choose the salary grade for this item', required),
     },
     office_id: {
-      required: helpers.withMessage('Please choose the office of the item', required),
+      required: helpers.withMessage('Please choose the office', required),
     },
     division_id: {
-      required: helpers.withMessage('Please choose the division of the item', required),
+      required: helpers.withMessage('Please choose the division', required),
     },
     section_or_unit_id: {
-      required: helpers.withMessage('Please choose the section/unit of the item', required),
+      required: helpers.withMessage('Please choose the section/unit', required),
     },
     agency_employee_no: {
-      required: helpers.withMessage('agency employee no is required', required),
+      required: helpers.withMessage('Agency employee no is required', required),
       maxLength: helpers.withMessage(() => generateMessage('agency_employee_no').maxLength, globalStringMaxLengthRule),
     },
   },
@@ -211,6 +211,36 @@ const propPosition = async () => {
   isPositionLoading.value = false
 }
 
+const fileName = ref('No file selected')
+
+const uploadedFile = ref<File | null>(null)
+
+const onFileSelect = (event: { files?: File[] }) => {
+  const file = event.files?.[0] || null
+  uploadedFile.value = file
+  fileName.value = file?.name || 'No file selected'
+}
+
+const downloadPDSTemplate = async () => {
+  const response = await fetch('/mock/CSC-FORM-212-Template.xlsx')
+  const blob = await response.blob()
+  const url = window.URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'CSC-FORM-212-Template.xlsx'
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  window.URL.revokeObjectURL(url)
+
+  toast.add({
+    severity: 'success',
+    summary: 'Template Downloaded',
+    detail: 'The CSC-FORM-212-Templated successfully.',
+    life: 5000,
+  })
+}
+
 const validator = useVuelidate<PersonalDataSheetPayload>(formRules, importPayload)
 
 const handleImportSubmission = async () => {
@@ -265,13 +295,11 @@ const handleImportSubmission = async () => {
       detail: 'Personnel Data Sheet has been imported successfully.',
       life: 5000,
     })
-
-    setTimeout(() => {
-      window.location.reload()
-    }, 1000)
+    formIsSubmitting.value = false
+    // setTimeout(() => {
+    //   window.location.reload()
+    // }, 1000)
   }
-
-  formIsSubmitting.value = false
 }
 
 onBeforeMount(async () => {
@@ -673,12 +701,11 @@ const downloadQrCode = async () => {
     <Dialog v-model:visible="ImportPDS" modal header="Request Locator Slip" :style="{ width: '90vw' }">
       <template #header>
         <div class="flex items-center space-x-3 pt-4 sm:px-6 md:px-8">
-          <font-awesome-icon :icon="['fas', 'location-dot']" class="h-6 text-surface-600 sm:h-7 md:h-8" />
+          <font-awesome-icon icon="file-arrow-up" class="h-6 text-surface-600 sm:h-7 md:h-8" />
           <h1 class="font-base text-2xl text-surface-600 sm:text-xl md:text-2xl">Import Personnel Data Sheet</h1>
         </div>
       </template>
       <hr />
-      <!-- ✅ Import Error Alert Block -->
       <div class="flex flex-col gap-4">
         <div class=" ">
           <transition
@@ -696,6 +723,22 @@ const downloadQrCode = async () => {
         </div>
       </div>
       <div class="px-4 py-4 sm:px-6 sm:py-6 md:px-12">
+        <div class="mb-4 gap-4 rounded-lg border border-surface-300 bg-surface-0 p-4 shadow-sm">
+          <div class="flex items-start space-x-3">
+            <font-awesome-icon icon="file-excel" class="mt-1 h-6 text-primary-500" />
+            <div>
+              <p class="text-md font-medium text-surface-700">Personnel Data Sheet Template</p>
+              <a
+                href="#"
+                @click.prevent="downloadPDSTemplate"
+                class="items-center text-xs italic text-primary-600 hover:text-primary-800 hover:underline"
+              >
+                Download template here
+              </a>
+            </div>
+          </div>
+        </div>
+
         <div class="mb-2 flex flex-row items-center justify-center gap-4">
           <WbAutoComplete
             :useApiFilter="true"
@@ -864,19 +907,30 @@ const downloadQrCode = async () => {
           </WbInputText>
         </div>
 
-        <div class="card flex flex-col gap-2">
-          <label class="text-sm font-medium text-surface-700 dark:text-surface-300"> Upload PDS * </label>
-          <FileUpload
-            ref="fileUploadRef"
-            mode="basic"
-            name="demo[]"
-            accept=".doc,.docx,.xls,.xlsx"
-            :maxFileSize="5 * 1024 * 1024"
-            :auto="false"
-            chooseLabel="Browse"
-          />
-        </div>
+        <div class="mb-2 flex flex-col gap-2 md:flex-row md:gap-4">
+          <div class="w-full">
+            <label class="text-md text-surface-600 dark:lg:text-surface-200">
+              Upload PDS <span class="text-error-500">*</span>
+            </label>
+            <div class="flex items-center gap-3">
+              <FileUpload
+                ref="fileUploadRef"
+                mode="basic"
+                name="demo[]"
+                accept=".doc,.docx,.xls,.xlsx"
+                :maxFileSize="5 * 1024 * 1024"
+                :auto="false"
+                chooseLabel=""
+                class="no-file-name-button"
+                @select="onFileSelect"
+              />
 
+              <span class="text-sm text-surface-600 dark:text-surface-200">
+                {{ fileName }}
+              </span>
+            </div>
+          </div>
+        </div>
         <div class="flex justify-end">
           <Button
             @click="handleImportSubmission"
@@ -887,7 +941,7 @@ const downloadQrCode = async () => {
             text
           >
             <template #icon>
-              <font-awesome-icon :icon="['fas', 'upload']" class="mr-2" />
+              <font-awesome-icon icon="upload" class="mr-2" />
             </template>
           </Button>
         </div>
@@ -918,7 +972,6 @@ const downloadQrCode = async () => {
           </h1>
         </div>
       </template>
-      <!-- Scrollable Content (space reserved for footer height) -->
       <!-- Scrollable Content (space reserved for footer height) -->
       <div class="flex-1 px-4 pb-24">
         <h2 class="mb-2 mt-4 text-lg font-semibold text-surface-500 dark:text-primary-100">Filters</h2>
