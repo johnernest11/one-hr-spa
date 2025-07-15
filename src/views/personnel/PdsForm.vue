@@ -50,6 +50,8 @@ const handleSubmit = async () => {
 
     const resultC4 = await c4FormRef.value?.handleSaveC4Form?.()
     if (resultC4?.valid === false) return
+
+    window.location.reload()
   } finally {
     isSubmitting.value = false
   }
