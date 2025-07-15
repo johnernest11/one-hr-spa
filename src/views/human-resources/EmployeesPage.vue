@@ -176,7 +176,6 @@ const employeeHasIdNumber = (response: ApiResponseBody): boolean => {
       detail: response.error_message + ' Kindly contact the administrator for support.',
       life: 5000,
     })
-    console.log('Encountered error while attempting to generate QR code for the employee. ', response)
     return false
   }
   return true
