@@ -15,6 +15,33 @@ export const parseApiResponseError = (response: ApiResponseBody) => {
   return { code: response.error_code, message, errors: errors.flat() }
 }
 
+export const parseApiImportPDSResponseError = (response: ApiResponseBody) => {
+  if (!response?.error_code) return null
+
+  if (response.message?.includes('Duplicate entry') && response.message?.includes('individual_name_birthday_unique')) {
+    return {
+      code: response.error_code,
+      message: 'An individual with the same first name, middle name, last name, extension name, and birthdate already exists.',
+      errors: [],
+    }
+  }
+
+  const message = getErrorMessage(response.error_code, response.error_message)
+
+  const errors: string[] = []
+  if (Array.isArray(response.errors) && response.errors.length > 0) {
+    for (const error of response.errors) {
+      if (typeof error === 'string') {
+        errors.push(error)
+      } else if (error?.messages) {
+        errors.push(...error.messages)
+      }
+    }
+  }
+
+  return { code: response.error_code, message, errors }
+}
+
 const getErrorMessage = (errorCode: string, errorMessage?: string) => {
   let message: string
   switch (errorCode) {
