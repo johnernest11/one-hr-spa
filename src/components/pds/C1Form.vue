@@ -33,6 +33,7 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { TransitionRoot } from '@headlessui/vue'
 import { ItemNumberResponse } from '@/typings/models.types'
 import { useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.store.ts'
 const getId = usePrependOrAppendOnce('pds-c1-section-form')
 
@@ -42,6 +43,8 @@ const sgStore = useSalaryGradesStore()
 const pdsStore = usePdsStore()
 const toast = useToast()
 const router = useRouter()
+const route = useRoute()
+const isMyPds = route.name === 'my-pds'
 
 const currentlyEnrolledGraduate = ref(false)
 const currentlyEnrolledVocational = ref(false)
@@ -50,8 +53,8 @@ const isSameResidential = ref(false)
 const activeToasts = ref<number>(0)
 const maxToasts = 5
 
-const selectedItemNo = ref<WbAutoCompleteOption[] | null>(null)
-const selectedSalaryGrade = ref<WbAutoCompleteOption[] | null>(null)
+const selectedItemNo = ref<WbAutoCompleteOption | null>(null)
+const selectedSalaryGrade = ref<WbAutoCompleteOption | null>(null)
 const selectedOffice = ref<WbAutoCompleteOption[] | null>(null)
 const selectedDivision = ref<WbAutoCompleteOption[] | null>(null)
 const selectedSectionUnit = ref<WbAutoCompleteOption[] | null>(null)
@@ -89,7 +92,7 @@ onBeforeMount(async () => {
     publicStore.fetchProvinces(),
     publicStore.fetchCities(),
     publicStore.fetchBarangays(),
-    console.log(authStore.authenticatedUser.user_profile?.individual_basic_detail?.individual_address),
+    console.log(authStore.authenticatedUser.user_profile?.individual_basic_detail?.employee),
   ])
 
   addressesAreLoading.value = false
@@ -561,6 +564,86 @@ watch(
 )
 
 watch(
+  () => publicStore.regionOptions,
+  (options) => {
+    if (!selectedResidentialRegion.value && payload.individual_address_init.residential_region_id) {
+      selectedResidentialRegion.value =
+        options.find((opt) => opt.value === payload.individual_address_init.residential_region_id) ?? null
+    }
+  },
+  { immediate: true }
+)
+
+watch(
+  () => selectedResidentialProvince.value,
+  (newSelectedItem) => {
+    if (!newSelectedItem) {
+      selectedResidentialProvince.value = null
+      payload.individual_address_init.residential_province_id = null
+    } else {
+      payload.individual_address_init.residential_province_id = newSelectedItem.value
+    }
+  }
+)
+
+watch(
+  () => publicStore.provinceOptions,
+  (options) => {
+    if (!selectedResidentialProvince.value && payload.individual_address_init.residential_province_id) {
+      selectedResidentialProvince.value =
+        options.find((opt) => opt.value === payload.individual_address_init.residential_province_id) ?? null
+    }
+  },
+  { immediate: true }
+)
+
+watch(
+  () => selectedResidentialCity.value,
+  (newSelectedItem) => {
+    if (!newSelectedItem) {
+      selectedResidentialCity.value = null
+      payload.individual_address_init.residential_citymun_id = null
+    } else {
+      payload.individual_address_init.residential_citymun_id = newSelectedItem.value
+    }
+  }
+)
+
+watch(
+  () => publicStore.cityOptions,
+  (options) => {
+    if (!selectedResidentialCity.value && payload.individual_address_init.residential_citymun_id) {
+      selectedResidentialCity.value =
+        options.find((opt) => opt.value === payload.individual_address_init.residential_citymun_id) ?? null
+    }
+  },
+  { immediate: true }
+)
+
+watch(
+  () => selectedResidentialBarangay.value,
+  (newSelectedItem) => {
+    if (!newSelectedItem) {
+      selectedResidentialBarangay.value = null
+      payload.individual_address_init.residential_brgy_id = null
+    } else {
+      payload.individual_address_init.residential_brgy_id = newSelectedItem.value
+    }
+  }
+)
+
+watch(
+  () => publicStore.barangayOptions,
+  (options) => {
+    if (!selectedResidentialBarangay.value && payload.individual_address_init.residential_brgy_id) {
+      selectedResidentialBarangay.value =
+        options.find((opt) => opt.value === payload.individual_address_init.residential_brgy_id) ?? null
+    }
+  },
+  { immediate: true }
+)
+
+watch(
   () => payload.individual.birthday,
   (newBday) => {
     if (newBday !== null) {
@@ -620,6 +703,17 @@ watch(
 )
 
 watch(
+  () => publicStore.regionOptions,
+  (options) => {
+    if (!selectedPermanentRegion.value && payload.individual_address_init.permanent_region_id) {
+      selectedPermanentRegion.value =
+        options.find((opt) => opt.value === payload.individual_address_init.permanent_region_id) ?? null
+    }
+  },
+  { immediate: true }
+)
+
+watch(
   () => selectedPermanentProvince.value,
   (newSelectedItem) => {
     if (!newSelectedItem) {
@@ -629,6 +723,17 @@ watch(
       payload.individual_address_init.permanent_province_id = newSelectedItem.value
     }
   }
+)
+
+watch(
+  () => publicStore.provinceOptions,
+  (options) => {
+    if (!selectedPermanentProvince.value && payload.individual_address_init.permanent_province_id) {
+      selectedPermanentProvince.value =
+        options.find((opt) => opt.value === payload.individual_address_init.permanent_province_id) ?? null
+    }
+  },
+  { immediate: true }
 )
 
 watch(
@@ -644,6 +749,17 @@ watch(
 )
 
 watch(
+  () => publicStore.cityOptions,
+  (options) => {
+    if (!selectedPermanentCity.value && payload.individual_address_init.permanent_citymun_id) {
+      selectedPermanentCity.value =
+        options.find((opt) => opt.value === payload.individual_address_init.permanent_citymun_id) ?? null
+    }
+  },
+  { immediate: true }
+)
+
+watch(
   () => selectedPermanentBarangay.value,
   (newSelectedItem) => {
     if (!newSelectedItem) {
@@ -653,6 +769,17 @@ watch(
       payload.individual_address_init.permanent_brgy_id = newSelectedItem.value
     }
   }
+)
+
+watch(
+  () => publicStore.barangayOptions,
+  (options) => {
+    if (!selectedPermanentBarangay.value && payload.individual_address_init.permanent_brgy_id) {
+      selectedPermanentBarangay.value =
+        options.find((opt) => opt.value === payload.individual_address_init.permanent_brgy_id) ?? null
+    }
+  },
+  { immediate: true }
 )
 
 watch(
@@ -672,6 +799,19 @@ watch(
       propPosition()
     }
   }
+)
+
+watch(
+  () => payload.employee.item_id,
+  (newId) => {
+    if (!newId) {
+      selectedItemNo.value = null
+      return
+    }
+
+    selectedItemNo.value = employment.itemNumbersSuggestions.find((opt) => opt.value === newId) ?? null
+  },
+  { immediate: true }
 )
 
 watch(
@@ -969,6 +1109,7 @@ defineExpose({
                         optionLabel="label"
                         optionValue="value"
                         required
+                        :disabled="isMyPds"
                         @on-true-value-computed="
                           (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
                             useWbAutoCompleteHandleTrueValue(value, toRef(payload.employee, 'item_id'))
@@ -1012,6 +1153,7 @@ defineExpose({
                       optionLabel="label"
                       optionValue="value"
                       required
+                      :disabled="isMyPds"
                       @on-true-value-computed="
                         (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
                           useWbAutoCompleteHandleTrueValue(value, toRef(payload.employee, 'salary_grade_id'))
@@ -1040,6 +1182,7 @@ defineExpose({
                         optionLabel="label"
                         optionValue="value"
                         required
+                        :disabled="isMyPds"
                         forceSelection
                         @on-true-value-computed="
                           (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
@@ -1067,6 +1210,7 @@ defineExpose({
                         optionLabel="label"
                         optionValue="value"
                         required
+                        :disabled="isMyPds"
                         @on-true-value-computed="
                           (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
                             useWbAutoCompleteHandleTrueValue(value, toRef(payload.employee, 'division_id'))
@@ -1093,6 +1237,7 @@ defineExpose({
                         optionLabel="label"
                         optionValue="value"
                         required
+                        :disabled="isMyPds"
                         @on-true-value-computed="
                           (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
                             useWbAutoCompleteHandleTrueValue(value, toRef(payload.employee, 'section_or_unit_id'))
@@ -1481,6 +1626,7 @@ defineExpose({
                         @focusin="validator.individual_address_init.residential_region_id.$dirty = false"
                       >
                       </WbAutoComplete>
+
                       <WbAutoComplete
                         v-model="selectedResidentialProvince"
                         :suggestions="filteredProvinceOptionsByRegion"

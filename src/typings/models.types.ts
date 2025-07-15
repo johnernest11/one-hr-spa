@@ -243,6 +243,7 @@ export type PersonnelResponse = {
   individual_address: PersonnelAddress | null
   individual_contact_info: PersonnelContactInfo | null
   individual_family: IndividualFamily | null
+  individual_educational_background: IndividualEducBg | null
   employee: PersonnelEmployee | null
 } & ApiResponseData
 

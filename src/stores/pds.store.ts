@@ -112,6 +112,7 @@ export const usePdsStore = defineStore('pds', () => {
   const route = useRoute()
   const isMyPds = route.name === 'my-pds'
   const individual = isMyPds ? authStore.authenticatedUser?.user_profile?.individual_basic_detail : null
+  const employee = individual?.employee
   const contactInfo = individual?.individual_contact_info
   const individual_address = individual?.individual_address
   const individual_family_list = individual?.individual_family as IndividualFamily[] | null
@@ -394,14 +395,14 @@ export const usePdsStore = defineStore('pds', () => {
       id: 0,
       individual_basic_detail_id: null,
       id_number: null,
-      item_id: null,
-      salary_grade_id: null,
+      item_id: employee?.item_id ?? null,
+      salary_grade_id: employee?.salary_grade_id ?? null,
       position: null,
       fund_source: {
         id: null,
         name: null,
       },
-      agency_employee_no: null,
+      agency_employee_no: employee?.agency_employee_no ?? null,
       office_id: null,
       division_id: null,
       division: null,
