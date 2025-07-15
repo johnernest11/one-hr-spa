@@ -1,5 +1,4 @@
 export enum BloodType {
-  NA = '',
   APositive = 'A+',
   ANegative = 'A-',
   BPositive = 'B+',
@@ -13,6 +12,14 @@ export enum BloodType {
 export enum SexType {
   MALE = 'male',
   FEMALE = 'female',
+}
+
+export enum CivilStatusType {
+  SINGLE = 'Single',
+  MARRIED = 'Married',
+  WIDOWED = 'Widowed',
+  DIVORCED = 'Divorced',
+  SEPARATED = 'Separated',
 }
 
 export enum ExtensionType {
@@ -50,11 +57,10 @@ export enum CountryType {
 
 export interface Option {
   label: string
-  value: BloodType | SexType | ExtensionType | EmploymentStatusType | FilipinoByType | CountryType
+  value: BloodType | SexType | CivilStatusType | ExtensionType | EmploymentStatusType | FilipinoByType | CountryType
 }
 
 export const bloodTypeOptions: Option[] = [
-  { label: 'N/A', value: BloodType.NA },
   { label: 'A+', value: BloodType.APositive },
   { label: 'A-', value: BloodType.ANegative },
   { label: 'B+', value: BloodType.BPositive },
@@ -68,6 +74,14 @@ export const bloodTypeOptions: Option[] = [
 export const SexTypeOptions: Option[] = [
   { label: 'Male', value: SexType.MALE },
   { label: 'Female', value: SexType.FEMALE },
+]
+
+export const CivilStatusTypeOptions: Option[] = [
+  { label: 'Single', value: CivilStatusType.SINGLE },
+  { label: 'Married', value: CivilStatusType.MARRIED },
+  { label: 'Widowed', value: CivilStatusType.WIDOWED },
+  { label: 'Divorced', value: CivilStatusType.DIVORCED },
+  { label: 'Separated', value: CivilStatusType.SEPARATED },
 ]
 
 export const ExtensionTypeOptions: Option[] = [

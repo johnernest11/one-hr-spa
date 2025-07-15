@@ -33,7 +33,7 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { TransitionRoot } from '@headlessui/vue'
 import { ItemNumberResponse } from '@/typings/models.types'
 import { useRouter } from 'vue-router'
-
+import { useAuthStore } from '@/stores/auth.store.ts'
 const getId = usePrependOrAppendOnce('pds-c1-section-form')
 
 const libraryStore = useLibrariesStore()
@@ -81,7 +81,7 @@ const isC1Loading = ref(false)
 const pdsErrors = ref()
 const isPdsError = ref(false)
 const errorMessage = ref()
-
+const authStore = useAuthStore()
 onBeforeMount(async () => {
   addressesAreLoading.value = true
   await Promise.allSettled([
@@ -89,6 +89,7 @@ onBeforeMount(async () => {
     publicStore.fetchProvinces(),
     publicStore.fetchCities(),
     publicStore.fetchBarangays(),
+    console.log(authStore.authenticatedUser.user_profile?.individual_basic_detail?.individual_address),
   ])
 
   addressesAreLoading.value = false

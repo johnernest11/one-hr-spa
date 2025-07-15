@@ -1,4 +1,5 @@
 import { ApiResponseData } from '@/typings/http-resources.types.ts'
+import { BloodType } from './employee-entry.types'
 
 /** Libraries (HTTP Responses) */
 export type RegionResponse = {
@@ -133,7 +134,8 @@ export type UserProfileResponse = {
   full_name: string
   profile_picture_url: string | null
   address: AddressResponse
-  individual_basic_detail_id?: PersonnelResponse | null
+  individual_basic_detail_id: number | null
+  individual_basic_detail?: PersonnelResponse | null
   personnel_accomplishment_report?: Array<PersonnelAccomplishmentReportResponse> | null | undefined
 } & ApiResponseData
 
@@ -230,7 +232,7 @@ export type PersonnelResponse = {
   civil_status: string
   height: number
   weight: number
-  blood_type: string
+  blood_type: BloodType | null
   gsis_no: string
   pag_ibig_no: string
   philhealth_no: string
@@ -240,6 +242,7 @@ export type PersonnelResponse = {
   citizenship_acquisition: string
   individual_address: PersonnelAddress | null
   individual_contact_info: PersonnelContactInfo | null
+  individual_family: IndividualFamily | null
   employee: PersonnelEmployee | null
 } & ApiResponseData
 
