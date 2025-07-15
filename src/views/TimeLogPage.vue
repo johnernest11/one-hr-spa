@@ -18,7 +18,6 @@ const isMobile = ref(false)
 
 const MODAL_DISPLAY_DURATION_MS = 10000
 const isProcessingScan = ref(false)
-const scannerPaused = ref(false)
 
 const scanTimeoutId = ref<number | undefined>(undefined)
 const intervalId = ref<number | undefined>(undefined)
@@ -89,19 +88,22 @@ const onDetect = (detectedCodes: DetectedBarcode[]) => {
     const decodedString = firstCode.rawValue
 
     isProcessingScan.value = true
-    scannerPaused.value = true
     onDecode(decodedString)
   }
 }
 
 const onDecode = async (result: string) => {
-  errorMessage.value = null
-  dailyLogsStore.clearScannedEmployee()
-
   if (scanTimeoutId.value) {
     clearTimeout(scanTimeoutId.value)
     scanTimeoutId.value = undefined
   }
+
+  if (showModal.value) {
+    handleCloseDialog()
+  }
+
+  dailyLogsStore.clearScannedEmployee()
+  errorMessage.value = null
 
   if (!result || result.trim() === '') {
     dailyLogsStore.lastLogMessage = 'Empty QR code scanned. Please try again.'
@@ -122,7 +124,6 @@ const onDecode = async (result: string) => {
     showModal.value = true
   } finally {
     isProcessingScan.value = false
-
     scanTimeoutId.value = setTimeout(() => {
       handleCloseDialog()
     }, MODAL_DISPLAY_DURATION_MS) as unknown as number
@@ -189,20 +190,19 @@ const dynamicSuccessMessage = computed(() => {
   if (dailyLogsStore.currentScannedEmployee) {
     return dailyLogsStore.currentScannedEmployee.is_in ? 'Timed In!' : 'Timed Out!'
   }
+  // The `errorMessage.value` is less relevant now as dailyLogsStore.lastLogMessage
+  // should contain the message for both success and error cases after logEmployeeTime.
   if (dailyLogsStore.lastLogMessage) {
     return dailyLogsStore.lastLogMessage
   }
-  if (errorMessage.value) {
-    return errorMessage.value
-  }
-  return 'Processing...'
+  return 'Processing...' // Fallback
 })
 
 const handleCloseDialog = () => {
   showModal.value = false
-  errorMessage.value = null
-  dailyLogsStore.clearScannedEmployee()
-  scannerPaused.value = false
+  errorMessage.value = null // Clear local error message
+  dailyLogsStore.clearScannedEmployee() // This also clears dailyLogsStore.lastLogMessage
+  // No need to deal with `scannerPaused` here as camera is always scanning.
 }
 
 const latestWarmBodyLogs = computed(() => {
@@ -255,7 +255,7 @@ const latestWarmBodyLogs = computed(() => {
             :constraints="{ facingMode: 'environment' }"
             @init="onInit"
             @camera-error="onCameraError"
-            :paused="scannerPaused"
+            :paused="false"
             class="h-full w-full object-cover"
           />
         </div>
@@ -299,7 +299,7 @@ const latestWarmBodyLogs = computed(() => {
 
         <div class="mb-4 flex justify-center">
           <img
-            :src="dailyLogsStore.currentScannedEmployee?.photo_url || '@/assets/image/DSWD logo_Mark.png'"
+            :src="dailyLogsStore.currentScannedEmployee?.photo_url || '/assets/image/DSWD logo_Mark.png'"
             alt="Employee Profile Photo"
             class="h-64 w-48 rounded-lg object-cover shadow md:h-80 md:w-64"
           />
