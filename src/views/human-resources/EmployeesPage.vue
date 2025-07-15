@@ -296,9 +296,9 @@ const handleImportSubmission = async () => {
       life: 5000,
     })
     formIsSubmitting.value = false
-    // setTimeout(() => {
-    //   window.location.reload()
-    // }, 1000)
+    setTimeout(() => {
+      window.location.reload()
+    }, 1000)
   }
 }
 
