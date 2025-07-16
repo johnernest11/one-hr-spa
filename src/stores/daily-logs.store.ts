@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth.store'
 import type { ApiResponseBody, WarmBodyLogEntry, DailyLogEntry } from '@/typings/http-resources.types.ts'
 import type { ScannedEmployeeResponse } from '@/typings/models.types'
 import { getManilaTodayISO } from '@/utils/helpers.ts'
+import defaultLogoMark from '@/assets/image/logo_Mark.png'
 
 interface DivisionSectionSummary {
   name: string
@@ -109,7 +110,7 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
         const photoUrl =
           employeeDetails?.user_profile?.profile_picture_url && employeeDetails.user_profile.profile_picture_url.trim() !== ''
             ? employeeDetails.user_profile.profile_picture_url
-            : '@/assets/image/DSWD logo_Mark.png'
+            : defaultLogoMark
 
         if (warmBodyLog && employeeDetails && employeeItem) {
           currentScannedEmployee.value = {
@@ -121,14 +122,9 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
             photo_url: photoUrl,
           }
         } else {
-          currentScannedEmployee.value = {
-            id: 'N/A',
-            name: 'Unknown Employee',
-            position: 'N/A',
-            is_in: warmBodyLog?.is_in || false,
-            timestamp: warmBodyLog?.created_at || new Date().toISOString(),
-            photo_url: '@/assets/image/DSWD logo_Mark.png',
-          }
+          lastLogMessage.value = 'Failed to retrieve complete employee details. Please try again.'
+          currentScannedEmployee.value = null
+          throw new Error(lastLogMessage.value)
         }
 
         const today = getManilaTodayISO()

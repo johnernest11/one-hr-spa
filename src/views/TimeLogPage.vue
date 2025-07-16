@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { QrcodeStream, DetectedBarcode } from 'vue-qrcode-reader'
-import { useDailyLogsStore } from '@/stores/daily-logs.store'
+import { useDailyLogsStore } from '@/stores/daily-logs.store' // This store now correctly handles the image import
 import Dialog from 'primevue/dialog'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { getManilaTodayISO, formatTime } from '@/utils/helpers.ts'
+import dswdLogoMark from '@/assets/image/logo_Mark.png'
 
 const currentDate = ref('')
 const currentTime = ref('')
@@ -190,19 +191,16 @@ const dynamicSuccessMessage = computed(() => {
   if (dailyLogsStore.currentScannedEmployee) {
     return dailyLogsStore.currentScannedEmployee.is_in ? 'Timed In!' : 'Timed Out!'
   }
-  // The `errorMessage.value` is less relevant now as dailyLogsStore.lastLogMessage
-  // should contain the message for both success and error cases after logEmployeeTime.
   if (dailyLogsStore.lastLogMessage) {
     return dailyLogsStore.lastLogMessage
   }
-  return 'Processing...' // Fallback
+  return 'Processing...'
 })
 
 const handleCloseDialog = () => {
   showModal.value = false
-  errorMessage.value = null // Clear local error message
-  dailyLogsStore.clearScannedEmployee() // This also clears dailyLogsStore.lastLogMessage
-  // No need to deal with `scannerPaused` here as camera is always scanning.
+  errorMessage.value = null
+  dailyLogsStore.clearScannedEmployee()
 }
 
 const latestWarmBodyLogs = computed(() => {
@@ -215,7 +213,7 @@ const latestWarmBodyLogs = computed(() => {
   <div class="flex h-screen w-screen flex-col-reverse overflow-hidden md:flex-row">
     <div class="flex w-full flex-col overflow-hidden bg-primary-500 p-4 text-white md:w-1/4">
       <div class="mb-8 flex items-center space-x-2">
-        <img src="@/assets/image/fo-bp.png" alt="DSWD Logo" class="h-16" />
+        <img :src="dswdLogoMark" alt="DSWD Logo" class="h-16" />
       </div>
       <h2 class="mb-4 text-center text-2xl font-semibold md:text-3xl">WARM BODIES</h2>
       <div class="mb-4 grid grid-cols-2 gap-4 text-center text-lg md:text-2xl">
@@ -299,7 +297,7 @@ const latestWarmBodyLogs = computed(() => {
 
         <div class="mb-4 flex justify-center">
           <img
-            :src="dailyLogsStore.currentScannedEmployee?.photo_url || '/assets/image/DSWD logo_Mark.png'"
+            :src="dailyLogsStore.currentScannedEmployee?.photo_url || dswdLogoMark"
             alt="Employee Profile Photo"
             class="h-64 w-48 rounded-lg object-cover shadow md:h-80 md:w-64"
           />
