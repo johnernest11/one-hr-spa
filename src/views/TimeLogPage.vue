@@ -213,7 +213,7 @@ const latestWarmBodyLogs = computed(() => {
   <div class="flex h-screen w-screen flex-col-reverse overflow-hidden md:flex-row">
     <div class="flex w-full flex-col overflow-hidden bg-primary-500 p-4 text-white md:w-1/4">
       <div class="mb-8 flex items-center space-x-2">
-        <img :src="dswdLogoMark" alt="DSWD Logo" class="h-16" />
+        <img src="@/assets/image/fo-bp.png" alt="DSWD Logo" class="h-16" />
       </div>
       <h2 class="mb-4 text-center text-2xl font-semibold md:text-3xl">WARM BODIES</h2>
       <div class="mb-4 grid grid-cols-2 gap-4 text-center text-lg md:text-2xl">
