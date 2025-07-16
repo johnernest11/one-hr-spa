@@ -5,7 +5,7 @@ import { useAuthStore } from '@/stores/auth.store'
 import type { ApiResponseBody, WarmBodyLogEntry, DailyLogEntry } from '@/typings/http-resources.types.ts'
 import type { ScannedEmployeeResponse } from '@/typings/models.types'
 import { getManilaTodayISO } from '@/utils/helpers.ts'
-import defaultLogoMark from '@/assets/image/logo_Mark.png'
+import defaultLogoMark from '@/assets/image/DSWD logo_Mark.png'
 
 interface DivisionSectionSummary {
   name: string
