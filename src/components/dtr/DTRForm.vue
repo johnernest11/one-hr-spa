@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
-import { DailyTimeRecordResponse } from '@/typings/models.types.ts'
+import { ViewDailyTimeRecordResponse } from '@/typings/models.types.ts'
 import { useDailyTimeRecordsStore } from '@/stores/daily-time-record.store'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-import { formatDTRTime, getDTRDayOfWeek, getFormattedDTRDate, resolveDTRSlots } from '@/utils/helpers'
+import { formatDTRTime, getDTRDayOfWeek, getFormattedDTRDate, resolveDTRSlots, toTimestamp } from '@/utils/helpers'
 import WbCalendar from '@/components/webkit/WbCalendar.vue'
 import WbInputText from '@/components/webkit/WbInputText.vue'
 import WbTextArea from '@/components/webkit/WbTextArea.vue'
@@ -12,9 +12,10 @@ import Card from 'primevue/card'
 const dailyTimeRecordsStore = useDailyTimeRecordsStore()
 const isLoading = ref(true)
 const selectedTimeLogId = ref<number[]>([])
-const allDailyTimeRecordsData = ref<DailyTimeRecordResponse[]>([])
+const allDailyTimeRecordsData = ref<ViewDailyTimeRecordResponse[]>([])
 const fromDate = ref<Date | null>(null)
 const toDate = ref<Date | null>(null)
+const monthDate = ref<Date>(new Date())
 const remarksMap = ref<Record<string, string>>({})
 const activeIndices = ref<number[]>([])
 const toggleAccordion = (index: number) => {
@@ -38,12 +39,19 @@ const selectRequest = (id: number) => {
 
 const isRequestSelected = (id: number): boolean => selectedTimeLogId.value.includes(id)
 onMounted(async () => {
-  const response = await dailyTimeRecordsStore.fetchDailyTimeRecords()
-  if (response && response.success && Array.isArray(response.data)) {
-    allDailyTimeRecordsData.value = response.data
-  }
+  //const response = await dailyTimeRecordsStore.fetchDailyTimeRecords()
+  await handleViewDtr()
   isLoading.value = false
 })
+
+const handleViewDtr = async () => {
+  const response = await dailyTimeRecordsStore.fetchDailyTimeRecordsByMonth(monthDate.value)
+  if (response && response.success && Array.isArray(response.data)) {
+    allDailyTimeRecordsData.value = dailyTimeRecordsStore.viewDailyTimeRecords
+  }
+  console.log(allDailyTimeRecordsData.value)
+}
+
 // Define month/year props with defaults
 const props = withDefaults(
   defineProps<{
@@ -69,6 +77,24 @@ watch([fromDate, toDate], ([from, to]) => {
     filterMonth.value = props.month!
   }
 })
+
+watch(
+  () => monthDate.value,
+  async (newValue) => {
+    console.log('month and date', monthDate)
+    // Prefer the 'from' date to set the calendar's month view
+    if (newValue) {
+      filterYear.value = newValue.getFullYear()
+      filterMonth.value = newValue.getMonth()
+      isLoading.value = true
+      await handleViewDtr()
+      isLoading.value = false
+    } else {
+      filterYear.value = props.year!
+      filterMonth.value = props.month!
+    }
+  }
+)
 
 const minMaxTs = computed<{ min: number; max: number } | null>(() => {
   const tsList = filteredDTRs.value.map((r) => normalizeDateTimestamp(r.date)!).sort((a, b) => a - b)
@@ -99,7 +125,7 @@ const daysInMonth = computed(() => new Date(filterYear.value, filterMonth.value 
 const monthDates = computed(() => {
   const range = minMaxTs.value
   const daysTotal = daysInMonth.value
-  const arr: { is_missing: string; date: Date; row: DailyTimeRecordResponse | null }[] = []
+  const arr: { is_missing: string; date: Date; row: ViewDailyTimeRecordResponse | null }[] = []
 
   for (let d = 1; d <= daysTotal; d++) {
     const dt = new Date(filterYear.value, filterMonth.value, d)
@@ -118,8 +144,8 @@ const monthDates = computed(() => {
 </script>
 
 <template>
-  <div class="flex h-full w-full flex-col shadow-md">
-    <Card class="h-full">
+  <div class="flex h-full w-full flex-col">
+    <Card class="h-full shadow-none">
       <template #content>
         <div class="flex w-full flex-col items-start md:flex-row">
           <Button
@@ -133,7 +159,7 @@ const monthDates = computed(() => {
           />
           <h2 class="mb-2 ml-4 text-3xl text-surface-600 dark:text-primary-100 md:ml-4">
             <font-awesome-icon :icon="['fas', 'calendar']" class="h-5 text-surface-600 sm:h-6 md:h-7" />
-            My Daily Time Record (DTR)
+            My Daily Time Record (DTR) Test
           </h2>
         </div>
 
@@ -160,223 +186,198 @@ const monthDates = computed(() => {
         <br />
         <div class="mb-12 grid grid-cols-1 gap-x-12 gap-y-4 px-4 md:grid-cols-2">
           <WbCalendar
-            v-model="fromDate"
-            dateFormat="yy-mm-dd"
+            v-model="monthDate"
+            dateFormat="yy-mm"
             :maxDate="new Date()"
             required
-            label="From"
+            label="Month"
             label-class="text-md text-surface-600 dark:lg:text-surface-200"
-          />
-          <WbCalendar
-            v-model="toDate"
-            dateFormat="yy-mm-dd"
-            :maxDate="new Date()"
-            required
-            label="To"
-            label-class="text-md text-surface-600 dark:lg:text-surface-200"
+            view="month"
           />
         </div>
 
-        <!-- Header: visible only on md and up -->
-        <div class="hidden grid-cols-5 gap-2 border-b-2 bg-surface-100 px-4 py-4 md:grid md:px-24">
-          <div class="text-center text-sm font-semibold text-surface-500">WORKING</div>
-          <div class="text-center text-sm font-semibold text-surface-500">AM</div>
-          <div class="text-center text-sm font-semibold text-surface-500">PM</div>
-          <div class="text-center text-sm font-semibold text-surface-500">HOURS</div>
-          <div class="text-center text-sm font-semibold text-surface-500">REMARKS</div>
-        </div>
-        <div class="hidden grid-cols-9 gap-2 border-b-2 bg-surface-100 px-4 py-4 md:grid md:px-24">
-          <div class="text-start text-sm font-semibold text-surface-500">Date</div>
-          <div class="text-start text-sm font-semibold text-surface-500">Days</div>
-          <div class="text-start text-sm font-semibold text-surface-500">IN 1</div>
-          <div class="text-start text-sm font-semibold text-surface-500">OUT 1</div>
-          <div class="text-start text-sm font-semibold text-surface-500">IN 2</div>
-          <div class="text-start text-sm font-semibold text-surface-500">OUT 2</div>
-          <div class="text-start text-sm font-semibold text-surface-500">UT</div>
-          <div class="text-start text-sm font-semibold text-surface-500">OT</div>
-          <div class="text-start text-sm font-semibold text-surface-500"></div>
-        </div>
+        <div id="dtr_table" class="relative">
+          <!-- Spinner -->
+          <div v-if="isLoading" class="absolute inset-0 z-10 flex items-center justify-center bg-white/60 backdrop-blur-sm">
+            <span class="h-8 w-8 animate-spin rounded-full border-4 border-surface-600 border-t-transparent"></span>
+          </div>
+          <div v-else-if="!isLoading">
+            <!-- Header: visible only on md and up -->
+            <div class="hidden grid-cols-5 gap-2 border-b-2 bg-surface-100 px-4 py-4 md:grid md:px-24">
+              <div class="text-center text-sm font-semibold text-surface-500">WORKING</div>
+              <div class="text-center text-sm font-semibold text-surface-500">AM</div>
+              <div class="text-center text-sm font-semibold text-surface-500">PM</div>
+              <div class="text-center text-sm font-semibold text-surface-500">HOURS</div>
+              <div class="text-center text-sm font-semibold text-surface-500">REMARKS</div>
+            </div>
+            <div class="hidden grid-cols-9 gap-2 border-b-2 bg-surface-100 px-4 py-4 md:grid md:px-24">
+              <div class="text-start text-sm font-semibold text-surface-500">Date</div>
+              <div class="text-start text-sm font-semibold text-surface-500">Days</div>
+              <div class="text-start text-sm font-semibold text-surface-500">IN 1</div>
+              <div class="text-start text-sm font-semibold text-surface-500">OUT 1</div>
+              <div class="text-start text-sm font-semibold text-surface-500">IN 2</div>
+              <div class="text-start text-sm font-semibold text-surface-500">OUT 2</div>
+              <div class="text-start text-sm font-semibold text-surface-500">UT</div>
+              <div class="text-start text-sm font-semibold text-surface-500">OT</div>
+              <div class="text-start text-sm font-semibold text-surface-500"></div>
+            </div>
 
-        <!-- Data row -->
-        <div
-          v-for="(item, index) in monthDates"
-          :key="item.date.getTime()"
-          class="grid grid-cols-1 gap-y-2 border-b border-surface-300 px-4 py-2 md:grid-cols-9 md:gap-2 md:px-24"
-        >
-          <div>
-            <p class="text-xs font-semibold text-surface-500 md:hidden">Date</p>
-            <!-- Show badge if multiple logs -->
-            <span
-              v-if="item.row && (item.row.warm_bodies?.length ?? 0) >= 5"
-              class="text-warm-900 rounded bg-yellow-200 px-2 py-1 text-xs"
+            <!-- Data row -->
+            <div
+              v-for="(item, index) in monthDates"
+              :key="item.date.getTime()"
+              class="grid grid-cols-1 gap-y-2 border-b border-surface-300 px-4 py-2 md:grid-cols-9 md:gap-2 md:px-24"
             >
-              Multiple time log
-            </span>
-            <p
-              class="text-base text-surface-600"
-              :class="{
-                'cursor-pointer': item.row && (item.row.warm_bodies?.length ?? 0) >= 5,
-                'text-error-900': item.row && (item.row.warm_bodies?.length ?? 0) >= 5,
-              }"
-              @click="
-                () => {
-                  if (item.row && (item.row.warm_bodies?.length ?? 0) >= 4) {
-                    toggleAccordion(index)
-                  }
-                }
-              "
-            >
-              {{ getFormattedDTRDate(item.date.toISOString()) }}
-            </p>
+              <div>
+                <p class="text-xs font-semibold text-surface-500 md:hidden">Date</p>
+                <!-- Show badge if there's missing entries -->
+                <span
+                  v-if="item.row && Object.values(resolveDTRSlots(item.row?.time_log ?? [])).some((value) => value === '')"
+                  class="text-warm-900 rounded bg-yellow-200 px-2 py-1 text-xs"
+                >
+                  Missing entries
+                </span>
 
-            <!-- Show details if active -->
-            <div v-if="item.row && (item.row.warm_bodies?.length ?? 0) >= 5 && activeIndices.includes(index)">
-              <!-- Your detailed info here instead of inside an Accordion -->
-              <div class="relative w-full p-2">
-                <!-- Detailed info: list of warm_bodies logs -->
-                <div class="relative w-full p-2">
-                  <!-- List of warm_bodies logs -->
-                  <div class="mt-2">
-                    <div
-                      v-for="(log, logIDx) in item.row.warm_bodies"
-                      :key="log.id"
-                      class="mb-1 flex cursor-pointer flex-row items-center gap-2"
-                      :class="{
-                        '!bg-surface-0 !text-black': isRequestSelected(log.id),
-                      }"
-                      @click="selectRequest(log.id)"
-                    >
-                      <span class="mb-2 text-xs font-semibold text-surface-500">#{{ logIDx + 1 }}. </span>
-                      <p v-if="true" class="absolute right-2 mb-2 text-base !text-surface-600 sm:right-2">
-                        {{ formatDTRTime(log.timestamp) }}
-                        <font-awesome-icon
-                          :icon="isRequestSelected(log.id) ? ['fas', 'check-square'] : ['fas', 'square-full']"
-                          :class="{
-                            'text-primary-600': isRequestSelected(log.id),
-                            'border border-surface-300 text-base text-gray-50': !isRequestSelected(log.id),
-                          }"
-                        />
-                      </p>
+                <!-- Date text -->
+                <p
+                  class="text-base text-surface-600"
+                  :class="{
+                    'cursor-pointer text-error-900':
+                      item.row && Object.values(resolveDTRSlots(item.row?.time_log ?? [])).some((value) => value === ''),
+                  }"
+                  @click="
+                    () => {
+                      const hasMissing = Object.values(resolveDTRSlots(item.row?.time_log ?? [])).some((value) => value === '')
+                      if (hasMissing) {
+                        toggleAccordion(index)
+                      }
+                    }
+                  "
+                >
+                  {{ getFormattedDTRDate(item.date.toISOString()) }}
+                </p>
+
+                <!-- Show details if active -->
+                <div v-if="item.row && activeIndices.includes(index)">
+                  <!-- Detailed info: list of time logs -->
+                  <div class="relative w-full p-2">
+                    <div class="relative w-full p-2">
+                      <div class="mt-2">
+                        <div
+                          v-for="(log, logIDx) in item.row?.time_log"
+                          :key="log.id"
+                          class="mb-1 flex cursor-pointer flex-row items-center gap-2"
+                          :class="{ '!bg-surface-0 !text-black': isRequestSelected(log.id) }"
+                          @click="selectRequest(log.id)"
+                        >
+                          <span class="mb-2 text-xs font-semibold text-surface-500">#{{ logIDx + 1 }}.</span>
+                          <p class="absolute right-2 mb-2 text-base !text-surface-600 sm:right-2">
+                            {{ formatDTRTime(toTimestamp(log.date, log.scanned_time)) }}
+                            <font-awesome-icon
+                              :icon="isRequestSelected(log.id) ? ['fas', 'check-square'] : ['fas', 'square-full']"
+                              :class="{
+                                'text-primary-600': isRequestSelected(log.id),
+                                'border border-surface-300 text-base text-gray-50': !isRequestSelected(log.id),
+                              }"
+                            />
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
+              <div>
+                <p class="text-xs font-semibold text-surface-500 md:hidden">Day</p>
+                <p class="text-base text-surface-600">{{ getDTRDayOfWeek(item.date.toISOString()) }}</p>
+              </div>
+
+              <!-- IN 1 -->
+              <div>
+                <p class="text-xs font-semibold text-surface-500 md:hidden">IN 1</p>
+                <p v-if="item.row && resolveDTRSlots(item.row.time_log ?? []).in1" class="text-base text-surface-600">
+                  {{ item.row ? formatDTRTime(resolveDTRSlots(item.row.time_log ?? []).in1) : '' }}
+                </p>
+                <WbInputText
+                  v-else-if="item.row && item.row.time_log?.length && !resolveDTRSlots(item.row.time_log).in1"
+                  label=""
+                  v-model="remarksMap[`out2-${item.date.toISOString()}`]"
+                  placeholder="Missing"
+                  class="h-8 md:h-8 md:w-24"
+                />
+              </div>
+
+              <!-- OUT 1 -->
+              <div>
+                <p class="text-xs font-semibold text-surface-500 md:hidden">OUT 1</p>
+                <p v-if="item.row && resolveDTRSlots(item.row.time_log ?? []).out1" class="text-base text-surface-600">
+                  {{ item.row ? formatDTRTime(resolveDTRSlots(item.row.time_log ?? []).out1) : '' }}
+                </p>
+                <WbInputText
+                  v-else-if="item.row && item.row.time_log?.length && !resolveDTRSlots(item.row.time_log).out1"
+                  label=""
+                  v-model="remarksMap[`out2-${item.date.toISOString()}`]"
+                  placeholder="Missing"
+                  class="h-8 md:h-8 md:w-24"
+                />
+              </div>
+
+              <!-- IN 2 -->
+              <div>
+                <p class="text-xs font-semibold text-surface-500 md:hidden">IN 2</p>
+                <p v-if="item.row && resolveDTRSlots(item.row.time_log ?? []).in2" class="text-base text-surface-600">
+                  {{ item.row ? formatDTRTime(resolveDTRSlots(item.row.time_log ?? []).in2) : '' }}
+                </p>
+                <WbInputText
+                  v-else-if="item.row && item.row.time_log?.length && !resolveDTRSlots(item.row.time_log).in2"
+                  label=""
+                  v-model="remarksMap[`out2-${item.date.toISOString()}`]"
+                  placeholder="Missing"
+                  class="h-8 md:h-8 md:w-24"
+                />
+              </div>
+
+              <!-- OUT 2 -->
+              <div>
+                <p class="text-xs font-semibold text-surface-500 md:hidden">OUT 2</p>
+                <p v-if="item.row && resolveDTRSlots(item.row.time_log ?? []).out2" class="text-base text-surface-600">
+                  {{ formatDTRTime(resolveDTRSlots(item.row.time_log ?? []).out2) }}
+                </p>
+                <WbInputText
+                  v-else-if="item.row && item.row.time_log?.length && !resolveDTRSlots(item.row.time_log).out2"
+                  label=""
+                  v-model="remarksMap[`out2-${item.date.toISOString()}`]"
+                  placeholder="Enter PM OUT"
+                  class="h-8 md:h-8 md:w-24"
+                />
+              </div>
+
+              <!-- UT, OT, Remarks -->
+              <div>
+                <p class="text-xs font-semibold text-surface-500 md:hidden">UT</p>
+                <p class="text-base text-surface-600">
+                  {{ item.row?.ut ?? '' }}
+                </p>
+              </div>
+              <div>
+                <p class="text-xs font-semibold text-surface-500 md:hidden">OT</p>
+                <p class="text-base text-surface-600">
+                  {{ item.row?.ot ?? '' }}
+                </p>
+              </div>
+              <div>
+                <p class="text-xs font-semibold text-surface-500 md:hidden">Remarks</p>
+                <WbTextArea
+                  v-model="item.is_missing"
+                  v-if="item.row && (item.row.time_log?.length ?? 0) <= 4 && resolveDTRSlots(item.row.time_log ?? [])"
+                  label=""
+                  class="h-8 md:h-8 md:w-48"
+                  placeholder="Enter remarks"
+                />
+              </div>
             </div>
           </div>
-          <div>
-            <p class="text-xs font-semibold text-surface-500 md:hidden">Day</p>
-            <p class="text-base text-surface-600">{{ getDTRDayOfWeek(item.date.toISOString()) }}</p>
-          </div>
-
-          <!-- IN 1 -->
-          <div>
-            <p class="text-xs font-semibold text-surface-500 md:hidden">IN 1</p>
-            <p v-if="item.row && resolveDTRSlots(item.row.warm_bodies ?? []).in1" class="text-base text-surface-600">
-              {{ item.row ? formatDTRTime(resolveDTRSlots(item.row.warm_bodies ?? []).in1) : '' }}
-            </p>
-            <WbInputText
-              v-else-if="item.row && item.row.warm_bodies?.length && !resolveDTRSlots(item.row.warm_bodies).in1"
-              label=""
-              v-model="remarksMap[`out2-${item.date.toISOString()}`]"
-              placeholder="Missing"
-              class="h-8 md:h-8 md:w-24"
-            />
-          </div>
-
-          <!-- OUT 1 -->
-          <div>
-            <p class="text-xs font-semibold text-surface-500 md:hidden">OUT 1</p>
-            <p v-if="item.row && resolveDTRSlots(item.row.warm_bodies ?? []).out1" class="text-base text-surface-600">
-              {{ item.row ? formatDTRTime(resolveDTRSlots(item.row.warm_bodies ?? []).out1) : '' }}
-            </p>
-            <WbInputText
-              v-else-if="item.row && item.row.warm_bodies?.length && !resolveDTRSlots(item.row.warm_bodies).out1"
-              label=""
-              v-model="remarksMap[`out2-${item.date.toISOString()}`]"
-              placeholder="Missing"
-              class="h-8 md:h-8 md:w-24"
-            />
-          </div>
-
-          <!-- IN 2 -->
-          <div>
-            <p class="text-xs font-semibold text-surface-500 md:hidden">IN 2</p>
-            <p v-if="item.row && resolveDTRSlots(item.row.warm_bodies ?? []).in2" class="text-base text-surface-600">
-              {{ item.row ? formatDTRTime(resolveDTRSlots(item.row.warm_bodies ?? []).in2) : '' }}
-            </p>
-            <WbInputText
-              v-else-if="item.row && item.row.warm_bodies?.length && !resolveDTRSlots(item.row.warm_bodies).in2"
-              label=""
-              v-model="remarksMap[`out2-${item.date.toISOString()}`]"
-              placeholder="Missing"
-              class="h-8 md:h-8 md:w-24"
-            />
-          </div>
-
-          <!-- OUT 2 -->
-          <div>
-            <p class="text-xs font-semibold text-surface-500 md:hidden">OUT 2</p>
-            <p v-if="item.row && resolveDTRSlots(item.row.warm_bodies ?? []).out2" class="text-base text-surface-600">
-              {{ formatDTRTime(resolveDTRSlots(item.row.warm_bodies ?? []).out2) }}
-            </p>
-            <WbInputText
-              v-else-if="item.row && item.row.warm_bodies?.length && !resolveDTRSlots(item.row.warm_bodies).out2"
-              label=""
-              v-model="remarksMap[`out2-${item.date.toISOString()}`]"
-              placeholder="Enter PM OUT"
-              class="h-8 md:h-8 md:w-24"
-            />
-          </div>
-
-          <!-- UT, OT, Remarks -->
-          <div>
-            <p class="text-xs font-semibold text-surface-500 md:hidden">UT</p>
-            <p class="text-base text-surface-600">
-              {{ item.row?.ut ?? '' }}
-            </p>
-          </div>
-          <div>
-            <p class="text-xs font-semibold text-surface-500 md:hidden">OT</p>
-            <p class="text-base text-surface-600">
-              {{ item.row?.ot ?? '' }}
-            </p>
-          </div>
-          <div>
-            <p class="text-xs font-semibold text-surface-500 md:hidden">Remarks</p>
-            <WbTextArea
-              v-model="item.is_missing"
-              v-if="item.row && (item.row.warm_bodies?.length ?? 0) <= 4 && resolveDTRSlots(item.row.warm_bodies ?? [])"
-              label=""
-              class="h-8 md:h-8 md:w-48"
-              placeholder="Enter remarks"
-            />
-          </div>
         </div>
-
-        <div v-if="!isLoading && !dailyTimeRecordsStore.dailyTimeRecords.length" class="mx-auto flex h-full w-full flex-col">
-          <Card class="w-full p-0 shadow-none">
-            <template #content>
-              <div class="flex flex-col items-center">
-                <div
-                  class="my-6 flex w-full flex-col items-center justify-between gap-4 rounded-lg bg-surface-0 px-6 py-6 dark:bg-surface-800 md:my-4 md:flex-row md:px-4 md:py-4"
-                ></div>
-                <div class="flex justify-center">
-                  <img src="@/assets/image/undraw_terms.svg" class="w-80 pt-24" />
-                </div>
-                <h2
-                  class="mb-2 mt-4 flex w-full justify-center text-center text-xl font-semibold text-surface-800 dark:text-primary-100 sm:text-2xl"
-                >
-                  You have no Compensatory Overtime Credits
-                </h2>
-                <h1 class="mb-4 text-center text-base text-surface-600 dark:text-surface-400 sm:text-lg">
-                  Compensatory Overtime Credits created by PAS HR shall appear here.
-                </h1>
-                <div class="mt-4 flex w-full justify-center"></div>
-              </div>
-            </template>
-          </Card>
-        </div>
-        <hr />
       </template>
     </Card>
   </div>

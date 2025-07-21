@@ -1,9 +1,16 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth.store.ts'
+import { usePdsStore } from './pds.store'
 import { useApiCall } from '@/composables/network'
 import { ApiResponseBody } from '@/typings/http-resources.types.ts'
-import { CountWarmBodiesResponse, DailyTimeRecordResponse, ViewTimeLogsResponse } from '@/typings/models.types'
+import {
+  CountWarmBodiesResponse,
+  DailyTimeRecordResponse,
+  PersonnelResponse,
+  ViewDailyTimeRecordResponse,
+  ViewTimeLogsResponse,
+} from '@/typings/models.types'
 import { dailyTimeRecordsmockData } from '@/utils/mock-data'
 
 export type DailyTimeRecordPayload = {
@@ -31,10 +38,35 @@ export type ViewWarmBodiesPayload = {
 
 export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => {
   const auth = useAuthStore()
+  const pdsStore = usePdsStore()
   const dailyTimeRecords = ref<DailyTimeRecordResponse[]>([])
   const viewTimeLogs = ref<ViewTimeLogsResponse[]>([])
+  const viewDailyTimeRecords = ref<ViewDailyTimeRecordResponse[]>([])
   const countTimeLogs = ref<CountWarmBodiesResponse[]>([])
   const selectedDailyTimeRecords = ref<DailyTimeRecordResponse | null>(null)
+
+  const fetchDailyTimeRecordsByMonth = async (date: Date, limit = 31) => {
+    const individualId = auth.authenticatedUser.user_profile?.individual_basic_detail_id
+    const authIndividual = await pdsStore.fetchPds(individualId as number)
+    const individual = authIndividual.data as PersonnelResponse
+
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const formattedMonthYear = `${year}-${month}`
+
+    let uri = `/employees/${individual.employee?.id}/daily-time-records/view-dtr?limit=${limit}&`
+    if (formattedMonthYear) uri += `month=${formattedMonthYear}&`
+
+    const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
+    const responseBody: ApiResponseBody = data.value
+
+    if (responseBody.success && Array.isArray(responseBody.data)) {
+      viewDailyTimeRecords.value = []
+      viewDailyTimeRecords.value = responseBody.data as ViewDailyTimeRecordResponse[]
+    }
+
+    return responseBody
+  }
 
   const fetchDailyTimeRecords = async (limit = 10, page = 1, status?: string | string[]) => {
     let filteredData = [...dailyTimeRecordsmockData]
@@ -182,6 +214,8 @@ export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => 
     dailyTimeRecords,
     createDailyTimeRecords,
     fetchDailyTimeRecords,
+    fetchDailyTimeRecordsByMonth,
+    viewDailyTimeRecords,
     fetchDailyTimeRecordsById,
     searchDailyTimeRecords,
     updateDailyTimeRecords,
