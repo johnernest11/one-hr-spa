@@ -16,7 +16,7 @@ import { TransitionRoot } from '@headlessui/vue'
 import Button from 'primevue/button'
 
 const route = useRoute()
-
+const isMyPds = route.name === 'my-pds'
 const pdsStore = usePdsStore()
 const profileStore = useProfileStore()
 const isC1Loading = ref(false)
@@ -76,6 +76,7 @@ const handleSubmit = async () => {
         <!-- Button aligned right -->
         <div class="ml-auto">
           <Button
+            v-if="!isMyPds"
             label="Save PDS"
             @click.prevent="handleSubmit"
             :loading="isC1Loading"

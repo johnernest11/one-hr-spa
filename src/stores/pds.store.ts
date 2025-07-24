@@ -120,8 +120,6 @@ export const usePdsStore = defineStore('pds', () => {
   const individual_family_father = individual_family_list?.find((f) => f.class === 'Father')
   const individual_family_mothers_maiden = individual_family_list?.find((f) => f.class === 'Mother')
   const individual_family_children = individual_family_list?.filter((f) => f.class === 'Children') ?? []
-
-  // ✅ Cast it as an array
   const educations = (individual?.individual_educational_background ?? []) as IndividualEducBg[]
 
   const getEducationByLevel = (level: string) => educations.find((e) => e.level === level) ?? null

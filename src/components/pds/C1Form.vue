@@ -828,7 +828,7 @@ watch(
 
 watch(
   () => payload.employee.item_id,
-  async (newId) => {
+  (newId) => {
     if (!newId) {
       selectedItemNo.value = null
       return
@@ -838,15 +838,15 @@ watch(
 
     if (existing) {
       selectedItemNo.value = existing
-      await propPosition()
+      propPosition()
     } else {
       const unwatch = watch(
         () => libraryStore.itemsOptions,
-        async (options) => {
+        (options) => {
           const found = options.find((opt) => opt.value === newId)
           if (found) {
             selectedItemNo.value = found
-            await propPosition()
+            propPosition()
             unwatch()
           }
         },
