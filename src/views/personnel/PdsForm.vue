@@ -25,9 +25,9 @@ const c1FormRef = ref()
 const c2FormRef = ref()
 const c3FormRef = ref()
 const c4FormRef = ref()
+
 onBeforeMount(async () => {
   await profileStore.fetchProfile()
-
   if (route.query.mode === 'via-manual-input') {
     pdsStore.pdsMode = route.query.mode.replace(/-/g, ' ').replace(/(?:^|\s)\S/g, (a: string) => a.toUpperCase())
   }

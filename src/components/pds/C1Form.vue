@@ -9,6 +9,7 @@ import { useAddressStore } from '@/stores/address.store.ts'
 import { useLibrariesStore } from '@/stores/libraries.store.ts'
 import { useItemNumberStore } from '@/stores/item-number.store.ts'
 import { useSalaryGradesStore } from '@/stores/salary-grades.store.ts'
+import { useProfileStore } from '@/stores/profile.store.ts'
 import { usePdsStore, PersonalDataSheetPayload } from '@/stores/pds.store.ts'
 import { useToast } from 'primevue/usetoast'
 import { parseApiResponseError } from '@/utils/error-handle.ts'
@@ -34,11 +35,10 @@ import { TransitionRoot } from '@headlessui/vue'
 import { ItemNumberResponse } from '@/typings/models.types'
 import { useRouter } from 'vue-router'
 import { useRoute } from 'vue-router'
-import { useAuthStore } from '@/stores/auth.store.ts'
 const getId = usePrependOrAppendOnce('pds-c1-section-form')
 
 const libraryStore = useLibrariesStore()
-const employment = useItemNumberStore()
+const itemStore = useItemNumberStore()
 const sgStore = useSalaryGradesStore()
 const pdsStore = usePdsStore()
 const toast = useToast()
@@ -55,9 +55,9 @@ const maxToasts = 5
 
 const selectedItemNo = ref<WbAutoCompleteOption | null>(null)
 const selectedSalaryGrade = ref<WbAutoCompleteOption | null>(null)
-const selectedOffice = ref<WbAutoCompleteOption[] | null>(null)
-const selectedDivision = ref<WbAutoCompleteOption[] | null>(null)
-const selectedSectionUnit = ref<WbAutoCompleteOption[] | null>(null)
+const selectedOffice = ref<WbAutoCompleteOption | null>(null)
+const selectedDivision = ref<WbAutoCompleteOption | null>(null)
+const selectedSectionUnit = ref<WbAutoCompleteOption | null>(null)
 
 /** Payload */
 const payload = reactive<PersonalDataSheetPayload>({
@@ -84,15 +84,21 @@ const isC1Loading = ref(false)
 const pdsErrors = ref()
 const isPdsError = ref(false)
 const errorMessage = ref()
-const authStore = useAuthStore()
+const profileStore = useProfileStore()
+
 onBeforeMount(async () => {
   addressesAreLoading.value = true
   await Promise.allSettled([
+    profileStore.fetchProfile(),
     publicStore.fetchRegions(),
     publicStore.fetchProvinces(),
     publicStore.fetchCities(),
     publicStore.fetchBarangays(),
-    console.log(authStore.authenticatedUser.user_profile?.individual_basic_detail?.employee),
+    libraryStore.fetchOffices(),
+    libraryStore.fetchDivisions(),
+    libraryStore.fetchSectionUnits(),
+    libraryStore.fetchItems(),
+    sgStore.fetchSalaryGrade(),
   ])
 
   addressesAreLoading.value = false
@@ -662,6 +668,37 @@ watch(
 
 const isSingle = computed(() => payload.individual.civil_status === 'Single')
 
+const propPosition = async () => {
+  // Wait for the payload to be ready
+  if (!payload?.employee?.item_id) return
+
+  isPositionLoading.value = true
+
+  try {
+    const itemResp = await itemStore.fetchItemNumberById(payload.employee.item_id)
+
+    if (itemResp?.success && itemResp.data) {
+      const itemRespData = itemResp.data as ItemNumberResponse
+      payload.employee.position = itemRespData.position?.title ?? null
+    } else {
+      payload.employee.position = null
+    }
+  } catch (error) {
+    console.error('[propPosition] Failed to fetch item:', error)
+    payload.employee.position = null
+  } finally {
+    isPositionLoading.value = false
+  }
+}
+
+watch(
+  () => payload.employee.item_id,
+  (newId) => {
+    if (newId) propPosition()
+  },
+  { immediate: true }
+)
+
 watch(
   () => payload.individual.civil_status,
   (newStatus) => {
@@ -791,67 +828,150 @@ watch(
 
 watch(
   () => payload.employee.item_id,
-  (newSelectedItem) => {
-    if (!newSelectedItem) {
-      selectedItemNo.value = null
-      return
-    } else {
-      propPosition()
-    }
-  }
-)
-
-watch(
-  () => payload.employee.item_id,
-  (newId) => {
+  async (newId) => {
     if (!newId) {
       selectedItemNo.value = null
       return
     }
 
-    selectedItemNo.value = employment.itemNumbersSuggestions.find((opt) => opt.value === newId) ?? null
+    const existing = libraryStore.itemsOptions.find((opt) => opt.value === newId)
+
+    if (existing) {
+      selectedItemNo.value = existing
+      await propPosition()
+    } else {
+      const unwatch = watch(
+        () => libraryStore.itemsOptions,
+        async (options) => {
+          const found = options.find((opt) => opt.value === newId)
+          if (found) {
+            selectedItemNo.value = found
+            await propPosition()
+            unwatch()
+          }
+        },
+        { immediate: true }
+      )
+    }
   },
   { immediate: true }
 )
 
 watch(
   () => payload.employee.salary_grade_id,
-  (newSelectedItem) => {
-    if (!newSelectedItem) {
+  (newSelected) => {
+    if (!newSelected) {
       selectedSalaryGrade.value = null
       return
     }
-  }
+
+    const selectedId = typeof newSelected === 'object' && newSelected !== null ? newSelected.id : newSelected
+
+    const existing = sgStore.salaryGradesOptions.find((opt) => opt.value === selectedId)
+
+    if (existing) {
+      selectedSalaryGrade.value = existing
+    } else {
+      const unwatch = watch(
+        () => sgStore.salaryGradesOptions,
+        (options) => {
+          const found = options.find((opt) => opt.value === selectedId)
+          if (found) {
+            selectedSalaryGrade.value = found
+            unwatch()
+          }
+        },
+        { immediate: true }
+      )
+    }
+  },
+  { immediate: true }
 )
 
 watch(
   () => payload.employee.office_id,
-  (newSelectedItem) => {
-    if (!newSelectedItem) {
+  (newSelectedOffice) => {
+    if (!newSelectedOffice) {
       selectedOffice.value = null
       return
     }
-  }
+
+    const existing = libraryStore.officeOptions.find((opt) => Number(opt.value) === Number(newSelectedOffice))
+
+    if (existing) {
+      selectedOffice.value = existing
+    } else {
+      const unwatch = watch(
+        () => libraryStore.officeOptions,
+        (options) => {
+          const found = options.find((opt) => Number(opt.value) === Number(newSelectedOffice))
+          if (found) {
+            selectedOffice.value = found
+            unwatch()
+          }
+        },
+        { immediate: true }
+      )
+    }
+  },
+  { immediate: true }
 )
 
 watch(
   () => payload.employee.division_id,
-  (newSelectedItem) => {
-    if (!newSelectedItem) {
+  (newSelectedId) => {
+    if (!newSelectedId) {
       selectedDivision.value = null
       return
     }
-  }
+
+    const existing = libraryStore.divisionOptions.find((opt) => opt.value === newSelectedId)
+    if (existing) {
+      selectedDivision.value = existing
+    } else {
+      const unwatch = watch(
+        () => libraryStore.divisionOptions,
+        (options) => {
+          const found = options.find((opt) => opt.value === newSelectedId)
+          if (found) {
+            selectedDivision.value = found
+            unwatch()
+          }
+        },
+        { immediate: true }
+      )
+    }
+  },
+  { immediate: true }
 )
 
 watch(
   () => payload.employee.section_or_unit_id,
-  (newSelectedItem) => {
-    if (!newSelectedItem) {
+  (newSelectedSection) => {
+    if (!newSelectedSection) {
       selectedSectionUnit.value = null
       return
     }
-  }
+
+    const existing = libraryStore.sectionUnitOptions.find((opt) => Number(opt.value) === Number(newSelectedSection))
+
+    if (existing) {
+      selectedSectionUnit.value = existing
+    } else {
+      const unwatch = watch(
+        () => libraryStore.sectionUnitOptions,
+        (options) => {
+          const found = options.find((opt) => Number(opt.value) === Number(newSelectedSection))
+          if (found) {
+            selectedSectionUnit.value = found
+            unwatch()
+          }
+        },
+        { immediate: true }
+      )
+    }
+  },
+  { immediate: true }
 )
 
 watch(
@@ -911,18 +1031,6 @@ const showToast = (
       activeToasts.value--
     }, 5000)
   }
-}
-
-const propPosition = async () => {
-  isPositionLoading.value = true
-
-  if (payload.employee.item_id) {
-    const itemResp = await employment.fetchItemNumberById(payload.employee.item_id)
-    const itemRespData = itemResp.data as ItemNumberResponse
-    payload.employee.position = itemRespData.position?.title ?? null
-  }
-
-  isPositionLoading.value = false
 }
 
 const handleAdditionalChild = () => {
@@ -1099,7 +1207,7 @@ defineExpose({
                       <WbAutoComplete
                         :useApiFilter="true"
                         :apiEndpoint="'/items/search'"
-                        :suggestions="employment.itemNumbersSuggestions"
+                        :suggestions="itemStore.itemNumbersSuggestions"
                         @item-select="propPosition"
                         apiOptionLabel="number"
                         label="Item Number"
@@ -1124,7 +1232,11 @@ defineExpose({
                       >
                       </WbAutoComplete>
 
-                      <RouterLink :to="{ name: 'support', state: { from: 'recruitment' } }" v-tooltip.top="'Add Item Number'">
+                      <RouterLink
+                        v-if="!isMyPds"
+                        :to="{ name: 'support', state: { from: 'recruitment' } }"
+                        v-tooltip.top="'Add Item Number'"
+                      >
                         <FontAwesomeIcon icon="fa-solid fa-plus" class="mt-8 text-3xl font-bold text-primary-500" />
                       </RouterLink>
                     </div>
@@ -1261,6 +1373,7 @@ defineExpose({
                       v-model="payload.individual.last_name"
                       label="Surname"
                       required
+                      :disabled="isMyPds"
                       label-class="text-md text-surface-600 dark:lg:text-surface-200"
                       class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                       validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -1274,6 +1387,7 @@ defineExpose({
                       v-model="payload.individual.first_name"
                       label="First Name"
                       required
+                      :disabled="isMyPds"
                       label-class="text-md text-surface-600 dark:lg:text-surface-200"
                       class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                       validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -1285,6 +1399,7 @@ defineExpose({
                     <WbInputText
                       v-model="payload.individual.middle_name"
                       label="Middle Name"
+                      :disabled="isMyPds"
                       label-class="text-md text-surface-600 dark:lg:text-surface-200"
                       class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                       validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -1298,6 +1413,7 @@ defineExpose({
                       optionLabel="label"
                       optionValue="value"
                       :options="ExtensionTypeOptions"
+                      :disabled="isMyPds"
                       label="Extension Name"
                       label-class="text-md text-surface-600 dark:lg:text-surface-200"
                       class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
@@ -1313,6 +1429,7 @@ defineExpose({
                       dateFormat="yy-mm-dd"
                       :maxDate="new Date()"
                       required
+                      :disabled="isMyPds"
                       label="Date of Birth"
                       label-class="text-md text-surface-600 dark:lg:text-surface-200"
                       :invalid="validator.individual.birthday.$invalid"
@@ -1331,6 +1448,7 @@ defineExpose({
                       label-class="text-md text-surface-600 dark:lg:text-surface-200"
                       class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                       validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                      :disabled="isMyPds"
                       :invalid="validator.individual.place_of_birth.$invalid"
                       :invalid-text="validator.individual.place_of_birth.$errors[0]?.$message"
                       @blur="validator.individual.place_of_birth.$touch"
@@ -1344,6 +1462,7 @@ defineExpose({
                       optionLabel="label"
                       optionValue="value"
                       label="Sex"
+                      :disabled="isMyPds"
                       label-class="text-md text-surface-600 dark:lg:text-surface-200"
                       :invalid="validator.individual.sex.$invalid"
                       :invalid-text="validator.individual.sex.$errors[0]?.$message"
@@ -1366,6 +1485,7 @@ defineExpose({
                             :id="getId('input-citizenship-fil')"
                             name="citizenship"
                             value="Filipino"
+                            :disabled="isMyPds"
                           />
                           <label :for="getId('input-citizenship-fil')" class="ml-2 cursor-pointer">Filipino</label>
                         </div>
@@ -1375,6 +1495,7 @@ defineExpose({
                             :id="getId('input-citizenship-dual')"
                             name="citizenship"
                             value="Dual Citizenship"
+                            :disabled="isMyPds"
                           />
                           <label :for="getId('input-citizenship-dual')" class="ml-2 cursor-pointer">Dual Citizen</label>
                         </div>
@@ -1388,6 +1509,7 @@ defineExpose({
                       optionLabel="label"
                       optionValue="value"
                       label="Civil Status"
+                      :disabled="isMyPds"
                       label-class="text-md text-surface-600 dark:lg:text-surface-200"
                       :invalid="validator.individual.civil_status.$invalid"
                       :invalid-text="validator.individual.civil_status.$errors[0]?.$message"
@@ -1406,6 +1528,7 @@ defineExpose({
                       optionValue="value"
                       label="Filipino by"
                       label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                      :disabled="isMyPds"
                       :invalid="validator.individual.citizenship_acquisition.$invalid"
                       :invalid-text="validator.individual.citizenship_acquisition.$errors[0]?.$message"
                       @blur="validator.individual.citizenship_acquisition.$touch"
@@ -1439,6 +1562,7 @@ defineExpose({
                       optionLabel="label"
                       optionValue="value"
                       label="Blood Type"
+                      :disabled="isMyPds"
                       label-class="text-md text-surface-600 dark:lg:text-surface-200"
                       :invalid="validator.individual.blood_type.$invalid"
                       :invalid-text="validator.individual.blood_type.$errors[0]?.$message"
@@ -1472,6 +1596,7 @@ defineExpose({
                       label="GSIS ID No."
                       label-class="text-md text-surface-600 dark:lg:text-surface-200"
                       class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                      :disabled="isMyPds"
                       validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                       :invalid="validator.individual.gsis_no.$invalid"
                       :invalid-text="validator.individual.gsis_no.$errors[0]?.$message"
@@ -1485,6 +1610,7 @@ defineExpose({
                       label-class="text-md text-surface-600 dark:lg:text-surface-200"
                       class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                       validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                      :disabled="isMyPds"
                       :invalid="validator.individual.pag_ibig_no.$invalid"
                       :invalid-text="validator.individual.pag_ibig_no.$errors[0]?.$message"
                       @blur="validator.individual.pag_ibig_no.$touch"
@@ -1497,6 +1623,7 @@ defineExpose({
                       label-class="text-md text-surface-600 dark:lg:text-surface-200"
                       class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                       validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                      :disabled="isMyPds"
                       :invalid="validator.individual.philhealth_no.$invalid"
                       :invalid-text="validator.individual.philhealth_no.$errors[0]?.$message"
                       @blur="validator.individual.philhealth_no.$touch"
@@ -1509,6 +1636,7 @@ defineExpose({
                       label-class="text-md text-surface-600 dark:lg:text-surface-200"
                       class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                       validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                      :disabled="isMyPds"
                       :invalid="validator.individual.tin.$invalid"
                       :invalid-text="validator.individual.tin.$errors[0]?.$message"
                       @blur="validator.individual.tin.$touch"
@@ -1521,6 +1649,7 @@ defineExpose({
                       label-class="text-md text-surface-600 dark:lg:text-surface-200"
                       class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                       validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                      :disabled="isMyPds"
                       :invalid="validator.individual.sss_no.$invalid"
                       :invalid-text="validator.individual.sss_no.$errors[0]?.$message"
                       @blur="validator.individual.sss_no.$touch"
@@ -1535,6 +1664,7 @@ defineExpose({
                       placeholder="+63 XXX XXX XXXX"
                       class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                       validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                      :disabled="isMyPds"
                       :invalid="validator.contact_info.mobile_no.$invalid"
                       :invalid-text="validator.contact_info.mobile_no.$errors[0]?.$message"
                       @blur="validator.contact_info.mobile_no.$touch"
@@ -1552,6 +1682,7 @@ defineExpose({
                       placeholder="(072) 687-8000"
                       class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                       validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                      :disabled="isMyPds"
                       :invalid="validator.contact_info.tel_no.$invalid"
                       :invalid-text="validator.contact_info.tel_no.$errors[0]?.$message"
                       @blur="validator.contact_info.tel_no.$touch"
@@ -1568,6 +1699,7 @@ defineExpose({
                       label-class="text-md text-surface-600 dark:lg:text-surface-200"
                       class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                       validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                      :disabled="isMyPds"
                       :invalid="validator.employee.agency_employee_no.$invalid"
                       :invalid-text="validator.employee.agency_employee_no.$errors[0]?.$message"
                       @blur="validator.employee.agency_employee_no.$touch"
@@ -1580,6 +1712,7 @@ defineExpose({
                       label-class="text-md text-surface-600 dark:lg:text-surface-200"
                       class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                       validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                      :disabled="isMyPds"
                       :invalid="validator.contact_info.email_address.$invalid"
                       :invalid-text="validator.contact_info.email_address.$errors[0]?.$message"
                       @blur="validator.contact_info.email_address.$touch"

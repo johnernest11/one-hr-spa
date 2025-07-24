@@ -52,15 +52,23 @@ export type AddressResponse = {
   region: RegionResponse | null
 } & ApiResponseData
 
+export type OfficesResponse = {
+  name: string
+  head_user_id: string | null
+  added_by_user_id: string | null
+  last_modified_by_user_id: string | null
+} & ApiResponseData
+
 export type DivisionResponse = {
-  name: string | null
+  name: string
   head_user_id: string | null
   added_by_user_id: string | null
   last_modified_by_user_id: string | null
 } & ApiResponseData
 
 export type SectionorUnitResponse = {
-  name: string | null
+  id: number
+  name: string
   head_user_id: string | null
   division_id: string | null
   added_by_user_id: string | null
@@ -69,7 +77,7 @@ export type SectionorUnitResponse = {
 
 export type ItemNumberResponse = {
   id: number
-  number: string | null
+  number: string
   date_of_creation: string | null
   status: string | null
   date_filled_up: string | null
@@ -90,7 +98,7 @@ export type SalaryGradeResponse = {
   tranche: number | null
   salary_grade: number | null
   step: number | null
-  amount: number | null
+  amount: number
 } & ApiResponseData
 
 export type PositionResponse = {
@@ -212,6 +220,7 @@ export type PersonnelEmployee = {
   }
   agency_employee_no: string | null
   office_id: number | null
+  office: OfficesResponse | null
   division_id: number | null
   division: DivisionResponse | null
   section_or_unit_id: number | null

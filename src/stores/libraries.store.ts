@@ -1,12 +1,16 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { WbAutoCompleteOption } from '@/components/webkit/WbAutoComplete.vue'
+import { DivisionResponse, ItemNumberResponse, OfficesResponse, SectionorUnitResponse } from '@/typings/models.types'
+import { ApiResponseBody } from '@/typings/http-resources.types'
+import { useApiCall } from '@/composables/network'
+import { useAuthStore } from './auth.store'
 
 export const useLibrariesStore = defineStore('libraries', () => {
   /** States */
   const officeOptions = ref<WbAutoCompleteOption[]>([])
   const officeOptionsLoading = ref(false)
-
+  const authStore = useAuthStore()
   const sexOptions = ref([
     { value: 'male', label: 'Male' },
     { value: 'female', label: 'Female' },
@@ -43,6 +47,9 @@ export const useLibrariesStore = defineStore('libraries', () => {
   const sectionUnitOptions = ref<WbAutoCompleteOption[]>([])
   const sectionUnitOptionsLoading = ref(false)
 
+  const itemsOptions = ref<WbAutoCompleteOption[]>([])
+  const itemsOptionsLoading = ref(false)
+
   const fundingSourcesOptions = ref<WbAutoCompleteOption[]>([])
   const fundingSourcesOptionsLoading = ref(false)
 
@@ -52,13 +59,99 @@ export const useLibrariesStore = defineStore('libraries', () => {
   const countryOptions = ref<WbAutoCompleteOption[]>([])
   const countryOptionsLoading = ref(false)
 
+  const fetchItems = async () => {
+    if (itemsOptions.value.length > 0) return null
+
+    itemsOptionsLoading.value = true
+    const { data } = await useApiCall('/items', authStore.authenticationToken).get().json()
+    const res: ApiResponseBody = data.value
+
+    if (res.success) {
+      itemsOptions.value = []
+      const itemsListResponse = res.data as ItemNumberResponse[]
+      itemsListResponse.forEach((item: ItemNumberResponse) => {
+        itemsOptions.value.push({ value: item.id, label: item.number })
+      })
+    }
+
+    itemsOptionsLoading.value = false
+
+    return res
+  }
+
+  const fetchOffices = async () => {
+    if (officeOptions.value.length > 0) return null
+
+    officeOptionsLoading.value = true
+    const { data } = await useApiCall('/libraries/offices?per_page=1000', authStore.authenticationToken).get().json()
+    const res: ApiResponseBody = data.value
+
+    if (res.success) {
+      officeOptions.value = []
+      const officesListResponse = res.data as OfficesResponse[]
+      officesListResponse.forEach((office: OfficesResponse) => {
+        officeOptions.value.push({ value: office.id, label: office.name })
+      })
+    }
+
+    officeOptionsLoading.value = false
+
+    return res
+  }
+
+  const fetchDivisions = async () => {
+    if (divisionOptions.value.length > 0) return null
+
+    divisionOptionsLoading.value = true
+    const { data } = await useApiCall('/libraries/divisions?per_page=1000', authStore.authenticationToken).get().json()
+    const res: ApiResponseBody = data.value
+
+    if (res.success) {
+      divisionOptions.value = []
+      const divisionsListResponse = res.data as DivisionResponse[]
+      divisionsListResponse.forEach((division: DivisionResponse) => {
+        divisionOptions.value.push({ value: division.id, label: division.name })
+      })
+    }
+
+    divisionOptionsLoading.value = false
+
+    return res
+  }
+
+  const fetchSectionUnits = async () => {
+    if (sectionUnitOptions.value.length > 0) return null
+
+    sectionUnitOptionsLoading.value = true
+    const { data } = await useApiCall('/libraries/section-or-units?per_page=1000', authStore.authenticationToken).get().json()
+    const res: ApiResponseBody = data.value
+
+    if (res.success) {
+      sectionUnitOptions.value = []
+      const sectionUnitsListResponse = res.data as SectionorUnitResponse[]
+      sectionUnitsListResponse.forEach((sectionUnit: SectionorUnitResponse) => {
+        sectionUnitOptions.value.push({ value: sectionUnit.id, label: sectionUnit.name })
+      })
+    }
+
+    sectionUnitOptionsLoading.value = false
+
+    return res
+  }
+
   /** Actions */
 
   return {
+    fetchItems,
+    itemsOptions,
+    itemsOptionsLoading,
+    fetchOffices,
     officeOptions,
     officeOptionsLoading,
+    fetchDivisions,
     divisionOptions,
     divisionOptionsLoading,
+    fetchSectionUnits,
     sectionUnitOptions,
     sectionUnitOptionsLoading,
     fundingSourcesOptions,
