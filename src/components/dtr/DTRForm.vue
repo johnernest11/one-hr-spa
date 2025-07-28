@@ -9,7 +9,9 @@ import WbInputText from '@/components/webkit/WbInputText.vue'
 import WbTextArea from '@/components/webkit/WbTextArea.vue'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
+import { useToast } from 'primevue/usetoast'
 const dailyTimeRecordsStore = useDailyTimeRecordsStore()
+const toast = useToast()
 const isLoading = ref(true)
 const selectedTimeLogId = ref<number[]>([])
 const allDailyTimeRecordsData = ref<ViewDailyTimeRecordResponse[]>([])
@@ -39,17 +41,26 @@ const selectRequest = (id: number) => {
 
 const isRequestSelected = (id: number): boolean => selectedTimeLogId.value.includes(id)
 onMounted(async () => {
-  //const response = await dailyTimeRecordsStore.fetchDailyTimeRecords()
   await handleViewDtr()
   isLoading.value = false
 })
 
 const handleViewDtr = async () => {
-  const response = await dailyTimeRecordsStore.fetchDailyTimeRecordsByMonth(monthDate.value)
-  if (response && response.success && Array.isArray(response.data)) {
-    allDailyTimeRecordsData.value = dailyTimeRecordsStore.viewDailyTimeRecords
+  try {
+    const response = await dailyTimeRecordsStore.fetchDailyTimeRecordsByMonth(monthDate.value)
+    if (response && response.success && Array.isArray(response.data)) {
+      allDailyTimeRecordsData.value = dailyTimeRecordsStore.viewDailyTimeRecords
+    }
+  } catch (e) {
+    const errorMessage = e instanceof Error ? e.message : String(e)
+    toast.add({
+      severity: 'error',
+      summary: 'Cannot view daily time records.',
+      detail: errorMessage + ' Please contact an administrator to fix this.',
+      life: 5000,
+    })
+    console.log('Encountered error while attempting to fetch time logs. ', e)
   }
-  console.log(allDailyTimeRecordsData.value)
 }
 
 // Define month/year props with defaults
@@ -159,7 +170,7 @@ const monthDates = computed(() => {
           />
           <h2 class="mb-2 ml-4 text-3xl text-surface-600 dark:text-primary-100 md:ml-4">
             <font-awesome-icon :icon="['fas', 'calendar']" class="h-5 text-surface-600 sm:h-6 md:h-7" />
-            My Daily Time Record (DTR) Test
+            My Daily Time Record (DTR)
           </h2>
         </div>
 
@@ -187,7 +198,7 @@ const monthDates = computed(() => {
         <div class="mb-12 grid grid-cols-1 gap-x-12 gap-y-4 px-4 md:grid-cols-2">
           <WbCalendar
             v-model="monthDate"
-            dateFormat="yy-mm"
+            dateFormat="MM yy"
             :maxDate="new Date()"
             required
             label="Month"
@@ -198,7 +209,7 @@ const monthDates = computed(() => {
 
         <div id="dtr_table" class="relative">
           <!-- Spinner -->
-          <div v-if="isLoading" class="absolute inset-0 z-10 flex items-center justify-center bg-white/60 backdrop-blur-sm">
+          <div v-if="isLoading" class="absolute inset-0 z-10 flex items-center justify-center backdrop-blur-sm">
             <span class="h-8 w-8 animate-spin rounded-full border-4 border-surface-600 border-t-transparent"></span>
           </div>
           <div v-else-if="!isLoading">
@@ -226,7 +237,7 @@ const monthDates = computed(() => {
             <div
               v-for="(item, index) in monthDates"
               :key="item.date.getTime()"
-              class="grid grid-cols-1 gap-y-2 border-b border-surface-300 px-4 py-2 md:grid-cols-9 md:gap-2 md:px-24"
+              class="grid grid-cols-1 items-center gap-y-2 border-b border-surface-300 px-4 py-2 md:grid-cols-9 md:gap-2 md:px-24"
             >
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">Date</p>

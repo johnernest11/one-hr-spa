@@ -568,7 +568,6 @@ export const resolveDTRSlots = (entries: TimeLogResponse[] = []) => {
     slots.out2 = toTimestamp(out2Candidate.date, out2Candidate.scanned_time)
   }
 
-  console.log('slots', slots)
   return slots
 }
 

@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth.store.ts'
-import { usePdsStore } from './pds.store'
 import { useApiCall } from '@/composables/network'
 import { ApiResponseBody } from '@/typings/http-resources.types.ts'
 import {
@@ -38,7 +37,6 @@ export type ViewWarmBodiesPayload = {
 
 export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => {
   const auth = useAuthStore()
-  const pdsStore = usePdsStore()
   const dailyTimeRecords = ref<DailyTimeRecordResponse[]>([])
   const viewTimeLogs = ref<ViewTimeLogsResponse[]>([])
   const viewDailyTimeRecords = ref<ViewDailyTimeRecordResponse[]>([])
@@ -46,9 +44,14 @@ export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => 
   const selectedDailyTimeRecords = ref<DailyTimeRecordResponse | null>(null)
 
   const fetchDailyTimeRecordsByMonth = async (date: Date, limit = 31) => {
-    const individualId = auth.authenticatedUser.user_profile?.individual_basic_detail_id
-    const authIndividual = await pdsStore.fetchPds(individualId as number)
-    const individual = authIndividual.data as PersonnelResponse
+    const individual = auth.authenticatedUser.user_profile?.individual_basic_detail as PersonnelResponse
+    if (!individual) {
+      throw new Error('The current user has no individual basic detail linked to it.')
+    }
+
+    if (!individual.employee) {
+      throw new Error('The current user has no employee data linked to it.')
+    }
 
     const year = date.getFullYear()
     const month = String(date.getMonth() + 1).padStart(2, '0')

@@ -134,6 +134,7 @@ export type UserProfileResponse = {
   profile_picture_url: string | null
   address: AddressResponse
   individual_basic_detail_id?: PersonnelResponse | number | null
+  individual_basic_detail?: PersonnelResponse | null
   personnel_accomplishment_report?: Array<PersonnelAccomplishmentReportResponse> | null | undefined
 } & ApiResponseData
 
