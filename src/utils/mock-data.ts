@@ -1,6 +1,8 @@
 /** MOCK DATA */
 // Remove the global 'let mockId = 1'
 
+import { BloodType } from '@/typings/employee-entry.types'
+
 const mockSalaryGrade = {
   id: 1,
   nbc_no: 123,
@@ -24,7 +26,7 @@ const individual_basic_details = [
     civil_status: 'Married',
     height: 160,
     weight: 55,
-    blood_type: 'A+',
+    blood_type: 'A+' as BloodType,
     gsis_no: '2233445566',
     pag_ibig_no: '6677889900',
     philhealth_no: '5566778899',
@@ -34,6 +36,8 @@ const individual_basic_details = [
     citizenship_acquisition: 'By birth',
     individual_address: null,
     individual_contact_info: null,
+    individual_family: null,
+    individual_educational_background: null,
     employee: null,
   },
   {
@@ -48,7 +52,7 @@ const individual_basic_details = [
     civil_status: 'Single',
     height: 175,
     weight: 72,
-    blood_type: 'B+',
+    blood_type: 'B+' as BloodType,
     gsis_no: '9988776655',
     pag_ibig_no: '1122112211',
     philhealth_no: '2233223322',
@@ -58,6 +62,8 @@ const individual_basic_details = [
     citizenship_acquisition: 'By birth',
     individual_address: null,
     individual_contact_info: null,
+    individual_family: null,
+    individual_educational_background: null,
     employee: null,
   },
   {
@@ -72,7 +78,7 @@ const individual_basic_details = [
     civil_status: 'Single',
     height: 165,
     weight: 60,
-    blood_type: 'AB+',
+    blood_type: 'AB+' as BloodType,
     gsis_no: '3344556677',
     pag_ibig_no: '4455667788',
     philhealth_no: '6677889900',
@@ -82,6 +88,8 @@ const individual_basic_details = [
     citizenship_acquisition: 'By birth',
     individual_address: null,
     individual_contact_info: null,
+    individual_family: null,
+    individual_educational_background: null,
     employee: null,
   },
   {
@@ -96,7 +104,7 @@ const individual_basic_details = [
     civil_status: 'Married',
     height: 168,
     weight: 70,
-    blood_type: 'O-',
+    blood_type: 'O-' as BloodType,
     gsis_no: '7766554433',
     pag_ibig_no: '2211334455',
     philhealth_no: '3344556677',
@@ -106,6 +114,8 @@ const individual_basic_details = [
     citizenship_acquisition: 'By birth',
     individual_address: null,
     individual_contact_info: null,
+    individual_family: null,
+    individual_educational_background: null,
     employee: null,
   },
   {
@@ -120,7 +130,7 @@ const individual_basic_details = [
     civil_status: 'Single',
     height: 158,
     weight: 52,
-    blood_type: 'A-',
+    blood_type: 'A-' as BloodType,
     gsis_no: '6655443322',
     pag_ibig_no: '9988776655',
     philhealth_no: '7788990011',
@@ -130,6 +140,8 @@ const individual_basic_details = [
     citizenship_acquisition: 'By birth',
     individual_address: null,
     individual_contact_info: null,
+    individual_family: null,
+    individual_educational_background: null,
     employee: null,
   },
 ]
@@ -200,7 +212,14 @@ const employee_data = [
       name: 'General Fund',
     },
     agency_employee_no: 'AGY-000123',
-    office_id: 10,
+    office_id: 1,
+    office: {
+      id: 1,
+      name: 'FO MAIN',
+      head_user_id: null,
+      added_by_user_id: null,
+      last_modified_by_user_id: null,
+    },
     division_id: 3,
     division: {
       id: 3,
@@ -231,7 +250,14 @@ const employee_data = [
       name: 'Special Education Fund',
     },
     agency_employee_no: 'AGY-000124',
-    office_id: 11,
+    office_id: 1,
+    office: {
+      id: 1,
+      name: 'FO MAIN',
+      head_user_id: null,
+      added_by_user_id: null,
+      last_modified_by_user_id: null,
+    },
     division_id: 4,
     division: {
       id: 4,
@@ -262,7 +288,14 @@ const employee_data = [
       name: 'General Fund',
     },
     agency_employee_no: 'AGY-000125',
-    office_id: 12,
+    office_id: 1,
+    office: {
+      id: 1,
+      name: 'FO MAIN',
+      head_user_id: null,
+      added_by_user_id: null,
+      last_modified_by_user_id: null,
+    },
     division_id: 5,
     division: {
       id: 5,
@@ -293,7 +326,14 @@ const employee_data = [
       name: 'Trust Fund',
     },
     agency_employee_no: 'AGY-000126',
-    office_id: 13,
+    office_id: 1,
+    office: {
+      id: 1,
+      name: 'FO MAIN',
+      head_user_id: null,
+      added_by_user_id: null,
+      last_modified_by_user_id: null,
+    },
     division_id: 6,
     division: {
       id: 6,
@@ -324,7 +364,14 @@ const employee_data = [
       name: 'General Fund',
     },
     agency_employee_no: 'AGY-000127',
-    office_id: 14,
+    office_id: 1,
+    office: {
+      id: 1,
+      name: 'FO MAIN',
+      head_user_id: null,
+      added_by_user_id: null,
+      last_modified_by_user_id: null,
+    },
     division_id: 7,
     division: {
       id: 7,

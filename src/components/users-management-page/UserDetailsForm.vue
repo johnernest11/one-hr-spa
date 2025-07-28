@@ -50,7 +50,7 @@ const payload = reactive<Partial<UserPayload>>({
   roles: props.user.roles.map((r) => r.id),
   active: props.user.active,
   individual_basic_detail_id: props.user.user_profile?.individual_basic_detail_id
-    ? (props.user.user_profile.individual_basic_detail_id as { id: number }).id
+    ? (props.user.user_profile.individual_basic_detail as { id: number }).id
     : null,
   first_name: props.user.user_profile?.first_name,
   middle_name: props.user.user_profile?.middle_name,

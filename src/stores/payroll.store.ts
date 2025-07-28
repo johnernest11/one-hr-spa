@@ -6,7 +6,6 @@ import { ApiResponseBody } from '@/typings/http-resources.types.ts'
 import { DeductionResponse, PayrollResponse, PersonnelEmployee } from '@/typings/models.types'
 import { useFetchBlob } from '@/composables/fetch.blob'
 import { payrollMockData } from '@/utils/mock-data'
-
 export type PayRollPayload = {
   payroll: {
     period: [Date, Date] | null
@@ -71,7 +70,7 @@ export const usePayRollStore = defineStore('pay-roll', () => {
           civil_status: '',
           height: 0,
           weight: 0,
-          blood_type: '',
+          blood_type: null,
           gsis_no: '',
           pag_ibig_no: '',
           philhealth_no: '',
@@ -81,6 +80,8 @@ export const usePayRollStore = defineStore('pay-roll', () => {
           citizenship_acquisition: '',
           individual_address: null,
           individual_contact_info: null,
+          individual_family: null,
+          individual_educational_background: null,
           employee: null,
         },
         id_number: null,
@@ -92,7 +93,7 @@ export const usePayRollStore = defineStore('pay-roll', () => {
           tranche: null,
           salary_grade: null,
           step: null,
-          amount: null,
+          amount: 0,
         },
         fund_source: {
           id: null,
@@ -100,18 +101,25 @@ export const usePayRollStore = defineStore('pay-roll', () => {
         },
         agency_employee_no: null,
         office_id: null,
+        office: {
+          id: 0,
+          name: '',
+          head_user_id: null,
+          added_by_user_id: null,
+          last_modified_by_user_id: null,
+        },
         division_id: null,
         division: {
           id: '',
-          name: null,
+          name: '',
           head_user_id: null,
           added_by_user_id: null,
           last_modified_by_user_id: null,
         },
         section_or_unit_id: null,
         section_or_unit: {
-          id: '',
-          name: null,
+          id: 0,
+          name: '',
           division_id: null,
           head_user_id: null,
           added_by_user_id: null,
@@ -120,7 +128,7 @@ export const usePayRollStore = defineStore('pay-roll', () => {
 
         item: {
           id: 0,
-          number: null,
+          number: '',
           date_of_creation: null,
           status: null,
           date_filled_up: null,

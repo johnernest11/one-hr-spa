@@ -1,4 +1,5 @@
 import { ApiResponseData } from '@/typings/http-resources.types.ts'
+import { BloodType } from './employee-entry.types'
 
 /** Libraries (HTTP Responses) */
 export type RegionResponse = {
@@ -51,15 +52,23 @@ export type AddressResponse = {
   region: RegionResponse | null
 } & ApiResponseData
 
+export type OfficesResponse = {
+  name: string
+  head_user_id: string | null
+  added_by_user_id: string | null
+  last_modified_by_user_id: string | null
+} & ApiResponseData
+
 export type DivisionResponse = {
-  name: string | null
+  name: string
   head_user_id: string | null
   added_by_user_id: string | null
   last_modified_by_user_id: string | null
 } & ApiResponseData
 
 export type SectionorUnitResponse = {
-  name: string | null
+  id: number
+  name: string
   head_user_id: string | null
   division_id: string | null
   added_by_user_id: string | null
@@ -68,7 +77,7 @@ export type SectionorUnitResponse = {
 
 export type ItemNumberResponse = {
   id: number
-  number: string | null
+  number: string
   date_of_creation: string | null
   status: string | null
   date_filled_up: string | null
@@ -89,7 +98,7 @@ export type SalaryGradeResponse = {
   tranche: number | null
   salary_grade: number | null
   step: number | null
-  amount: number | null
+  amount: number
 } & ApiResponseData
 
 export type PositionResponse = {
@@ -133,7 +142,7 @@ export type UserProfileResponse = {
   full_name: string
   profile_picture_url: string | null
   address: AddressResponse
-  individual_basic_detail_id?: PersonnelResponse | number | null
+  individual_basic_detail_id: number | null
   individual_basic_detail?: PersonnelResponse | null
   personnel_accomplishment_report?: Array<PersonnelAccomplishmentReportResponse> | null | undefined
 } & ApiResponseData
@@ -211,6 +220,7 @@ export type PersonnelEmployee = {
   }
   agency_employee_no: string | null
   office_id: number | null
+  office: OfficesResponse | null
   division_id: number | null
   division: DivisionResponse | null
   section_or_unit_id: number | null
@@ -231,7 +241,7 @@ export type PersonnelResponse = {
   civil_status: string
   height: number
   weight: number
-  blood_type: string
+  blood_type: BloodType | null
   gsis_no: string
   pag_ibig_no: string
   philhealth_no: string
@@ -241,6 +251,8 @@ export type PersonnelResponse = {
   citizenship_acquisition: string
   individual_address: PersonnelAddress | null
   individual_contact_info: PersonnelContactInfo | null
+  individual_family: IndividualFamily | null
+  individual_educational_background: IndividualEducBg | null
   employee: PersonnelEmployee | null
 } & ApiResponseData
 

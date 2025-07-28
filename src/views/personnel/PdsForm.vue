@@ -16,7 +16,7 @@ import { TransitionRoot } from '@headlessui/vue'
 import Button from 'primevue/button'
 
 const route = useRoute()
-
+const isMyPds = route.name === 'my-pds'
 const pdsStore = usePdsStore()
 const profileStore = useProfileStore()
 const isC1Loading = ref(false)
@@ -25,9 +25,9 @@ const c1FormRef = ref()
 const c2FormRef = ref()
 const c3FormRef = ref()
 const c4FormRef = ref()
+
 onBeforeMount(async () => {
   await profileStore.fetchProfile()
-
   if (route.query.mode === 'via-manual-input') {
     pdsStore.pdsMode = route.query.mode.replace(/-/g, ' ').replace(/(?:^|\s)\S/g, (a: string) => a.toUpperCase())
   }
@@ -76,6 +76,7 @@ const handleSubmit = async () => {
         <!-- Button aligned right -->
         <div class="ml-auto">
           <Button
+            v-if="!isMyPds"
             label="Save PDS"
             @click.prevent="handleSubmit"
             :loading="isC1Loading"

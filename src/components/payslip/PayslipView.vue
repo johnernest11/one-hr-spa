@@ -97,7 +97,7 @@ const updatePayloadFromReport = (payRoll: PayrollResponse | null) => {
           civil_status: '',
           height: 0,
           weight: 0,
-          blood_type: '',
+          blood_type: null,
           gsis_no: '',
           pag_ibig_no: '',
           philhealth_no: '',
@@ -107,6 +107,8 @@ const updatePayloadFromReport = (payRoll: PayrollResponse | null) => {
           citizenship_acquisition: '',
           individual_address: null,
           individual_contact_info: null,
+          individual_family: null,
+          individual_educational_background: null,
           employee: null,
         },
         // Employee identifier info
@@ -127,11 +129,18 @@ const updatePayloadFromReport = (payRoll: PayrollResponse | null) => {
         // Employee number and office details
         agency_employee_no: payRoll.employee_id.agency_employee_no ?? null,
         office_id: payRoll.employee_id.office_id ?? null,
+        office: {
+          id: 0,
+          name: '',
+          head_user_id: null,
+          added_by_user_id: null,
+          last_modified_by_user_id: null,
+        },
         // Division info
         division_id: payRoll.employee_id.division_id ?? null,
         division: payRoll.employee_id.division ?? {
-          id: '',
-          name: null,
+          id: 0,
+          name: '',
           head_user_id: null,
           added_by_user_id: null,
           last_modified_by_user_id: null,
@@ -139,8 +148,8 @@ const updatePayloadFromReport = (payRoll: PayrollResponse | null) => {
         // Section/Unit info
         section_or_unit_id: payRoll.employee_id.section_or_unit_id ?? null,
         section_or_unit: payRoll.employee_id.section_or_unit ?? {
-          id: '',
-          name: null,
+          id: 0,
+          name: '',
           division_id: null,
           head_user_id: null,
           added_by_user_id: null,
@@ -149,7 +158,7 @@ const updatePayloadFromReport = (payRoll: PayrollResponse | null) => {
         // Item
         item: payRoll.employee_id.item ?? {
           id: 0,
-          number: null,
+          number: '',
           date_of_creation: null,
           status: null,
           date_filled_up: null,
