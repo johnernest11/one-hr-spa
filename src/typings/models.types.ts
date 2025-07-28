@@ -452,6 +452,20 @@ export type DailyTimeRecordResponse = {
   warm_bodies: Array<WarmBodyResponse> | null | undefined
 }
 
+export type ViewDailyTimeRecordResponse = {
+  id: number | null
+  employee_id: number | null
+  date: string
+  ut: number | null
+  is_edit_ut: boolean | null
+  ot: number | null
+  is_missing: boolean | null
+  employee_remarks: string | null
+  hr_remarks: string | null
+  status: string | null
+  time_log: Array<TimeLogResponse> | null | undefined
+}
+
 export type ViewTimeLogsResponse = {
   dtr_date: string
   time_log_id: number
@@ -496,6 +510,15 @@ export type WarmBodyResponse = {
   timestamp: string
   daily_time_record_id: number
   is_in: boolean // true = IN, false = OUT
+}
+
+export type TimeLogResponse = {
+  id: number
+  daily_time_record_id: number | null
+  date: string
+  scanned_time: string
+  is_in: boolean // true = IN, false = OUT
+  is_selected: boolean // true = SELECTED, false = NOT SELECTED
 }
 
 export type QrCodeResponse = {

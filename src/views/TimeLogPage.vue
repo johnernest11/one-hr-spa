@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { QrcodeStream, DetectedBarcode } from 'vue-qrcode-reader'
-import { useDailyLogsStore } from '@/stores/daily-logs.store'
+import { useDailyLogsStore } from '@/stores/daily-logs.store' // This store now correctly handles the image import
 import Dialog from 'primevue/dialog'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { getManilaTodayISO, formatTime } from '@/utils/helpers.ts'
+import dswdLogoMark from '@/assets/image/DSWD logo_Mark.png'
 
 const currentDate = ref('')
 const currentTime = ref('')
@@ -18,7 +19,6 @@ const isMobile = ref(false)
 
 const MODAL_DISPLAY_DURATION_MS = 10000
 const isProcessingScan = ref(false)
-const scannerPaused = ref(false)
 
 const scanTimeoutId = ref<number | undefined>(undefined)
 const intervalId = ref<number | undefined>(undefined)
@@ -89,19 +89,22 @@ const onDetect = (detectedCodes: DetectedBarcode[]) => {
     const decodedString = firstCode.rawValue
 
     isProcessingScan.value = true
-    scannerPaused.value = true
     onDecode(decodedString)
   }
 }
 
 const onDecode = async (result: string) => {
-  errorMessage.value = null
-  dailyLogsStore.clearScannedEmployee()
-
   if (scanTimeoutId.value) {
     clearTimeout(scanTimeoutId.value)
     scanTimeoutId.value = undefined
   }
+
+  if (showModal.value) {
+    handleCloseDialog()
+  }
+
+  dailyLogsStore.clearScannedEmployee()
+  errorMessage.value = null
 
   if (!result || result.trim() === '') {
     dailyLogsStore.lastLogMessage = 'Empty QR code scanned. Please try again.'
@@ -122,7 +125,6 @@ const onDecode = async (result: string) => {
     showModal.value = true
   } finally {
     isProcessingScan.value = false
-
     scanTimeoutId.value = setTimeout(() => {
       handleCloseDialog()
     }, MODAL_DISPLAY_DURATION_MS) as unknown as number
@@ -192,9 +194,6 @@ const dynamicSuccessMessage = computed(() => {
   if (dailyLogsStore.lastLogMessage) {
     return dailyLogsStore.lastLogMessage
   }
-  if (errorMessage.value) {
-    return errorMessage.value
-  }
   return 'Processing...'
 })
 
@@ -202,7 +201,6 @@ const handleCloseDialog = () => {
   showModal.value = false
   errorMessage.value = null
   dailyLogsStore.clearScannedEmployee()
-  scannerPaused.value = false
 }
 
 const latestWarmBodyLogs = computed(() => {
@@ -255,7 +253,7 @@ const latestWarmBodyLogs = computed(() => {
             :constraints="{ facingMode: 'environment' }"
             @init="onInit"
             @camera-error="onCameraError"
-            :paused="scannerPaused"
+            :paused="false"
             class="h-full w-full object-cover"
           />
         </div>
@@ -277,7 +275,8 @@ const latestWarmBodyLogs = computed(() => {
       :pt="{
         root: 'flex flex-col h-full bg-white shadow-lg p-4 md:p-12',
         header: 'hidden',
-        content: 'flex-grow flex flex-col items-center justify-start space-y-6 md:space-y-12 text-center h-full',
+        // Modified content class:
+        content: 'flex-grow flex flex-col items-center justify-start space-y-6 md:space-y-12 text-center h-full overflow-y-auto', // Added overflow-y-auto
       }"
     >
       <template v-if="dailyLogsStore.lastLogMessage && !dailyLogsStore.currentScannedEmployee">
@@ -290,41 +289,44 @@ const latestWarmBodyLogs = computed(() => {
       </template>
 
       <template v-else-if="dailyLogsStore.currentScannedEmployee">
-        <hr class="mb-6 border-t border-surface-300" />
+        <div class="custom-scrollbar flex h-full w-full flex-grow flex-col items-center justify-start overflow-y-auto">
+          <hr class="mb-6 border-t border-surface-300" />
 
-        <div class="flex items-center text-4xl font-semibold text-success-600 md:text-4xl">
-          <FontAwesomeIcon :icon="['fas', 'circle-check']" class="mr-4 md:mr-6" />
-          {{ dynamicSuccessMessage }}
-        </div>
-
-        <div class="mb-4 flex justify-center">
-          <img
-            :src="dailyLogsStore.currentScannedEmployee?.photo_url || '@/assets/image/DSWD logo_Mark.png'"
-            alt="Employee Profile Photo"
-            class="h-64 w-48 rounded-lg object-cover shadow md:h-80 md:w-64"
-          />
-        </div>
-
-        <div class="w-full space-y-4 px-4 text-left md:space-y-8 md:pl-0 md:pr-0">
-          <div>
-            <span class="mb-2 block text-xl font-semibold uppercase text-surface-500 md:mb-4 md:text-xl">Name:</span>
-            <p class="text-2xl font-bold text-surface-800 md:text-2xl">
-              {{ dailyLogsStore.currentScannedEmployee?.name || 'N/A' }}
-            </p>
+          <div class="flex items-center text-4xl font-semibold text-success-600 md:text-4xl">
+            <FontAwesomeIcon :icon="['fas', 'circle-check']" class="mr-4 md:mr-6" />
+            {{ dynamicSuccessMessage }}
           </div>
 
-          <div>
-            <span class="mb-2 block text-xl font-semibold uppercase text-surface-500 md:mb-4 md:text-xl">ID Number:</span>
-            <p class="font-mono text-2xl text-primary-700 md:text-2xl">
-              {{ dailyLogsStore.currentScannedEmployee?.id || 'N/A' }}
-            </p>
+          <div class="mb-4 flex justify-center">
+            <img
+              :src="dailyLogsStore.currentScannedEmployee?.photo_url || dswdLogoMark"
+              alt="Employee Profile Photo"
+              class="h-auto max-w-full rounded-lg shadow"
+              style="aspect-ratio: 2270 / 2479"
+            />
           </div>
 
-          <div>
-            <span class="mb-2 block text-xl font-semibold uppercase text-surface-500 md:mb-4 md:text-xl">Position:</span>
-            <p class="text-2xl font-bold text-surface-800 md:text-2xl">
-              {{ dailyLogsStore.currentScannedEmployee?.position || 'N/A' }}
-            </p>
+          <div class="w-full space-y-4 px-4 text-left md:space-y-8 md:pl-0 md:pr-0">
+            <div>
+              <span class="mb-2 block text-xl font-semibold uppercase text-surface-500 md:mb-4 md:text-xl">Name:</span>
+              <p class="text-2xl font-bold text-surface-800 md:text-2xl">
+                {{ dailyLogsStore.currentScannedEmployee?.name || 'N/A' }}
+              </p>
+            </div>
+
+            <div>
+              <span class="mb-2 block text-xl font-semibold uppercase text-surface-500 md:mb-4 md:text-xl">ID Number:</span>
+              <p class="font-mono text-2xl text-primary-700 md:text-2xl">
+                {{ dailyLogsStore.currentScannedEmployee?.id || 'N/A' }}
+              </p>
+            </div>
+
+            <div>
+              <span class="mb-2 block text-xl font-semibold uppercase text-surface-500 md:mb-4 md:text-xl">Position:</span>
+              <p class="text-2xl font-bold text-surface-800 md:text-2xl">
+                {{ dailyLogsStore.currentScannedEmployee?.position || 'N/A' }}
+              </p>
+            </div>
           </div>
         </div>
       </template>
