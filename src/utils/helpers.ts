@@ -1,6 +1,6 @@
 import { CountryCode, isValidPhoneNumber, parsePhoneNumber } from 'libphonenumber-js'
 import { Ref } from 'vue'
-import { WarmBodyResponse } from '@/typings/models.types.ts'
+import { TimeLogResponse } from '@/typings/models.types.ts'
 import { useDateFormat } from '@vueuse/core'
 import { helpers } from '@vuelidate/validators'
 /**
@@ -500,11 +500,20 @@ export const getDTRDayOfWeek = (dateString: string): string => {
   return date.toLocaleDateString('en-US', options)
 }
 
-export const resolveDTRSlots = (entries: WarmBodyResponse[] = []) => {
-  const inLogs = entries.filter((e) => e.is_in).sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+export const toTimestamp = (date: string, time: string) => `${date}T${time}`
+
+export const resolveDTRSlots = (entries: TimeLogResponse[] = []) => {
+  const inLogs = entries
+    .filter((e) => e.is_in)
+    .sort(
+      (a, b) => new Date(toTimestamp(a.date, a.scanned_time)).getTime() - new Date(toTimestamp(b.date, b.scanned_time)).getTime()
+    )
+
   const outLogs = entries
     .filter((e) => !e.is_in)
-    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+    .sort(
+      (a, b) => new Date(toTimestamp(a.date, a.scanned_time)).getTime() - new Date(toTimestamp(b.date, b.scanned_time)).getTime()
+    )
 
   const slots = {
     in1: '',
@@ -513,46 +522,51 @@ export const resolveDTRSlots = (entries: WarmBodyResponse[] = []) => {
     out2: '',
   }
 
-  // Helper function to check if a timestamp falls within a specific time window
-  const isBetween = (timestamp: string | number | Date, startHour: number, endHour: number) => {
+  const isBetween = (timestamp: string, startHour: number, endHour: number) => {
     const date = new Date(timestamp)
     const hours = date.getHours()
     return hours >= startHour && hours < endHour
   }
 
   // 1. Assign in1: between 6:00 - 9:00
-  const in1Candidate = inLogs.find((e) => isBetween(e.timestamp, 6, 9))
-  if (in1Candidate) slots.in1 = in1Candidate.timestamp
+  const in1Candidate = inLogs.find((e) => isBetween(toTimestamp(e.date, e.scanned_time), 6, 9))
+  if (in1Candidate) {
+    slots.in1 = toTimestamp(in1Candidate.date, in1Candidate.scanned_time)
+  }
 
   // 2. Assign out1: between 12:00 - 13:00
-  const out1Candidate = outLogs.find((e) => isBetween(e.timestamp, 12, 13))
-  if (out1Candidate) slots.out1 = out1Candidate.timestamp
+  const out1Candidate = outLogs.find((e) => isBetween(toTimestamp(e.date, e.scanned_time), 12, 13))
+  if (out1Candidate) {
+    slots.out1 = toTimestamp(out1Candidate.date, out1Candidate.scanned_time)
+  }
 
   // 3. Assign in2: between 12:00 - 14:00, but not within 15 mins after out1
   if (slots.out1) {
     const out1Time = new Date(slots.out1).getTime()
     const in2Candidates = inLogs.filter((e) => {
-      const time = new Date(e.timestamp).getTime()
-      return (
-        isBetween(e.timestamp, 12, 14) && time >= out1Time + 15 * 60 * 1000 // at least 15 mins after out1
-      )
+      const timestamp = toTimestamp(e.date, e.scanned_time)
+      const time = new Date(timestamp).getTime()
+      return isBetween(timestamp, 12, 14) && time >= out1Time + 15 * 60 * 1000
     })
+
     if (in2Candidates.length) {
-      // pick the earliest valid in2
-      slots.in2 = in2Candidates[0].timestamp
+      slots.in2 = toTimestamp(in2Candidates[0].date, in2Candidates[0].scanned_time)
     }
   } else {
-    // fallback: pick earliest in between 12-14 if out1 not found
-    const in2Candidate = inLogs.find((e) => isBetween(e.timestamp, 12, 14))
-    if (in2Candidate) slots.in2 = in2Candidate.timestamp
+    const in2Candidate = inLogs.find((e) => isBetween(toTimestamp(e.date, e.scanned_time), 12, 14))
+    if (in2Candidate) {
+      slots.in2 = toTimestamp(in2Candidate.date, in2Candidate.scanned_time)
+    }
   }
 
   // 4. Assign out2: from 14:00 onwards
   const out2Candidate = outLogs.find((e) => {
-    const date = new Date(e.timestamp)
+    const date = new Date(toTimestamp(e.date, e.scanned_time))
     return date.getHours() >= 14
   })
-  if (out2Candidate) slots.out2 = out2Candidate.timestamp
+  if (out2Candidate) {
+    slots.out2 = toTimestamp(out2Candidate.date, out2Candidate.scanned_time)
+  }
 
   return slots
 }

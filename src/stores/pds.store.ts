@@ -452,6 +452,15 @@ export const usePdsStore = defineStore('pds', () => {
     }
   }
 
+  const fetchPds = async (id: number) => {
+    const uri = `/individual-basic-details/${id}`
+
+    const { data } = await useApiCall(uri, authStore.authenticationToken).get().json()
+    const responseBody: ApiResponseBody = data.value
+
+    return responseBody
+  }
+
   return {
     pdsInfo,
     savePds,
@@ -459,5 +468,6 @@ export const usePdsStore = defineStore('pds', () => {
     generatePDSFormTemplate,
     pdsMode,
     importResult,
+    fetchPds,
   }
 })
