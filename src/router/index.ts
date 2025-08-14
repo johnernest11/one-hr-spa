@@ -69,8 +69,9 @@ const routes = [
       group: RouteGroup.MAIN,
       label: 'Time Logs',
       isSidebarMenu: true,
-      authType: AuthType.OPEN,
+      authType: AuthType.AUTHENTICATED,
       hideNavigation: true,
+      roles: [AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER, AuthRole.SYSTEM_SUPPORT],
     },
   },
   /*Request Routes */
