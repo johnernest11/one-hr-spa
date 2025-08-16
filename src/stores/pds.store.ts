@@ -518,6 +518,61 @@ export const usePdsStore = defineStore('pds', () => {
         is_gov_service: w.is_gov_service ?? false,
       }))
       : []
+
+    // ──────────────────────────────────────────────────────────
+    //         C3 - Individual Voluntary Work, Individual L&D, Individual Skills/Hobby, Individual Recognition,
+    //         Individual Membership
+    // ──────────────────────────────────────────────────────────
+    // === Individual Voluntary Work ===
+    pdsInfo.individual_voluntary_work = Array.isArray(personnel.individual_voluntary_work)
+      ? personnel.individual_voluntary_work.map((v) => ({
+        id: v.id,
+        is_current_org: v.is_current_org ?? false,
+        org_name: v.org_name ?? '',
+        org_address: v.org_address ?? '',
+        from: v.from ?? null,
+        to: v.to ?? null,
+        number_of_hours: v.number_of_hours ?? null,
+        position_nature_of_work: v.position_nature_of_work ?? null,
+      }))
+      : []
+
+    // === Individual Learning and Development ===
+    pdsInfo.individual_lnd = Array.isArray(personnel.individual_lnd)
+      ? personnel.individual_lnd.map((l) => ({
+        id: l.id,
+        title: l.title ?? '',
+        from: l.from ?? '',
+        to: l.to ?? null,
+        number_of_hours: l.number_of_hours ?? null,
+        type: l.type ?? null,
+        conducted_sponsor: l.conducted_sponsor ?? null,
+      }))
+      : []
+
+    // === Individual Skills / Hobby ===
+    pdsInfo.individual_skills_hobby = Array.isArray(personnel.individual_skills)
+      ? personnel.individual_skills.map((s) => ({
+        id: s.id,
+        skill_hobby: s.skill_hobby ?? '',
+      }))
+      : []
+
+    // === Individual Recognition ===
+    pdsInfo.individual_recognition = Array.isArray(personnel.individual_recognition)
+      ? personnel.individual_recognition.map((r) => ({
+        id: r.id,
+        recognition: r.recognition ?? '',
+      }))
+      : []
+
+    // === Individual Membership ===
+    pdsInfo.individual_membership = Array.isArray(personnel.individual_membership)
+      ? personnel.individual_membership.map((m) => ({
+        id: m.id,
+        association_organization: m.association_organization ?? '',
+      }))
+      : []
   }
 
   const savePds = async (payload: PersonalDataSheetPayload) => {

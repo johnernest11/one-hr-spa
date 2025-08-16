@@ -67,8 +67,8 @@ const handleUpdate = async () => {
     const resultC2 = await c2FormRef.value?.updateC2Form?.()
     if (resultC2?.valid === false) return
 
-    // const resultC3 = await c3FormRef.value?.handleSaveC3Form?.()
-    // if (resultC3?.valid === false) return
+    const resultC3 = await c3FormRef.value?.updateC3Form?.()
+    if (resultC3?.valid === false) return
 
     // const resultC4 = await c4FormRef.value?.handleSaveC4Form?.()
     // if (resultC4?.valid === false) return

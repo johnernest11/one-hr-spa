@@ -255,6 +255,11 @@ export type PersonnelResponse = {
   individual_educational_background: IndividualEducBg | null
   individual_eligibility: IndividualEligibility | null
   individual_work_experience: IndividualWorkExperience | null
+  individual_voluntary_work: IndividualVoluntaryWork | null
+  individual_lnd: IndividualLearningDevelopment | null
+  individual_skills: IndividualSkills | null
+  individual_recognition: IndividualRecognition | null
+  individual_membership: IndividualMembership | null
   employee: PersonnelEmployee | null
 } & ApiResponseData
 
