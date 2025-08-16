@@ -487,6 +487,37 @@ export const usePdsStore = defineStore('pds', () => {
     pdsInfo.individual_address_init.permanent_province_id = address?.permanent_province_id ?? null
     pdsInfo.individual_address_init.permanent_region_id = address?.permanent_region_id ?? null
     pdsInfo.individual_address_init.permanent_zip_code = address?.permanent_zip_code ?? null
+
+    // === Individual Eligibility ===
+    pdsInfo.individual_eligibility = Array.isArray(personnel.individual_eligibility)
+      ? personnel.individual_eligibility.map((e) => ({
+        id: e.id,
+        eligibility: e.eligibility ?? '',
+        rating: e.rating ?? '',
+        date_of_examination_conferment: e.date_of_examination_conferment ?? '',
+        place_of_examination: e.place_of_examination ?? '',
+        license_number: e.license_number ?? null,
+        license_date_of_validity: e.license_date_of_validity ?? null,
+      }))
+      : []
+
+    // === Individual Work Experience ===
+    pdsInfo.individual_work_experience = Array.isArray(personnel.individual_work_experience)
+      ? personnel.individual_work_experience.map((w) => ({
+        id: w.id,
+        is_current_work: w.is_current_work ?? false,
+        inclusive_date_from: w.inclusive_date_from ?? '',
+        inclusive_date_to: w.inclusive_date_to ?? '',
+        position_title: w.position_title ?? '',
+        department_agency_office_company: w.department_agency_office_company ?? '',
+        monthly_salary: w.monthly_salary ?? '',
+        salary_grade_id: w.salary_grade_id ?? null,
+        salary_grade: w.salary_grade ?? null,
+        custom_salary_grade: w.custom_salary_grade ?? '',
+        status_of_appointment: w.status_of_appointment ?? null,
+        is_gov_service: w.is_gov_service ?? false,
+      }))
+      : []
   }
 
   const savePds = async (payload: PersonalDataSheetPayload) => {
@@ -559,13 +590,26 @@ export const usePdsStore = defineStore('pds', () => {
   }
 
   const fetchPdsById = async (id: string | number) => {
-    const url = `/individual-basic-details/${id}`
-    const { data } = await useApiCall(url, authStore.authenticationToken).get().json()
-    const responseBody: ApiResponseBody = data.value
-    if (responseBody.success) {
-      selectedPDS.value = responseBody.data as PersonnelResponse
+    try {
+      const url = `/individual-basic-details/${id}`
+      const { data } = await useApiCall(url, authStore.authenticationToken).get().json()
+
+      if (!data || !data.value) {
+        console.warn('⚠️ No response body from API:', url)
+        return { success: false, data: null }
+      }
+
+      const responseBody: ApiResponseBody = data.value
+
+      if (responseBody.success) {
+        selectedPDS.value = responseBody.data as PersonnelResponse
+      }
+
+      return responseBody
+    } catch (error) {
+      console.error('❌ fetchPdsById error:', error)
+      return { success: false, data: null }
     }
-    return responseBody
   }
 
   const updatePds = async (pds: Partial<PersonalDataSheetPayload>, id: string | number, formType: 'C1' | 'C2' | 'C3' | 'C4') => {

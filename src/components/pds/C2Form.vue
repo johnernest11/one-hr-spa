@@ -4,6 +4,7 @@ import { usePdsStore, PersonalDataSheetPayload } from '@/stores/pds.store.ts'
 import { useSalaryGradesStore } from '@/stores/salary-grades.store.ts'
 import { isGovServiceYesNoOptions, EmploymentStatusOptions } from '@/typings/employee-entry.types'
 import { useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 
 import useVuelidate from '@vuelidate/core'
 import WbInputText from '@/components/webkit/WbInputText.vue'
@@ -21,12 +22,14 @@ import { helpers, maxLength, required, numeric } from '@vuelidate/validators'
 import { TabGroup, TabList, Tab, TabPanels, TabPanel } from '@headlessui/vue'
 import { isAfterOrEqualFromDate, usePrependOrAppendOnce } from '@/utils/helpers.js'
 import { TransitionRoot } from '@headlessui/vue'
+import { PersonnelResponse } from '@/typings/models.types'
 
 const getId = usePrependOrAppendOnce('pds-c2-section-form')
 const sgStore = useSalaryGradesStore()
 const pdsStore = usePdsStore()
 const toast = useToast()
 const router = useRouter()
+const route = useRoute()
 
 const maxToasts = 5
 const MAX_ENTRIES_PER_TAB = 2
@@ -37,7 +40,12 @@ const workExperienceIndex = ref(1)
 const isC2Loading = ref(false)
 const isPdsError = ref(false)
 const isCurrentlyEmployed = ref(false)
+const formIsSubmitting = ref(false)
+const showErrorAlert = ref(false)
+const IsBeingUpdated = ref(false)
 const extraWorkExperienceTabVisible = ref(false)
+const isLoading = ref(true)
+const errorDetails = ref<string[]>([])
 
 const activeTab = ref(0)
 const activeToasts = ref<number>(0)
@@ -52,13 +60,6 @@ const c1Tabs = ref([
 
 onMounted(() => {
   useCustomSalaryGrade.value = payload.individual_work_experience.map(() => false)
-})
-
-defineProps({
-  activeSubTab: {
-    type: Number,
-    default: undefined,
-  },
 })
 
 /** Payload */
@@ -287,6 +288,79 @@ const handleRemoveWorkExperience = (workExperienceIndex: number) => {
   payload.individual_work_experience?.splice(workExperienceIndex, 1)
 }
 
+// ──────────────────────────────────────────────────────────
+//          PDS Details Form - Fetching by ID & Update
+// ──────────────────────────────────────────────────────────
+type pdsDetailsFormProps = {
+  personnelPds?: PersonnelResponse
+}
+const props = defineProps<pdsDetailsFormProps>()
+onMounted(async () => {
+  const id = route.params.id as string
+  if (id) {
+    const response = await pdsStore.fetchPdsById(id)
+
+    if (response && response.success) {
+      console.log('Fetched PDS data:', response.data) // ✅ Console log added
+      pdsStore.updatePdsFromPersonnel(response.data as PersonnelResponse)
+    } else {
+      console.warn('Failed to fetch PDS by ID or response unsuccessful.')
+    }
+  }
+
+  isLoading.value = false
+})
+
+watch(
+  () => props.personnelPds,
+  (newPersonnel) => {
+    if (newPersonnel) {
+      pdsStore.updatePdsFromPersonnel(newPersonnel)
+    } else {
+      for (const key in payload.individual) {
+        payload.individual[key as keyof typeof payload.individual] = null
+      }
+    }
+  },
+  { immediate: true }
+)
+
+const updateC2Form = async () => {
+  IsBeingUpdated.value = true
+  const id = route.params.id as string
+
+  formIsSubmitting.value = true
+  const response = await pdsStore.updatePds(
+    { ...payload }, // only payload properties
+    id,
+    'C2' // pass form_type as a separate argument if your store expects it
+  )
+
+  if (!response.success) {
+    const result = parseApiResponseError(response)
+    if (!result) return (formIsSubmitting.value = false)
+
+    showErrorAlert.value = true
+    errorMessage.value = result.message
+    errorDetails.value = result.errors
+    IsBeingUpdated.value = false
+  }
+
+  formIsSubmitting.value = false
+  toast.add({
+    severity: 'success',
+    summary: 'Item Number Details update',
+    detail: `${id || 'The Item Number '} was successfully updated`,
+    life: 1000,
+  })
+
+  formIsSubmitting.value = false
+}
+
+// ──────────────────────────────────────────────────────────
+//          PDS Details Form - Save Handler
+// ──────────────────────────────────────────────────────────
+
 const handleSaveC2Form = async () => {
   isC2Loading.value = true
 
@@ -330,745 +404,828 @@ const handleSaveC2Form = async () => {
 
 defineExpose({
   handleSaveC2Form,
+  updateC2Form,
 })
 </script>
-
 <template>
-  <div class="flex flex-row">
-    <form @submit.prevent="" autocomplete="off" class="h-full w-full">
-      <div class="w-full">
-        <TabGroup>
-          <TabList class="flex">
-            <Tab v-for="subSection in c1Tabs" as="template" :key="subSection.index" v-slot="{ selected }">
-              <button
-                :class="[
-                  'w-full border-b-2 border-solid py-4 text-sm font-medium italic leading-5 ring-transparent transition-all duration-300 ease-in-out focus:outline-none md:text-base ',
-                  selected
-                    ? 'border-b-2 border-solid border-primary-600 bg-primary-100 text-primary-600'
-                    : 'border-surface-300 text-surface-400 hover:bg-surface-0/[0.12]',
-                ]"
-              >
-                {{ subSection.name }}
-              </button>
-            </Tab>
-            <Tab v-if="extraWorkExperienceTabVisible" as="template" :key="'extra-tab'" v-slot="{ selected }">
-              <button
-                :class="[
-                  'w-full border-b-2 border-solid py-4 text-sm font-medium italic leading-5 ring-transparent transition-all duration-300 ease-in-out focus:outline-none md:text-base ',
-                  selected
-                    ? 'border-b-2 border-solid border-primary-600 bg-primary-100 text-primary-600'
-                    : 'border-surface-300 text-surface-400 hover:bg-surface-0/[0.12]',
-                ]"
-              >
-                Work Experience (Continued)
-              </button>
-            </Tab>
-          </TabList>
+  <template v-if="!isLoading">
+    <div class="flex flex-row">
+      <form @submit.prevent="" autocomplete="off" class="h-full w-full">
+        <div class="w-full">
+          <TabGroup>
+            <TabList class="flex">
+              <Tab v-for="subSection in c1Tabs" as="template" :key="subSection.index" v-slot="{ selected }">
+                <button
+                  :class="[
+                    'w-full border-b-2 border-solid py-4 text-sm font-medium italic leading-5 ring-transparent transition-all duration-300 ease-in-out focus:outline-none md:text-base ',
+                    selected
+                      ? 'border-b-2 border-solid border-primary-600 bg-primary-100 text-primary-600'
+                      : 'border-surface-300 text-surface-400 hover:bg-surface-0/[0.12]',
+                  ]"
+                >
+                  {{ subSection.name }}
+                </button>
+              </Tab>
+              <Tab v-if="extraWorkExperienceTabVisible" as="template" :key="'extra-tab'" v-slot="{ selected }">
+                <button
+                  :class="[
+                    'w-full border-b-2 border-solid py-4 text-sm font-medium italic leading-5 ring-transparent transition-all duration-300 ease-in-out focus:outline-none md:text-base ',
+                    selected
+                      ? 'border-b-2 border-solid border-primary-600 bg-primary-100 text-primary-600'
+                      : 'border-surface-300 text-surface-400 hover:bg-surface-0/[0.12]',
+                  ]"
+                >
+                  Work Experience (Continued)
+                </button>
+              </Tab>
+            </TabList>
 
-          <TabPanels>
-            <!-- START CIVIL SERVICE ELIGIBILITY SECTION -->
-            <TabPanel :class="['my-8 md:mx-12 ', ' ring-surface-0/60 focus:outline-none ']">
-              <TransitionRoot
-                appear
-                :show="true"
-                enter="transition-all ease-in-out duration-500 "
-                enterFrom="opacity-0 translate-y-6"
-                enterTo="opacity-100 translate-y-0"
-                leave="transition-all ease-in-out duration-800"
-                leaveFrom="opacity-100"
-                leaveTo="opacity-0"
-              >
-                <div class="flex flex-col gap-4">
-                  <span class="flex flex-col justify-center space-y-2 font-medium text-primary-700">
-                    <p class="text-xl italic md:text-2xl">IV. Civil Service Eligibility</p>
-                  </span>
+            <TabPanels>
+              <!-- START CIVIL SERVICE ELIGIBILITY SECTION -->
+              <TabPanel :class="['my-8 md:mx-12 ', ' ring-surface-0/60 focus:outline-none ']">
+                <TransitionRoot
+                  appear
+                  :show="true"
+                  enter="transition-all ease-in-out duration-500 "
+                  enterFrom="opacity-0 translate-y-6"
+                  enterTo="opacity-100 translate-y-0"
+                  leave="transition-all ease-in-out duration-800"
+                  leaveFrom="opacity-100"
+                  leaveTo="opacity-0"
+                >
+                  <div class="flex flex-col gap-4">
+                    <span class="flex flex-col justify-center space-y-2 font-medium text-primary-700">
+                      <p class="text-xl italic md:text-2xl">IV. Civil Service Eligibility</p>
+                    </span>
 
-                  <template v-for="eligibilityIndex in payload.individual_eligibility.length" :key="eligibilityIndex">
-                    <TransitionRoot
-                      appear
-                      :show="true"
-                      enter="transition-all ease-in-out duration-500 "
-                      enterFrom="opacity-0 translate-y-6"
-                      enterTo="opacity-100 translate-y-0"
-                      leave="transition-all ease-in-out duration-800"
-                      leaveFrom="opacity-100"
-                      leaveTo="opacity-0"
-                    >
-                      <div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-4">
-                        <div class="md:col-span-2">
-                          <WbInputText
-                            v-model="payload.individual_eligibility[eligibilityIndex - 1].eligibility"
-                            label="Eligibility"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                          />
+                    <template v-for="eligibilityIndex in payload.individual_eligibility.length" :key="eligibilityIndex">
+                      <TransitionRoot
+                        appear
+                        :show="true"
+                        enter="transition-all ease-in-out duration-500 "
+                        enterFrom="opacity-0 translate-y-6"
+                        enterTo="opacity-100 translate-y-0"
+                        leave="transition-all ease-in-out duration-800"
+                        leaveFrom="opacity-100"
+                        leaveTo="opacity-0"
+                      >
+                        <div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-4">
+                          <div class="md:col-span-2">
+                            <WbInputText
+                              v-model="payload.individual_eligibility[eligibilityIndex - 1].eligibility"
+                              label="Eligibility"
+                              label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                            />
+                          </div>
+
+                          <div>
+                            <WbInputText
+                              v-model="payload.individual_eligibility[eligibilityIndex - 1].rating"
+                              label="Rating"
+                              label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                              :invalid="validator.individual_eligibility[eligibilityIndex - 1].rating.$error"
+                              :invalidText="validator.individual_eligibility[eligibilityIndex - 1].rating.$errors[0]?.$message"
+                              @blur="validator.individual_eligibility[eligibilityIndex - 1].rating.$touch()"
+                            />
+                          </div>
+
+                          <div>
+                            <WbCalendar
+                              v-model="payload.individual_eligibility[eligibilityIndex - 1].date_of_examination_conferment"
+                              label="Date of Exam / Conferment"
+                              label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                              :dateFormat="'yy-mm-dd'"
+                              :invalid="
+                                validator.individual_eligibility[eligibilityIndex - 1].date_of_examination_conferment.$error
+                              "
+                              :invalidText="
+                                validator.individual_eligibility[eligibilityIndex - 1].date_of_examination_conferment.$errors[0]
+                                  ?.$message
+                              "
+                              @blur="
+                                validator.individual_eligibility[eligibilityIndex - 1].date_of_examination_conferment.$touch()
+                              "
+                            />
+                          </div>
                         </div>
 
-                        <div>
-                          <WbInputText
-                            v-model="payload.individual_eligibility[eligibilityIndex - 1].rating"
-                            label="Rating"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                            :invalid="validator.individual_eligibility[eligibilityIndex - 1].rating.$error"
-                            :invalidText="validator.individual_eligibility[eligibilityIndex - 1].rating.$errors[0]?.$message"
-                            @blur="validator.individual_eligibility[eligibilityIndex - 1].rating.$touch()"
-                          />
-                        </div>
+                        <div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-4">
+                          <div class="md:col-span-2">
+                            <WbInputText
+                              v-model="payload.individual_eligibility[eligibilityIndex - 1].place_of_examination"
+                              label="Place of Examination"
+                              label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                            />
+                          </div>
 
-                        <div>
-                          <WbCalendar
-                            v-model="payload.individual_eligibility[eligibilityIndex - 1].date_of_examination_conferment"
-                            label="Date of Exam / Conferment"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                            :dateFormat="'yy-mm-dd'"
-                            :invalid="
-                              validator.individual_eligibility[eligibilityIndex - 1].date_of_examination_conferment.$error
-                            "
-                            :invalidText="
-                              validator.individual_eligibility[eligibilityIndex - 1].date_of_examination_conferment.$errors[0]
-                                ?.$message
-                            "
-                            @blur="validator.individual_eligibility[eligibilityIndex - 1].date_of_examination_conferment.$touch()"
-                          />
-                        </div>
-                      </div>
+                          <div>
+                            <WbInputText
+                              v-model="payload.individual_eligibility[eligibilityIndex - 1].license_number"
+                              label="License Number"
+                              label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                            />
+                          </div>
 
-                      <div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-4">
-                        <div class="md:col-span-2">
-                          <WbInputText
-                            v-model="payload.individual_eligibility[eligibilityIndex - 1].place_of_examination"
-                            label="Place of Examination"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                          />
+                          <div class="flex items-end gap-2">
+                            <!-- WbInputText takes most of the space -->
+                            <WbCalendar
+                              v-model="payload.individual_eligibility[eligibilityIndex - 1].license_date_of_validity"
+                              label="License Validity"
+                              label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                              :dateFormat="'yy-mm-dd'"
+                              class="lg:text-md lg:placeholder:text-md flex-1 text-sm placeholder:text-sm"
+                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                              :invalidText="
+                                validator.individual_eligibility[eligibilityIndex - 1].license_date_of_validity.$errors[0]
+                                  ?.$message
+                              "
+                              :invalid="validator.individual_eligibility[eligibilityIndex - 1].license_date_of_validity.$error"
+                              @blur="validator.individual_eligibility[eligibilityIndex - 1].license_date_of_validity.$touch()"
+                            />
+                            <!-- Delete button aligned right, below label -->
+                            <Button
+                              v-show="eligibilityIndex - 1 > 0"
+                              :id="getId(`button-remove-eligibility-${eligibilityIndex - 1}`)"
+                              icon="pi pi-trash"
+                              @click="handleRemoveEligibility(eligibilityIndex - 1)"
+                              v-tooltip.top="'Remove Eligibility'"
+                              severity="danger"
+                              class="mb-2 text-lg font-semibold dark:text-primary-100"
+                              text
+                            />
+                          </div>
                         </div>
-
-                        <div>
-                          <WbInputText
-                            v-model="payload.individual_eligibility[eligibilityIndex - 1].license_number"
-                            label="License Number"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                          />
-                        </div>
-
-                        <div class="flex items-end gap-2">
-                          <!-- WbInputText takes most of the space -->
-                          <WbCalendar
-                            v-model="payload.individual_eligibility[eligibilityIndex - 1].license_date_of_validity"
-                            label="License Validity"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            :dateFormat="'yy-mm-dd'"
-                            class="lg:text-md lg:placeholder:text-md flex-1 text-sm placeholder:text-sm"
-                            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                            :invalidText="
-                              validator.individual_eligibility[eligibilityIndex - 1].license_date_of_validity.$errors[0]?.$message
-                            "
-                            :invalid="validator.individual_eligibility[eligibilityIndex - 1].license_date_of_validity.$error"
-                            @blur="validator.individual_eligibility[eligibilityIndex - 1].license_date_of_validity.$touch()"
-                          />
-                          <!-- Delete button aligned right, below label -->
-                          <Button
-                            v-show="eligibilityIndex - 1 > 0"
-                            :id="getId(`button-remove-eligibility-${eligibilityIndex - 1}`)"
-                            icon="pi pi-trash"
-                            @click="handleRemoveEligibility(eligibilityIndex - 1)"
-                            v-tooltip.top="'Remove Eligibility'"
-                            severity="danger"
-                            class="mb-2 text-lg font-semibold dark:text-primary-100"
-                            text
-                          />
-                        </div>
-                      </div>
-                      <hr />
-                    </TransitionRoot>
-                  </template>
-
-                  <Button
-                    v-if="payload.individual_eligibility.length < 7"
-                    label="Add additional Eligibility field"
-                    @click="handleAdditionalEligibility"
-                    size="large"
-                    class="dark:text-secondary-100 mt-4 !w-64 border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
-                    text
-                  >
-                    <template #icon>
-                      <i class="pi pi-plus mr-2"></i>
+                        <hr />
+                      </TransitionRoot>
                     </template>
-                  </Button>
-                </div>
 
-                <span class="mt-10 flex flex-col justify-center space-y-4 font-medium text-surface-600">
-                  <p class="md:text-md text-lg italic">
-                    Note: A maximum of seven (7) Civil Service Eligibility entries are allowed in a page, if the number of your
-                    civil service eligibilities exceeds in the aforementioned limit, it will be in a separate sheet.
-                  </p>
-                </span>
-              </TransitionRoot>
-            </TabPanel>
-            <!-- END CIVIL SERVICE ELIGIBILITY SECTION -->
-
-            <!-- START WORK EXPERIENCE -->
-            <TabPanel v-model:activeIndex="activeTab" :class="['my-8 md:mx-12 ', ' ring-surface-0/60 focus:outline-none ']">
-              <TransitionRoot
-                appear
-                :show="true"
-                enter="transition-all ease-in-out duration-500 "
-                enterFrom="opacity-0 translate-y-6"
-                enterTo="opacity-100 translate-y-0"
-                leave="transition-all ease-in-out duration-800"
-                leaveFrom="opacity-100"
-                leaveTo="opacity-0"
-              >
-                <div class="flex flex-col gap-4">
-                  <span class="flex flex-col justify-center space-y-2 font-medium">
-                    <p class="text-xl italic text-primary-700 md:text-2xl">V. Work Experience</p>
-                    <p class="md:text-md text-lg italic text-surface-600">
-                      (Include private employment. Start from your recent work) Description of duties should be indicated in the
-                      attached Work Experience sheet.
-                    </p>
-                  </span>
-                  <div class="col-span-2 my-4 ml-4">
-                    <div class="align-items-center flex items-center">
-                      <Checkbox
-                        v-model="isCurrentlyEmployed"
-                        :id="getId('input-currently-working')"
-                        :inputId="getId('input-currently-working')"
-                        name="currentlyEmployed"
-                        :binary="true"
-                      />
-                      <label :for="getId('input-currently-working')" class="ml-2 text-surface-600">
-                        I am currently working in this role
-                      </label>
-                    </div>
+                    <Button
+                      v-if="payload.individual_eligibility.length < 7"
+                      label="Add additional Eligibility field"
+                      @click="handleAdditionalEligibility"
+                      size="large"
+                      class="dark:text-secondary-100 mt-4 !w-64 border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+                      text
+                    >
+                      <template #icon>
+                        <i class="pi pi-plus mr-2"></i>
+                      </template>
+                    </Button>
                   </div>
 
-                  <template
-                    v-for="(work, workExperienceIndex) in payload.individual_work_experience.slice(0, MAX_ENTRIES_PER_TAB)"
-                    :key="workExperienceIndex"
-                  >
-                    <TransitionRoot
-                      appear
-                      :show="true"
-                      enter="transition-all ease-in-out duration-500 "
-                      enterFrom="opacity-0 translate-y-6"
-                      enterTo="opacity-100 translate-y-0"
-                      leave="transition-all ease-in-out duration-800"
-                      leaveFrom="opacity-100"
-                      leaveTo="opacity-0"
-                    >
-                      <div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-6">
-                        <div>
-                          <WbCalendar
-                            v-model="work.inclusive_date_from"
-                            label="From"
-                            required
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                            :dateFormat="'yy-mm-dd'"
-                            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                            :invalidText="
-                              validator.individual_work_experience[workExperienceIndex].inclusive_date_from.$errors[0]?.$message
-                            "
-                            :invalid="validator.individual_work_experience[workExperienceIndex].inclusive_date_from.$error"
-                            @blur="validator.individual_work_experience[workExperienceIndex].inclusive_date_from.$touch()"
-                          />
-                        </div>
-                        <!-- For the first entry -->
-                        <div v-if="workExperienceIndex === 0">
-                          <!-- If NOT currently employed, show calendar -->
-                          <WbCalendar
-                            v-if="!isCurrentlyEmployed"
-                            v-model="work.inclusive_date_to"
-                            label="To"
-                            :dateFormat="'yy-mm-dd'"
-                            class="w-full text-sm"
-                            label-class="text-md text-surface-600 md:text-sm"
-                            validation-error-message-class="text-xs text-error-500 font-bold"
-                            :invalidText="
-                              validator.individual_work_experience[workExperienceIndex].inclusive_date_to.$errors[0]?.$message
-                            "
-                            :invalid="validator.individual_work_experience[workExperienceIndex].inclusive_date_to.$error"
-                            @blur="validator.individual_work_experience[workExperienceIndex].inclusive_date_to.$touch()"
-                            required
-                          />
-
-                          <!-- If currently employed, show "PRESENT" input -->
-                          <WbInputText
-                            v-else
-                            :modelValue="'PRESENT'"
-                            label="To"
-                            disabled
-                            readonly
-                            class="w-full text-sm"
-                            label-class="text-md text-surface-600 md:text-sm"
-                            required
-                          />
-                        </div>
-
-                        <!-- For all entries after the first -->
-                        <div v-else>
-                          <WbCalendar
-                            v-model="work.inclusive_date_to"
-                            label="To"
-                            :dateFormat="'yy-mm-dd'"
-                            class="w-full text-sm"
-                            label-class="text-md text-surface-600 md:text-sm"
-                            validation-error-message-class="text-xs text-error-500 font-bold"
-                            :invalidText="
-                              validator.individual_work_experience[workExperienceIndex].inclusive_date_to.$errors[0]?.$message
-                            "
-                            :invalid="validator.individual_work_experience[workExperienceIndex].inclusive_date_to.$error"
-                            @blur="validator.individual_work_experience[workExperienceIndex].inclusive_date_to.$touch()"
-                            required
-                          />
-                        </div>
-
-                        <div class="md:col-span-2">
-                          <WbInputText
-                            v-model="work.position_title"
-                            label="Position Title"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                            :invalidText="
-                              validator.individual_work_experience[workExperienceIndex].position_title.$errors[0]?.$message
-                            "
-                            :invalid="validator.individual_work_experience[workExperienceIndex].position_title.$error"
-                            @blur="validator.individual_work_experience[workExperienceIndex].position_title.$touch()"
-                            required
-                          />
-                        </div>
-                        <div class="md:col-span-2">
-                          <WbInputText
-                            v-model="work.department_agency_office_company"
-                            label="Department/Agency/Company"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                            :invalidText="
-                              validator.individual_work_experience[workExperienceIndex].department_agency_office_company
-                                .$errors[0]?.$message
-                            "
-                            :invalid="
-                              validator.individual_work_experience[workExperienceIndex].department_agency_office_company.$error
-                            "
-                            @blur="
-                              validator.individual_work_experience[workExperienceIndex].department_agency_office_company.$touch()
-                            "
-                            required
-                          />
-                        </div>
-                      </div>
-                      <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
-                        <div>
-                          <WbInputText
-                            v-model="work.monthly_salary"
-                            label="Monthly Salary"
-                            required
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                            :invalidText="
-                              validator.individual_work_experience[workExperienceIndex].monthly_salary.$errors[0]?.$message
-                            "
-                            :invalid="validator.individual_work_experience[workExperienceIndex].monthly_salary.$error"
-                            @blur="validator.individual_work_experience[workExperienceIndex].monthly_salary.$touch()"
-                          />
-                        </div>
-                        <div>
-                          <!-- WbAutoComplete shown only when NOT using custom SG -->
-                          <WbAutoComplete
-                            v-if="!useCustomSalaryGrade[workExperienceIndex]"
-                            :useApiFilter="true"
-                            :apiEndpoint="'libraries/salary-grades/search'"
-                            :suggestions="sgStore.salaryGradesOptions"
-                            apiOptionLabel="work_experience_salary_grade"
-                            label="Salary Grade"
-                            placeholder="Type Salary Grade with its tranche here"
-                            v-model="selectedWorkExperienceSG[workExperienceIndex]"
-                            :id="getId('input-salary-grade')"
-                            optionLabel="label"
-                            optionValue="value"
-                            required
-                            @on-true-value-computed="
-                              (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
-                                useWbAutoCompleteHandleTrueValue(value, toRef(work, 'salary_grade_id'))
-                            "
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                            :invalidText="
-                              validator.individual_work_experience[workExperienceIndex].salary_grade_id.$errors[0]?.$message
-                            "
-                            :invalid="validator.individual_work_experience[workExperienceIndex].salary_grade_id.$error"
-                            @blur="validator.individual_work_experience[workExperienceIndex].salary_grade_id.$touch()"
-                          />
-
-                          <!-- WbInputText shown only when using custom SG -->
-                          <WbInputText
-                            v-else
-                            v-model="work.custom_salary_grade"
-                            label="Salary Grade"
-                            required
-                            placeholder="e.g 01-0 ,01-1 ,02-0"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                            :invalidText="
-                              validator.individual_work_experience[workExperienceIndex].custom_salary_grade.$errors[0]?.$message
-                            "
-                            :invalid="validator.individual_work_experience[workExperienceIndex].custom_salary_grade.$error"
-                            @blur="validator.individual_work_experience[workExperienceIndex].custom_salary_grade.$touch()"
-                          />
-                          <!-- Toggle Link -->
-                          <p
-                            class="mb-2 ml-2 cursor-pointer text-sm text-primary-500 hover:underline md:text-xs"
-                            @click="useCustomSalaryGrade[workExperienceIndex] = !useCustomSalaryGrade[workExperienceIndex]"
-                          >
-                            {{
-                              useCustomSalaryGrade[workExperienceIndex] ? 'Use Salary Grade from list' : 'Use custom salary grade'
-                            }}
-                          </p>
-                        </div>
-
-                        <div>
-                          <WbDropdown
-                            v-model="work.status_of_appointment"
-                            optionLabel="label"
-                            optionValue="value"
-                            :options="EmploymentStatusOptions"
-                            required
-                            label="Status of Appointment"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                            :invalidText="
-                              validator.individual_work_experience[workExperienceIndex].status_of_appointment.$errors[0]?.$message
-                            "
-                            :invalid="validator.individual_work_experience[workExperienceIndex].status_of_appointment.$error"
-                            @blur="validator.individual_work_experience[workExperienceIndex].status_of_appointment.$touch()"
-                          >
-                          </WbDropdown>
-                        </div>
-                        <div class="mb-12 flex items-end gap-2">
-                          <!-- WbInputText takes most of the space -->
-                          <WbDropdown
-                            v-model="work.is_gov_service"
-                            optionLabel="label"
-                            optionValue="value"
-                            :options="isGovServiceYesNoOptions"
-                            required
-                            label="Gov’t Service"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                            :invalidText="
-                              validator.individual_work_experience[workExperienceIndex].is_gov_service.$errors[0]?.$message
-                            "
-                            :invalid="validator.individual_work_experience[workExperienceIndex].is_gov_service.$error"
-                            @blur="validator.individual_work_experience[workExperienceIndex].is_gov_service.$touch()"
-                          >
-                          </WbDropdown>
-
-                          <!-- Delete button aligned right, below label -->
-                          <Button
-                            v-show="workExperienceIndex > 0"
-                            :id="getId(`button-remove-work-experience-${workExperienceIndex}`)"
-                            icon="pi pi-trash"
-                            @click="handleRemoveWorkExperience(workExperienceIndex)"
-                            v-tooltip.top="'Remove Work Experience'"
-                            severity="danger"
-                            class="mb-2 text-lg font-semibold dark:text-primary-100 md:mb-2"
-                            text
-                          />
-                        </div>
-                      </div>
-                      <hr />
-                    </TransitionRoot>
-                  </template>
-                  <Button
-                    v-if="!extraWorkExperienceTabVisible"
-                    label="Add additional Work Experience field"
-                    @click="handleAdditionalWorkExperience"
-                    size="large"
-                    class="dark:text-secondary-100 mt-4 !w-72 border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
-                    text
-                  >
-                    <template #icon>
-                      <i class="pi pi-plus mr-2"></i>
-                    </template>
-                  </Button>
-                </div>
-
-                <span class="mt-10 flex flex-col justify-center space-y-4 font-medium text-surface-600">
-                  <p class="md:text-md text-lg italic">
-                    Note: A maximum of 28 Work Experience entries are allowed in a page, if the number of your work experience
-                    exceeds in the aforementioned limit, it will be in a separate sheet.
-                  </p>
-                </span>
-              </TransitionRoot>
-            </TabPanel>
-
-            <TabPanel v-if="extraWorkExperienceTabVisible" :class="['my-8 md:mx-12 ', ' ring-surface-0/60 focus:outline-none ']">
-              <TransitionRoot
-                appear
-                :show="true"
-                enter="transition-all ease-in-out duration-500 "
-                enterFrom="opacity-0 translate-y-6"
-                enterTo="opacity-100 translate-y-0"
-                leave="transition-all ease-in-out duration-800"
-                leaveFrom="opacity-100"
-                leaveTo="opacity-0"
-              >
-                <div class="flex flex-col gap-4">
-                  <span class="flex flex-col justify-center space-y-2 font-medium">
-                    <p class="text-xl italic text-primary-700 md:text-2xl">V. Work Experience (Continued)</p>
-                    <p class="md:text-md text-lg italic text-surface-600">
-                      (Include private employment. Start from your recent work) Description of duties should be indicated in the
-                      attached Work Experience sheet.
+                  <span class="mt-10 flex flex-col justify-center space-y-4 font-medium text-surface-600">
+                    <p class="md:text-md text-lg italic">
+                      Note: A maximum of seven (7) Civil Service Eligibility entries are allowed in a page, if the number of your
+                      civil service eligibilities exceeds in the aforementioned limit, it will be in a separate sheet.
                     </p>
                   </span>
-                  <template
-                    v-for="(work, i) in payload.individual_work_experience.slice(MAX_ENTRIES_PER_TAB)"
-                    :key="i + MAX_ENTRIES_PER_TAB"
-                  >
-                    <TransitionRoot
-                      appear
-                      :show="true"
-                      enter="transition-all ease-in-out duration-500"
-                      enterFrom="opacity-0 translate-y-6"
-                      enterTo="opacity-100 translate-y-0"
-                      leave="transition-all ease-in-out duration-800"
-                      leaveFrom="opacity-100"
-                      leaveTo="opacity-0"
+                </TransitionRoot>
+              </TabPanel>
+              <!-- END CIVIL SERVICE ELIGIBILITY SECTION -->
+
+              <!-- START WORK EXPERIENCE -->
+              <TabPanel v-model:activeIndex="activeTab" :class="['my-8 md:mx-12 ', ' ring-surface-0/60 focus:outline-none ']">
+                <TransitionRoot
+                  appear
+                  :show="true"
+                  enter="transition-all ease-in-out duration-500 "
+                  enterFrom="opacity-0 translate-y-6"
+                  enterTo="opacity-100 translate-y-0"
+                  leave="transition-all ease-in-out duration-800"
+                  leaveFrom="opacity-100"
+                  leaveTo="opacity-0"
+                >
+                  <div class="flex flex-col gap-4">
+                    <span class="flex flex-col justify-center space-y-2 font-medium">
+                      <p class="text-xl italic text-primary-700 md:text-2xl">V. Work Experience</p>
+                      <p class="md:text-md text-lg italic text-surface-600">
+                        (Include private employment. Start from your recent work) Description of duties should be indicated in the
+                        attached Work Experience sheet.
+                      </p>
+                    </span>
+                    <div class="col-span-2 my-4 ml-4">
+                      <div class="align-items-center flex items-center">
+                        <Checkbox
+                          v-model="isCurrentlyEmployed"
+                          :id="getId('input-currently-working')"
+                          :inputId="getId('input-currently-working')"
+                          name="currentlyEmployed"
+                          :binary="true"
+                        />
+                        <label :for="getId('input-currently-working')" class="ml-2 text-surface-600">
+                          I am currently working in this role
+                        </label>
+                      </div>
+                    </div>
+
+                    <template
+                      v-for="(work, workExperienceIndex) in payload.individual_work_experience.slice(0, MAX_ENTRIES_PER_TAB)"
+                      :key="workExperienceIndex"
                     >
-                      <div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-6">
-                        <div>
-                          <WbCalendar
-                            v-model="work.inclusive_date_from"
-                            label="From"
-                            required
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                            :dateFormat="'yy-mm-dd'"
-                            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                            :invalidText="
-                              validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].inclusive_date_from.$errors[0]
-                                ?.$message
-                            "
-                            :invalid="validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].inclusive_date_from.$error"
-                            @blur="validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].inclusive_date_from.$touch()"
-                          />
-                        </div>
-                        <div>
-                          <WbCalendar
-                            v-model="work.inclusive_date_to"
-                            label="To"
-                            :dateFormat="'yy-mm-dd'"
-                            class="w-full text-sm"
-                            label-class="text-md text-surface-600 md:text-sm"
-                            validation-error-message-class="text-xs text-error-500 font-bold"
-                            :invalidText="
-                              validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].inclusive_date_to.$errors[0]?.$message
-                            "
-                            :invalid="validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].inclusive_date_to.$error"
-                            @blur="validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].inclusive_date_to.$touch()"
-                            required
-                          />
-                        </div>
-                        <div class="md:col-span-2">
-                          <WbInputText
-                            v-model="work.position_title"
-                            label="Position Title"
-                            required
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="w-full text-sm"
-                            :invalidText="
-                              validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].position_title.$errors[0]?.$message
-                            "
-                            :invalid="validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].position_title.$error"
-                            @blur="validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].position_title.$touch()"
-                          />
-                        </div>
-                        <div class="md:col-span-2">
-                          <WbInputText
-                            v-model="work.department_agency_office_company"
-                            label="Department/Agency/Company"
-                            required
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="w-full text-sm"
-                            :invalidText="
-                              validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].department_agency_office_company
-                                .$errors[0]?.$message
-                            "
-                            :invalid="
-                              validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].department_agency_office_company
-                                .$error
-                            "
-                            @blur="
-                              validator.individual_work_experience[
-                                i + MAX_ENTRIES_PER_TAB
-                              ].department_agency_office_company.$touch()
-                            "
-                          />
-                        </div>
-                      </div>
+                      <TransitionRoot
+                        appear
+                        :show="true"
+                        enter="transition-all ease-in-out duration-500 "
+                        enterFrom="opacity-0 translate-y-6"
+                        enterTo="opacity-100 translate-y-0"
+                        leave="transition-all ease-in-out duration-800"
+                        leaveFrom="opacity-100"
+                        leaveTo="opacity-0"
+                      >
+                        <div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-6">
+                          <div>
+                            <WbCalendar
+                              v-model="work.inclusive_date_from"
+                              label="From"
+                              required
+                              label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                              :dateFormat="'yy-mm-dd'"
+                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                              :invalidText="
+                                validator.individual_work_experience[workExperienceIndex].inclusive_date_from.$errors[0]?.$message
+                              "
+                              :invalid="validator.individual_work_experience[workExperienceIndex].inclusive_date_from.$error"
+                              @blur="validator.individual_work_experience[workExperienceIndex].inclusive_date_from.$touch()"
+                            />
+                          </div>
+                          <!-- For the first entry -->
+                          <div v-if="workExperienceIndex === 0">
+                            <!-- If NOT currently employed, show calendar -->
+                            <WbCalendar
+                              v-if="!isCurrentlyEmployed"
+                              v-model="work.inclusive_date_to"
+                              label="To"
+                              :dateFormat="'yy-mm-dd'"
+                              class="w-full text-sm"
+                              label-class="text-md text-surface-600 md:text-sm"
+                              validation-error-message-class="text-xs text-error-500 font-bold"
+                              :invalidText="
+                                validator.individual_work_experience[workExperienceIndex].inclusive_date_to.$errors[0]?.$message
+                              "
+                              :invalid="validator.individual_work_experience[workExperienceIndex].inclusive_date_to.$error"
+                              @blur="validator.individual_work_experience[workExperienceIndex].inclusive_date_to.$touch()"
+                              required
+                            />
 
-                      <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
-                        <div>
-                          <WbInputText
-                            v-model="work.monthly_salary"
-                            label="Monthly Salary"
-                            required
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="w-full text-sm"
-                            :invalidText="
-                              validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].monthly_salary.$errors[0]?.$message
-                            "
-                            :invalid="validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].monthly_salary.$error"
-                            @blur="validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].monthly_salary.$touch()"
-                          />
+                            <!-- If currently employed, show "PRESENT" input -->
+                            <WbInputText
+                              v-else
+                              :modelValue="'PRESENT'"
+                              label="To"
+                              disabled
+                              readonly
+                              class="w-full text-sm"
+                              label-class="text-md text-surface-600 md:text-sm"
+                              required
+                            />
+                          </div>
+
+                          <!-- For all entries after the first -->
+                          <div v-else>
+                            <WbCalendar
+                              v-model="work.inclusive_date_to"
+                              label="To"
+                              :dateFormat="'yy-mm-dd'"
+                              class="w-full text-sm"
+                              label-class="text-md text-surface-600 md:text-sm"
+                              validation-error-message-class="text-xs text-error-500 font-bold"
+                              :invalidText="
+                                validator.individual_work_experience[workExperienceIndex].inclusive_date_to.$errors[0]?.$message
+                              "
+                              :invalid="validator.individual_work_experience[workExperienceIndex].inclusive_date_to.$error"
+                              @blur="validator.individual_work_experience[workExperienceIndex].inclusive_date_to.$touch()"
+                              required
+                            />
+                          </div>
+
+                          <div class="md:col-span-2">
+                            <WbInputText
+                              v-model="work.position_title"
+                              label="Position Title"
+                              label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                              :invalidText="
+                                validator.individual_work_experience[workExperienceIndex].position_title.$errors[0]?.$message
+                              "
+                              :invalid="validator.individual_work_experience[workExperienceIndex].position_title.$error"
+                              @blur="validator.individual_work_experience[workExperienceIndex].position_title.$touch()"
+                              required
+                            />
+                          </div>
+                          <div class="md:col-span-2">
+                            <WbInputText
+                              v-model="work.department_agency_office_company"
+                              label="Department/Agency/Company"
+                              label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                              :invalidText="
+                                validator.individual_work_experience[workExperienceIndex].department_agency_office_company
+                                  .$errors[0]?.$message
+                              "
+                              :invalid="
+                                validator.individual_work_experience[workExperienceIndex].department_agency_office_company.$error
+                              "
+                              @blur="
+                                validator.individual_work_experience[
+                                  workExperienceIndex
+                                ].department_agency_office_company.$touch()
+                              "
+                              required
+                            />
+                          </div>
                         </div>
+                        <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
+                          <div>
+                            <WbInputText
+                              v-model="work.monthly_salary"
+                              label="Monthly Salary"
+                              required
+                              label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                              :invalidText="
+                                validator.individual_work_experience[workExperienceIndex].monthly_salary.$errors[0]?.$message
+                              "
+                              :invalid="validator.individual_work_experience[workExperienceIndex].monthly_salary.$error"
+                              @blur="validator.individual_work_experience[workExperienceIndex].monthly_salary.$touch()"
+                            />
+                          </div>
+                          <div>
+                            <!-- WbAutoComplete shown only when NOT using custom SG -->
+                            <WbAutoComplete
+                              v-if="!useCustomSalaryGrade[workExperienceIndex]"
+                              :useApiFilter="true"
+                              :apiEndpoint="'libraries/salary-grades/search'"
+                              :suggestions="sgStore.salaryGradesOptions"
+                              apiOptionLabel="work_experience_salary_grade"
+                              label="Salary Grade"
+                              placeholder="Type Salary Grade with its tranche here"
+                              v-model="selectedWorkExperienceSG[workExperienceIndex]"
+                              :id="getId('input-salary-grade')"
+                              optionLabel="label"
+                              optionValue="value"
+                              required
+                              @on-true-value-computed="
+                                (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
+                                  useWbAutoCompleteHandleTrueValue(value, toRef(work, 'salary_grade_id'))
+                              "
+                              label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                              :invalidText="
+                                validator.individual_work_experience[workExperienceIndex].salary_grade_id.$errors[0]?.$message
+                              "
+                              :invalid="validator.individual_work_experience[workExperienceIndex].salary_grade_id.$error"
+                              @blur="validator.individual_work_experience[workExperienceIndex].salary_grade_id.$touch()"
+                            />
 
-                        <div>
-                          <WbAutoComplete
-                            v-if="!useCustomSalaryGrade[i + MAX_ENTRIES_PER_TAB]"
-                            :useApiFilter="true"
-                            :apiEndpoint="'libraries/salary-grades/search'"
-                            :suggestions="sgStore.salaryGradesOptions"
-                            apiOptionLabel="work_experience_salary_grade"
-                            label="Salary Grade"
-                            placeholder="Type Salary Grade with its tranche here"
-                            v-model="selectedWorkExperienceSG[i + MAX_ENTRIES_PER_TAB]"
-                            :id="getId('input-salary-grade')"
-                            optionLabel="label"
-                            optionValue="value"
-                            required
-                            @on-true-value-computed="
-                              (value) => useWbAutoCompleteHandleTrueValue(value, toRef(work, 'salary_grade_id'))
-                            "
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="w-full text-sm"
-                            :invalidText="
-                              validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].salary_grade_id.$errors[0]?.$message
-                            "
-                            :invalid="validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].salary_grade_id.$error"
-                            @blur="validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].salary_grade_id.$touch()"
-                          />
+                            <!-- WbInputText shown only when using custom SG -->
+                            <WbInputText
+                              v-else
+                              v-model="work.custom_salary_grade"
+                              label="Salary Grade"
+                              required
+                              placeholder="e.g 01-0 ,01-1 ,02-0"
+                              label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                              :invalidText="
+                                validator.individual_work_experience[workExperienceIndex].custom_salary_grade.$errors[0]?.$message
+                              "
+                              :invalid="validator.individual_work_experience[workExperienceIndex].custom_salary_grade.$error"
+                              @blur="validator.individual_work_experience[workExperienceIndex].custom_salary_grade.$touch()"
+                            />
+                            <!-- Toggle Link -->
+                            <p
+                              class="mb-2 ml-2 cursor-pointer text-sm text-primary-500 hover:underline md:text-xs"
+                              @click="useCustomSalaryGrade[workExperienceIndex] = !useCustomSalaryGrade[workExperienceIndex]"
+                            >
+                              {{
+                                useCustomSalaryGrade[workExperienceIndex]
+                                  ? 'Use Salary Grade from list'
+                                  : 'Use custom salary grade'
+                              }}
+                            </p>
+                          </div>
 
-                          <WbInputText
-                            v-else
-                            v-model="work.custom_salary_grade"
-                            label="Salary Grade"
-                            required
-                            placeholder="e.g 01-0 ,01-1 ,02-0"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="w-full text-sm"
-                            :invalidText="
-                              validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].custom_salary_grade.$errors[0]
-                                ?.$message
-                            "
-                            :invalid="validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].custom_salary_grade.$error"
-                            @blur="validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].custom_salary_grade.$touch()"
-                          />
-                          <p
-                            class="mb-2 ml-2 cursor-pointer text-sm text-primary-500 hover:underline md:text-xs"
-                            @click="
-                              useCustomSalaryGrade[i + MAX_ENTRIES_PER_TAB] = !useCustomSalaryGrade[i + MAX_ENTRIES_PER_TAB]
-                            "
-                          >
-                            {{
-                              useCustomSalaryGrade[i + MAX_ENTRIES_PER_TAB]
-                                ? 'Use Salary Grade from list'
-                                : 'Use custom salary grade'
-                            }}
-                          </p>
+                          <div>
+                            <WbDropdown
+                              v-model="work.status_of_appointment"
+                              optionLabel="label"
+                              optionValue="value"
+                              :options="EmploymentStatusOptions"
+                              required
+                              label="Status of Appointment"
+                              label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                              :invalidText="
+                                validator.individual_work_experience[workExperienceIndex].status_of_appointment.$errors[0]
+                                  ?.$message
+                              "
+                              :invalid="validator.individual_work_experience[workExperienceIndex].status_of_appointment.$error"
+                              @blur="validator.individual_work_experience[workExperienceIndex].status_of_appointment.$touch()"
+                            >
+                            </WbDropdown>
+                          </div>
+                          <div class="mb-12 flex items-end gap-2">
+                            <!-- WbInputText takes most of the space -->
+                            <WbDropdown
+                              v-model="work.is_gov_service"
+                              optionLabel="label"
+                              optionValue="value"
+                              :options="isGovServiceYesNoOptions"
+                              required
+                              label="Gov’t Service"
+                              label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                              :invalidText="
+                                validator.individual_work_experience[workExperienceIndex].is_gov_service.$errors[0]?.$message
+                              "
+                              :invalid="validator.individual_work_experience[workExperienceIndex].is_gov_service.$error"
+                              @blur="validator.individual_work_experience[workExperienceIndex].is_gov_service.$touch()"
+                            >
+                            </WbDropdown>
+
+                            <!-- Delete button aligned right, below label -->
+                            <Button
+                              v-show="workExperienceIndex > 0"
+                              :id="getId(`button-remove-work-experience-${workExperienceIndex}`)"
+                              icon="pi pi-trash"
+                              @click="handleRemoveWorkExperience(workExperienceIndex)"
+                              v-tooltip.top="'Remove Work Experience'"
+                              severity="danger"
+                              class="mb-2 text-lg font-semibold dark:text-primary-100 md:mb-2"
+                              text
+                            />
+                          </div>
                         </div>
-
-                        <div>
-                          <WbDropdown
-                            v-model="work.status_of_appointment"
-                            :options="EmploymentStatusOptions"
-                            optionLabel="label"
-                            optionValue="value"
-                            required
-                            label="Status of Appointment"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="w-full text-sm"
-                            :invalidText="
-                              validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].status_of_appointment.$errors[0]
-                                ?.$message
-                            "
-                            :invalid="validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].status_of_appointment.$error"
-                            @blur="validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].status_of_appointment.$touch()"
-                          />
-                        </div>
-
-                        <div class="mb-12 flex items-end gap-2">
-                          <WbDropdown
-                            v-model="work.is_gov_service"
-                            :options="isGovServiceYesNoOptions"
-                            optionLabel="label"
-                            optionValue="value"
-                            required
-                            label="Gov’t Service"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="w-full text-sm"
-                            :invalidText="
-                              validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].is_gov_service.$errors[0]?.$message
-                            "
-                            :invalid="validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].is_gov_service.$error"
-                            @blur="validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].is_gov_service.$touch()"
-                          />
-
-                          <Button
-                            icon="pi pi-trash"
-                            @click="handleRemoveWorkExperience(i + MAX_ENTRIES_PER_TAB)"
-                            v-tooltip.top="'Remove Work Experience'"
-                            severity="danger"
-                            class="mb-2 text-lg font-semibold dark:text-primary-100 md:mb-2"
-                            text
-                          />
-                        </div>
-                      </div>
-
-                      <hr />
-                    </TransitionRoot>
-                  </template>
-                  <Button
-                    v-if="payload.individual_work_experience.length"
-                    label="Add additional Work Experience field"
-                    @click="handleAdditionalWorkExperience"
-                    size="large"
-                    class="dark:text-secondary-100 mt-4 !w-72 border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
-                    text
-                  >
-                    <template #icon>
-                      <i class="pi pi-plus mr-2"></i>
+                        <hr />
+                      </TransitionRoot>
                     </template>
-                  </Button>
-                </div>
+                    <Button
+                      v-if="!extraWorkExperienceTabVisible"
+                      label="Add additional Work Experience field"
+                      @click="handleAdditionalWorkExperience"
+                      size="large"
+                      class="dark:text-secondary-100 mt-4 !w-72 border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+                      text
+                    >
+                      <template #icon>
+                        <i class="pi pi-plus mr-2"></i>
+                      </template>
+                    </Button>
+                  </div>
 
-                <span class="mt-10 flex flex-col justify-center space-y-4 font-medium text-surface-600">
-                  <p class="md:text-md text-lg italic">
-                    Note: A maximum of 28 Work Experience entries are allowed in a page, if the number of your work experience
-                    exceeds in the aforementioned limit, it will be in a separate sheet.
-                  </p>
-                </span>
-              </TransitionRoot>
-            </TabPanel>
+                  <span class="mt-10 flex flex-col justify-center space-y-4 font-medium text-surface-600">
+                    <p class="md:text-md text-lg italic">
+                      Note: A maximum of 28 Work Experience entries are allowed in a page, if the number of your work experience
+                      exceeds in the aforementioned limit, it will be in a separate sheet.
+                    </p>
+                  </span>
+                </TransitionRoot>
+              </TabPanel>
 
-            <!-- END WORK EXPERIENCE -->
-          </TabPanels>
-        </TabGroup>
+              <TabPanel
+                v-if="extraWorkExperienceTabVisible"
+                :class="['my-8 md:mx-12 ', ' ring-surface-0/60 focus:outline-none ']"
+              >
+                <TransitionRoot
+                  appear
+                  :show="true"
+                  enter="transition-all ease-in-out duration-500 "
+                  enterFrom="opacity-0 translate-y-6"
+                  enterTo="opacity-100 translate-y-0"
+                  leave="transition-all ease-in-out duration-800"
+                  leaveFrom="opacity-100"
+                  leaveTo="opacity-0"
+                >
+                  <div class="flex flex-col gap-4">
+                    <span class="flex flex-col justify-center space-y-2 font-medium">
+                      <p class="text-xl italic text-primary-700 md:text-2xl">V. Work Experience (Continued)</p>
+                      <p class="md:text-md text-lg italic text-surface-600">
+                        (Include private employment. Start from your recent work) Description of duties should be indicated in the
+                        attached Work Experience sheet.
+                      </p>
+                    </span>
+                    <template
+                      v-for="(work, i) in payload.individual_work_experience.slice(MAX_ENTRIES_PER_TAB)"
+                      :key="i + MAX_ENTRIES_PER_TAB"
+                    >
+                      <TransitionRoot
+                        appear
+                        :show="true"
+                        enter="transition-all ease-in-out duration-500"
+                        enterFrom="opacity-0 translate-y-6"
+                        enterTo="opacity-100 translate-y-0"
+                        leave="transition-all ease-in-out duration-800"
+                        leaveFrom="opacity-100"
+                        leaveTo="opacity-0"
+                      >
+                        <div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-6">
+                          <div>
+                            <WbCalendar
+                              v-model="work.inclusive_date_from"
+                              label="From"
+                              required
+                              label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                              :dateFormat="'yy-mm-dd'"
+                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                              :invalidText="
+                                validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].inclusive_date_from.$errors[0]
+                                  ?.$message
+                              "
+                              :invalid="validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].inclusive_date_from.$error"
+                              @blur="validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].inclusive_date_from.$touch()"
+                            />
+                          </div>
+                          <div>
+                            <WbCalendar
+                              v-model="work.inclusive_date_to"
+                              label="To"
+                              :dateFormat="'yy-mm-dd'"
+                              class="w-full text-sm"
+                              label-class="text-md text-surface-600 md:text-sm"
+                              validation-error-message-class="text-xs text-error-500 font-bold"
+                              :invalidText="
+                                validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].inclusive_date_to.$errors[0]
+                                  ?.$message
+                              "
+                              :invalid="validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].inclusive_date_to.$error"
+                              @blur="validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].inclusive_date_to.$touch()"
+                              required
+                            />
+                          </div>
+                          <div class="md:col-span-2">
+                            <WbInputText
+                              v-model="work.position_title"
+                              label="Position Title"
+                              required
+                              label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                              class="w-full text-sm"
+                              :invalidText="
+                                validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].position_title.$errors[0]?.$message
+                              "
+                              :invalid="validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].position_title.$error"
+                              @blur="validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].position_title.$touch()"
+                            />
+                          </div>
+                          <div class="md:col-span-2">
+                            <WbInputText
+                              v-model="work.department_agency_office_company"
+                              label="Department/Agency/Company"
+                              required
+                              label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                              class="w-full text-sm"
+                              :invalidText="
+                                validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].department_agency_office_company
+                                  .$errors[0]?.$message
+                              "
+                              :invalid="
+                                validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].department_agency_office_company
+                                  .$error
+                              "
+                              @blur="
+                                validator.individual_work_experience[
+                                  i + MAX_ENTRIES_PER_TAB
+                                ].department_agency_office_company.$touch()
+                              "
+                            />
+                          </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
+                          <div>
+                            <WbInputText
+                              v-model="work.monthly_salary"
+                              label="Monthly Salary"
+                              required
+                              label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                              class="w-full text-sm"
+                              :invalidText="
+                                validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].monthly_salary.$errors[0]?.$message
+                              "
+                              :invalid="validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].monthly_salary.$error"
+                              @blur="validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].monthly_salary.$touch()"
+                            />
+                          </div>
+
+                          <div>
+                            <WbAutoComplete
+                              v-if="!useCustomSalaryGrade[i + MAX_ENTRIES_PER_TAB]"
+                              :useApiFilter="true"
+                              :apiEndpoint="'libraries/salary-grades/search'"
+                              :suggestions="sgStore.salaryGradesOptions"
+                              apiOptionLabel="work_experience_salary_grade"
+                              label="Salary Grade"
+                              placeholder="Type Salary Grade with its tranche here"
+                              v-model="selectedWorkExperienceSG[i + MAX_ENTRIES_PER_TAB]"
+                              :id="getId('input-salary-grade')"
+                              optionLabel="label"
+                              optionValue="value"
+                              required
+                              @on-true-value-computed="
+                                (value) => useWbAutoCompleteHandleTrueValue(value, toRef(work, 'salary_grade_id'))
+                              "
+                              label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                              class="w-full text-sm"
+                              :invalidText="
+                                validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].salary_grade_id.$errors[0]?.$message
+                              "
+                              :invalid="validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].salary_grade_id.$error"
+                              @blur="validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].salary_grade_id.$touch()"
+                            />
+
+                            <WbInputText
+                              v-else
+                              v-model="work.custom_salary_grade"
+                              label="Salary Grade"
+                              required
+                              placeholder="e.g 01-0 ,01-1 ,02-0"
+                              label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                              class="w-full text-sm"
+                              :invalidText="
+                                validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].custom_salary_grade.$errors[0]
+                                  ?.$message
+                              "
+                              :invalid="validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].custom_salary_grade.$error"
+                              @blur="validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].custom_salary_grade.$touch()"
+                            />
+                            <p
+                              class="mb-2 ml-2 cursor-pointer text-sm text-primary-500 hover:underline md:text-xs"
+                              @click="
+                                useCustomSalaryGrade[i + MAX_ENTRIES_PER_TAB] = !useCustomSalaryGrade[i + MAX_ENTRIES_PER_TAB]
+                              "
+                            >
+                              {{
+                                useCustomSalaryGrade[i + MAX_ENTRIES_PER_TAB]
+                                  ? 'Use Salary Grade from list'
+                                  : 'Use custom salary grade'
+                              }}
+                            </p>
+                          </div>
+
+                          <div>
+                            <WbDropdown
+                              v-model="work.status_of_appointment"
+                              :options="EmploymentStatusOptions"
+                              optionLabel="label"
+                              optionValue="value"
+                              required
+                              label="Status of Appointment"
+                              label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                              class="w-full text-sm"
+                              :invalidText="
+                                validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].status_of_appointment.$errors[0]
+                                  ?.$message
+                              "
+                              :invalid="
+                                validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].status_of_appointment.$error
+                              "
+                              @blur="validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].status_of_appointment.$touch()"
+                            />
+                          </div>
+
+                          <div class="mb-12 flex items-end gap-2">
+                            <WbDropdown
+                              v-model="work.is_gov_service"
+                              :options="isGovServiceYesNoOptions"
+                              optionLabel="label"
+                              optionValue="value"
+                              required
+                              label="Gov’t Service"
+                              label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                              class="w-full text-sm"
+                              :invalidText="
+                                validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].is_gov_service.$errors[0]?.$message
+                              "
+                              :invalid="validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].is_gov_service.$error"
+                              @blur="validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].is_gov_service.$touch()"
+                            />
+
+                            <Button
+                              icon="pi pi-trash"
+                              @click="handleRemoveWorkExperience(i + MAX_ENTRIES_PER_TAB)"
+                              v-tooltip.top="'Remove Work Experience'"
+                              severity="danger"
+                              class="mb-2 text-lg font-semibold dark:text-primary-100 md:mb-2"
+                              text
+                            />
+                          </div>
+                        </div>
+
+                        <hr />
+                      </TransitionRoot>
+                    </template>
+                    <Button
+                      v-if="payload.individual_work_experience.length"
+                      label="Add additional Work Experience field"
+                      @click="handleAdditionalWorkExperience"
+                      size="large"
+                      class="dark:text-secondary-100 mt-4 !w-72 border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+                      text
+                    >
+                      <template #icon>
+                        <i class="pi pi-plus mr-2"></i>
+                      </template>
+                    </Button>
+                  </div>
+
+                  <span class="mt-10 flex flex-col justify-center space-y-4 font-medium text-surface-600">
+                    <p class="md:text-md text-lg italic">
+                      Note: A maximum of 28 Work Experience entries are allowed in a page, if the number of your work experience
+                      exceeds in the aforementioned limit, it will be in a separate sheet.
+                    </p>
+                  </span>
+                </TransitionRoot>
+              </TabPanel>
+
+              <!-- END WORK EXPERIENCE -->
+            </TabPanels>
+          </TabGroup>
+        </div>
+      </form>
+    </div>
+  </template>
+  <template v-else-if="isLoading">
+    <div class="bg-surface-2 h-full w-full animate-pulse rounded-md p-6">
+      <!-- --------------------------- Form Title --------------------------- -->
+      <div class="mb-6">
+        <div class="h-8 w-1/3 rounded-full bg-surface-300"></div>
+        <div class="mt-2 h-6 w-1/4 rounded-full bg-surface-300"></div>
       </div>
-    </form>
-  </div>
+
+      <!-- --------------------------- Form Fields --------------------------- -->
+      <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <!-- Field 1 -->
+        <div class="flex flex-col gap-2">
+          <div class="h-4 w-1/4 rounded bg-surface-300"></div>
+          <div class="h-10 w-full rounded bg-surface-300"></div>
+        </div>
+
+        <!-- Field 2 -->
+        <div class="flex flex-col gap-2">
+          <div class="h-4 w-1/3 rounded bg-surface-300"></div>
+          <div class="h-10 w-full rounded bg-surface-300"></div>
+        </div>
+
+        <!-- Field 3 -->
+        <div class="flex flex-col gap-2">
+          <div class="h-4 w-1/5 rounded bg-surface-300"></div>
+          <div class="h-10 w-full rounded bg-surface-300"></div>
+        </div>
+
+        <!-- Field 4 -->
+        <div class="flex flex-col gap-2">
+          <div class="h-4 w-1/3 rounded bg-surface-300"></div>
+          <div class="h-10 w-full rounded bg-surface-300"></div>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <!-- Field 1 -->
+        <div class="flex flex-col gap-2">
+          <div class="h-4 w-1/4 rounded bg-surface-300"></div>
+          <div class="h-10 w-full rounded bg-surface-300"></div>
+        </div>
+
+        <!-- Field 2 -->
+        <div class="flex flex-col gap-2">
+          <div class="h-4 w-1/3 rounded bg-surface-300"></div>
+          <div class="h-10 w-full rounded bg-surface-300"></div>
+        </div>
+
+        <!-- Field 3 -->
+        <div class="flex flex-col gap-2">
+          <div class="h-4 w-1/5 rounded bg-surface-300"></div>
+          <div class="h-10 w-full rounded bg-surface-300"></div>
+        </div>
+
+        <!-- Field 4 -->
+        <div class="flex flex-col gap-2">
+          <div class="h-4 w-1/3 rounded bg-surface-300"></div>
+          <div class="h-10 w-full rounded bg-surface-300"></div>
+        </div>
+      </div>
+
+      <!-- --------------------------- Textarea --------------------------- -->
+      <div class="mt-6 flex flex-col gap-2">
+        <div class="h-4 w-1/6 rounded bg-surface-300"></div>
+        <div class="h-24 w-full rounded bg-surface-300"></div>
+      </div>
+    </div>
+  </template>
 </template>
