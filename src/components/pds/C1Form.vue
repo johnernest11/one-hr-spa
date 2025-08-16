@@ -2,7 +2,7 @@
 import Message from 'primevue/message'
 import { helpers, maxLength, required, email } from '@vuelidate/validators'
 import { digitCountRule, mobilePhoneRule, uniqueUserIdentifierRule } from '@/utils/custom-validations'
-import { reactive, ref, onBeforeMount, toRef, watch, computed } from 'vue'
+import { reactive, ref, onBeforeMount, toRef, watch, computed, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useFilterByParentId } from '@/composables/address.options.ts'
 import { useAddressStore } from '@/stores/address.store.ts'
@@ -32,7 +32,7 @@ import { TabGroup, TabList, Tab, TabPanels, TabPanel } from '@headlessui/vue'
 import { usePrependOrAppendOnce, isNotMoreThanYearsAgo } from '@/utils/helpers.js'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { TransitionRoot } from '@headlessui/vue'
-import { ItemNumberResponse } from '@/typings/models.types'
+import { ItemNumberResponse, PersonnelResponse } from '@/typings/models.types'
 import { useRouter } from 'vue-router'
 import { useRoute } from 'vue-router'
 const getId = usePrependOrAppendOnce('pds-c1-section-form')
@@ -50,6 +50,7 @@ const currentlyEnrolledGraduate = ref(false)
 const currentlyEnrolledVocational = ref(false)
 const isPositionLoading = ref(false)
 const isSameResidential = ref(false)
+const isLoading = ref(true)
 const activeToasts = ref<number>(0)
 const maxToasts = 5
 
@@ -81,6 +82,10 @@ const selectedPermanentBarangay = ref<WbAutoCompleteOption | null>(null)
 const publicStore = useAddressStore()
 const addressesAreLoading = ref(false)
 const isC1Loading = ref(false)
+const errorDetails = ref<string[]>([])
+const formIsSubmitting = ref(false)
+const showErrorAlert = ref(false)
+const IsBeingUpdated = ref(false)
 const pdsErrors = ref()
 const isPdsError = ref(false)
 const errorMessage = ref()
@@ -529,12 +534,12 @@ const formRules = computed(() => ({
 
 const validator = useVuelidate<PersonalDataSheetPayload>(formRules, payload)
 
-defineProps({
-  activeSubTab: {
-    type: Number,
-    default: undefined,
-  },
-})
+// defineProps({
+//   activeSubTab: {
+//     type: Number,
+//     default: undefined,
+//   },
+// })
 
 watch(isSameResidential, (newVal) => {
   if (newVal === true) {
@@ -1052,6 +1057,80 @@ const handleRemoveChild = (childIndex: number) => {
   payload.individual_family_children?.splice(childIndex, 1)
 }
 
+// ──────────────────────────────────────────────────────────
+//          PDS Details Form - Fetching by ID & Update
+// ──────────────────────────────────────────────────────────
+type pdsDetailsFormProps = {
+  personnelPds?: PersonnelResponse
+}
+const props = defineProps<pdsDetailsFormProps>()
+onMounted(async () => {
+  const id = route.params.id as string
+  if (id) {
+    const response = await pdsStore.fetchPdsById(id)
+
+    if (response && response.success) {
+      console.log('Fetched PDS data:', response.data) // ✅ Console log added
+      pdsStore.updatePdsFromPersonnel(response.data as PersonnelResponse)
+    } else {
+      console.warn('Failed to fetch PDS by ID or response unsuccessful.')
+    }
+  }
+
+  isLoading.value = false
+})
+
+watch(
+  () => props.personnelPds, // assumes props.personnel is of type PersonnelEmployeeResponse | null
+  (newPersonnel) => {
+    if (newPersonnel) {
+      pdsStore.updatePdsFromPersonnel(newPersonnel)
+    } else {
+      for (const key in payload.individual) {
+        payload.individual[key as keyof typeof payload.individual] = null
+        payload.contact_info[key as keyof typeof payload.contact_info] = null
+        payload.individual_address_init[key as keyof typeof payload.individual_address_init] = null
+      }
+    }
+  },
+  { immediate: true }
+)
+
+const updateC1Form = async () => {
+  IsBeingUpdated.value = true
+  const id = route.params.id as string
+
+  formIsSubmitting.value = true
+  const response = await pdsStore.updatePds(
+    { ...payload }, // only payload properties
+    id,
+    'C1' // pass form_type as a separate argument if your store expects it
+  )
+
+  if (!response.success) {
+    const result = parseApiResponseError(response)
+    if (!result) return (formIsSubmitting.value = false)
+
+    showErrorAlert.value = true
+    errorMessage.value = result.message
+    errorDetails.value = result.errors
+    IsBeingUpdated.value = false
+  }
+
+  formIsSubmitting.value = false
+  toast.add({
+    severity: 'success',
+    summary: 'Item Number Details update',
+    detail: `${id || 'The Item Number '} was successfully updated`,
+    life: 1000,
+  })
+
+  formIsSubmitting.value = false
+}
+
+// ──────────────────────────────────────────────────────────
+//          PDS Details Form - Save Handler
+// ──────────────────────────────────────────────────────────
 const handleSaveC1Form = async () => {
   isC1Loading.value = true
   const valid = await validator.value.$validate()
@@ -1149,6 +1228,7 @@ const c1Tabs = ref([
 
 defineExpose({
   handleSaveC1Form,
+  updateC1Form,
 })
 </script>
 

@@ -17,6 +17,7 @@ import {
   IndividualWorkExperience,
   PersonnelEmployee,
   ImportPdsResponse,
+  PersonnelResponse,
 } from '@/typings/models.types.ts'
 import { useApiCall } from '@/composables/network'
 import { useAuthStore } from '@/stores/auth.store.ts'
@@ -109,6 +110,9 @@ export const usePdsStore = defineStore('pds', () => {
   const authStore = useAuthStore()
   const pdsMode = ref('')
   const importResult: Ref<ApiResponseBody | null> = ref(null)
+  const selectedPDS = ref<PersonnelResponse | null>(null)
+  const personnelPds = ref<PersonnelResponse[]>([])
+
   const route = useRoute()
   const isMyPds = route.name === 'my-pds'
   const individual = isMyPds ? authStore.authenticatedUser?.user_profile?.individual_basic_detail : null
@@ -411,6 +415,80 @@ export const usePdsStore = defineStore('pds', () => {
     },
   })
 
+  const updatePdsFromPersonnel = (personnel: PersonnelResponse | null) => {
+    if (!personnel) return
+
+    // === Employee Info ===
+    const employee = personnel.employee
+    pdsInfo.employee.id = employee?.id ?? 0
+    pdsInfo.employee.individual_basic_detail_id = employee?.individual_basic_detail_id ?? null
+    pdsInfo.employee.id_number = employee?.id_number ?? null
+    pdsInfo.employee.item_id = employee?.item_id ?? null
+    pdsInfo.employee.salary_grade_id = employee?.salary_grade_id ?? null
+    pdsInfo.employee.position = null
+    pdsInfo.employee.fund_source = {
+      id: employee?.fund_source?.id ?? null,
+      name: employee?.fund_source?.name ?? null,
+    }
+    pdsInfo.employee.agency_employee_no = employee?.agency_employee_no ?? null
+    pdsInfo.employee.office_id = employee?.office_id ?? null
+    pdsInfo.employee.office = employee?.office ?? null
+    pdsInfo.employee.division_id = employee?.division_id ?? null
+    pdsInfo.employee.division = employee?.division ?? null
+    pdsInfo.employee.section_or_unit_id = employee?.section_or_unit_id ?? null
+    pdsInfo.employee.section_or_unit = employee?.section_or_unit ?? null
+    pdsInfo.employee.item = null
+
+    // === Individual Information ===
+    pdsInfo.individual.first_name = personnel.first_name ?? null
+    pdsInfo.individual.last_name = personnel.last_name ?? null
+    pdsInfo.individual.middle_name = personnel.middle_name ?? null
+    pdsInfo.individual.ext_name = personnel.ext_name ?? null
+    pdsInfo.individual.birthday = personnel.birthday ?? null
+    pdsInfo.individual.sex = (personnel.sex as SexType) ?? null
+    pdsInfo.individual.place_of_birth = personnel.place_of_birth ?? null
+    pdsInfo.individual.civil_status = (personnel.civil_status as CivilStatusType) ?? null
+    pdsInfo.individual.height = personnel.height ?? null
+    pdsInfo.individual.weight = personnel.weight ?? null
+    pdsInfo.individual.blood_type = (personnel.blood_type as BloodType) ?? null
+    pdsInfo.individual.philhealth_no = personnel.philhealth_no ?? null
+    pdsInfo.individual.gsis_no = personnel.gsis_no ?? null
+    pdsInfo.individual.pag_ibig_no = personnel.pag_ibig_no ?? null
+    pdsInfo.individual.sss_no = personnel.sss_no ?? null
+    pdsInfo.individual.tin = personnel.tin ?? null
+    pdsInfo.individual.agency_employee_no = personnel.employee?.agency_employee_no ?? null
+    pdsInfo.individual.citizenship = personnel.citizenship ?? null
+    pdsInfo.individual.citizenship_acquisition = personnel.citizenship_acquisition ?? null
+    pdsInfo.individual.citizenship_country = null
+
+    // === Contact Info ===
+    const contactInfo = personnel.individual_contact_info
+    pdsInfo.contact_info.tel_no = contactInfo?.tel_no ?? null
+    pdsInfo.contact_info.mobile_no = contactInfo?.mobile_no ?? null
+    pdsInfo.contact_info.email_address = contactInfo?.email_address ?? null
+
+    // === Individual Address Init ===
+    const address = personnel.individual_address
+
+    pdsInfo.individual_address_init.residential_house_block_lot_no = address?.residential_house_block_lot_no ?? null
+    pdsInfo.individual_address_init.residential_street = address?.residential_street ?? null
+    pdsInfo.individual_address_init.residential_subdivision_village = address?.residential_subdivision_village ?? null
+    pdsInfo.individual_address_init.residential_brgy_id = address?.residential_brgy_id ?? null
+    pdsInfo.individual_address_init.residential_citymun_id = address?.residential_citymun_id ?? null
+    pdsInfo.individual_address_init.residential_province_id = address?.residential_province_id ?? null
+    pdsInfo.individual_address_init.residential_region_id = address?.residential_region_id ?? null
+    pdsInfo.individual_address_init.residential_zip_code = address?.residential_zip_code ?? null
+
+    pdsInfo.individual_address_init.permanent_house_block_lot_no = address?.permanent_house_block_lot_no ?? null
+    pdsInfo.individual_address_init.permanent_street = address?.permanent_street ?? null
+    pdsInfo.individual_address_init.permanent_subdivision_village = address?.permanent_subdivision_village ?? null
+    pdsInfo.individual_address_init.permanent_brgy_id = address?.permanent_brgy_id ?? null
+    pdsInfo.individual_address_init.permanent_citymun_id = address?.permanent_citymun_id ?? null
+    pdsInfo.individual_address_init.permanent_province_id = address?.permanent_province_id ?? null
+    pdsInfo.individual_address_init.permanent_region_id = address?.permanent_region_id ?? null
+    pdsInfo.individual_address_init.permanent_zip_code = address?.permanent_zip_code ?? null
+  }
+
   const savePds = async (payload: PersonalDataSheetPayload) => {
     const uri = '/individual-basic-details'
 
@@ -480,6 +558,29 @@ export const usePdsStore = defineStore('pds', () => {
     return responseBody
   }
 
+  const fetchPdsById = async (id: string | number) => {
+    const url = `/individual-basic-details/${id}`
+    const { data } = await useApiCall(url, authStore.authenticationToken).get().json()
+    const responseBody: ApiResponseBody = data.value
+    if (responseBody.success) {
+      selectedPDS.value = responseBody.data as PersonnelResponse
+    }
+    return responseBody
+  }
+
+  const updatePds = async (pds: Partial<PersonalDataSheetPayload>, id: string | number, formType: 'C1' | 'C2' | 'C3' | 'C4') => {
+    const { data } = await useApiCall(`/individual-basic-details/${id}`, authStore.authenticationToken)
+      .put({ ...pds, form_type: formType })
+      .json()
+    const responseBody: ApiResponseBody = data.value
+    if (responseBody.success) {
+      const index = personnelPds.value.findIndex((personnelPds) => personnelPds?.id === id)
+      if (index === -1) return responseBody
+      personnelPds.value[index] = responseBody.data as PersonnelResponse
+    }
+    return responseBody
+  }
+
   return {
     pdsInfo,
     savePds,
@@ -488,5 +589,8 @@ export const usePdsStore = defineStore('pds', () => {
     pdsMode,
     importResult,
     fetchPds,
+    updatePdsFromPersonnel,
+    updatePds,
+    fetchPdsById,
   }
 })

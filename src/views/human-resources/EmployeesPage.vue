@@ -33,6 +33,7 @@ import Paginator, { PageState } from 'primevue/paginator'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { usePrependOrAppendOnce } from '@/utils/helpers.js'
 import useVuelidate from '@vuelidate/core'
+import { useRouter } from 'vue-router'
 
 const authStore = useAuthStore()
 const personnelStore = usePersonnelStore()
@@ -40,6 +41,7 @@ const libraryStore = useLibrariesStore()
 const sgStore = useSalaryGradesStore()
 const employment = useItemNumberStore()
 const pdsStore = usePdsStore()
+const router = useRouter()
 const getId = usePrependOrAppendOnce('employee-filter')
 
 const itemNumberIsLoading = ref(false)
@@ -87,6 +89,19 @@ const items = ref([
     ],
   },
 ])
+
+const navigateToDetails = (personnelPds: PersonnelResponse) => {
+  if (!personnelPds || !personnelPds.id) {
+    console.error('Cannot navigate to details: Item Number or ID is undefined', personnelPds)
+    return
+  }
+  router.push({
+    name: 'create-personnel',
+    params: {
+      id: personnelPds.id,
+    },
+  })
+}
 
 const selectedItemNo = ref<WbAutoCompleteOption[] | null>(null)
 const selectedSalaryGrade = ref<WbAutoCompleteOption[] | null>(null)
@@ -628,6 +643,7 @@ const downloadQrCode = async () => {
                         severity="info"
                         class="border-none text-lg font-semibold text-primary-600 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
                         text
+                        @click="navigateToDetails(props.data)"
                       />
                       <Button
                         icon="pi pi-qrcode"

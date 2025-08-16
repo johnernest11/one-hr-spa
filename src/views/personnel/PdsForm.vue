@@ -56,6 +56,28 @@ const handleSubmit = async () => {
     isSubmitting.value = false
   }
 }
+
+const handleUpdate = async () => {
+  isSubmitting.value = true
+
+  try {
+    const resultC1 = await c1FormRef.value?.updateC1Form?.()
+    if (resultC1?.valid === false) return
+
+    // const resultC2 = await c2FormRef.value?.handleSaveC2Form?.()
+    // if (resultC2?.valid === false) return
+
+    // const resultC3 = await c3FormRef.value?.handleSaveC3Form?.()
+    // if (resultC3?.valid === false) return
+
+    // const resultC4 = await c4FormRef.value?.handleSaveC4Form?.()
+    // if (resultC4?.valid === false) return
+
+    window.location.reload()
+  } finally {
+    isSubmitting.value = false
+  }
+}
 </script>
 
 <template>
@@ -75,20 +97,38 @@ const handleSubmit = async () => {
 
         <!-- Button aligned right -->
         <div class="ml-auto">
-          <Button
-            v-if="!isMyPds"
-            label="Save PDS"
-            @click.prevent="handleSubmit"
-            :loading="isC1Loading"
-            type="button"
-            size="large"
-            class="dark:text-secondary-100 mt-4 w-full border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
-            text
-          >
-            <template #icon>
-              <i class="pi pi-save mr-2"></i>
-            </template>
-          </Button>
+          <div>
+            <Button
+              v-if="!isMyPds"
+              label="Save PDS"
+              @click.prevent="handleSubmit"
+              :loading="isC1Loading"
+              type="button"
+              size="large"
+              class="dark:text-secondary-100 mt-4 w-full border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+              text
+            >
+              <template #icon>
+                <i class="pi pi-save mr-2"></i>
+              </template>
+            </Button>
+          </div>
+          <div>
+            <Button
+              v-if="!isMyPds"
+              label="Update PDS"
+              @click.prevent="handleUpdate"
+              :loading="isC1Loading"
+              type="button"
+              size="large"
+              class="dark:text-secondary-100 mt-4 w-full border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+              text
+            >
+              <template #icon>
+                <i class="pi pi-save mr-2"></i>
+              </template>
+            </Button>
+          </div>
         </div>
       </div>
 

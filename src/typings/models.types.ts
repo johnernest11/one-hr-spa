@@ -278,10 +278,10 @@ export type PersonnelAddress = {
   created_at: string | null
   updated_at: string | null
   deleted_at: string | null
-  city: string | null
-  province: string | null
-  region: string | null
-  barangay: string | null
+  barangay: BarangayResponse | null
+  city: CityResponse | null
+  province: ProvinceResponse | null
+  region: RegionResponse | null
 }
 
 export type PersonnelContactInfo = {
