@@ -89,6 +89,8 @@ export const usePayRollStore = defineStore('pay-roll', () => {
           individual_skills: null,
           individual_recognition: null,
           individual_membership: null,
+          individual_question: null,
+          individual_reference: null,
           employee: null,
         },
         id_number: null,
