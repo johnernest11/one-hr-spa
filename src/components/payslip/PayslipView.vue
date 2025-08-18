@@ -109,6 +109,8 @@ const updatePayloadFromReport = (payRoll: PayrollResponse | null) => {
           individual_contact_info: null,
           individual_family: null,
           individual_educational_background: null,
+          individual_eligibility: null,
+          individual_work_experience: null,
           employee: null,
         },
         // Employee identifier info
