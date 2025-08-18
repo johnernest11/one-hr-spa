@@ -306,7 +306,7 @@ onMounted(async () => {
     const response = await pdsStore.fetchPdsById(id)
 
     if (response && response.success) {
-      console.log('Fetched PDS data:', response.data) // ✅ Console log added
+      console.log('Fetched PDS data:', response.data)
       pdsStore.updatePdsFromPersonnel(response.data as PersonnelResponse)
     } else {
       console.warn('Failed to fetch PDS by ID or response unsuccessful.')
@@ -354,8 +354,8 @@ const updateC3Form = async () => {
   formIsSubmitting.value = false
   toast.add({
     severity: 'success',
-    summary: 'Item Number Details update',
-    detail: `${id || 'The Item Number '} was successfully updated`,
+    summary: 'Personal Data Sheet (PDS)',
+    detail: 'PDS has been successfully updated',
     life: 1000,
   })
 
