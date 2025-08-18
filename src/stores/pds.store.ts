@@ -432,7 +432,7 @@ export const usePdsStore = defineStore('pds', () => {
   const updatePdsFromPersonnel = (personnel: PersonnelResponse | null) => {
     if (!personnel) return
 
-    // === Employee Info ===
+    // === C1 -  Employee Info ===
     const employee = personnel.employee
     pdsInfo.employee.id = employee?.id ?? 0
     pdsInfo.employee.individual_basic_detail_id = employee?.individual_basic_detail_id ?? null
@@ -453,7 +453,7 @@ export const usePdsStore = defineStore('pds', () => {
     pdsInfo.employee.section_or_unit = employee?.section_or_unit ?? null
     pdsInfo.employee.item = null
 
-    // === Individual Information ===
+    // === C1 -  Individual Information ===
     pdsInfo.individual.first_name = personnel.first_name ?? null
     pdsInfo.individual.last_name = personnel.last_name ?? null
     pdsInfo.individual.middle_name = personnel.middle_name ?? null
@@ -475,13 +475,13 @@ export const usePdsStore = defineStore('pds', () => {
     pdsInfo.individual.citizenship_acquisition = personnel.citizenship_acquisition ?? null
     pdsInfo.individual.citizenship_country = null
 
-    // === Contact Info ===
+    // === C1 -  Contact Info ===
     const contactInfo = personnel.individual_contact_info
     pdsInfo.contact_info.tel_no = contactInfo?.tel_no ?? null
     pdsInfo.contact_info.mobile_no = contactInfo?.mobile_no ?? null
     pdsInfo.contact_info.email_address = contactInfo?.email_address ?? null
 
-    // === Individual Address Init ===
+    // === C1 - Individual Address Init ===
     const address = personnel.individual_address
 
     pdsInfo.individual_address_init.residential_house_block_lot_no = address?.residential_house_block_lot_no ?? null
@@ -502,7 +502,7 @@ export const usePdsStore = defineStore('pds', () => {
     pdsInfo.individual_address_init.permanent_region_id = address?.permanent_region_id ?? null
     pdsInfo.individual_address_init.permanent_zip_code = address?.permanent_zip_code ?? null
 
-    // === Individual Eligibility ===
+    // === C2 -  Individual Eligibility ===
     pdsInfo.individual_eligibility = Array.isArray(personnel.individual_eligibility)
       ? personnel.individual_eligibility.map((e) => ({
         id: e.id,
@@ -516,7 +516,7 @@ export const usePdsStore = defineStore('pds', () => {
       }))
       : []
 
-    // === Individual Work Experience ===
+    // === C2 - Individual Work Experience ===
     pdsInfo.individual_work_experience = Array.isArray(personnel.individual_work_experience)
       ? personnel.individual_work_experience.map((w) => ({
         id: w.id,
@@ -535,11 +535,7 @@ export const usePdsStore = defineStore('pds', () => {
       }))
       : []
 
-    // ──────────────────────────────────────────────────────────
-    //         C3 - Individual Voluntary Work, Individual L&D, Individual Skills/Hobby, Individual Recognition,
-    //         Individual Membership
-    // ──────────────────────────────────────────────────────────
-    // === Individual Voluntary Work ===
+    // === C3 - Individual Voluntary Work ===
     pdsInfo.individual_voluntary_work = Array.isArray(personnel.individual_voluntary_work)
       ? personnel.individual_voluntary_work.map((v) => ({
         id: v.id,
@@ -554,7 +550,7 @@ export const usePdsStore = defineStore('pds', () => {
       }))
       : []
 
-    // === Individual Learning and Development ===
+    // === C3 - Individual Learning and Development ===
     pdsInfo.individual_lnd = Array.isArray(personnel.individual_lnd)
       ? personnel.individual_lnd.map((l) => ({
         id: l.id,
@@ -568,7 +564,7 @@ export const usePdsStore = defineStore('pds', () => {
       }))
       : []
 
-    // === Individual Skills / Hobby ===
+    // === C3 - Individual Skills / Hobby ===
     pdsInfo.individual_skills_hobby = Array.isArray(personnel.individual_skills)
       ? personnel.individual_skills.map((s) => ({
         id: s.id,
@@ -577,7 +573,7 @@ export const usePdsStore = defineStore('pds', () => {
       }))
       : []
 
-    // === Individual Recognition ===
+    // === C3 - Individual Recognition ===
     pdsInfo.individual_recognition = Array.isArray(personnel.individual_recognition)
       ? personnel.individual_recognition.map((r) => ({
         id: r.id,
@@ -586,67 +582,7 @@ export const usePdsStore = defineStore('pds', () => {
       }))
       : []
 
-    // === Individual Membership ===
-    pdsInfo.individual_membership = Array.isArray(personnel.individual_membership)
-      ? personnel.individual_membership.map((m) => ({
-        id: m.id,
-        association_organization: m.association_organization ?? '',
-        _delete: m._delete ?? null,
-      }))
-      : []
-
-    // ──────────────────────────────────────────────────────────
-    //         C3 - Individual Voluntary Work, Individual L&D, Individual Skills/Hobby, Individual Recognition,
-    //         Individual Membership
-    // ──────────────────────────────────────────────────────────
-    // === Individual Voluntary Work ===
-    pdsInfo.individual_voluntary_work = Array.isArray(personnel.individual_voluntary_work)
-      ? personnel.individual_voluntary_work.map((v) => ({
-        id: v.id,
-        is_current_org: v.is_current_org ?? false,
-        org_name: v.org_name ?? '',
-        org_address: v.org_address ?? '',
-        from: v.from ?? null,
-        to: v.to ?? null,
-        number_of_hours: v.number_of_hours ?? null,
-        position_nature_of_work: v.position_nature_of_work ?? null,
-        _delete: v._delete ?? null,
-      }))
-      : []
-
-    // === Individual Learning and Development ===
-    pdsInfo.individual_lnd = Array.isArray(personnel.individual_lnd)
-      ? personnel.individual_lnd.map((l) => ({
-        id: l.id,
-        title: l.title ?? '',
-        from: l.from ?? '',
-        to: l.to ?? null,
-        number_of_hours: l.number_of_hours ?? null,
-        type: l.type ?? null,
-        conducted_sponsor: l.conducted_sponsor ?? null,
-        _delete: l._delete ?? null,
-      }))
-      : []
-
-    // === Individual Skills / Hobby ===
-    pdsInfo.individual_skills_hobby = Array.isArray(personnel.individual_skills)
-      ? personnel.individual_skills.map((s) => ({
-        id: s.id,
-        skill_hobby: s.skill_hobby ?? '',
-        _delete: s._delete ?? null,
-      }))
-      : []
-
-    // === Individual Recognition ===
-    pdsInfo.individual_recognition = Array.isArray(personnel.individual_recognition)
-      ? personnel.individual_recognition.map((r) => ({
-        id: r.id,
-        recognition: r.recognition ?? '',
-        _delete: r._delete ?? null,
-      }))
-      : []
-
-    // === Individual Membership ===
+    // === C3 - Individual Membership ===
     pdsInfo.individual_membership = Array.isArray(personnel.individual_membership)
       ? personnel.individual_membership.map((m) => ({
         id: m.id,
