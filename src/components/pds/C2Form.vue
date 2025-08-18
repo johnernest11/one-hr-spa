@@ -32,7 +32,7 @@ const router = useRouter()
 const route = useRoute()
 
 const maxToasts = 5
-const MAX_ENTRIES_PER_TAB = 2
+const MAX_ENTRIES_PER_TAB = 28
 const pdsErrors = ref()
 const errorMessage = ref()
 const workExperienceIndex = ref(1)
@@ -238,18 +238,29 @@ const showToast = (
 const handleAdditionalEligibility = () => {
   if (payload.individual_eligibility.length < 7) {
     payload.individual_eligibility.push({
+      id: 0,
       eligibility: null,
       rating: null,
       date_of_examination_conferment: null,
       place_of_examination: null,
       license_number: null,
       license_date_of_validity: null,
+      _delete: null,
     })
   }
 }
 
 const handleRemoveEligibility = (eligibilityIndex: number) => {
-  payload.individual_eligibility?.splice(eligibilityIndex, 1)
+  const eligibility = payload.individual_eligibility?.[eligibilityIndex]
+
+  if (eligibility?.id) {
+    // Mark for backend soft-delete
+    payload.individual_eligibility[eligibilityIndex] = {
+      ...eligibility,
+      _delete: true,
+    }
+  } // If it's not yet saved (no id), just remove
+  else payload.individual_eligibility.splice(eligibilityIndex, 1)
 }
 
 const handleAdditionalWorkExperience = () => {
@@ -261,6 +272,7 @@ const handleAdditionalWorkExperience = () => {
   }
   // Add a new entry
   payload.individual_work_experience.push({
+    id: 0,
     is_current_work: false,
     inclusive_date_from: null,
     inclusive_date_to: null,
@@ -272,6 +284,7 @@ const handleAdditionalWorkExperience = () => {
     custom_salary_grade: null,
     status_of_appointment: null,
     is_gov_service: false,
+    _delete: null,
   })
   useCustomSalaryGrade.value.push(false)
   selectedWorkExperienceSG.value.push(null)
@@ -285,7 +298,16 @@ watch(
 )
 
 const handleRemoveWorkExperience = (workExperienceIndex: number) => {
-  payload.individual_work_experience?.splice(workExperienceIndex, 1)
+  const eligibility = payload.individual_work_experience?.[workExperienceIndex]
+
+  if (eligibility?.id) {
+    // Mark for backend soft-delete
+    payload.individual_work_experience[workExperienceIndex] = {
+      ...eligibility,
+      _delete: true,
+    }
+  } // If it's not yet saved (no id), just remove
+  else payload.individual_work_experience.splice(workExperienceIndex, 1)
 }
 
 // ──────────────────────────────────────────────────────────
@@ -349,8 +371,8 @@ const updateC2Form = async () => {
   formIsSubmitting.value = false
   toast.add({
     severity: 'success',
-    summary: 'Item Number Details update',
-    detail: `${id || 'The Item Number '} was successfully updated`,
+    summary: 'Personal Data Sheet (PDS)',
+    detail: 'PDS has been successfully updated',
     life: 1000,
   })
 

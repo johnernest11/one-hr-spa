@@ -292,16 +292,19 @@ export const usePdsStore = defineStore('pds', () => {
     /** PDS C2 */
     individual_eligibility: [
       {
+        id: 0,
         eligibility: '',
         rating: '',
         date_of_examination_conferment: '',
         place_of_examination: '',
         license_number: null,
         license_date_of_validity: null,
+        _delete: null,
       },
     ],
     individual_work_experience: [
       {
+        id: 0,
         is_current_work: false,
         inclusive_date_from: '',
         inclusive_date_to: '',
@@ -313,6 +316,7 @@ export const usePdsStore = defineStore('pds', () => {
         custom_salary_grade: '',
         status_of_appointment: null,
         is_gov_service: false,
+        _delete: null,
       },
     ],
     /** PDS C3 */
@@ -508,6 +512,7 @@ export const usePdsStore = defineStore('pds', () => {
         place_of_examination: e.place_of_examination ?? '',
         license_number: e.license_number ?? null,
         license_date_of_validity: e.license_date_of_validity ?? null,
+        _delete: e._delete ?? null,
       }))
       : []
 
@@ -526,6 +531,67 @@ export const usePdsStore = defineStore('pds', () => {
         custom_salary_grade: w.custom_salary_grade ?? '',
         status_of_appointment: w.status_of_appointment ?? null,
         is_gov_service: w.is_gov_service ?? false,
+        _delete: w._delete ?? null,
+      }))
+      : []
+
+    // ──────────────────────────────────────────────────────────
+    //         C3 - Individual Voluntary Work, Individual L&D, Individual Skills/Hobby, Individual Recognition,
+    //         Individual Membership
+    // ──────────────────────────────────────────────────────────
+    // === Individual Voluntary Work ===
+    pdsInfo.individual_voluntary_work = Array.isArray(personnel.individual_voluntary_work)
+      ? personnel.individual_voluntary_work.map((v) => ({
+        id: v.id,
+        is_current_org: v.is_current_org ?? false,
+        org_name: v.org_name ?? '',
+        org_address: v.org_address ?? '',
+        from: v.from ?? null,
+        to: v.to ?? null,
+        number_of_hours: v.number_of_hours ?? null,
+        position_nature_of_work: v.position_nature_of_work ?? null,
+        _delete: v._delete ?? null,
+      }))
+      : []
+
+    // === Individual Learning and Development ===
+    pdsInfo.individual_lnd = Array.isArray(personnel.individual_lnd)
+      ? personnel.individual_lnd.map((l) => ({
+        id: l.id,
+        title: l.title ?? '',
+        from: l.from ?? '',
+        to: l.to ?? null,
+        number_of_hours: l.number_of_hours ?? null,
+        type: l.type ?? null,
+        conducted_sponsor: l.conducted_sponsor ?? null,
+        _delete: l._delete ?? null,
+      }))
+      : []
+
+    // === Individual Skills / Hobby ===
+    pdsInfo.individual_skills_hobby = Array.isArray(personnel.individual_skills)
+      ? personnel.individual_skills.map((s) => ({
+        id: s.id,
+        skill_hobby: s.skill_hobby ?? '',
+        _delete: s._delete ?? null,
+      }))
+      : []
+
+    // === Individual Recognition ===
+    pdsInfo.individual_recognition = Array.isArray(personnel.individual_recognition)
+      ? personnel.individual_recognition.map((r) => ({
+        id: r.id,
+        recognition: r.recognition ?? '',
+        _delete: r._delete ?? null,
+      }))
+      : []
+
+    // === Individual Membership ===
+    pdsInfo.individual_membership = Array.isArray(personnel.individual_membership)
+      ? personnel.individual_membership.map((m) => ({
+        id: m.id,
+        association_organization: m.association_organization ?? '',
+        _delete: m._delete ?? null,
       }))
       : []
 
