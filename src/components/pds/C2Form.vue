@@ -650,7 +650,9 @@ defineExpose({
                     </div>
 
                     <template
-                      v-for="(work, workExperienceIndex) in payload.individual_work_experience.slice(0, MAX_ENTRIES_PER_TAB)"
+                      v-for="(work, workExperienceIndex) in payload.individual_work_experience
+                        .filter((w) => !w._delete)
+                        .slice(0, MAX_ENTRIES_PER_TAB)"
                       :key="workExperienceIndex"
                     >
                       <TransitionRoot
@@ -674,10 +676,11 @@ defineExpose({
                               :dateFormat="'yy-mm-dd'"
                               validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                               :invalidText="
-                                validator.individual_work_experience[workExperienceIndex].inclusive_date_from.$errors[0]?.$message
+                                validator.individual_work_experience?.[workExperienceIndex]?.inclusive_date_from?.$errors[0]
+                                  ?.$message
                               "
-                              :invalid="validator.individual_work_experience[workExperienceIndex].inclusive_date_from.$error"
-                              @blur="validator.individual_work_experience[workExperienceIndex].inclusive_date_from.$touch()"
+                              :invalid="validator.individual_work_experience?.[workExperienceIndex]?.inclusive_date_from?.$error"
+                              @blur="validator.individual_work_experience?.[workExperienceIndex]?.inclusive_date_from?.$touch()"
                             />
                           </div>
                           <!-- For the first entry -->
@@ -692,10 +695,11 @@ defineExpose({
                               label-class="text-md text-surface-600 md:text-sm"
                               validation-error-message-class="text-xs text-error-500 font-bold"
                               :invalidText="
-                                validator.individual_work_experience[workExperienceIndex].inclusive_date_to.$errors[0]?.$message
+                                validator.individual_work_experience?.[workExperienceIndex]?.inclusive_date_to?.$errors[0]
+                                  ?.$message
                               "
-                              :invalid="validator.individual_work_experience[workExperienceIndex].inclusive_date_to.$error"
-                              @blur="validator.individual_work_experience[workExperienceIndex].inclusive_date_to.$touch()"
+                              :invalid="validator.individual_work_experience?.[workExperienceIndex]?.inclusive_date_to?.$error"
+                              @blur="validator.individual_work_experience?.[workExperienceIndex]?.inclusive_date_to?.$touch()"
                               required
                             />
 
@@ -722,10 +726,11 @@ defineExpose({
                               label-class="text-md text-surface-600 md:text-sm"
                               validation-error-message-class="text-xs text-error-500 font-bold"
                               :invalidText="
-                                validator.individual_work_experience[workExperienceIndex].inclusive_date_to.$errors[0]?.$message
+                                validator.individual_work_experience?.[workExperienceIndex]?.inclusive_date_to?.$errors[0]
+                                  ?.$message
                               "
-                              :invalid="validator.individual_work_experience[workExperienceIndex].inclusive_date_to.$error"
-                              @blur="validator.individual_work_experience[workExperienceIndex].inclusive_date_to.$touch()"
+                              :invalid="validator.individual_work_experience?.[workExperienceIndex]?.inclusive_date_to?.$error"
+                              @blur="validator.individual_work_experience?.[workExperienceIndex]?.inclusive_date_to?.$touch()"
                               required
                             />
                           </div>
@@ -738,10 +743,10 @@ defineExpose({
                               class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                               validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                               :invalidText="
-                                validator.individual_work_experience[workExperienceIndex].position_title.$errors[0]?.$message
+                                validator.individual_work_experience?.[workExperienceIndex]?.position_title?.$errors[0]?.$message
                               "
-                              :invalid="validator.individual_work_experience[workExperienceIndex].position_title.$error"
-                              @blur="validator.individual_work_experience[workExperienceIndex].position_title.$touch()"
+                              :invalid="validator.individual_work_experience?.[workExperienceIndex]?.position_title?.$error"
+                              @blur="validator.individual_work_experience?.[workExperienceIndex]?.position_title?.$touch()"
                               required
                             />
                           </div>
@@ -753,16 +758,17 @@ defineExpose({
                               class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                               validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                               :invalidText="
-                                validator.individual_work_experience[workExperienceIndex].department_agency_office_company
-                                  .$errors[0]?.$message
+                                validator.individual_work_experience?.[workExperienceIndex]?.department_agency_office_company
+                                  ?.$errors[0]?.$message
                               "
                               :invalid="
-                                validator.individual_work_experience[workExperienceIndex].department_agency_office_company.$error
+                                validator.individual_work_experience?.[workExperienceIndex]?.department_agency_office_company
+                                  ?.$error
                               "
                               @blur="
-                                validator.individual_work_experience[
+                                validator.individual_work_experience?.[
                                   workExperienceIndex
-                                ].department_agency_office_company.$touch()
+                                ]?.department_agency_office_company?.$touch()
                               "
                               required
                             />
@@ -778,10 +784,10 @@ defineExpose({
                               class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                               validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                               :invalidText="
-                                validator.individual_work_experience[workExperienceIndex].monthly_salary.$errors[0]?.$message
+                                validator.individual_work_experience?.[workExperienceIndex]?.monthly_salary?.$errors[0]?.$message
                               "
-                              :invalid="validator.individual_work_experience[workExperienceIndex].monthly_salary.$error"
-                              @blur="validator.individual_work_experience[workExperienceIndex].monthly_salary.$touch()"
+                              :invalid="validator.individual_work_experience?.[workExperienceIndex]?.monthly_salary?.$error"
+                              @blur="validator.individual_work_experience?.[workExperienceIndex]?.monthly_salary?.$touch()"
                             />
                           </div>
                           <div>
@@ -807,10 +813,10 @@ defineExpose({
                               class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                               validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                               :invalidText="
-                                validator.individual_work_experience[workExperienceIndex].salary_grade_id.$errors[0]?.$message
+                                validator.individual_work_experience?.[workExperienceIndex]?.salary_grade_id?.$errors[0]?.$message
                               "
-                              :invalid="validator.individual_work_experience[workExperienceIndex].salary_grade_id.$error"
-                              @blur="validator.individual_work_experience[workExperienceIndex].salary_grade_id.$touch()"
+                              :invalid="validator.individual_work_experience?.[workExperienceIndex]?.salary_grade_id?.$error"
+                              @blur="validator.individual_work_experience?.[workExperienceIndex]?.salary_grade_id?.$touch()"
                             />
 
                             <!-- WbInputText shown only when using custom SG -->
@@ -824,10 +830,11 @@ defineExpose({
                               class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                               validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                               :invalidText="
-                                validator.individual_work_experience[workExperienceIndex].custom_salary_grade.$errors[0]?.$message
+                                validator.individual_work_experience?.[workExperienceIndex]?.custom_salary_grade?.$errors[0]
+                                  ?.$message
                               "
-                              :invalid="validator.individual_work_experience[workExperienceIndex].custom_salary_grade.$error"
-                              @blur="validator.individual_work_experience[workExperienceIndex].custom_salary_grade.$touch()"
+                              :invalid="validator.individual_work_experience?.[workExperienceIndex]?.custom_salary_grade?.$error"
+                              @blur="validator.individual_work_experience?.[workExperienceIndex]?.custom_salary_grade?.$touch()"
                             />
                             <!-- Toggle Link -->
                             <p
@@ -854,11 +861,13 @@ defineExpose({
                               class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                               validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                               :invalidText="
-                                validator.individual_work_experience[workExperienceIndex].status_of_appointment.$errors[0]
+                                validator.individual_work_experience?.[workExperienceIndex]?.status_of_appointment?.$errors[0]
                                   ?.$message
                               "
-                              :invalid="validator.individual_work_experience[workExperienceIndex].status_of_appointment.$error"
-                              @blur="validator.individual_work_experience[workExperienceIndex].status_of_appointment.$touch()"
+                              :invalid="
+                                validator.individual_work_experience?.[workExperienceIndex]?.status_of_appointment?.$error
+                              "
+                              @blur="validator.individual_work_experience?.[workExperienceIndex]?.status_of_appointment?.$touch()"
                             >
                             </WbDropdown>
                           </div>
@@ -875,10 +884,10 @@ defineExpose({
                               class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                               validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                               :invalidText="
-                                validator.individual_work_experience[workExperienceIndex].is_gov_service.$errors[0]?.$message
+                                validator.individual_work_experience?.[workExperienceIndex]?.is_gov_service?.$errors[0]?.$message
                               "
-                              :invalid="validator.individual_work_experience[workExperienceIndex].is_gov_service.$error"
-                              @blur="validator.individual_work_experience[workExperienceIndex].is_gov_service.$touch()"
+                              :invalid="validator.individual_work_experience?.[workExperienceIndex]?.is_gov_service?.$error"
+                              @blur="validator.individual_work_experience?.[workExperienceIndex]?.is_gov_service?.$touch()"
                             >
                             </WbDropdown>
 
