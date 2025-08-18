@@ -304,6 +304,7 @@ export const usePdsStore = defineStore('pds', () => {
     ],
     individual_work_experience: [
       {
+        id: 0,
         is_current_work: false,
         inclusive_date_from: '',
         inclusive_date_to: '',
@@ -315,6 +316,7 @@ export const usePdsStore = defineStore('pds', () => {
         custom_salary_grade: '',
         status_of_appointment: null,
         is_gov_service: false,
+        _delete: null,
       },
     ],
     /** PDS C3 */
@@ -519,6 +521,7 @@ export const usePdsStore = defineStore('pds', () => {
         custom_salary_grade: w.custom_salary_grade ?? '',
         status_of_appointment: w.status_of_appointment ?? null,
         is_gov_service: w.is_gov_service ?? false,
+        _delete: w._delete ?? null,
       }))
       : []
   }

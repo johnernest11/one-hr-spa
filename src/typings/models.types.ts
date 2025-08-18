@@ -357,6 +357,7 @@ export type IndividualEligibility = {
 } & ApiResponseData
 
 export type IndividualWorkExperience = {
+  id: number
   is_current_work: boolean
   inclusive_date_from: string | null
   inclusive_date_to: string | null
@@ -368,7 +369,8 @@ export type IndividualWorkExperience = {
   custom_salary_grade: string | null
   status_of_appointment: string | null
   is_gov_service: boolean
-}
+  _delete: boolean | null
+} & ApiResponseData
 
 /**Personnel Data Sheet (C3 FORM) (HTTP Responses) */
 export type IndividualVoluntaryWork = {
