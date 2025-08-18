@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeMount, ref } from 'vue'
+import { onBeforeMount, ref, computed } from 'vue'
 import { useProfileStore } from '@/stores/profile.store.ts'
 import { useRoute } from 'vue-router'
 import { usePdsStore } from '@/stores/pds.store'
@@ -17,6 +17,7 @@ import Button from 'primevue/button'
 
 const route = useRoute()
 const isMyPds = route.name === 'my-pds'
+const isEditMode = computed(() => !!route.params.id)
 const pdsStore = usePdsStore()
 const profileStore = useProfileStore()
 const isC1Loading = ref(false)
@@ -61,19 +62,20 @@ const handleUpdate = async () => {
   isSubmitting.value = true
 
   try {
-    // const resultC1 = await c1FormRef.value?.updateC1Form?.()
-    // if (resultC1?.valid === false) return
+    const promises = [
+      // c1FormRef.value?.updateC1Form?.(),
+      c2FormRef.value?.updateC2Form?.(),
+      c3FormRef.value?.updateC3Form?.(),
+      c4FormRef.value?.updateC4Form?.(),
+    ].filter(Boolean)
 
-    const resultC2 = await c2FormRef.value?.updateC2Form?.()
-    if (resultC2?.valid === false) return
+    const results = await Promise.all(promises)
 
-    const resultC3 = await c3FormRef.value?.updateC3Form?.()
-    if (resultC3?.valid === false) return
+    for (const result of results) {
+      if (result?.valid === false) return
+    }
 
-    const resultC4 = await c4FormRef.value?.updateC4Form?.()
-    if (resultC4?.valid === false) return
-
-    // window.location.reload()
+    window.location.reload()
   } finally {
     isSubmitting.value = false
   }
@@ -98,8 +100,9 @@ const handleUpdate = async () => {
         <!-- Button aligned right -->
         <div class="ml-auto">
           <div>
+            <!-- Show Save button only if NO id -->
             <Button
-              v-if="!isMyPds"
+              v-if="!isMyPds && !isEditMode"
               label="Save PDS"
               @click.prevent="handleSubmit"
               :loading="isC1Loading"
@@ -112,10 +115,10 @@ const handleUpdate = async () => {
                 <i class="pi pi-save mr-2"></i>
               </template>
             </Button>
-          </div>
-          <div>
+
+            <!-- Show Update button only if id exists -->
             <Button
-              v-if="!isMyPds"
+              v-if="!isMyPds && isEditMode"
               label="Update PDS"
               @click.prevent="handleUpdate"
               :loading="isC1Loading"

@@ -292,16 +292,19 @@ export const usePdsStore = defineStore('pds', () => {
     /** PDS C2 */
     individual_eligibility: [
       {
+        id: 0,
         eligibility: '',
         rating: '',
         date_of_examination_conferment: '',
         place_of_examination: '',
         license_number: null,
         license_date_of_validity: null,
+        _delete: null,
       },
     ],
     individual_work_experience: [
       {
+        id: 0,
         is_current_work: false,
         inclusive_date_from: '',
         inclusive_date_to: '',
@@ -313,6 +316,7 @@ export const usePdsStore = defineStore('pds', () => {
         custom_salary_grade: '',
         status_of_appointment: null,
         is_gov_service: false,
+        _delete: null,
       },
     ],
     /** PDS C3 */
@@ -499,6 +503,7 @@ export const usePdsStore = defineStore('pds', () => {
         place_of_examination: e.place_of_examination ?? '',
         license_number: e.license_number ?? null,
         license_date_of_validity: e.license_date_of_validity ?? null,
+        _delete: e._delete ?? null,
       }))
       : []
 
@@ -517,6 +522,7 @@ export const usePdsStore = defineStore('pds', () => {
         custom_salary_grade: w.custom_salary_grade ?? '',
         status_of_appointment: w.status_of_appointment ?? null,
         is_gov_service: w.is_gov_service ?? false,
+        _delete: w._delete ?? null,
       }))
       : []
 
@@ -718,26 +724,14 @@ export const usePdsStore = defineStore('pds', () => {
   }
 
   const fetchPdsById = async (id: string | number) => {
-    try {
-      const url = `/individual-basic-details/${id}`
-      const { data } = await useApiCall(url, authStore.authenticationToken).get().json()
-
-      if (!data || !data.value) {
-        console.warn('⚠️ No response body from API:', url)
-        return { success: false, data: null }
-      }
-
-      const responseBody: ApiResponseBody = data.value
-
-      if (responseBody.success) {
-        selectedPDS.value = responseBody.data as PersonnelResponse
-      }
-
-      return responseBody
-    } catch (error) {
-      console.error('❌ fetchPdsById error:', error)
-      return { success: false, data: null }
+    const url = `/individual-basic-details/${id}`
+    const { data } = await useApiCall(url, authStore.authenticationToken).get().json()
+    const responseBody: ApiResponseBody = data.value
+    if (responseBody.success) {
+      selectedPDS.value = responseBody.data as PersonnelResponse
     }
+
+    return responseBody
   }
 
   const updatePds = async (pds: Partial<PersonalDataSheetPayload>, id: string | number, formType: 'C1' | 'C2' | 'C3' | 'C4') => {

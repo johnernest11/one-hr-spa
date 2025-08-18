@@ -173,7 +173,7 @@ onMounted(async () => {
     const response = await pdsStore.fetchPdsById(id)
 
     if (response && response.success) {
-      console.log('Fetched PDS data:', response.data) // ✅ Console log added
+      console.log('Fetched PDS data:', response.data)
       pdsStore.updatePdsFromPersonnel(response.data as PersonnelResponse)
     } else {
       console.warn('Failed to fetch PDS by ID or response unsuccessful.')
@@ -202,11 +202,7 @@ const updateC4Form = async () => {
   const id = route.params.id as string
 
   formIsSubmitting.value = true
-  const response = await pdsStore.updatePds(
-    { ...payload }, // only payload properties
-    id,
-    'C4' // pass form_type as a separate argument if your store expects it
-  )
+  const response = await pdsStore.updatePds({ ...payload }, id, 'C4')
 
   if (!response.success) {
     const result = parseApiResponseError(response)
@@ -221,8 +217,8 @@ const updateC4Form = async () => {
   formIsSubmitting.value = false
   toast.add({
     severity: 'success',
-    summary: 'Item Number Details update',
-    detail: `${id || 'The Item Number '} was successfully updated`,
+    summary: 'Personal Data Sheet (PDS)',
+    detail: 'PDS has been successfully updated.',
     life: 1000,
   })
 

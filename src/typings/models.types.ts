@@ -353,15 +353,18 @@ export type IndividualEducBg = {
 
 /**Personnel Data Sheet (C2 FORM) (HTTP Responses) */
 export type IndividualEligibility = {
+  id: number
   eligibility: string | null
   rating: string | null
   date_of_examination_conferment: string | null
   place_of_examination: string | null
   license_number: string | null
   license_date_of_validity: string | null
-}
+  _delete: boolean | null
+} & ApiResponseData
 
 export type IndividualWorkExperience = {
+  id: number
   is_current_work: boolean
   inclusive_date_from: string | null
   inclusive_date_to: string | null
@@ -373,7 +376,8 @@ export type IndividualWorkExperience = {
   custom_salary_grade: string | null
   status_of_appointment: string | null
   is_gov_service: boolean
-}
+  _delete: boolean | null
+} & ApiResponseData
 
 /**Personnel Data Sheet (C3 FORM) (HTTP Responses) */
 export type IndividualVoluntaryWork = {
