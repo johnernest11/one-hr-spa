@@ -375,6 +375,7 @@ export type IndividualWorkExperience = {
 
 /**Personnel Data Sheet (C3 FORM) (HTTP Responses) */
 export type IndividualVoluntaryWork = {
+  id: number
   is_current_org: boolean
   org_name: string | null
   org_address: string | null
@@ -382,28 +383,37 @@ export type IndividualVoluntaryWork = {
   to: string | Date | null
   number_of_hours: string | null
   position_nature_of_work: string | null
-}
+  _delete: boolean | null
+} & ApiResponseData
 
 export type IndividualLearningDevelopment = {
+  id: number
   title: string | null
   from: string | null
   to: string | null
   number_of_hours: string | null
   type: string | null
   conducted_sponsor: string | null
-}
+  _delete: boolean | null
+} & ApiResponseData
 
 export type IndividualSkills = {
+  id: number
   skill_hobby: string | null
-}
+  _delete: boolean | null
+} & ApiResponseData
 
 export type IndividualRecognition = {
+  id: number
   recognition: string | null
-}
+  _delete: boolean | null
+} & ApiResponseData
 
 export type IndividualMembership = {
+  id: number
   association_organization: string | null
-}
+  _delete: boolean | null
+} & ApiResponseData
 
 /**Personnel Data Sheet (C4 FORM) (HTTP Responses) */
 export type IndividualQuestion = {

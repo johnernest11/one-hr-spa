@@ -170,6 +170,7 @@ const showToast = (
 const handleAdditionalVoluntaryWork = () => {
   if (payload.individual_voluntary_work.length < 7) {
     payload.individual_voluntary_work.push({
+      id: 0,
       is_current_org: false,
       org_name: null,
       org_address: null,
@@ -177,65 +178,118 @@ const handleAdditionalVoluntaryWork = () => {
       to: null,
       number_of_hours: null,
       position_nature_of_work: null,
+      _delete: null,
     })
   }
 }
 
 const handleRemoveVoluntaryWork = (voluntaryWorkIndex: number) => {
-  payload.individual_voluntary_work?.splice(voluntaryWorkIndex, 1)
+  const voluntary_work = payload.individual_voluntary_work?.[voluntaryWorkIndex]
+  if (voluntary_work?.id) {
+    // Mark for backend soft-delete
+    payload.individual_voluntary_work[voluntaryWorkIndex] = {
+      ...voluntary_work,
+      _delete: true,
+    }
+  } // If it's not yet saved (no id), just remove
+  else payload.individual_lnd.splice(voluntaryWorkIndex, 1)
 }
 
 const handleAdditionalLearningDevelopment = () => {
   if (payload.individual_lnd.length < 21) {
     payload.individual_lnd.push({
+      id: 0,
       title: null,
       from: null,
       to: null,
       number_of_hours: null,
       type: null,
       conducted_sponsor: null,
+      _delete: null,
     })
   }
 }
 
 const handleRemoveLearningDevelopment = (learningDevelopmentIndex: number) => {
-  payload.individual_lnd?.splice(learningDevelopmentIndex, 1)
+  const lnd = payload.individual_lnd?.[learningDevelopmentIndex]
+
+  if (lnd?.id) {
+    // Mark for backend soft-delete
+    payload.individual_lnd[learningDevelopmentIndex] = {
+      ...lnd,
+      _delete: true,
+    }
+  } // If it's not yet saved (no id), just remove
+  else payload.individual_lnd.splice(learningDevelopmentIndex, 1)
 }
 
 const handleAdditionalSkillHobbies = () => {
   if (payload.individual_skills_hobby.length < 7) {
     payload.individual_skills_hobby.push({
+      id: 0,
       skill_hobby: null,
+      _delete: null,
     })
   }
 }
 
 const handleRemoveSkillHobbies = (skillIndex: number) => {
-  payload.individual_skills_hobby?.splice(skillIndex, 1)
+  const skills_hobby = payload.individual_skills_hobby?.[skillIndex]
+
+  if (skills_hobby?.id) {
+    // Mark for backend soft-delete
+    payload.individual_skills_hobby[skillIndex] = {
+      ...skills_hobby,
+      _delete: true,
+    }
+  } // If it's not yet saved (no id), just remove
+  else payload.individual_skills_hobby.splice(skillIndex, 1)
 }
 
 const handleAdditionalRecognition = () => {
   if (payload.individual_recognition.length < 7) {
     payload.individual_recognition.push({
+      id: 0,
       recognition: null,
+      _delete: null,
     })
   }
 }
 
 const handleRemoveRecognition = (recognitionIndex: number) => {
-  payload.individual_recognition?.splice(recognitionIndex, 1)
+  const recognition = payload.individual_recognition?.[recognitionIndex]
+
+  if (recognition?.id) {
+    // Mark for backend soft-delete
+    payload.individual_recognition[recognitionIndex] = {
+      ...recognition,
+      _delete: true,
+    }
+  } // If it's not yet saved (no id), just remove
+  else payload.individual_recognition.splice(recognitionIndex, 1)
 }
 
 const handleAdditionalMembership = () => {
   if (payload.individual_membership.length < 7) {
     payload.individual_membership.push({
+      id: 0,
       association_organization: null,
+      _delete: null,
     })
   }
 }
 
 const handleRemoveMembership = (membershipIndex: number) => {
-  payload.individual_membership?.splice(membershipIndex, 1)
+  const membership = payload.individual_membership?.[membershipIndex]
+
+  if (membership?.id) {
+    // Mark for backend soft-delete
+    payload.individual_membership[membershipIndex] = {
+      ...membership,
+      _delete: true,
+    }
+  } // If it's not yet saved (no id), just remove
+  else payload.individual_membership.splice(membershipIndex, 1)
 }
 
 // ──────────────────────────────────────────────────────────

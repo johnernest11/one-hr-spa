@@ -318,6 +318,7 @@ export const usePdsStore = defineStore('pds', () => {
     /** PDS C3 */
     individual_voluntary_work: [
       {
+        id: 0,
         is_current_org: false,
         org_name: '',
         org_address: '',
@@ -325,31 +326,40 @@ export const usePdsStore = defineStore('pds', () => {
         to: null,
         number_of_hours: null,
         position_nature_of_work: null,
+        _delete: null,
       },
     ],
     individual_lnd: [
       {
+        id: 0,
         title: '',
         from: '',
         to: null,
         number_of_hours: null,
         type: null,
         conducted_sponsor: null,
+        _delete: null,
       },
     ],
     individual_skills_hobby: [
       {
+        id: 0,
         skill_hobby: '',
+        _delete: null,
       },
     ],
     individual_recognition: [
       {
+        id: 0,
         recognition: '',
+        _delete: null,
       },
     ],
     individual_membership: [
       {
+        id: 0,
         association_organization: '',
+        _delete: null,
       },
     ],
     /** PDS C4 */
@@ -534,6 +544,7 @@ export const usePdsStore = defineStore('pds', () => {
         to: v.to ?? null,
         number_of_hours: v.number_of_hours ?? null,
         position_nature_of_work: v.position_nature_of_work ?? null,
+        _delete: v._delete ?? null,
       }))
       : []
 
@@ -547,6 +558,7 @@ export const usePdsStore = defineStore('pds', () => {
         number_of_hours: l.number_of_hours ?? null,
         type: l.type ?? null,
         conducted_sponsor: l.conducted_sponsor ?? null,
+        _delete: l._delete ?? null,
       }))
       : []
 
@@ -555,6 +567,7 @@ export const usePdsStore = defineStore('pds', () => {
       ? personnel.individual_skills.map((s) => ({
         id: s.id,
         skill_hobby: s.skill_hobby ?? '',
+        _delete: s._delete ?? null,
       }))
       : []
 
@@ -563,6 +576,7 @@ export const usePdsStore = defineStore('pds', () => {
       ? personnel.individual_recognition.map((r) => ({
         id: r.id,
         recognition: r.recognition ?? '',
+        _delete: r._delete ?? null,
       }))
       : []
 
@@ -571,6 +585,7 @@ export const usePdsStore = defineStore('pds', () => {
       ? personnel.individual_membership.map((m) => ({
         id: m.id,
         association_organization: m.association_organization ?? '',
+        _delete: m._delete ?? null,
       }))
       : []
   }
@@ -645,26 +660,16 @@ export const usePdsStore = defineStore('pds', () => {
   }
 
   const fetchPdsById = async (id: string | number) => {
-    try {
-      const url = `/individual-basic-details/${id}`
-      const { data } = await useApiCall(url, authStore.authenticationToken).get().json()
+    const url = `/individual-basic-details/${id}`
 
-      if (!data || !data.value) {
-        console.warn('⚠️ No response body from API:', url)
-        return { success: false, data: null }
-      }
+    const { data } = await useApiCall(url, authStore.authenticationToken).get().json()
+    const responseBody: ApiResponseBody = data.value
 
-      const responseBody: ApiResponseBody = data.value
-
-      if (responseBody.success) {
-        selectedPDS.value = responseBody.data as PersonnelResponse
-      }
-
-      return responseBody
-    } catch (error) {
-      console.error('❌ fetchPdsById error:', error)
-      return { success: false, data: null }
+    if (responseBody.success) {
+      selectedPDS.value = responseBody.data as PersonnelResponse
     }
+
+    return responseBody
   }
 
   const updatePds = async (pds: Partial<PersonalDataSheetPayload>, id: string | number, formType: 'C1' | 'C2' | 'C3' | 'C4') => {
