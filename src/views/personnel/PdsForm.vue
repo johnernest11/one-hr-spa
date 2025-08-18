@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeMount, ref } from 'vue'
+import { onBeforeMount, ref, computed } from 'vue'
 import { useProfileStore } from '@/stores/profile.store.ts'
 import { useRoute } from 'vue-router'
 import { usePdsStore } from '@/stores/pds.store'
@@ -17,6 +17,7 @@ import Button from 'primevue/button'
 
 const route = useRoute()
 const isMyPds = route.name === 'my-pds'
+const isEditMode = computed(() => !!route.params.id)
 const pdsStore = usePdsStore()
 const profileStore = useProfileStore()
 const isC1Loading = ref(false)
@@ -98,8 +99,9 @@ const handleUpdate = async () => {
         <!-- Button aligned right -->
         <div class="ml-auto">
           <div>
+            <!-- Show Save button only if NO id -->
             <Button
-              v-if="!isMyPds"
+              v-if="!isMyPds && !isEditMode"
               label="Save PDS"
               @click.prevent="handleSubmit"
               :loading="isC1Loading"
@@ -112,10 +114,10 @@ const handleUpdate = async () => {
                 <i class="pi pi-save mr-2"></i>
               </template>
             </Button>
-          </div>
-          <div>
+
+            <!-- Show Update button only if id exists -->
             <Button
-              v-if="!isMyPds"
+              v-if="!isMyPds && isEditMode"
               label="Update PDS"
               @click.prevent="handleUpdate"
               :loading="isC1Loading"

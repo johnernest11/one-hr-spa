@@ -238,18 +238,29 @@ const showToast = (
 const handleAdditionalEligibility = () => {
   if (payload.individual_eligibility.length < 7) {
     payload.individual_eligibility.push({
+      id: 0,
       eligibility: null,
       rating: null,
       date_of_examination_conferment: null,
       place_of_examination: null,
       license_number: null,
       license_date_of_validity: null,
+      _delete: null,
     })
   }
 }
 
 const handleRemoveEligibility = (eligibilityIndex: number) => {
-  payload.individual_eligibility?.splice(eligibilityIndex, 1)
+  const eligibility = payload.individual_eligibility?.[eligibilityIndex]
+
+  if (eligibility?.id) {
+    // Mark for backend soft-delete
+    payload.individual_eligibility[eligibilityIndex] = {
+      ...eligibility,
+      _delete: true,
+    }
+  } // If it's not yet saved (no id), just remove
+  payload.individual_eligibility.splice(eligibilityIndex, 1)
 }
 
 const handleAdditionalWorkExperience = () => {
@@ -349,8 +360,8 @@ const updateC2Form = async () => {
   formIsSubmitting.value = false
   toast.add({
     severity: 'success',
-    summary: 'Item Number Details update',
-    detail: `${id || 'The Item Number '} was successfully updated`,
+    summary: 'Personal Data Sheet (PDS)',
+    detail: 'PDS has been successfully updated',
     life: 1000,
   })
 
