@@ -170,6 +170,9 @@ export const useSidebarNavLinks = () => {
                 case 'position':
                   childNavLink.icon = 'fas fa-users-rays'
                   break
+                case 'fund-source':
+                  childNavLink.icon = 'fas fa-wallet'
+                  break
 
                 /*Responsibility Routes */
                 case 'accomplishment-report-list':

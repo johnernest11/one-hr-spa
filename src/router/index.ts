@@ -910,6 +910,17 @@ const routes = [
           roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
         },
       },
+      {
+        path: '/fund-source',
+        name: 'fund-source',
+        component: () => import('@/views/human-resources/FundSourcePage.vue'),
+        meta: <RouteMeta>{
+          label: 'Positions',
+          isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
     ],
   },
 
