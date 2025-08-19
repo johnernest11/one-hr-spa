@@ -6,12 +6,32 @@ import { WbAutoCompleteOption } from '@/components/webkit/WbAutoComplete.vue'
 import { PositionResponse } from '@/typings/models.types.ts'
 import { useAuthStore } from '@/stores/auth.store.ts'
 
+export type PositionPayload = {
+  title: string
+  parenthetical_title: string
+  level: '1st' | '2nd' | '3rd' | null
+}
+
 export const usePositionStore = defineStore('position', () => {
   const authStore = useAuthStore()
+  const position = ref<PositionResponse[]>([])
   /** States */
   const positionOptions = ref<WbAutoCompleteOption[]>([])
   const positionOptionsIsLoading = ref(false)
   /** Actions */
+
+  const createPosition = async (user: Partial<PositionPayload>) => {
+    const { data } = await useApiCall('/users/', authStore.authenticationToken).post(user).json()
+    const responseBody: ApiResponseBody = data.value
+
+    if (responseBody.success) {
+      // Add new user to the beginning of the list
+      position.value.unshift(responseBody.data as PositionResponse)
+    }
+
+    return responseBody
+  }
+
   const fetchPositions = async () => {
     if (positionOptions.value.length > 0) return null
 
@@ -35,6 +55,21 @@ export const usePositionStore = defineStore('position', () => {
     return res
   }
 
+  const fetchListPosition = async (limit: number = 15, page: number | null = null) => {
+    let uri = `/libraries/positions?limit=${limit}&sort=asc`
+    if (page) uri += `&page=${page}`
+
+    const { data } = await useApiCall(uri, authStore.authenticationToken).get().json()
+    const responseBody: ApiResponseBody = data.value
+
+    if (responseBody.success) {
+      const usersList = responseBody.data as PositionResponse[]
+      position.value = [...usersList]
+    }
+
+    return responseBody
+  }
+
   const searchPosition = async (query: string | null) => {
     let uri = '/libraries/positions/search?'
     if (query) uri += `query=${query}`
@@ -56,10 +91,29 @@ export const usePositionStore = defineStore('position', () => {
     return positionOptions.value
   }
 
+  const searchListPosition = async (query: string | null) => {
+    let uri = '/libraries/positions/search?'
+    if (query) uri += `query=${query}`
+
+    const { data } = await useApiCall(uri, authStore.authenticationToken).get().json()
+    const responseBody: ApiResponseBody = data.value
+
+    if (responseBody.success) {
+      const usersList = responseBody.data as PositionResponse[]
+      position.value = [...usersList]
+    }
+
+    return responseBody
+  }
+
   return {
+    position,
     positionOptions,
+    createPosition,
     fetchPositions,
+    fetchListPosition,
     searchPosition,
+    searchListPosition,
     positionOptionsIsLoading,
   }
 })

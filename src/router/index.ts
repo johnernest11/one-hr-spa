@@ -876,6 +876,43 @@ const routes = [
     ],
   },
 
+  /*Libraries Management */
+  /*HRPPMS*/
+  {
+    path: '/management',
+    name: 'management',
+    meta: <RouteMeta>{
+      group: RouteGroup.HUMAN_RESOURCES,
+      label: 'Management',
+      isSidebarMenu: true,
+      roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+    },
+    children: [
+      {
+        path: '/active-directory',
+        name: 'active-directory',
+        component: () => import('@/views/human-resources/ActiveDirectPage.vue'),
+        meta: <RouteMeta>{
+          label: 'Active Directory',
+          isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+      {
+        path: '/position',
+        name: 'position',
+        component: () => import('@/views/human-resources/PositionPage.vue'),
+        meta: <RouteMeta>{
+          label: 'Positions',
+          isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+    ],
+  },
+
   /* SUPPORT  ROUTE*/
   {
     path: '/support',

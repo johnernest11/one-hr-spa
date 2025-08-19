@@ -77,6 +77,9 @@ export const useSidebarNavLinks = () => {
           case 'about-us':
             navLink.icon = 'pi pi-heart'
             break
+          case 'management':
+            navLink.icon = 'pi pi-briefcase'
+            break
           case 'user-management':
             navLink.icon = 'pi pi-users'
             break
@@ -158,6 +161,14 @@ export const useSidebarNavLinks = () => {
                   break
                 case 'item-numbers':
                   childNavLink.icon = 'fas fa-sitemap'
+                  break
+
+                /*Management Routes */
+                case 'active-directory':
+                  childNavLink.icon = 'fas fa-user-lock'
+                  break
+                case 'position':
+                  childNavLink.icon = 'fas fa-users-rays'
                   break
 
                 /*Responsibility Routes */

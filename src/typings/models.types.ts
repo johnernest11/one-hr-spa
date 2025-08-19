@@ -129,6 +129,16 @@ export type UserResponse = {
   user_profile?: UserProfileResponse
 } & ApiResponseData
 
+/** Active Directory (HTTP Responses) */
+export type ActiveDiretoryResponse = {
+  guid: string
+  name: string
+  username: string
+  email: string
+  active: boolean
+  email_verified_at: string
+} & ApiResponseData
+
 /** User Profile (HTTP Responses) */
 export type UserProfileResponse = {
   first_name: string
