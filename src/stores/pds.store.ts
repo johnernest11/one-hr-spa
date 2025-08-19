@@ -359,6 +359,7 @@ export const usePdsStore = defineStore('pds', () => {
     /** PDS C4 */
     individual_question: [
       {
+        id: 0,
         q34_a: false,
         q34_b: false,
         q34_details: null,
@@ -522,6 +523,133 @@ export const usePdsStore = defineStore('pds', () => {
         status_of_appointment: w.status_of_appointment ?? null,
         is_gov_service: w.is_gov_service ?? false,
         _delete: w._delete ?? null,
+      }))
+      : []
+
+    // ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+    //  C3 - Individual Voluntary Work, Individual L&D, Individual Skills/Hobby, Individual Recognition, Individual Membership
+    // ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+    // === Individual Voluntary Work ===
+    pdsInfo.individual_voluntary_work = Array.isArray(personnel.individual_voluntary_work)
+      ? personnel.individual_voluntary_work.map((v) => ({
+        id: v.id,
+        is_current_org: v.is_current_org ?? false,
+        org_name: v.org_name ?? '',
+        org_address: v.org_address ?? '',
+        from: v.from ?? null,
+        to: v.to ?? null,
+        number_of_hours: v.number_of_hours ?? null,
+        position_nature_of_work: v.position_nature_of_work ?? null,
+      }))
+      : []
+
+    // === Individual Learning and Development ===
+    pdsInfo.individual_lnd = Array.isArray(personnel.individual_lnd)
+      ? personnel.individual_lnd.map((l) => ({
+        id: l.id,
+        title: l.title ?? '',
+        from: l.from ?? '',
+        to: l.to ?? null,
+        number_of_hours: l.number_of_hours ?? null,
+        type: l.type ?? null,
+        conducted_sponsor: l.conducted_sponsor ?? null,
+      }))
+      : []
+
+    // === Individual Skills / Hobby ===
+    pdsInfo.individual_skills_hobby = Array.isArray(personnel.individual_skills)
+      ? personnel.individual_skills.map((s) => ({
+        id: s.id,
+        skill_hobby: s.skill_hobby ?? '',
+      }))
+      : []
+
+    // === Individual Recognition ===
+    pdsInfo.individual_recognition = Array.isArray(personnel.individual_recognition)
+      ? personnel.individual_recognition.map((r) => ({
+        id: r.id,
+        recognition: r.recognition ?? '',
+      }))
+      : []
+
+    // === Individual Membership ===
+    pdsInfo.individual_membership = Array.isArray(personnel.individual_membership)
+      ? personnel.individual_membership.map((m) => ({
+        id: m.id,
+        association_organization: m.association_organization ?? '',
+      }))
+      : []
+
+    // ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+    //  C4 - Individual Questions & Individual References
+    // ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+    // === Individual Questions ===
+    pdsInfo.individual_question =
+      Array.isArray(personnel.individual_question) && personnel.individual_question.length
+        ? personnel.individual_question.map((q) => ({
+          id: q.id ?? null,
+          q34_a: q.q34_a ?? false,
+          q34_b: q.q34_b ?? false,
+          q34_details: q.q34_details ?? null,
+          q35_a: q.q35_a ?? false,
+          q35_a_details: q.q35_a_details ?? null,
+          q35_b: q.q35_b ?? false,
+          q35_b_date_filed: q.q35_b_date_filed ?? null,
+          q35_b_status: q.q35_b_status ?? null,
+          q36: q.q36 ?? false,
+          q36_details: q.q36_details ?? null,
+          q37: q.q37 ?? false,
+          q37_details: q.q37_details ?? null,
+          q38_a: q.q38_a ?? false,
+          q38_a_details: q.q38_a_details ?? null,
+          q38_b: q.q38_b ?? false,
+          q38_b_details: q.q38_b_details ?? null,
+          q39: q.q39 ?? false,
+          country_id: q.country_id ?? null,
+          q40_a_indigenous_group: q.q40_a_indigenous_group ?? false,
+          q40_a_details: q.q40_a_details ?? null,
+          q40_b_pwd: q.q40_b_pwd ?? false,
+          q40_b_details: q.q40_b_details ?? null,
+          q40_c_solo_parent: q.q40_c_solo_parent ?? false,
+          q40_c_details: q.q40_c_details ?? null,
+        }))
+        : [
+          {
+            id: null,
+            q34_a: false,
+            q34_b: false,
+            q34_details: null,
+            q35_a: false,
+            q35_a_details: null,
+            q35_b: false,
+            q35_b_date_filed: null,
+            q35_b_status: null,
+            q36: false,
+            q36_details: null,
+            q37: false,
+            q37_details: null,
+            q38_a: false,
+            q38_a_details: null,
+            q38_b: false,
+            q38_b_details: null,
+            q39: false,
+            country_id: null,
+            q40_a_indigenous_group: false,
+            q40_a_details: null,
+            q40_b_pwd: false,
+            q40_b_details: null,
+            q40_c_solo_parent: false,
+            q40_c_details: null,
+          },
+        ]
+
+    // === Individual References ===
+    pdsInfo.individual_reference = Array.isArray(personnel.individual_reference)
+      ? personnel.individual_reference.map((r) => ({
+        id: r.id,
+        name: r.name ?? '',
+        address: r.address ?? '',
+        tel_no: r.tel_no ?? '',
       }))
       : []
   }

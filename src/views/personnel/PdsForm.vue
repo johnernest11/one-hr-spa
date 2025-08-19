@@ -62,19 +62,20 @@ const handleUpdate = async () => {
   isSubmitting.value = true
 
   try {
-    // const resultC1 = await c1FormRef.value?.updateC1Form?.()
-    // if (resultC1?.valid === false) return
+    const promises = [
+      // c1FormRef.value?.updateC1Form?.(),
+      c2FormRef.value?.updateC2Form?.(),
+      c3FormRef.value?.updateC3Form?.(),
+      c4FormRef.value?.updateC4Form?.(),
+    ].filter(Boolean)
 
-    const resultC2 = await c2FormRef.value?.updateC2Form?.()
-    if (resultC2?.valid === false) return
+    const results = await Promise.all(promises)
 
-    // const resultC3 = await c3FormRef.value?.handleSaveC3Form?.()
-    // if (resultC3?.valid === false) return
+    for (const result of results) {
+      if (result?.valid === false) return
+    }
 
-    // const resultC4 = await c4FormRef.value?.handleSaveC4Form?.()
-    // if (resultC4?.valid === false) return
-
-    // window.location.reload()
+    window.location.reload()
   } finally {
     isSubmitting.value = false
   }

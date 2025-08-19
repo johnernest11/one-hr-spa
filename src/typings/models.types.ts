@@ -255,6 +255,13 @@ export type PersonnelResponse = {
   individual_educational_background: IndividualEducBg | null
   individual_eligibility: IndividualEligibility | null
   individual_work_experience: IndividualWorkExperience | null
+  individual_voluntary_work: IndividualVoluntaryWork | null
+  individual_lnd: IndividualLearningDevelopment | null
+  individual_skills: IndividualSkills | null
+  individual_recognition: IndividualRecognition | null
+  individual_membership: IndividualMembership | null
+  individual_question: IndividualQuestion | null
+  individual_reference: IndividualReference | null
   employee: PersonnelEmployee | null
 } & ApiResponseData
 
@@ -406,6 +413,7 @@ export type IndividualMembership = {
 
 /**Personnel Data Sheet (C4 FORM) (HTTP Responses) */
 export type IndividualQuestion = {
+  id: number
   q34_a: boolean
   q34_b: boolean
   q34_details: string | null
