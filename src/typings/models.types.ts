@@ -364,7 +364,7 @@ export type IndividualEligibility = {
 } & Omit<ApiResponseData, 'id'>
 
 export type IndividualWorkExperience = {
-  id: number
+  id: number | null
   is_current_work: boolean
   inclusive_date_from: string | null
   inclusive_date_to: string | null
@@ -377,7 +377,7 @@ export type IndividualWorkExperience = {
   status_of_appointment: string | null
   is_gov_service: boolean
   _delete: boolean | null
-} & ApiResponseData
+} & Omit<ApiResponseData, 'id'>
 
 /**Personnel Data Sheet (C3 FORM) (HTTP Responses) */
 export type IndividualVoluntaryWork = {

@@ -272,7 +272,7 @@ const handleAdditionalWorkExperience = () => {
   }
   // Add a new entry
   payload.individual_work_experience.push({
-    id: 0,
+    id: null,
     is_current_work: false,
     inclusive_date_from: null,
     inclusive_date_to: null,
