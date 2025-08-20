@@ -6,8 +6,13 @@ import { ApiResponseBody } from '@/typings/http-resources.types'
 import { useApiCall } from '@/composables/network'
 import { useAuthStore } from './auth.store'
 
+export type OfficePayload = {
+  name: string
+}
+
 export const useLibrariesStore = defineStore('libraries', () => {
   /** States */
+  const offices = ref<OfficesResponse[]>([])
   const officeOptions = ref<WbAutoCompleteOption[]>([])
   const officeOptionsLoading = ref(false)
   const authStore = useAuthStore()
@@ -81,6 +86,18 @@ export const useLibrariesStore = defineStore('libraries', () => {
     return res
   }
 
+  const createOffices = async (user: Partial<OfficesResponse>) => {
+    const { data } = await useApiCall('/libraries/offices/', authStore.authenticationToken).post(user).json()
+    const responseBody: ApiResponseBody = data.value
+
+    if (responseBody.success) {
+      // Add new user to the beginning of the list
+      offices.value.unshift(responseBody.data as OfficesResponse)
+    }
+
+    return responseBody
+  }
+
   const fetchOffices = async () => {
     if (officeOptions.value.length > 0) return
 
@@ -101,6 +118,36 @@ export const useLibrariesStore = defineStore('libraries', () => {
 
     officeOptionsLoading.value = false
     return res
+  }
+
+  const fetchListOffices = async (limit: number = 15, page: number | null = null) => {
+    let uri = `/libraries/offices?limit=${limit}&sort=asc`
+    if (page) uri += `&page=${page}`
+
+    const { data } = await useApiCall(uri, authStore.authenticationToken).get().json()
+    const responseBody: ApiResponseBody = data.value
+
+    if (responseBody.success) {
+      const officesList = responseBody.data as OfficesResponse[]
+      offices.value = [...officesList]
+    }
+
+    return responseBody
+  }
+
+  const searchListOffices = async (query: string | null) => {
+    let uri = '/libraries/offices/search?'
+    if (query) uri += `query=${query}`
+
+    const { data } = await useApiCall(uri, authStore.authenticationToken).get().json()
+    const responseBody: ApiResponseBody = data.value
+
+    if (responseBody.success) {
+      const officesList = responseBody.data as OfficesResponse[]
+      offices.value = [...officesList]
+    }
+
+    return responseBody
   }
 
   const fetchDivisions = async () => {
@@ -153,7 +200,11 @@ export const useLibrariesStore = defineStore('libraries', () => {
     fetchItems,
     itemsOptions,
     itemsOptionsLoading,
+    offices,
+    createOffices,
     fetchOffices,
+    fetchListOffices,
+    searchListOffices,
     officeOptions,
     officeOptionsLoading,
     fetchDivisions,

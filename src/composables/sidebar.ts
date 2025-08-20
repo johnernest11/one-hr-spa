@@ -80,6 +80,9 @@ export const useSidebarNavLinks = () => {
           case 'management':
             navLink.icon = 'pi pi-book'
             break
+          case 'odsus':
+            navLink.icon = 'pi pi-book'
+            break
           case 'user-management':
             navLink.icon = 'pi pi-users'
             break
@@ -175,6 +178,10 @@ export const useSidebarNavLinks = () => {
                   break
                 case 'salary-grade':
                   childNavLink.icon = 'fas fa-coins'
+                  break
+
+                case 'office':
+                  childNavLink.icon = 'fas fa-building'
                   break
 
                 /*Responsibility Routes */

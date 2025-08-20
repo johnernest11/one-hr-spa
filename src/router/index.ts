@@ -934,6 +934,30 @@ const routes = [
       },
     ],
   },
+  /*ODSUS*/
+  {
+    path: '/odsus',
+    name: 'odsus',
+    meta: <RouteMeta>{
+      group: RouteGroup.HUMAN_RESOURCES,
+      label: 'Odsus',
+      isSidebarMenu: true,
+      roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+    },
+    children: [
+      {
+        path: '/office',
+        name: 'office',
+        component: () => import('@/views/human-resources/OfficePage.vue'),
+        meta: <RouteMeta>{
+          label: 'Office',
+          isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+    ],
+  },
 
   /* SUPPORT  ROUTE*/
   {
