@@ -967,6 +967,17 @@ const routes = [
           roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
         },
       },
+      {
+        path: '/section_or_unit',
+        name: 'section_or_unit',
+        component: () => import('@/views/human-resources/SectionorUnitPage.vue'),
+        meta: <RouteMeta>{
+          label: 'Section/Unit',
+          isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
     ],
   },
 

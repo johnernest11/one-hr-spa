@@ -14,10 +14,16 @@ export type DivisionPayload = {
   name: string
 }
 
+export type SectionorUnitPayload = {
+  name: string
+  division_id: string
+}
+
 export const useLibrariesStore = defineStore('libraries', () => {
   /** States */
   const offices = ref<OfficesResponse[]>([])
   const divisions = ref<DivisionResponse[]>([])
+  const sectionsorunits = ref<SectionorUnitResponse[]>([])
   const officeOptions = ref<WbAutoCompleteOption[]>([])
   const officeOptionsLoading = ref(false)
   const authStore = useAuthStore()
@@ -219,6 +225,18 @@ export const useLibrariesStore = defineStore('libraries', () => {
     return responseBody
   }
 
+  const createSectionUnits = async (user: Partial<SectionorUnitResponse>) => {
+    const { data } = await useApiCall('/divisions/section-or-units/', authStore.authenticationToken).post(user).json()
+    const responseBody: ApiResponseBody = data.value
+
+    if (responseBody.success) {
+      // Add new user to the beginning of the list
+      sectionsorunits.value.unshift(responseBody.data as SectionorUnitResponse)
+    }
+
+    return responseBody
+  }
+
   const fetchSectionUnits = async () => {
     if (sectionUnitOptions.value.length > 0) return null
 
@@ -241,6 +259,47 @@ export const useLibrariesStore = defineStore('libraries', () => {
     return res
   }
 
+  const fetchListSectionUnits = async (limit: number = 15, page: number | null = null) => {
+    let uri = `/libraries/section-or-units?limit=${limit}&sort=asc`
+    if (page) uri += `&page=${page}`
+
+    const { data } = await useApiCall(uri, authStore.authenticationToken).get().json()
+    const responseBody: ApiResponseBody = data.value
+
+    if (responseBody.success) {
+      const sectionorunitsList = responseBody.data as SectionorUnitResponse[]
+      sectionsorunits.value = [...sectionorunitsList]
+    }
+
+    return responseBody
+  }
+
+  const searchListSectionUnits = async (query: string | null) => {
+    let uri = '/libraries/section-or-units/search?'
+    if (query) uri += `query=${query}`
+
+    const { data } = await useApiCall(uri, authStore.authenticationToken).get().json()
+    const responseBody: ApiResponseBody = data.value
+
+    if (responseBody.success) {
+      const sectionorunitsList = responseBody.data as SectionorUnitResponse[]
+      sectionsorunits.value = [...sectionorunitsList]
+    }
+
+    return responseBody
+  }
+
+  const filterListSectionUnits = async (divisions: string | null) => {
+    let uri = '/libraries/section-or-units'
+    if (divisions) uri += `?division=${encodeURIComponent(divisions)}`
+    const { data } = await useApiCall(uri, authStore.authenticationToken).get().json()
+    const responseBody: ApiResponseBody = data.value
+    if (responseBody.success) {
+      const sectionorunitsList = responseBody.data as SectionorUnitResponse[]
+      sectionsorunits.value = [...sectionorunitsList]
+    }
+    return responseBody
+  }
   /** Actions */
 
   return {
@@ -261,7 +320,12 @@ export const useLibrariesStore = defineStore('libraries', () => {
     searchListDivisions,
     divisionOptions,
     divisionOptionsLoading,
+    sectionsorunits,
+    createSectionUnits,
     fetchSectionUnits,
+    fetchListSectionUnits,
+    searchListSectionUnits,
+    filterListSectionUnits,
     sectionUnitOptions,
     sectionUnitOptionsLoading,
     fundingSourcesOptions,

@@ -186,6 +186,9 @@ export const useSidebarNavLinks = () => {
                 case 'division':
                   childNavLink.icon = 'fas fa-braille'
                   break
+                case 'section_or_unit':
+                  childNavLink.icon = 'fas fa-layer-group'
+                  break
 
                 /*Responsibility Routes */
                 case 'accomplishment-report-list':
