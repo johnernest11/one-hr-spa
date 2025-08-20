@@ -978,6 +978,17 @@ const routes = [
           roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
         },
       },
+      {
+        path: '/program',
+        name: 'program',
+        component: () => import('@/views/human-resources/ProgramPage.vue'),
+        meta: <RouteMeta>{
+          label: 'Program',
+          isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
     ],
   },
 
