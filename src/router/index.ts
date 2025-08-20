@@ -915,7 +915,7 @@ const routes = [
         name: 'fund-source',
         component: () => import('@/views/human-resources/FundSourcePage.vue'),
         meta: <RouteMeta>{
-          label: 'Positions',
+          label: 'Fund Source',
           isSidebarMenu: true,
           authType: AuthType.AUTHENTICATED,
           roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],

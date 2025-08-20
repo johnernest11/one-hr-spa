@@ -29,10 +29,10 @@ const CreateFundSource = ref(false)
 const searchSubmitted = ref(false)
 const fundSourceIsLoading = ref(false)
 const isLoading = ref(true)
+const isEditMode = ref(false)
 const formIsSubmitting = ref(false)
 const showErrorAlert = ref(false)
 const paginationLimit = 5
-
 const searchQuery = ref<string | null>(null)
 const errorMessage = ref<string | null>(null)
 const errorDetails = ref<string[]>([])
@@ -44,11 +44,15 @@ const emit = defineEmits<{
 
 const openfundSourceDialog = (fundSource: FundSourceResponse | null = null) => {
   if (!fundSource || !fundSource.id) {
-    console.error('Cannot navigate to details: Position or ID is undefined', fundSource)
+    console.error('Cannot navigate to details: Fund Source or ID is undefined', fundSource)
     return
   }
   if (fundSource) {
     updatePayloadFromReport(fundSource)
+    isEditMode.value = true
+  } else {
+    resetPayload() // clear form if new
+    isEditMode.value = false
   }
   CreateFundSource.value = true
 }
@@ -212,7 +216,10 @@ const handleSaveSubmissionif = async () => {
       <div
         class="flex flex-row items-center space-x-4 font-medium text-primary-700 dark:text-primary-100 md:ml-4 md:mt-2 md:flex-row"
       >
-        <h1 class="mb-2 mr-4 whitespace-nowrap text-xl text-surface-600 dark:text-primary-100 md:text-xl lg:text-4xl">
+        <h1
+          class="mb-2 ml-4 mr-4 whitespace-nowrap text-xl font-semibold text-primary-800 dark:text-primary-100 md:text-xl lg:text-4xl"
+        >
+          <font-awesome-icon :icon="['fas', 'wallet']" />
           Fund Source Creation
         </h1>
 
@@ -232,7 +239,7 @@ const handleSaveSubmissionif = async () => {
             <InputGroup v-model="searchQuery" class="w-full">
               <InputText
                 v-model="searchQuery"
-                placeholder="Search via Name"
+                placeholder="Search via Fund Name"
                 class="w-full"
                 :disabled="fundSourceIsLoading"
                 @keyup.enter="handleSearchPosition"
@@ -318,38 +325,7 @@ const handleSaveSubmissionif = async () => {
       </div>
     </div>
   </div>
-  <Dialog v-model:visible="CreateFundSource" modal header="Fund Source Creation" :style="{ width: '90vw' }">
-    <template #header>
-      <div class="flex items-center space-x-3 pt-4 sm:px-6 md:px-8">
-        <h1 class="font-base text-2xl text-surface-600 sm:text-xl md:text-2xl">Fund Source Creation</h1>
-      </div>
-    </template>
-    <hr />
-
-    <div class="px-4 py-4 sm:px-6 sm:py-6 md:px-12">
-      <div class="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div></div>
-
-        <div></div>
-      </div>
-
-      <div class="flex justify-end">
-        <Button
-          @click="handleSaveSubmissionif"
-          :loading="formIsSubmitting"
-          :disabled="formIsSubmitting"
-          label="Submit"
-          class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-600"
-          text
-        >
-          <template #icon>
-            <font-awesome-icon :icon="['fas', 'save']" class="mr-2" />
-          </template>
-        </Button>
-      </div>
-    </div>
-  </Dialog>
-  <!-- Import PDS Dialog -->
+  <!-- Create/Update Fund Source Dialog -->
   <Dialog v-model:visible="CreateFundSource" modal header="Fund Source Creation" :style="{ width: '90vw' }">
     <template #header>
       <div class="flex items-center space-x-3 pt-4 sm:px-6 md:px-8">
@@ -385,8 +361,19 @@ const handleSaveSubmissionif = async () => {
         >
         </WbInputText>
       </div>
-      <div class="flex justify-end">
+      <div class="mt-2 flex justify-end gap-2">
         <Button
+          label="Cancel"
+          class="dark:text-secondary-100 border border-surface-400 text-base text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
+          text
+          @click="CreateFundSource = false"
+        >
+          <template #icon>
+            <i class="pi pi-ban mr-2"></i>
+          </template>
+        </Button>
+        <Button
+          v-if="!isEditMode"
           @click="handleSaveSubmissionif"
           :loading="formIsSubmitting"
           :disabled="formIsSubmitting"
@@ -396,6 +383,18 @@ const handleSaveSubmissionif = async () => {
         >
           <template #icon>
             <font-awesome-icon icon="save" class="mr-2" />
+          </template>
+        </Button>
+        <Button
+          v-else
+          :loading="formIsSubmitting"
+          :disabled="formIsSubmitting"
+          label="Update"
+          class="dark:text-secondary-100 border border-primary-500 text-sm text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-600"
+          text
+        >
+          <template #icon>
+            <font-awesome-icon icon="edit" class="mr-2" />
           </template>
         </Button>
       </div>
