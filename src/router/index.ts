@@ -956,6 +956,17 @@ const routes = [
           roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
         },
       },
+      {
+        path: '/division',
+        name: 'division',
+        component: () => import('@/views/human-resources/DivisionsPage.vue'),
+        meta: <RouteMeta>{
+          label: 'Division',
+          isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
     ],
   },
 

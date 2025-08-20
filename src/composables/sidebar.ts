@@ -183,6 +183,9 @@ export const useSidebarNavLinks = () => {
                 case 'office':
                   childNavLink.icon = 'fas fa-building'
                   break
+                case 'division':
+                  childNavLink.icon = 'fas fa-braille'
+                  break
 
                 /*Responsibility Routes */
                 case 'accomplishment-report-list':
