@@ -78,7 +78,7 @@ export const useSidebarNavLinks = () => {
             navLink.icon = 'pi pi-heart'
             break
           case 'management':
-            navLink.icon = 'pi pi-briefcase'
+            navLink.icon = 'pi pi-book'
             break
           case 'user-management':
             navLink.icon = 'pi pi-users'
