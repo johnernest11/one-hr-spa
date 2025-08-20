@@ -41,11 +41,9 @@ const isC2Loading = ref(false)
 const isPdsError = ref(false)
 const isCurrentlyEmployed = ref(false)
 const formIsSubmitting = ref(false)
-const showErrorAlert = ref(false)
 const IsBeingUpdated = ref(false)
 const extraWorkExperienceTabVisible = ref(false)
 const isLoading = ref(true)
-const errorDetails = ref<string[]>([])
 
 const activeTab = ref(0)
 const activeToasts = ref<number>(0)
@@ -204,9 +202,11 @@ watch(useCustomSalaryGrade, (newVal) => {
 })
 
 watch(
-  () => payload.individual_work_experience[workExperienceIndex.value - 1].salary_grade_id,
+  () => payload.individual_work_experience[workExperienceIndex.value - 1]?.salary_grade_id,
   (newSelectedItem) => {
     const idx = workExperienceIndex.value - 1
+    if (idx < 0 || !payload.individual_work_experience[idx]) return // guard
+
     if (!newSelectedItem) {
       selectedWorkExperienceSG.value[idx] = null
     }
@@ -238,7 +238,7 @@ const showToast = (
 const handleAdditionalEligibility = () => {
   if (payload.individual_eligibility.length < 7) {
     payload.individual_eligibility.push({
-      id: 0,
+      id: null,
       eligibility: null,
       rating: null,
       date_of_examination_conferment: null,
@@ -349,33 +349,57 @@ watch(
 
 const updateC2Form = async () => {
   IsBeingUpdated.value = true
-  const id = route.params.id as string
-
+  isC2Loading.value = true
   formIsSubmitting.value = true
-  const response = await pdsStore.updatePds(
-    { ...payload }, // only payload properties
-    id,
-    'C2' // pass form_type as a separate argument if your store expects it
-  )
+
+  const id = route.params.id as string
+  if (!id) {
+    showToast('error', 'PDS Error', 'No ID found for updating.')
+    IsBeingUpdated.value = false
+    isC2Loading.value = false
+    formIsSubmitting.value = false
+    return { valid: false, errorTabs: ['C2'] }
+  }
+
+  const valid = await validator.value.$validate()
+  if (!valid) {
+    const hasEligibilityError = Object.values(validator.value.individual_eligibility ?? {}).some(
+      (entry) => (entry as { $error: boolean })?.$error
+    )
+
+    const hasWorkExperienceError = Object.values(validator.value.individual_work_experience ?? {}).some(
+      (entry) => (entry as { $error: boolean })?.$error
+    )
+
+    const errorTabs: string[] = []
+    if (hasEligibilityError) errorTabs.push('Civil Service Eligibility')
+    if (hasWorkExperienceError) errorTabs.push('Work Experience')
+
+    const tabList = errorTabs.join(', ')
+    showToast('error', 'Validation Error', `Please check the following tab(s): ${tabList}`)
+
+    IsBeingUpdated.value = false
+    isC2Loading.value = false
+    formIsSubmitting.value = false
+
+    return { valid: false, errorTabs: ['C2'] }
+  }
+
+  const response = await pdsStore.updatePds({ ...payload }, id, 'C2')
 
   if (!response.success) {
     const result = parseApiResponseError(response)
-    if (!result) return (formIsSubmitting.value = false)
 
-    showErrorAlert.value = true
-    errorMessage.value = result.message
-    errorDetails.value = result.errors
-    IsBeingUpdated.value = false
+    isPdsError.value = true
+    errorMessage.value = result?.message
+    pdsErrors.value = result?.errors
+    showToast('error', 'PDS C2 Error', 'Please see the validation messages')
+  } else {
+    showToast('success', 'PDS', 'PDS has been saved')
   }
 
-  formIsSubmitting.value = false
-  toast.add({
-    severity: 'success',
-    summary: 'Personal Data Sheet (PDS)',
-    detail: 'PDS has been successfully updated',
-    life: 1000,
-  })
-
+  IsBeingUpdated.value = false
+  isC2Loading.value = false
   formIsSubmitting.value = false
 }
 

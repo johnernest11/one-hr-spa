@@ -75,7 +75,7 @@ const handleUpdate = async () => {
       if (result?.valid === false) return
     }
 
-    window.location.reload()
+    // window.location.reload()
   } finally {
     isSubmitting.value = false
   }

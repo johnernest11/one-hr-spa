@@ -353,7 +353,7 @@ export type IndividualEducBg = {
 
 /**Personnel Data Sheet (C2 FORM) (HTTP Responses) */
 export type IndividualEligibility = {
-  id: number
+  id: number | null
   eligibility: string | null
   rating: string | null
   date_of_examination_conferment: string | null
@@ -361,7 +361,7 @@ export type IndividualEligibility = {
   license_number: string | null
   license_date_of_validity: string | null
   _delete: boolean | null
-} & ApiResponseData
+} & Omit<ApiResponseData, 'id'>
 
 export type IndividualWorkExperience = {
   id: number
