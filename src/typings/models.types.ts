@@ -379,7 +379,7 @@ export type IndividualWorkExperience = {
 
 /**Personnel Data Sheet (C3 FORM) (HTTP Responses) */
 export type IndividualVoluntaryWork = {
-  id: number
+  id: number | null
   is_current_org: boolean
   org_name: string | null
   org_address: string | null
@@ -388,10 +388,10 @@ export type IndividualVoluntaryWork = {
   number_of_hours: string | null
   position_nature_of_work: string | null
   _delete: boolean | null
-} & ApiResponseData
+} & Omit<ApiResponseData, 'id'>
 
 export type IndividualLearningDevelopment = {
-  id: number
+  id: number | null
   title: string | null
   from: string | null
   to: string | null
@@ -399,25 +399,25 @@ export type IndividualLearningDevelopment = {
   type: string | null
   conducted_sponsor: string | null
   _delete: boolean | null
-} & ApiResponseData
+} & Omit<ApiResponseData, 'id'>
 
 export type IndividualSkills = {
-  id: number
+  id: number | null
   skill_hobby: string | null
   _delete: boolean | null
-} & ApiResponseData
+} & Omit<ApiResponseData, 'id'>
 
 export type IndividualRecognition = {
-  id: number
+  id: number | null
   recognition: string | null
   _delete: boolean | null
-} & ApiResponseData
+} & Omit<ApiResponseData, 'id'>
 
 export type IndividualMembership = {
-  id: number
+  id: number | null
   association_organization: string | null
   _delete: boolean | null
-} & ApiResponseData
+} & Omit<ApiResponseData, 'id'>
 
 /**Personnel Data Sheet (C4 FORM) (HTTP Responses) */
 export type IndividualQuestion = {

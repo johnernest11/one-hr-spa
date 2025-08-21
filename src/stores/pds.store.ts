@@ -22,7 +22,8 @@ import {
 import { useApiCall } from '@/composables/network'
 import { useAuthStore } from '@/stores/auth.store.ts'
 import { ApiResponseBody } from '@/typings/http-resources.types'
-import { formatDateFields, formatYear } from '@/utils/helpers.js'
+import { formatDateFields, formatValidationDate, formatYear } from '@/utils/helpers.js'
+
 import { useRoute } from 'vue-router'
 import { BloodType, CivilStatusType, SexType } from '@/typings/employee-entry.types'
 
@@ -322,7 +323,7 @@ export const usePdsStore = defineStore('pds', () => {
     /** PDS C3 */
     individual_voluntary_work: [
       {
-        id: 0,
+        id: null,
         is_current_org: false,
         org_name: '',
         org_address: '',
@@ -335,7 +336,7 @@ export const usePdsStore = defineStore('pds', () => {
     ],
     individual_lnd: [
       {
-        id: 0,
+        id: null,
         title: '',
         from: '',
         to: null,
@@ -347,21 +348,21 @@ export const usePdsStore = defineStore('pds', () => {
     ],
     individual_skills_hobby: [
       {
-        id: 0,
+        id: null,
         skill_hobby: '',
         _delete: null,
       },
     ],
     individual_recognition: [
       {
-        id: 0,
+        id: null,
         recognition: '',
         _delete: null,
       },
     ],
     individual_membership: [
       {
-        id: 0,
+        id: null,
         association_organization: '',
         _delete: null,
       },
@@ -674,9 +675,27 @@ export const usePdsStore = defineStore('pds', () => {
     return responseBody
   }
 
-  const updatePds = async (pds: Partial<PersonalDataSheetPayload>, id: string | number, formType: 'C1' | 'C2' | 'C3' | 'C4') => {
+  const updatePds = async (
+    payload: Partial<PersonalDataSheetPayload>,
+    id: string | number,
+    formType: 'C1' | 'C2' | 'C3' | 'C4'
+  ) => {
+    if (payload.individual_voluntary_work) {
+      payload.individual_voluntary_work.forEach((vwork) => {
+        vwork.from = formatValidationDate(vwork.from)
+        vwork.to = formatValidationDate(vwork.to)
+      })
+    }
+
+    if (payload.individual_lnd) {
+      payload.individual_lnd.forEach((lnd) => {
+        lnd.from = formatValidationDate(lnd.from)
+        lnd.to = formatValidationDate(lnd.to)
+      })
+    }
+
     const { data } = await useApiCall(`/individual-basic-details/${id}`, authStore.authenticationToken)
-      .put({ ...pds, form_type: formType })
+      .put({ ...payload, form_type: formType })
       .json()
     const responseBody: ApiResponseBody = data.value
     if (responseBody.success) {
