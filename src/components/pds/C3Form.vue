@@ -238,8 +238,8 @@ const handleAdditionalSkillHobbies = () => {
   }
 }
 
-const handleRemoveSkillHobbies = (skillIndex: number) => {
-  const idx = skillIndex - 1
+const handleRemoveSkillHobbies = (skillHobbiesIndex: number) => {
+  const idx = skillHobbiesIndex - 1
   const skills_hobby = payload.individual_skills_hobby?.[idx]
 
   if (skills_hobby?.id) {

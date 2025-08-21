@@ -566,8 +566,8 @@ export const usePdsStore = defineStore('pds', () => {
       : []
 
     // === C3 - Individual Skills / Hobby ===
-    pdsInfo.individual_skills_hobby = Array.isArray(personnel.individual_skills)
-      ? personnel.individual_skills.map((s) => ({
+    pdsInfo.individual_skills_hobby = Array.isArray(personnel.individual_skills_hobby)
+      ? personnel.individual_skills_hobby.map((s) => ({
         id: s.id,
         skill_hobby: s.skill_hobby ?? '',
         _delete: s._delete ?? null,
