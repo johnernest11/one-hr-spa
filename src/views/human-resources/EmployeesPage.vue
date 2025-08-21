@@ -327,7 +327,7 @@ onBeforeMount(async () => {
 })
 
 const canCreateNewEmployee = computed(() => {
-  return authStore.authHasRequiredRole(['hr_ppms_admin', 'admin', 'super_user'])
+  return authStore.authHasRequiredRole(['hr_ppms_admin', 'admin'])
 })
 
 const toggleAddingList = (event: Event) => {
@@ -572,6 +572,7 @@ const downloadQrCode = async () => {
                     @click="showModal = true"
                   />
                   <Button
+                    v-if="canCreateNewEmployee"
                     icon="pi pi-plus"
                     v-tooltip.top="'New Employee'"
                     severity="info"
@@ -646,6 +647,7 @@ const downloadQrCode = async () => {
                         @click="navigateToDetails(props.data)"
                       />
                       <Button
+                        v-if="canCreateNewEmployee"
                         icon="pi pi-qrcode"
                         v-tooltip.top="'Generate QR Code'"
                         severity="info"
