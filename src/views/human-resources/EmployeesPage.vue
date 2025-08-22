@@ -327,7 +327,7 @@ onBeforeMount(async () => {
 })
 
 const canCreateNewEmployee = computed(() => {
-  return authStore.authHasRequiredRole(['hr_ppms_admin', 'admin'])
+  return authStore.authHasRequiredRole(['hr_ppms_admin', 'admin', 'super_user'])
 })
 
 const toggleAddingList = (event: Event) => {
