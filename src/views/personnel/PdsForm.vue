@@ -20,7 +20,7 @@ const isMyPds = route.name === 'my-pds'
 const isEditMode = computed(() => !!route.params.id)
 const pdsStore = usePdsStore()
 const profileStore = useProfileStore()
-const isC1Loading = ref(false)
+const isSubmitting = ref(false)
 
 const c1FormRef = ref()
 const c2FormRef = ref()
@@ -33,8 +33,6 @@ onBeforeMount(async () => {
     pdsStore.pdsMode = route.query.mode.replace(/-/g, ' ').replace(/(?:^|\s)\S/g, (a: string) => a.toUpperCase())
   }
 })
-
-const isSubmitting = ref(false)
 
 const handleSubmit = async () => {
   isSubmitting.value = true
@@ -74,8 +72,6 @@ const handleUpdate = async () => {
     for (const result of results) {
       if (result?.valid === false) return
     }
-
-    window.location.reload()
   } finally {
     isSubmitting.value = false
   }
@@ -105,7 +101,8 @@ const handleUpdate = async () => {
               v-if="!isMyPds && !isEditMode"
               label="Save PDS"
               @click.prevent="handleSubmit"
-              :loading="isC1Loading"
+              :loading="isSubmitting"
+              :disabled="isSubmitting"
               type="button"
               size="large"
               class="dark:text-secondary-100 mt-4 w-full border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
@@ -121,7 +118,8 @@ const handleUpdate = async () => {
               v-if="!isMyPds && isEditMode"
               label="Update PDS"
               @click.prevent="handleUpdate"
-              :loading="isC1Loading"
+              :loading="isSubmitting"
+              :disabled="isSubmitting"
               type="button"
               size="large"
               class="dark:text-secondary-100 mt-4 w-full border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"

@@ -22,7 +22,7 @@ import {
 import { useApiCall } from '@/composables/network'
 import { useAuthStore } from '@/stores/auth.store.ts'
 import { ApiResponseBody } from '@/typings/http-resources.types'
-import { formatDateFields, formatYear } from '@/utils/helpers.js'
+import { formatDateFields, formatValidationDate, formatYear } from '@/utils/helpers.js'
 import { useRoute } from 'vue-router'
 import { BloodType, CivilStatusType, SexType } from '@/typings/employee-entry.types'
 
@@ -292,7 +292,7 @@ export const usePdsStore = defineStore('pds', () => {
     /** PDS C2 */
     individual_eligibility: [
       {
-        id: 0,
+        id: null,
         eligibility: '',
         rating: '',
         date_of_examination_conferment: '',
@@ -734,16 +734,48 @@ export const usePdsStore = defineStore('pds', () => {
     return responseBody
   }
 
-  const updatePds = async (pds: Partial<PersonalDataSheetPayload>, id: string | number, formType: 'C1' | 'C2' | 'C3' | 'C4') => {
+  const updatePds = async (
+    payload: Partial<PersonalDataSheetPayload>,
+    id: string | number,
+    formType: 'C1' | 'C2' | 'C3' | 'C4'
+  ) => {
+    // Format education dates to 'YYYY'
+    if (payload.individual_educational_background) {
+      payload.individual_educational_background.forEach((edu) => {
+        edu.period_of_attendance_from = formatYear(edu.period_of_attendance_from)
+        edu.period_of_attendance_to = formatYear(edu.period_of_attendance_to)
+        edu.year_graduated = formatYear(edu.year_graduated)
+      })
+    }
+
+    // Format eligibility dates to 'YYYY-MM-DD'
+    if (payload.individual_eligibility) {
+      payload.individual_eligibility.forEach((elig) => {
+        elig.date_of_examination_conferment = formatValidationDate(elig.date_of_examination_conferment)
+        elig.license_date_of_validity = formatValidationDate(elig.license_date_of_validity)
+      })
+    }
+
+    if (payload.individual_work_experience) {
+      payload.individual_work_experience.forEach((work) => {
+        work.inclusive_date_from = formatValidationDate(work.inclusive_date_from) // Y-m-d
+        work.inclusive_date_to = formatValidationDate(work.inclusive_date_to) // Y-m-d
+      })
+    }
+
+    // Perform update
     const { data } = await useApiCall(`/individual-basic-details/${id}`, authStore.authenticationToken)
-      .put({ ...pds, form_type: formType })
+      .put({ ...payload, form_type: formType })
       .json()
+
     const responseBody: ApiResponseBody = data.value
     if (responseBody.success) {
       const index = personnelPds.value.findIndex((personnelPds) => personnelPds?.id === id)
-      if (index === -1) return responseBody
-      personnelPds.value[index] = responseBody.data as PersonnelResponse
+      if (index !== -1) {
+        personnelPds.value[index] = responseBody.data as PersonnelResponse
+      }
     }
+
     return responseBody
   }
 

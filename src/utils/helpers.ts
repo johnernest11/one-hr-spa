@@ -603,6 +603,14 @@ export const formatYear = (val: unknown): string => {
   return isNaN(date.getTime()) ? '' : date.getFullYear().toString()
 }
 
+export const formatValidationDate = (val: unknown): string => {
+  const date = new Date(val as string | number | Date)
+  if (isNaN(date.getTime())) return ''
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}` // Y-m-d
+}
 /**
  * Applies `formatDateSafe` to specific fields of each object in an array.
  *
