@@ -23,6 +23,7 @@ import { useApiCall } from '@/composables/network'
 import { useAuthStore } from '@/stores/auth.store.ts'
 import { ApiResponseBody } from '@/typings/http-resources.types'
 import { formatDateFields, formatValidationDate, formatYear } from '@/utils/helpers.js'
+
 import { useRoute } from 'vue-router'
 import { BloodType, CivilStatusType, SexType } from '@/typings/employee-entry.types'
 
@@ -322,6 +323,7 @@ export const usePdsStore = defineStore('pds', () => {
     /** PDS C3 */
     individual_voluntary_work: [
       {
+        id: null,
         is_current_org: false,
         org_name: '',
         org_address: '',
@@ -329,31 +331,40 @@ export const usePdsStore = defineStore('pds', () => {
         to: null,
         number_of_hours: null,
         position_nature_of_work: null,
+        _delete: null,
       },
     ],
     individual_lnd: [
       {
+        id: null,
         title: '',
         from: '',
         to: null,
         number_of_hours: null,
         type: null,
         conducted_sponsor: null,
+        _delete: null,
       },
     ],
     individual_skills_hobby: [
       {
+        id: null,
         skill_hobby: '',
+        _delete: null,
       },
     ],
     individual_recognition: [
       {
+        id: null,
         recognition: '',
+        _delete: null,
       },
     ],
     individual_membership: [
       {
+        id: null,
         association_organization: '',
+        _delete: null,
       },
     ],
     /** PDS C4 */
@@ -423,7 +434,7 @@ export const usePdsStore = defineStore('pds', () => {
   const updatePdsFromPersonnel = (personnel: PersonnelResponse | null) => {
     if (!personnel) return
 
-    // === Employee Info ===
+    // === C1 -  Employee Info ===
     const employee = personnel.employee
     pdsInfo.employee.id = employee?.id ?? 0
     pdsInfo.employee.individual_basic_detail_id = employee?.individual_basic_detail_id ?? null
@@ -444,7 +455,7 @@ export const usePdsStore = defineStore('pds', () => {
     pdsInfo.employee.section_or_unit = employee?.section_or_unit ?? null
     pdsInfo.employee.item = null
 
-    // === Individual Information ===
+    // === C1 -  Individual Information ===
     pdsInfo.individual.first_name = personnel.first_name ?? null
     pdsInfo.individual.last_name = personnel.last_name ?? null
     pdsInfo.individual.middle_name = personnel.middle_name ?? null
@@ -466,13 +477,13 @@ export const usePdsStore = defineStore('pds', () => {
     pdsInfo.individual.citizenship_acquisition = personnel.citizenship_acquisition ?? null
     pdsInfo.individual.citizenship_country = null
 
-    // === Contact Info ===
+    // === C1 -  Contact Info ===
     const contactInfo = personnel.individual_contact_info
     pdsInfo.contact_info.tel_no = contactInfo?.tel_no ?? null
     pdsInfo.contact_info.mobile_no = contactInfo?.mobile_no ?? null
     pdsInfo.contact_info.email_address = contactInfo?.email_address ?? null
 
-    // === Individual Address Init ===
+    // === C1 - Individual Address Init ===
     const address = personnel.individual_address
 
     pdsInfo.individual_address_init.residential_house_block_lot_no = address?.residential_house_block_lot_no ?? null
@@ -493,7 +504,7 @@ export const usePdsStore = defineStore('pds', () => {
     pdsInfo.individual_address_init.permanent_region_id = address?.permanent_region_id ?? null
     pdsInfo.individual_address_init.permanent_zip_code = address?.permanent_zip_code ?? null
 
-    // === Individual Eligibility ===
+    // === C2 -  Individual Eligibility ===
     pdsInfo.individual_eligibility = Array.isArray(personnel.individual_eligibility)
       ? personnel.individual_eligibility.map((e) => ({
         id: e.id,
@@ -507,7 +518,7 @@ export const usePdsStore = defineStore('pds', () => {
       }))
       : []
 
-    // === Individual Work Experience ===
+    // === C2 - Individual Work Experience ===
     pdsInfo.individual_work_experience = Array.isArray(personnel.individual_work_experience)
       ? personnel.individual_work_experience.map((w) => ({
         id: w.id,
@@ -525,11 +536,8 @@ export const usePdsStore = defineStore('pds', () => {
         _delete: w._delete ?? null,
       }))
       : []
+    // === C3 - Individual Voluntary Work ===
 
-    // ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-    //  C3 - Individual Voluntary Work, Individual L&D, Individual Skills/Hobby, Individual Recognition, Individual Membership
-    // ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-    // === Individual Voluntary Work ===
     pdsInfo.individual_voluntary_work = Array.isArray(personnel.individual_voluntary_work)
       ? personnel.individual_voluntary_work.map((v) => ({
         id: v.id,
@@ -540,10 +548,11 @@ export const usePdsStore = defineStore('pds', () => {
         to: v.to ?? null,
         number_of_hours: v.number_of_hours ?? null,
         position_nature_of_work: v.position_nature_of_work ?? null,
+        _delete: v._delete ?? null,
       }))
       : []
 
-    // === Individual Learning and Development ===
+    // === C3 - Individual Learning and Development ===
     pdsInfo.individual_lnd = Array.isArray(personnel.individual_lnd)
       ? personnel.individual_lnd.map((l) => ({
         id: l.id,
@@ -553,30 +562,34 @@ export const usePdsStore = defineStore('pds', () => {
         number_of_hours: l.number_of_hours ?? null,
         type: l.type ?? null,
         conducted_sponsor: l.conducted_sponsor ?? null,
+        _delete: l._delete ?? null,
       }))
       : []
 
-    // === Individual Skills / Hobby ===
-    pdsInfo.individual_skills_hobby = Array.isArray(personnel.individual_skills)
-      ? personnel.individual_skills.map((s) => ({
+    // === C3 - Individual Skills / Hobby ===
+    pdsInfo.individual_skills_hobby = Array.isArray(personnel.individual_skills_hobby)
+      ? personnel.individual_skills_hobby.map((s) => ({
         id: s.id,
         skill_hobby: s.skill_hobby ?? '',
+        _delete: s._delete ?? null,
       }))
       : []
 
-    // === Individual Recognition ===
+    // === C3 - Individual Recognition ===
     pdsInfo.individual_recognition = Array.isArray(personnel.individual_recognition)
       ? personnel.individual_recognition.map((r) => ({
         id: r.id,
         recognition: r.recognition ?? '',
+        _delete: r._delete ?? null,
       }))
       : []
 
-    // === Individual Membership ===
+    // === C3 - Individual Membership ===
     pdsInfo.individual_membership = Array.isArray(personnel.individual_membership)
       ? personnel.individual_membership.map((m) => ({
         id: m.id,
         association_organization: m.association_organization ?? '',
+        _delete: m._delete ?? null,
       }))
       : []
 
@@ -725,8 +738,10 @@ export const usePdsStore = defineStore('pds', () => {
 
   const fetchPdsById = async (id: string | number) => {
     const url = `/individual-basic-details/${id}`
+
     const { data } = await useApiCall(url, authStore.authenticationToken).get().json()
     const responseBody: ApiResponseBody = data.value
+
     if (responseBody.success) {
       selectedPDS.value = responseBody.data as PersonnelResponse
     }
@@ -739,6 +754,20 @@ export const usePdsStore = defineStore('pds', () => {
     id: string | number,
     formType: 'C1' | 'C2' | 'C3' | 'C4'
   ) => {
+    if (payload.individual_voluntary_work) {
+      payload.individual_voluntary_work.forEach((vwork) => {
+        vwork.from = formatValidationDate(vwork.from)
+        vwork.to = formatValidationDate(vwork.to)
+      })
+    }
+
+    if (payload.individual_lnd) {
+      payload.individual_lnd.forEach((lnd) => {
+        lnd.from = formatValidationDate(lnd.from)
+        lnd.to = formatValidationDate(lnd.to)
+      })
+    }
+
     // Format education dates to 'YYYY'
     if (payload.individual_educational_background) {
       payload.individual_educational_background.forEach((edu) => {
@@ -763,7 +792,6 @@ export const usePdsStore = defineStore('pds', () => {
       })
     }
 
-    // Perform update
     const { data } = await useApiCall(`/individual-basic-details/${id}`, authStore.authenticationToken)
       .put({ ...payload, form_type: formType })
       .json()

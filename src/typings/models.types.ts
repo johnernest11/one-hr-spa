@@ -257,7 +257,7 @@ export type PersonnelResponse = {
   individual_work_experience: IndividualWorkExperience | null
   individual_voluntary_work: IndividualVoluntaryWork | null
   individual_lnd: IndividualLearningDevelopment | null
-  individual_skills: IndividualSkills | null
+  individual_skills_hobby: IndividualSkills | null
   individual_recognition: IndividualRecognition | null
   individual_membership: IndividualMembership | null
   individual_question: IndividualQuestion | null
@@ -381,6 +381,7 @@ export type IndividualWorkExperience = {
 
 /**Personnel Data Sheet (C3 FORM) (HTTP Responses) */
 export type IndividualVoluntaryWork = {
+  id: number | null
   is_current_org: boolean
   org_name: string | null
   org_address: string | null
@@ -388,28 +389,37 @@ export type IndividualVoluntaryWork = {
   to: string | Date | null
   number_of_hours: string | null
   position_nature_of_work: string | null
-}
+  _delete: boolean | null
+} & Omit<ApiResponseData, 'id'>
 
 export type IndividualLearningDevelopment = {
+  id: number | null
   title: string | null
   from: string | null
   to: string | null
   number_of_hours: string | null
   type: string | null
   conducted_sponsor: string | null
-}
+  _delete: boolean | null
+} & Omit<ApiResponseData, 'id'>
 
 export type IndividualSkills = {
+  id: number | null
   skill_hobby: string | null
-}
+  _delete: boolean | null
+} & Omit<ApiResponseData, 'id'>
 
 export type IndividualRecognition = {
+  id: number | null
   recognition: string | null
-}
+  _delete: boolean | null
+} & Omit<ApiResponseData, 'id'>
 
 export type IndividualMembership = {
+  id: number | null
   association_organization: string | null
-}
+  _delete: boolean | null
+} & Omit<ApiResponseData, 'id'>
 
 /**Personnel Data Sheet (C4 FORM) (HTTP Responses) */
 export type IndividualQuestion = {
