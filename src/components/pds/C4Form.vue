@@ -149,15 +149,30 @@ const showToast = (
 const handleAdditionalReference = () => {
   if (payload.individual_reference.length < 3) {
     payload.individual_reference.push({
+      id: null,
       name: null,
       address: null,
       tel_no: null,
+      _delete: null,
     })
   }
 }
 
 const handleRemoveReference = (referenceIndex: number) => {
   payload.individual_reference?.splice(referenceIndex, 1)
+  const idx = referenceIndex - 1
+  const reference = payload.individual_reference?.[idx]
+
+  if (reference?.id) {
+    // mark for backend soft-delete
+    payload.individual_reference[idx] = {
+      ...reference,
+      _delete: true,
+    }
+  } else {
+    // not saved yet → remove completely
+    payload.individual_reference.splice(idx, 1)
+  }
 }
 
 // ──────────────────────────────────────────────────────────
@@ -984,58 +999,60 @@ defineExpose({
                         leaveTo="opacity-0"
                       >
                         <p class="mb-4 text-surface-700">Reference # {{ referenceIndex }}</p>
-                        <div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-5">
-                          <div class="md:col-span-2">
-                            <WbInputText
-                              v-model="payload.individual_reference[referenceIndex - 1].name"
-                              label="Name"
-                              label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-xs md:mb-1"
-                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                              :invalidText="validator.individual_reference[referenceIndex - 1].name.$errors[0]?.$message"
-                              :invalid="validator.individual_reference[referenceIndex - 1].name.$error"
-                              @blur="validator.individual_reference[referenceIndex - 1].name.$touch()"
-                              required
-                            />
-                          </div>
-                          <div class="md:col-span-2">
-                            <WbInputText
-                              v-model="payload.individual_reference[referenceIndex - 1].address"
-                              label="Address"
-                              label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                              :invalidText="validator.individual_reference[referenceIndex - 1].address.$errors[0]?.$message"
-                              :invalid="validator.individual_reference[referenceIndex - 1].address.$error"
-                              @blur="validator.individual_reference[referenceIndex - 1].address.$touch()"
-                              required
-                            />
-                          </div>
-                          <div class="flex items-end gap-2">
-                            <!-- WbInputText takes most of the space -->
-                            <WbInputText
-                              v-model="payload.individual_reference[referenceIndex - 1].tel_no"
-                              label="Tel. No"
-                              label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                              :invalidText="validator.individual_reference[referenceIndex - 1].tel_no.$errors[0]?.$message"
-                              :invalid="validator.individual_reference[referenceIndex - 1].tel_no.$error"
-                              @blur="validator.individual_reference[referenceIndex - 1].tel_no.$touch()"
-                              required
-                            />
+                        <div v-if="!payload.individual_reference[referenceIndex - 1]?._delete">
+                          <div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-5">
+                            <div class="md:col-span-2">
+                              <WbInputText
+                                v-model="payload.individual_reference[referenceIndex - 1].name"
+                                label="Name"
+                                label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-xs md:mb-1"
+                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                                validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                                :invalidText="validator.individual_reference[referenceIndex - 1].name.$errors[0]?.$message"
+                                :invalid="validator.individual_reference[referenceIndex - 1].name.$error"
+                                @blur="validator.individual_reference[referenceIndex - 1].name.$touch()"
+                                required
+                              />
+                            </div>
+                            <div class="md:col-span-2">
+                              <WbInputText
+                                v-model="payload.individual_reference[referenceIndex - 1].address"
+                                label="Address"
+                                label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                                validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                                :invalidText="validator.individual_reference[referenceIndex - 1].address.$errors[0]?.$message"
+                                :invalid="validator.individual_reference[referenceIndex - 1].address.$error"
+                                @blur="validator.individual_reference[referenceIndex - 1].address.$touch()"
+                                required
+                              />
+                            </div>
+                            <div class="flex items-end gap-2">
+                              <!-- WbInputText takes most of the space -->
+                              <WbInputText
+                                v-model="payload.individual_reference[referenceIndex - 1].tel_no"
+                                label="Tel. No"
+                                label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                                validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                                :invalidText="validator.individual_reference[referenceIndex - 1].tel_no.$errors[0]?.$message"
+                                :invalid="validator.individual_reference[referenceIndex - 1].tel_no.$error"
+                                @blur="validator.individual_reference[referenceIndex - 1].tel_no.$touch()"
+                                required
+                              />
 
-                            <!-- Delete button aligned right, below label -->
-                            <Button
-                              v-show="referenceIndex - 1 > 0"
-                              :id="getId(`button-remove-learning-development-${referenceIndex - 1}`)"
-                              icon="pi pi-trash"
-                              @click="handleRemoveReference(referenceIndex - 1)"
-                              v-tooltip.top="'Remove L&D'"
-                              severity="danger"
-                              class="mb-2 text-lg font-semibold dark:text-primary-100"
-                              text
-                            />
+                              <!-- Delete button aligned right, below label -->
+                              <Button
+                                v-show="referenceIndex > 0"
+                                :id="getId(`button-remove-learning-development-${referenceIndex}`)"
+                                icon="pi pi-trash"
+                                @click="handleRemoveReference(referenceIndex)"
+                                v-tooltip.top="'Remove L&D'"
+                                severity="danger"
+                                class="mb-2 text-lg font-semibold dark:text-primary-100"
+                                text
+                              />
+                            </div>
                           </div>
                         </div>
                         <hr />
