@@ -796,6 +796,12 @@ export const usePdsStore = defineStore('pds', () => {
       })
     }
 
+    if (payload.individual_question) {
+      payload.individual_question.forEach((question) => {
+        question.q35_b_date_filed = formatValidationDate(question.q35_b_date_filed) // Y-m-d
+      })
+    }
+
     const { data } = await useApiCall(`/individual-basic-details/${id}`, authStore.authenticationToken)
       .put({ ...payload, form_type: formType })
       .json()
