@@ -327,6 +327,7 @@ export type IndividualAddress = {
 }
 
 export type IndividualFamily = {
+  id: number | null
   first_name: string | null
   last_name: string | null
   middle_name?: string | null
@@ -335,11 +336,12 @@ export type IndividualFamily = {
   employers_business_name: string | null
   business_address: string | null
   telephone_no?: string | null
-  class: string
+  class: 'Spouse' | 'Father' | 'Mother' | 'Children' | null
   date_of_birth?: string | null
 }
 
 export type IndividualEducBg = {
+  id: number | null
   schools_name: string | null
   education_description: string | null
   level: 'Elementary' | 'Secondary' | 'College' | 'Vocational' | 'Graduate' | null
