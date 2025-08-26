@@ -338,7 +338,8 @@ export type IndividualFamily = {
   telephone_no?: string | null
   class: 'Spouse' | 'Father' | 'Mother' | 'Children' | null
   date_of_birth?: string | null
-}
+  _delete: boolean | null
+} & Omit<ApiResponseData, 'id'>
 
 export type IndividualEducBg = {
   id: number | null

@@ -718,15 +718,6 @@ watch(
       spouse.employers_business_name = 'N/A'
       spouse.business_address = 'N/A'
       spouse.telephone_no = null
-    } else {
-      spouse.first_name = ''
-      spouse.middle_name = ''
-      spouse.last_name = ''
-      spouse.ext_name = null
-      spouse.occupation = ''
-      spouse.employers_business_name = ''
-      spouse.business_address = ''
-      spouse.telephone_no = null
     }
   },
   { immediate: true }
@@ -1051,13 +1042,25 @@ const handleAdditionalChild = () => {
     telephone_no: null,
     class: 'Children',
     date_of_birth: null,
+    _delete: null,
   })
 }
 
 const handleRemoveChild = (childIndex: number) => {
-  payload.individual_family_children?.splice(childIndex, 1)
-}
+  const idx = childIndex - 1
+  const family_children = payload.individual_family_children?.[idx]
 
+  if (family_children?.id) {
+    // mark for backend soft-delete
+    payload.individual_family_children[idx] = {
+      ...family_children,
+      _delete: true,
+    }
+  } else {
+    // not saved yet → remove completely
+    payload.individual_family_children.splice(idx, 1)
+  }
+}
 // ──────────────────────────────────────────────────────────
 //          PDS Details Form - Fetching by ID & Update
 // ──────────────────────────────────────────────────────────
@@ -1072,7 +1075,7 @@ onMounted(async () => {
 
     if (response && response.success) {
       console.log('Fetched PDS data:', response.data)
-
+      console.log('Spouse payload:', payload.individual_family_spouse)
       const data = response.data as PersonnelResponse
       pdsStore.updatePdsFromPersonnel(data)
 
@@ -1132,8 +1135,6 @@ onMounted(async () => {
             break
         }
       })
-
-      console.log('Payload educations after map:', payload.educations)
     } else {
       console.warn('Failed to fetch PDS by ID or response unsuccessful.')
     }
@@ -2446,80 +2447,86 @@ defineExpose({
                         leaveFrom="opacity-100"
                         leaveTo="opacity-0"
                       >
-                        <div class="flex flex-col items-center gap-x-12 gap-y-4 md:flex-row">
-                          <WbInputText
-                            v-model="payload.individual_family_children[childIdx - 1].last_name"
-                            label="Surname"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                            :invalid="validator.individual_family_children?.[childIdx - 1]?.last_name?.$error"
-                            :invalid-text="validator.individual_family_children?.[childIdx - 1]?.last_name?.$errors[0]?.$message"
-                            @blur="validator.individual_family_children?.[childIdx - 1]?.last_name?.$touch()"
-                          />
+                        <div v-if="!payload.individual_family_children[childIdx - 1]?._delete">
+                          <div class="flex flex-col items-center gap-x-12 gap-y-4 md:flex-row">
+                            <WbInputText
+                              v-model="payload.individual_family_children[childIdx - 1].last_name"
+                              label="Surname"
+                              label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                              :invalid="validator.individual_family_children?.[childIdx - 1]?.last_name?.$error"
+                              :invalid-text="
+                                validator.individual_family_children?.[childIdx - 1]?.last_name?.$errors[0]?.$message
+                              "
+                              @blur="validator.individual_family_children?.[childIdx - 1]?.last_name?.$touch()"
+                            />
 
-                          <WbInputText
-                            v-model="payload.individual_family_children[childIdx - 1].first_name"
-                            label="First Name"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                            :invalid="validator.individual_family_children?.[childIdx - 1]?.first_name?.$error"
-                            :invalid-text="validator.individual_family_children?.[childIdx - 1]?.first_name?.$errors[0]?.$message"
-                            @blur="validator.individual_family_children?.[childIdx - 1]?.first_name?.$touch()"
-                          />
+                            <WbInputText
+                              v-model="payload.individual_family_children[childIdx - 1].first_name"
+                              label="First Name"
+                              label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                              :invalid="validator.individual_family_children?.[childIdx - 1]?.first_name?.$error"
+                              :invalid-text="
+                                validator.individual_family_children?.[childIdx - 1]?.first_name?.$errors[0]?.$message
+                              "
+                              @blur="validator.individual_family_children?.[childIdx - 1]?.first_name?.$touch()"
+                            />
 
-                          <WbInputText
-                            v-model="payload.individual_family_children[childIdx - 1].middle_name"
-                            label="Middle Name"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                            :invalid="validator.individual_family_children?.[childIdx - 1]?.middle_name?.$error"
-                            :invalid-text="
-                              validator.individual_family_children?.[childIdx - 1]?.middle_name?.$errors[0]?.$message
-                            "
-                            @blur="validator.individual_family_children?.[childIdx - 1]?.middle_name?.$touch()"
-                          />
+                            <WbInputText
+                              v-model="payload.individual_family_children[childIdx - 1].middle_name"
+                              label="Middle Name"
+                              label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                              :invalid="validator.individual_family_children?.[childIdx - 1]?.middle_name?.$error"
+                              :invalid-text="
+                                validator.individual_family_children?.[childIdx - 1]?.middle_name?.$errors[0]?.$message
+                              "
+                              @blur="validator.individual_family_children?.[childIdx - 1]?.middle_name?.$touch()"
+                            />
 
-                          <WbDropdown
-                            v-model="payload.individual_family_children[childIdx - 1].ext_name"
-                            optionLabel="label"
-                            optionValue="value"
-                            :options="ExtensionTypeOptions"
-                            label="Extension Name"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                          />
+                            <WbDropdown
+                              v-model="payload.individual_family_children[childIdx - 1].ext_name"
+                              optionLabel="label"
+                              optionValue="value"
+                              :options="ExtensionTypeOptions"
+                              label="Extension Name"
+                              label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                            />
 
-                          <WbCalendar
-                            v-model="payload.individual_family_children[childIdx - 1].date_of_birth"
-                            dateFormat="MM dd, yy"
-                            :maxDate="new Date()"
-                            label="Date of Birth"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            :invalid="validator.individual_family_children?.[childIdx - 1]?.date_of_birth?.$error"
-                            :invalid-text="
-                              validator.individual_family_children?.[childIdx - 1]?.date_of_birth?.$errors[0]?.$message
-                            "
-                            @blur="validator.individual_family_children?.[childIdx - 1]?.date_of_birth?.$touch()"
-                          >
-                            <template #prepend-icon>
-                              <i class="pi pi-gift" />
-                            </template>
-                          </WbCalendar>
+                            <WbCalendar
+                              v-model="payload.individual_family_children[childIdx - 1].date_of_birth"
+                              dateFormat="MM dd, yy"
+                              :maxDate="new Date()"
+                              label="Date of Birth"
+                              label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                              :invalid="validator.individual_family_children?.[childIdx - 1]?.date_of_birth?.$error"
+                              :invalid-text="
+                                validator.individual_family_children?.[childIdx - 1]?.date_of_birth?.$errors[0]?.$message
+                              "
+                              @blur="validator.individual_family_children?.[childIdx - 1]?.date_of_birth?.$touch()"
+                            >
+                              <template #prepend-icon>
+                                <i class="pi pi-gift" />
+                              </template>
+                            </WbCalendar>
 
-                          <Button
-                            v-show="childIdx > 0"
-                            :id="getId(`button-remove-child-${childIdx - 1}`)"
-                            icon="pi pi-trash"
-                            @click="handleRemoveChild(childIdx - 1)"
-                            v-tooltip.top="'Remove Child'"
-                            severity="danger"
-                            class="mt-8 text-lg font-semibold dark:text-primary-100"
-                            text
-                          />
+                            <Button
+                              v-show="childIdx > 0"
+                              :id="getId(`button-remove-child-${childIdx}`)"
+                              icon="pi pi-trash"
+                              @click="handleRemoveChild(childIdx)"
+                              v-tooltip.top="'Remove Child'"
+                              severity="danger"
+                              class="mt-8 text-lg font-semibold dark:text-primary-100"
+                              text
+                            />
+                          </div>
                         </div>
                       </TransitionRoot>
                     </template>

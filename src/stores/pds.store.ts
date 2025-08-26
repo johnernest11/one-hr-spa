@@ -199,6 +199,7 @@ export const usePdsStore = defineStore('pds', () => {
       telephone_no: individual_family_spouse?.telephone_no ?? null,
       class: 'Spouse',
       date_of_birth: individual_family_spouse?.date_of_birth ?? null,
+      _delete: individual_family_spouse?._delete ?? null,
     },
 
     individual_family_father: {
@@ -213,6 +214,7 @@ export const usePdsStore = defineStore('pds', () => {
       telephone_no: individual_family_father?.telephone_no ?? null,
       class: 'Father',
       date_of_birth: individual_family_father?.date_of_birth ?? null,
+      _delete: individual_family_father?._delete ?? null,
     },
 
     individual_family_mothers_maiden: {
@@ -227,6 +229,7 @@ export const usePdsStore = defineStore('pds', () => {
       telephone_no: individual_family_mothers_maiden?.telephone_no ?? null,
       class: 'Mother',
       date_of_birth: individual_family_mothers_maiden?.date_of_birth ?? null,
+      _delete: individual_family_mothers_maiden?._delete ?? null,
     },
 
     individual_family_children: individual_family_children.map((child) => ({
@@ -241,6 +244,7 @@ export const usePdsStore = defineStore('pds', () => {
       telephone_no: child.telephone_no ?? null,
       class: 'Children',
       date_of_birth: child.date_of_birth ?? null,
+      _delete: child._delete ?? null,
     })),
 
     educations: {
@@ -536,6 +540,7 @@ export const usePdsStore = defineStore('pds', () => {
         telephone_no: individual_family_spouse?.telephone_no ?? null,
         class: 'Spouse' as const,
         date_of_birth: individual_family_spouse?.date_of_birth ?? null,
+        _delete: individual_family_spouse?._delete ?? null,
       },
       {
         id: individual_family_father?.id ?? null,
@@ -549,6 +554,7 @@ export const usePdsStore = defineStore('pds', () => {
         telephone_no: individual_family_father?.telephone_no ?? null,
         class: 'Father' as const,
         date_of_birth: individual_family_father?.date_of_birth ?? null,
+        _delete: individual_family_father?._delete ?? null,
       },
       {
         id: individual_family_mothers_maiden?.id ?? null,
@@ -562,6 +568,7 @@ export const usePdsStore = defineStore('pds', () => {
         telephone_no: individual_family_mothers_maiden?.telephone_no ?? null,
         class: 'Mother' as const,
         date_of_birth: individual_family_mothers_maiden?.date_of_birth ?? null,
+        _delete: individual_family_mothers_maiden?._delete ?? null,
       },
       // Spread children directly into the main array
       ...(individual_family_children ?? []).map((children) => ({
@@ -576,6 +583,7 @@ export const usePdsStore = defineStore('pds', () => {
         telephone_no: children?.telephone_no ?? null,
         class: 'Children' as const,
         date_of_birth: children?.date_of_birth ?? null,
+        _delete: children?._delete ?? null,
       })),
     ]
 
@@ -915,6 +923,13 @@ export const usePdsStore = defineStore('pds', () => {
         edu.period_of_attendance_from = formatYear(edu.period_of_attendance_from)
         edu.period_of_attendance_to = formatYear(edu.period_of_attendance_to)
         edu.year_graduated = formatYear(edu.year_graduated)
+      })
+    }
+
+    // Format eligibility dates to 'YYYY-MM-DD'
+    if (payload.individual_family) {
+      payload.individual_family.forEach((fam) => {
+        fam.date_of_birth = formatValidationDate(fam.date_of_birth)
       })
     }
 
