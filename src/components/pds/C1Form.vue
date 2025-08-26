@@ -9,8 +9,8 @@ import { useAddressStore } from '@/stores/address.store.ts'
 import { useLibrariesStore } from '@/stores/libraries.store.ts'
 import { useItemNumberStore } from '@/stores/item-number.store.ts'
 import { useSalaryGradesStore } from '@/stores/salary-grades.store.ts'
-import { useProfileStore } from '@/stores/profile.store.ts'
 import { usePdsStore, PersonalDataSheetPayload } from '@/stores/pds.store.ts'
+import { useAuthStore } from '@/stores/auth.store.ts'
 import { useToast } from 'primevue/usetoast'
 import { parseApiResponseError } from '@/utils/error-handle.ts'
 
@@ -22,7 +22,6 @@ import WbDropdown from '@/components/webkit/WbDropdown.vue'
 import WbInputMask from '@/components/webkit/WbInputMask.vue'
 import Checkbox from 'primevue/checkbox'
 import Button from 'primevue/button'
-
 import RadioButton from 'primevue/radiobutton'
 import WbAutoComplete from '@/components/webkit/WbAutoComplete.vue'
 import { WbAutoCompleteOption, WbAutoCompleteOptionTrueValue } from '@/components/webkit/WbAutoComplete.vue'
@@ -41,6 +40,7 @@ const libraryStore = useLibrariesStore()
 const itemStore = useItemNumberStore()
 const sgStore = useSalaryGradesStore()
 const pdsStore = usePdsStore()
+const authStore = useAuthStore()
 const toast = useToast()
 const router = useRouter()
 const route = useRoute()
@@ -89,12 +89,9 @@ const IsBeingUpdated = ref(false)
 const pdsErrors = ref()
 const isPdsError = ref(false)
 const errorMessage = ref()
-const profileStore = useProfileStore()
-
 onBeforeMount(async () => {
   addressesAreLoading.value = true
   await Promise.allSettled([
-    profileStore.fetchProfile(),
     publicStore.fetchRegions(),
     publicStore.fetchProvinces(),
     publicStore.fetchCities(),
@@ -106,6 +103,31 @@ onBeforeMount(async () => {
     sgStore.fetchSalaryGrade(),
   ])
 
+  const individual = authStore.authenticatedUser?.user_profile?.individual_basic_detail
+
+  if (individual) {
+    payload.individual.first_name = payload.individual.first_name ?? individual.first_name
+    payload.individual.last_name = payload.individual.last_name ?? individual.last_name
+    payload.individual.middle_name = payload.individual.middle_name ?? individual.middle_name
+    payload.individual.ext_name = payload.individual.ext_name ?? individual.ext_name
+    payload.individual.birthday = payload.individual.birthday ?? individual.birthday
+    payload.individual.sex = payload.individual.sex ?? (individual.sex as 'male' | 'female')
+    payload.individual.place_of_birth = payload.individual.place_of_birth ?? individual.place_of_birth
+    payload.individual.civil_status =
+      payload.individual.civil_status ?? (individual.civil_status as 'Single' | 'Married' | 'Widowed' | 'Divorced' | 'Separated')
+    payload.individual.height = payload.individual.height ?? individual.height
+    payload.individual.weight = payload.individual.weight ?? individual.weight
+    payload.individual.blood_type = payload.individual.blood_type ?? individual.blood_type
+    payload.individual.gsis_no = payload.individual.gsis_no ?? individual.gsis_no
+    payload.individual.pag_ibig_no = payload.individual.pag_ibig_no ?? individual.pag_ibig_no
+    payload.individual.philhealth_no = payload.individual.philhealth_no ?? individual.philhealth_no
+    payload.individual.sss_no = payload.individual.sss_no ?? individual.sss_no
+    payload.individual.tin = payload.individual.tin ?? individual.tin
+    payload.individual.citizenship = payload.individual.citizenship ?? individual.citizenship
+    payload.individual.citizenship_acquisition = payload.individual.citizenship_acquisition ?? individual.citizenship_acquisition
+  }
+
+  console.log('Payload', authStore.authenticatedUser?.user_profile?.individual_basic_detail?.last_name)
   addressesAreLoading.value = false
 })
 
@@ -534,13 +556,6 @@ const formRules = computed(() => ({
 
 const validator = useVuelidate<PersonalDataSheetPayload>(formRules, payload)
 
-// defineProps({
-//   activeSubTab: {
-//     type: Number,
-//     default: undefined,
-//   },
-// })
-
 watch(isSameResidential, (newVal) => {
   if (newVal === true) {
     selectedPermanentRegion.value = selectedResidentialRegion.value
@@ -713,20 +728,11 @@ watch(
       spouse.first_name = 'N/A'
       spouse.middle_name = 'N/A'
       spouse.last_name = 'N/A'
-      spouse.ext_name = 'N/A'
+      spouse.ext_name = null
       spouse.occupation = 'N/A'
       spouse.employers_business_name = 'N/A'
       spouse.business_address = 'N/A'
-      spouse.telephone_no = 'N/A'
-    } else {
-      spouse.first_name = ''
-      spouse.middle_name = ''
-      spouse.last_name = ''
-      spouse.ext_name = ''
-      spouse.occupation = ''
-      spouse.employers_business_name = ''
-      spouse.business_address = ''
-      spouse.telephone_no = ''
+      spouse.telephone_no = null
     }
   },
   { immediate: true }
@@ -827,8 +833,9 @@ watch(
 watch(
   () => payload.employee.agency_employee_no,
   (newAgencyNo) => {
-    payload.employee.id_number = newAgencyNo || null
-  }
+    payload.employee.id_number = newAgencyNo ?? null
+  },
+  { immediate: true }
 )
 
 watch(
@@ -1040,6 +1047,7 @@ const showToast = (
 
 const handleAdditionalChild = () => {
   payload.individual_family_children?.push({
+    id: null,
     first_name: null,
     last_name: null,
     middle_name: null,
@@ -1050,11 +1058,24 @@ const handleAdditionalChild = () => {
     telephone_no: null,
     class: 'Children',
     date_of_birth: null,
+    _delete: null,
   })
 }
 
 const handleRemoveChild = (childIndex: number) => {
-  payload.individual_family_children?.splice(childIndex, 1)
+  const idx = childIndex - 1
+  const family_children = payload.individual_family_children?.[idx]
+
+  if (family_children?.id) {
+    // mark for backend soft-delete
+    payload.individual_family_children[idx] = {
+      ...family_children,
+      _delete: true,
+    }
+  } else {
+    // not saved yet → remove completely
+    payload.individual_family_children.splice(idx, 1)
+  }
 }
 
 // ──────────────────────────────────────────────────────────
@@ -1081,15 +1102,13 @@ onMounted(async () => {
 })
 
 watch(
-  () => props.personnelPds, // assumes props.personnel is of type PersonnelEmployeeResponse | null
+  () => props.personnelPds,
   (newPersonnel) => {
     if (newPersonnel) {
       pdsStore.updatePdsFromPersonnel(newPersonnel)
     } else {
       for (const key in payload.individual) {
         payload.individual[key as keyof typeof payload.individual] = null
-        payload.contact_info[key as keyof typeof payload.contact_info] = null
-        payload.individual_address_init[key as keyof typeof payload.individual_address_init] = null
       }
     }
   },
@@ -1098,34 +1117,56 @@ watch(
 
 const updateC1Form = async () => {
   IsBeingUpdated.value = true
-  const id = route.params.id as string
+  const id = isMyPds
+    ? authStore.authenticatedUser?.user_profile?.individual_basic_detail?.id?.toString() ?? ''
+    : (route.params.id as string)
 
   formIsSubmitting.value = true
-  const response = await pdsStore.updatePds(
-    { ...payload }, // only payload properties
-    id,
-    'C1' // pass form_type as a separate argument if your store expects it
-  )
+
+  const familyArray = [
+    payload.individual_family_spouse,
+    payload.individual_family_father,
+    payload.individual_family_mothers_maiden,
+    ...(payload.individual_family_children || []),
+  ].filter((fam) => fam && (fam.first_name || fam.last_name))
+
+  const educationsArray = [
+    payload.educations.elementary,
+    payload.educations.high_school,
+    payload.educations.vocational,
+    payload.educations.college,
+    payload.educations.graduate,
+  ].filter((edu) => edu.schools_name || edu.education_description)
+
+  const requestPayload = {
+    ...payload,
+    individual_educational_background: educationsArray,
+    individual_family: familyArray,
+  }
+  // debugger
+  const response = await pdsStore.updatePds(requestPayload, id, 'C1')
 
   if (!response.success) {
     const result = parseApiResponseError(response)
-    if (!result) return (formIsSubmitting.value = false)
+    if (!result) {
+      formIsSubmitting.value = false
+      return
+    }
 
     showErrorAlert.value = true
     errorMessage.value = result.message
     errorDetails.value = result.errors
     IsBeingUpdated.value = false
+    return
   }
 
   formIsSubmitting.value = false
   toast.add({
     severity: 'success',
-    summary: 'Item Number Details update',
-    detail: `${id || 'The Item Number '} was successfully updated`,
+    summary: 'C1 Form update',
+    detail: `${id || 'The PDS'} was successfully updated`,
     life: 1000,
   })
-
-  formIsSubmitting.value = false
 }
 
 // ──────────────────────────────────────────────────────────
@@ -2367,80 +2408,86 @@ defineExpose({
                         leaveFrom="opacity-100"
                         leaveTo="opacity-0"
                       >
-                        <div class="flex flex-col items-center gap-x-12 gap-y-4 md:flex-row">
-                          <WbInputText
-                            v-model="payload.individual_family_children[childIdx - 1].last_name"
-                            label="Surname"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                            :invalid="validator.individual_family_children?.[childIdx - 1]?.last_name?.$error"
-                            :invalid-text="validator.individual_family_children?.[childIdx - 1]?.last_name?.$errors[0]?.$message"
-                            @blur="validator.individual_family_children?.[childIdx - 1]?.last_name?.$touch()"
-                          />
+                        <div v-if="!payload.individual_family_children[childIdx - 1]?._delete">
+                          <div class="flex flex-col items-center gap-x-12 gap-y-4 md:flex-row">
+                            <WbInputText
+                              v-model="payload.individual_family_children[childIdx - 1].last_name"
+                              label="Surname"
+                              label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                              :invalid="validator.individual_family_children?.[childIdx - 1]?.last_name?.$error"
+                              :invalid-text="
+                                validator.individual_family_children?.[childIdx - 1]?.last_name?.$errors[0]?.$message
+                              "
+                              @blur="validator.individual_family_children?.[childIdx - 1]?.last_name?.$touch()"
+                            />
 
-                          <WbInputText
-                            v-model="payload.individual_family_children[childIdx - 1].first_name"
-                            label="First Name"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                            :invalid="validator.individual_family_children?.[childIdx - 1]?.first_name?.$error"
-                            :invalid-text="validator.individual_family_children?.[childIdx - 1]?.first_name?.$errors[0]?.$message"
-                            @blur="validator.individual_family_children?.[childIdx - 1]?.first_name?.$touch()"
-                          />
+                            <WbInputText
+                              v-model="payload.individual_family_children[childIdx - 1].first_name"
+                              label="First Name"
+                              label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                              :invalid="validator.individual_family_children?.[childIdx - 1]?.first_name?.$error"
+                              :invalid-text="
+                                validator.individual_family_children?.[childIdx - 1]?.first_name?.$errors[0]?.$message
+                              "
+                              @blur="validator.individual_family_children?.[childIdx - 1]?.first_name?.$touch()"
+                            />
 
-                          <WbInputText
-                            v-model="payload.individual_family_children[childIdx - 1].middle_name"
-                            label="Middle Name"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                            :invalid="validator.individual_family_children?.[childIdx - 1]?.middle_name?.$error"
-                            :invalid-text="
-                              validator.individual_family_children?.[childIdx - 1]?.middle_name?.$errors[0]?.$message
-                            "
-                            @blur="validator.individual_family_children?.[childIdx - 1]?.middle_name?.$touch()"
-                          />
+                            <WbInputText
+                              v-model="payload.individual_family_children[childIdx - 1].middle_name"
+                              label="Middle Name"
+                              label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                              :invalid="validator.individual_family_children?.[childIdx - 1]?.middle_name?.$error"
+                              :invalid-text="
+                                validator.individual_family_children?.[childIdx - 1]?.middle_name?.$errors[0]?.$message
+                              "
+                              @blur="validator.individual_family_children?.[childIdx - 1]?.middle_name?.$touch()"
+                            />
 
-                          <WbDropdown
-                            v-model="payload.individual_family_children[childIdx - 1].ext_name"
-                            optionLabel="label"
-                            optionValue="value"
-                            :options="ExtensionTypeOptions"
-                            label="Extension Name"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                          />
+                            <WbDropdown
+                              v-model="payload.individual_family_children[childIdx - 1].ext_name"
+                              optionLabel="label"
+                              optionValue="value"
+                              :options="ExtensionTypeOptions"
+                              label="Extension Name"
+                              label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                            />
 
-                          <WbCalendar
-                            v-model="payload.individual_family_children[childIdx - 1].date_of_birth"
-                            dateFormat="MM dd, yy"
-                            :maxDate="new Date()"
-                            label="Date of Birth"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            :invalid="validator.individual_family_children?.[childIdx - 1]?.date_of_birth?.$error"
-                            :invalid-text="
-                              validator.individual_family_children?.[childIdx - 1]?.date_of_birth?.$errors[0]?.$message
-                            "
-                            @blur="validator.individual_family_children?.[childIdx - 1]?.date_of_birth?.$touch()"
-                          >
-                            <template #prepend-icon>
-                              <i class="pi pi-gift" />
-                            </template>
-                          </WbCalendar>
+                            <WbCalendar
+                              v-model="payload.individual_family_children[childIdx - 1].date_of_birth"
+                              dateFormat="MM dd, yy"
+                              :maxDate="new Date()"
+                              label="Date of Birth"
+                              label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                              :invalid="validator.individual_family_children?.[childIdx - 1]?.date_of_birth?.$error"
+                              :invalid-text="
+                                validator.individual_family_children?.[childIdx - 1]?.date_of_birth?.$errors[0]?.$message
+                              "
+                              @blur="validator.individual_family_children?.[childIdx - 1]?.date_of_birth?.$touch()"
+                            >
+                              <template #prepend-icon>
+                                <i class="pi pi-gift" />
+                              </template>
+                            </WbCalendar>
 
-                          <Button
-                            v-show="childIdx > 0"
-                            :id="getId(`button-remove-child-${childIdx - 1}`)"
-                            icon="pi pi-trash"
-                            @click="handleRemoveChild(childIdx - 1)"
-                            v-tooltip.top="'Remove Child'"
-                            severity="danger"
-                            class="mt-8 text-lg font-semibold dark:text-primary-100"
-                            text
-                          />
+                            <Button
+                              v-show="childIdx > 0"
+                              :id="getId(`button-remove-child-${childIdx}`)"
+                              icon="pi pi-trash"
+                              @click="handleRemoveChild(childIdx)"
+                              v-tooltip.top="'Remove Child'"
+                              severity="danger"
+                              class="mt-8 text-lg font-semibold dark:text-primary-100"
+                              text
+                            />
+                          </div>
                         </div>
                       </TransitionRoot>
                     </template>

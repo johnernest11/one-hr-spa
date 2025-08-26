@@ -327,6 +327,7 @@ export type IndividualAddress = {
 }
 
 export type IndividualFamily = {
+  id: number | null
   first_name: string | null
   last_name: string | null
   middle_name?: string | null
@@ -337,9 +338,11 @@ export type IndividualFamily = {
   telephone_no?: string | null
   class: string
   date_of_birth?: string | null
-}
+  _delete: boolean | null
+} & Omit<ApiResponseData, 'id'>
 
 export type IndividualEducBg = {
+  id: number | null
   schools_name: string | null
   education_description: string | null
   level: 'Elementary' | 'Secondary' | 'College' | 'Vocational' | 'Graduate' | null

@@ -16,7 +16,7 @@ export const useSalaryGradesStore = defineStore('salary-grades', () => {
     if (salaryGradesOptions.value.length > 0) return null
 
     salaryGradesOptionsLoading.value = true
-    const { data } = await useApiCall('/libraries/salary-grades?per_page=1000', authStore.authenticationToken).get().json()
+    const { data } = await useApiCall('/libraries/salary-grades?per_page&limit=1000', authStore.authenticationToken).get().json()
     const res: ApiResponseBody = data.value
 
     if (res.success) {
