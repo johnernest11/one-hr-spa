@@ -109,6 +109,41 @@ onBeforeMount(async () => {
   addressesAreLoading.value = false
 })
 
+onMounted(async () => {
+  if (pdsStore.importResult) {
+    Object.assign(payload.individual, pdsStore.importResult.individual ?? {})
+    Object.assign(payload.employee, pdsStore.importResult.employee ?? {})
+    Object.assign(payload.individual_address_init, pdsStore.importResult.individual_address[0] ?? {})
+    Object.assign(payload.contact_info, pdsStore.importResult.individual_contact_info[0] ?? {})
+    Object.assign(payload.educations, pdsStore.importResult.educations ?? {})
+
+    if (pdsStore.importResult.individual_family) {
+      //empty the family children
+      payload.individual_family_children.length = 0
+
+      pdsStore.importResult.individual_family.forEach((family) => {
+        switch (family.class) {
+          case 'Spouse':
+            Object.assign(payload.individual_family_spouse, family ?? {})
+            break
+
+          case 'Father':
+            Object.assign(payload.individual_family_father, family ?? {})
+            break
+
+          case 'Mother':
+            Object.assign(payload.individual_family_mothers_maiden, family ?? {})
+            break
+
+          case 'Children':
+            payload.individual_family_children?.push(family)
+            break
+        }
+      })
+    }
+  }
+})
+
 const { provinceOptions, cityOptions, barangayOptions } = storeToRefs(publicStore)
 const filteredProvinceOptionsByRegion = useFilterByParentId(
   toRef(payload.individual_address_init, 'residential_region_id'),
@@ -839,7 +874,7 @@ watch(
       return
     }
 
-    const existing = libraryStore.itemsOptions.find((opt) => opt.value === newId)
+    const existing = libraryStore.itemsOptions.find((opt) => Number(opt.value) === Number(newId))
 
     if (existing) {
       selectedItemNo.value = existing
@@ -848,7 +883,7 @@ watch(
       const unwatch = watch(
         () => libraryStore.itemsOptions,
         (options) => {
-          const found = options.find((opt) => opt.value === newId)
+          const found = options.find((opt) => Number(opt.value) === Number(newId))
           if (found) {
             selectedItemNo.value = found
             propPosition()
@@ -872,7 +907,7 @@ watch(
 
     const selectedId = typeof newSelected === 'object' && newSelected !== null ? newSelected.id : newSelected
 
-    const existing = sgStore.salaryGradesOptions.find((opt) => opt.value === selectedId)
+    const existing = sgStore.salaryGradesOptions.find((opt) => Number(opt.value) === Number(selectedId))
 
     if (existing) {
       selectedSalaryGrade.value = existing
@@ -880,7 +915,7 @@ watch(
       const unwatch = watch(
         () => sgStore.salaryGradesOptions,
         (options) => {
-          const found = options.find((opt) => opt.value === selectedId)
+          const found = options.find((opt) => Number(opt.value) === Number(selectedId))
           if (found) {
             selectedSalaryGrade.value = found
             unwatch()
@@ -930,14 +965,14 @@ watch(
       return
     }
 
-    const existing = libraryStore.divisionOptions.find((opt) => opt.value === newSelectedId)
+    const existing = libraryStore.divisionOptions.find((opt) => Number(opt.value) === Number(newSelectedId))
     if (existing) {
       selectedDivision.value = existing
     } else {
       const unwatch = watch(
         () => libraryStore.divisionOptions,
         (options) => {
-          const found = options.find((opt) => opt.value === newSelectedId)
+          const found = options.find((opt) => Number(opt.value) === Number(newSelectedId))
           if (found) {
             selectedDivision.value = found
             unwatch()
@@ -997,6 +1032,15 @@ watch(
   }
 )
 
+watch(
+  () => payload.educations.graduate.is_current_enrolled,
+  (newVal) => {
+    if (newVal) {
+      currentlyEnrolledGraduate.value = newVal
+    }
+  }
+)
+
 watch(currentlyEnrolledGraduate, (newVal) => {
   if (newVal) {
     currentlyEnrolledVocational.value = false
@@ -1006,6 +1050,15 @@ watch(currentlyEnrolledGraduate, (newVal) => {
   payload.educations.graduate.is_current_enrolled = newVal
   if (newVal) payload.educations.graduate.period_of_attendance_to = null
 })
+
+watch(
+  () => payload.educations.vocational.is_current_enrolled,
+  (newVal) => {
+    if (newVal) {
+      currentlyEnrolledVocational.value = newVal
+    }
+  }
+)
 
 watch(currentlyEnrolledVocational, (newVal) => {
   if (newVal) {
@@ -1164,7 +1217,7 @@ const handleSaveC1Form = async () => {
   }
 
   /** Propagate indiividual family to required payload */
-  const families = [{ ...payload.individual_family_father }, { ...payload.individual_family_mothers_maiden }]
+  let families = [{ ...payload.individual_family_father }, { ...payload.individual_family_mothers_maiden }]
 
   if (
     typeof payload.individual_family_spouse.last_name?.trim() !== 'undefined' ||
@@ -1174,10 +1227,10 @@ const handleSaveC1Form = async () => {
   }
 
   if (
-    typeof payload.individual_family_children[0].last_name?.trim() !== 'undefined' ||
-    payload.individual_family_children[0].last_name !== null
+    typeof payload.individual_family_children[0]?.last_name?.trim() !== 'undefined' ||
+    payload.individual_family_children[0]?.last_name !== null
   ) {
-    payload.individual_family = families.concat(payload.individual_family_children)
+    families.push(...payload.individual_family_children)
   }
   payload.individual_family = families
 
@@ -1287,6 +1340,7 @@ defineExpose({
                         <WbAutoComplete
                           :useApiFilter="true"
                           :apiEndpoint="'/items/search'"
+                          :apiFilters="{ status: 'Unfilled' }"
                           :suggestions="itemStore.itemNumbersSuggestions"
                           @item-select="propPosition"
                           apiOptionLabel="number"
