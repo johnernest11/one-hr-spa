@@ -2,7 +2,18 @@
 import Message from 'primevue/message'
 import { helpers, maxLength, required, email } from '@vuelidate/validators'
 import { digitCountRule, mobilePhoneRule, uniqueUserIdentifierRule } from '@/utils/custom-validations'
-import { reactive, ref, onBeforeMount, toRef, watch, computed, onMounted } from 'vue'
+import {
+  reactive,
+  ref,
+  onBeforeMount,
+  toRef,
+  watch,
+  computed,
+  onMounted,
+  onBeforeUnmount,
+  nextTick,
+  type WatchStopHandle,
+} from 'vue'
 import { storeToRefs } from 'pinia'
 import { useFilterByParentId } from '@/composables/address.options.ts'
 import { useAddressStore } from '@/stores/address.store.ts'
@@ -49,6 +60,8 @@ const isMyPds = route.name === 'my-pds'
 const currentlyEnrolledGraduate = ref(false)
 const currentlyEnrolledVocational = ref(false)
 const isPositionLoading = ref(false)
+const isItemsLoading = ref(false)
+const isSalaryGradeLoading = ref(false)
 const isSameResidential = ref(false)
 const isLoading = ref(true)
 const activeToasts = ref<number>(0)
@@ -93,6 +106,8 @@ const profileStore = useProfileStore()
 
 onBeforeMount(async () => {
   addressesAreLoading.value = true
+  isItemsLoading.value = true
+  isSalaryGradeLoading.value = true
   await Promise.allSettled([
     profileStore.fetchProfile(),
     publicStore.fetchRegions(),
@@ -106,22 +121,27 @@ onBeforeMount(async () => {
     sgStore.fetchSalaryGrade(),
   ])
 
+  isItemsLoading.value = false
+  isSalaryGradeLoading.value = false
   addressesAreLoading.value = false
 })
 
 onMounted(async () => {
-  if (pdsStore.importResult) {
-    Object.assign(payload.individual, pdsStore.importResult.individual ?? {})
-    Object.assign(payload.employee, pdsStore.importResult.employee ?? {})
-    Object.assign(payload.individual_address_init, pdsStore.importResult.individual_address[0] ?? {})
-    Object.assign(payload.contact_info, pdsStore.importResult.individual_contact_info[0] ?? {})
-    Object.assign(payload.educations, pdsStore.importResult.educations ?? {})
+  const hasImport = !!pdsStore.importResult
 
-    if (pdsStore.importResult.individual_family) {
-      //empty the family children
+  if (hasImport) {
+    // perform import with NO watcher present
+    // (do NOT call setupSpouseWatch yet)
+    // this is to prevent the bug wherein the spouse data is being overwritten by the watcher
+    Object.assign(payload.individual, pdsStore.importResult?.individual ?? {})
+    Object.assign(payload.employee, pdsStore.importResult?.employee ?? {})
+    Object.assign(payload.individual_address_init, pdsStore.importResult?.individual_address?.[0] ?? {})
+    Object.assign(payload.contact_info, pdsStore.importResult?.individual_contact_info?.[0] ?? {})
+    Object.assign(payload.educations, pdsStore.importResult?.educations ?? {})
+
+    if (pdsStore.importResult?.individual_family) {
       payload.individual_family_children.length = 0
-
-      pdsStore.importResult.individual_family.forEach((family) => {
+      pdsStore.importResult?.individual_family.forEach((family) => {
         switch (family.class) {
           case 'Spouse':
             Object.assign(payload.individual_family_spouse, family ?? {})
@@ -136,13 +156,22 @@ onMounted(async () => {
             break
 
           case 'Children':
-            payload.individual_family_children?.push(family)
+            payload.individual_family_children.push(family)
             break
         }
       })
     }
+
+    // ensure reactivity settles before enabling the watcher
+    await nextTick()
+    setupSpouseWatch(false) // don't touch imported spouse on init
+  } else {
+    // no import path -> watcher initializes spouse fields based on current status
+    setupSpouseWatch(true)
   }
 })
+
+onBeforeUnmount(() => stopSpouseWatch?.()) // Prevents memory leaks by cleaning up the watcher when the component unmounts.
 
 const { provinceOptions, cityOptions, barangayOptions } = storeToRefs(publicStore)
 const filteredProvinceOptionsByRegion = useFilterByParentId(
@@ -739,33 +768,34 @@ watch(
   { immediate: true }
 )
 
-watch(
-  () => payload.individual.civil_status,
-  (newStatus) => {
-    const spouse = payload.individual_family_spouse
+let stopSpouseWatch: WatchStopHandle | null = null
 
-    if (newStatus === 'Single') {
-      spouse.first_name = 'N/A'
-      spouse.middle_name = 'N/A'
-      spouse.last_name = 'N/A'
-      spouse.ext_name = 'N/A'
-      spouse.occupation = 'N/A'
-      spouse.employers_business_name = 'N/A'
-      spouse.business_address = 'N/A'
-      spouse.telephone_no = 'N/A'
-    } else {
-      spouse.first_name = ''
-      spouse.middle_name = ''
-      spouse.last_name = ''
-      spouse.ext_name = ''
-      spouse.occupation = ''
-      spouse.employers_business_name = ''
-      spouse.business_address = ''
-      spouse.telephone_no = ''
-    }
-  },
-  { immediate: true }
-)
+function setupSpouseWatch(immediate: boolean) {
+  // kill any previous watcher (defensive)
+  stopSpouseWatch?.()
+
+  stopSpouseWatch = watch(
+    () => payload.individual.civil_status,
+    (newStatus) => {
+      const spouse = payload.individual_family_spouse
+
+      const fill = (v: string) => {
+        spouse.first_name = v
+        spouse.middle_name = v
+        spouse.last_name = v
+        spouse.ext_name = v
+        spouse.occupation = v
+        spouse.employers_business_name = v
+        spouse.business_address = v
+        spouse.telephone_no = v
+      }
+
+      if (newStatus === 'Single') fill('N/A')
+      else fill('')
+    },
+    { immediate } // <- immediate only when there was no import
+  )
+}
 
 watch(
   () => selectedPermanentRegion.value,
@@ -868,31 +898,46 @@ watch(
 
 watch(
   () => payload.employee.item_id,
-  (newId) => {
+  async (newId) => {
+    isItemsLoading.value = true
+    // 1. Check for a null/undefined ID immediately
     if (!newId) {
       selectedItemNo.value = null
       return
     }
 
+    // 2. Check the local cache of fetched items first
     const existing = libraryStore.itemsOptions.find((opt) => Number(opt.value) === Number(newId))
 
     if (existing) {
+      // If found in local cache, set the value and call propPosition
       selectedItemNo.value = existing
       propPosition()
     } else {
-      const unwatch = watch(
-        () => libraryStore.itemsOptions,
-        (options) => {
-          const found = options.find((opt) => Number(opt.value) === Number(newId))
-          if (found) {
-            selectedItemNo.value = found
-            propPosition()
-            unwatch()
-          }
-        },
-        { immediate: true }
-      )
+      // 3. If not found, fetch the item directly from the API by its ID
+      const response = await itemStore.fetchItemNumberById(Number(newId))
+
+      // 4. Check if the API call was successful
+      if (response && response.success) {
+        const itemResponse = response.data as ItemNumberResponse
+        // 5. If successful, use the data to set the selected item
+        const foundItem = {
+          value: itemResponse.id,
+          label: itemResponse.number,
+        }
+
+        // 6. Push the new item to the local cache so it's available next time
+        libraryStore.itemsOptions.push(foundItem)
+
+        selectedItemNo.value = foundItem
+        propPosition()
+      } else {
+        // Handle case where item is not found or API call fails
+        selectedItemNo.value = null
+      }
     }
+
+    isItemsLoading.value = false
   },
   { immediate: true }
 )
@@ -900,6 +945,7 @@ watch(
 watch(
   () => payload.employee.salary_grade_id,
   (newSelected) => {
+    isSalaryGradeLoading.value = true
     if (!newSelected) {
       selectedSalaryGrade.value = null
       return
@@ -924,6 +970,8 @@ watch(
         { immediate: true }
       )
     }
+
+    isSalaryGradeLoading.value = false
   },
   { immediate: true }
 )
@@ -1342,6 +1390,7 @@ defineExpose({
                           :apiEndpoint="'/items/search'"
                           :apiFilters="{ status: 'Unfilled' }"
                           :suggestions="itemStore.itemNumbersSuggestions"
+                          :loading="isItemsLoading"
                           @item-select="propPosition"
                           apiOptionLabel="number"
                           label="Item Number"
@@ -1391,6 +1440,7 @@ defineExpose({
                         :useApiFilter="true"
                         :apiEndpoint="'libraries/salary-grades/search'"
                         :suggestions="sgStore.salaryGradesOptions"
+                        :loading="isSalaryGradeLoading"
                         apiOptionLabel="salary_grade"
                         label="Salary Grade"
                         placeholder="Type Salary Grade with its tranche here"
