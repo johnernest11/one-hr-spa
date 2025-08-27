@@ -2,6 +2,7 @@
 import { reactive, ref, computed, onMounted, watch, toRef } from 'vue'
 import { usePdsStore, PersonalDataSheetPayload } from '@/stores/pds.store.ts'
 import { useSalaryGradesStore } from '@/stores/salary-grades.store.ts'
+import { useAuthStore } from '@/stores/auth.store.ts'
 import { isGovServiceYesNoOptions, EmploymentStatusOptions } from '@/typings/employee-entry.types'
 import { useRouter } from 'vue-router'
 import { useRoute } from 'vue-router'
@@ -27,6 +28,7 @@ import { PersonnelResponse } from '@/typings/models.types'
 const getId = usePrependOrAppendOnce('pds-c2-section-form')
 const sgStore = useSalaryGradesStore()
 const pdsStore = usePdsStore()
+const authStore = useAuthStore()
 const toast = useToast()
 const router = useRouter()
 const route = useRoute()
@@ -44,6 +46,7 @@ const formIsSubmitting = ref(false)
 const IsBeingUpdated = ref(false)
 const extraWorkExperienceTabVisible = ref(false)
 const isLoading = ref(true)
+const isMyPds = route.name === 'my-pds'
 
 const activeTab = ref(0)
 const activeToasts = ref<number>(0)
@@ -385,7 +388,10 @@ const updateC2Form = async () => {
   isC2Loading.value = true
   formIsSubmitting.value = true
 
-  const id = route.params.id as string
+  const id = isMyPds
+    ? authStore.authenticatedUser?.user_profile?.individual_basic_detail?.id?.toString() ?? ''
+    : (route.params.id as string)
+
   if (!id) {
     showToast('error', 'PDS Error', 'No ID found for updating.')
     IsBeingUpdated.value = false
