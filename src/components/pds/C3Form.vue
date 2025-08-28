@@ -128,6 +128,19 @@ const formRules = computed(() => ({
   })),
 }))
 
+// Handle Import
+onMounted(async () => {
+  const hasImport = !!pdsStore.importResult
+
+  if (hasImport) {
+    Object.assign(payload.individual_voluntary_work, pdsStore.importResult?.individual_voluntary_work ?? {})
+    Object.assign(payload.individual_lnd, pdsStore.importResult?.individual_lnd ?? {})
+    Object.assign(payload.individual_skills_hobby, pdsStore.importResult?.individual_skills_hobby ?? {})
+    Object.assign(payload.individual_recognition, pdsStore.importResult?.individual_recognition ?? {})
+    Object.assign(payload.individual_membership, pdsStore.importResult?.individual_membership ?? {})
+  }
+})
+
 watch(currentlyInvolved, (newVal) => {
   payload.individual_voluntary_work.forEach((entry, index) => {
     if (index === 0) {
