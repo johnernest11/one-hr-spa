@@ -31,7 +31,6 @@ const pdsErrors = ref()
 const errorMessage = ref()
 
 const isC3Loading = ref(false)
-const isMyPds = route.name === 'my-pds'
 const isPdsError = ref(false)
 const formIsSubmitting = ref(false)
 const IsBeingUpdated = ref(false)
@@ -349,7 +348,7 @@ watch(
 
 const updateC3Form = async () => {
   IsBeingUpdated.value = true
-  const id = isMyPds
+  const id = pdsStore.isMyPds
     ? authStore.authenticatedUser?.user_profile?.individual_basic_detail?.id?.toString() ?? ''
     : (route.params.id as string)
 
