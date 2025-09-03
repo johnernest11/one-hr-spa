@@ -167,13 +167,11 @@ const handleRemoveReference = (referenceIndex: number) => {
   const reference = payload.individual_reference?.[idx]
 
   if (reference?.id) {
-    // mark for backend soft-delete
     payload.individual_reference[idx] = {
       ...reference,
       _delete: true,
     }
   } else {
-    // not saved yet → remove completely
     payload.individual_reference.splice(idx, 1)
   }
 }
@@ -215,6 +213,9 @@ watch(
   { immediate: true }
 )
 
+// ──────────────────────────────────────────────────────────
+//          PDS Details Form - Update Handler
+// ──────────────────────────────────────────────────────────
 const updateC4Form = async () => {
   IsBeingUpdated.value = true
   const id = isMyPds
