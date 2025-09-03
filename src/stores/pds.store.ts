@@ -962,6 +962,7 @@ export const usePdsStore = defineStore('pds', () => {
   return {
     pdsInfo,
     savePds,
+    isMyPds,
     importPds,
     generatePDSFormTemplate,
     pdsMode,
