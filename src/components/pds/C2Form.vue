@@ -46,7 +46,6 @@ const formIsSubmitting = ref(false)
 const IsBeingUpdated = ref(false)
 const extraWorkExperienceTabVisible = ref(false)
 const isLoading = ref(true)
-const isMyPds = route.name === 'my-pds'
 
 const activeTab = ref(0)
 const activeToasts = ref<number>(0)
@@ -226,14 +225,13 @@ watch(
     if (existing) {
       selectedWorkExperienceSG.value[idx] = existing
     } else {
-      // Watch for async-loaded options if not yet available
       const unwatch = watch(
         () => sgStore.salaryGradesOptions,
         (options) => {
           const found = options.find((opt) => opt.value === selectedId)
           if (found) {
             selectedWorkExperienceSG.value[idx] = found
-            unwatch() // stop watching after found
+            unwatch()
           }
         },
         { immediate: true }
@@ -285,13 +283,11 @@ const handleRemoveEligibility = (eligibilityIndex: number) => {
   const eligibility = payload.individual_eligibility?.[idx]
 
   if (eligibility?.id) {
-    // mark for backend soft-delete
     payload.individual_eligibility[idx] = {
       ...eligibility,
       _delete: true,
     }
   } else {
-    // not saved yet → remove completely
     payload.individual_eligibility.splice(idx, 1)
   }
 }
@@ -335,13 +331,11 @@ const handleRemoveWorkExperience = (workExperienceIndex: number) => {
   const workExperience = payload.individual_work_experience?.[idx]
 
   if (workExperience?.id) {
-    // mark for backend soft-delete
     payload.individual_work_experience[idx] = {
       ...workExperience,
       _delete: true,
     }
   } else {
-    // not saved yet → remove completely
     payload.individual_work_experience.splice(idx, 1)
   }
 }
@@ -383,13 +377,16 @@ watch(
   { immediate: true }
 )
 
+// ──────────────────────────────────────────────────────────
+//          PDS Details Form - Update Handler
+// ──────────────────────────────────────────────────────────
 const updateC2Form = async () => {
   IsBeingUpdated.value = true
   isC2Loading.value = true
   formIsSubmitting.value = true
 
-  const id = isMyPds
-    ? authStore.authenticatedUser?.user_profile?.individual_basic_detail?.id?.toString() ?? ''
+  const id = pdsStore.isMyPds
+    ? authStore.authenticatedUser?.user_profile?.individual_basic_detail?.id?.toString()
     : (route.params.id as string)
 
   if (!id) {
