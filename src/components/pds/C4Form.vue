@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref, computed, onMounted, toRef, watch } from 'vue'
+import { reactive, ref, computed, onMounted, toRef, watch, nextTick, onBeforeMount } from 'vue'
 import { usePdsStore, PersonalDataSheetPayload } from '@/stores/pds.store.ts'
 import { useLibrariesStore } from '@/stores/libraries.store.ts'
 import { useRouter } from 'vue-router'
@@ -38,12 +38,13 @@ const errorMessage = ref()
 const showErrorAlert = ref(false)
 const IsBeingUpdated = ref(false)
 const isLoading = ref(true)
+const isImporting = ref(false)
 const errorDetails = ref<string[]>([])
 
 const isC4Loading = ref(false)
 const isPdsError = ref(false)
 const activeToasts = ref<number>(0)
-const selectedCountry = ref<WbAutoCompleteOption[] | null>(null)
+const selectedCountry = ref<WbAutoCompleteOption | null>(null)
 const c4Tabs = ref([
   { name: ' Other Information Continued', index: 0 },
   { name: ' References & Gov` Issued ID', index: 1 },
@@ -159,6 +160,59 @@ const handleAdditionalReference = () => {
 const handleRemoveReference = (referenceIndex: number) => {
   payload.individual_reference?.splice(referenceIndex, 1)
 }
+
+onBeforeMount(async () => {
+  await libraryStore.fetchCountries()
+})
+
+watch(
+  () => payload.individual_question[0].country_id,
+  (newVal) => {
+    if (!newVal) {
+      selectedCountry.value = null
+      return
+    }
+
+    const existing = libraryStore.countryOptions.find((opt) => Number(opt.value) === Number(newVal))
+
+    if (existing) {
+      selectedCountry.value = existing
+    } else {
+      const unwatch = watch(
+        () => libraryStore.countryOptions,
+        (options) => {
+          const found = options.find((opt) => Number(opt.value) === Number(newVal))
+          if (found) {
+            selectedCountry.value = found
+            unwatch()
+          }
+        },
+        { immediate: true }
+      )
+    }
+    {
+      true
+    }
+  }
+)
+
+// Handle Import
+onMounted(async () => {
+  console.log('payload', payload)
+  const hasImport = !!pdsStore.importResult
+  if (hasImport) {
+    isImporting.value = true
+    console.log('Importing C4...')
+
+    Object.assign(payload.individual_question, pdsStore.importResult?.individual_question ?? {})
+    Object.assign(payload.individual_reference, pdsStore.importResult?.individual_reference ?? {})
+    Object.assign(payload.individual_government_id, pdsStore.importResult?.individual_government_id ?? {})
+  }
+
+  await nextTick()
+  isImporting.value = false
+  console.log('Importing C4 done!')
+})
 
 // ──────────────────────────────────────────────────────────
 //          PDS Details Form - Fetching by ID & Update
@@ -281,7 +335,7 @@ defineExpose({
 </script>
 
 <template>
-  <template v-if="!isLoading">
+  <template v-if="!isLoading && !isImporting">
     <div class="flex flex-row">
       <form @submit.prevent="" autocomplete="off" class="h-full w-full">
         <div class="w-full">
@@ -1142,7 +1196,7 @@ defineExpose({
       </form>
     </div>
   </template>
-  <template v-else-if="isLoading">
+  <template v-else-if="isLoading || isImporting">
     <div class="bg-surface-2 h-full w-full animate-pulse rounded-md p-6">
       <!-- --------------------------- Form Title --------------------------- -->
       <div class="mb-6">

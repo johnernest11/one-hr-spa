@@ -75,6 +75,12 @@ export type SectionorUnitResponse = {
   last_modified_by_user_id: string | null
 } & ApiResponseData
 
+export type CountryResponse = {
+  id: number
+  common_name: string
+  official_name: string
+} & ApiResponseData
+
 export type ItemNumberResponse = {
   id: number
   number: string

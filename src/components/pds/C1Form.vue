@@ -64,6 +64,7 @@ const isItemsLoading = ref(false)
 const isSalaryGradeLoading = ref(false)
 const isSameResidential = ref(false)
 const isLoading = ref(true)
+const isImporting = ref(false)
 const activeToasts = ref<number>(0)
 const maxToasts = 5
 
@@ -130,6 +131,9 @@ onMounted(async () => {
   const hasImport = !!pdsStore.importResult
 
   if (hasImport) {
+    isImporting.value = true
+    console.log('Importing C1...')
+
     // perform import with NO watcher present
     // (do NOT call setupSpouseWatch yet)
     // this is to prevent the bug wherein the spouse data is being overwritten by the watcher
@@ -164,6 +168,8 @@ onMounted(async () => {
 
     // ensure reactivity settles before enabling the watcher
     await nextTick()
+    isImporting.value = false
+    console.log('Importing C1 done!')
     setupSpouseWatch(false) // don't touch imported spouse on init
   } else {
     // no import path -> watcher initializes spouse fields based on current status

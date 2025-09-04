@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref, computed, onMounted, watch, toRef } from 'vue'
+import { reactive, ref, computed, onMounted, watch, toRef, nextTick } from 'vue'
 import { usePdsStore, PersonalDataSheetPayload } from '@/stores/pds.store.ts'
 import { useSalaryGradesStore } from '@/stores/salary-grades.store.ts'
 import { isGovServiceYesNoOptions, EmploymentStatusOptions } from '@/typings/employee-entry.types'
@@ -44,6 +44,7 @@ const formIsSubmitting = ref(false)
 const IsBeingUpdated = ref(false)
 const extraWorkExperienceTabVisible = ref(false)
 const isLoading = ref(true)
+const isImporting = ref(false)
 
 const activeTab = ref(0)
 const activeToasts = ref<number>(0)
@@ -61,9 +62,16 @@ onMounted(async () => {
   const hasImport = !!pdsStore.importResult
 
   if (hasImport) {
+    isImporting.value = true
+    console.log('Importing C2...')
+
     Object.assign(payload.individual_eligibility, pdsStore.importResult?.individual_eligibility ?? {})
     Object.assign(payload.individual_work_experience, pdsStore.importResult?.individual_work_experience ?? {})
   }
+
+  await nextTick()
+  isImporting.value = false
+  console.log('Importing C2 done!')
 })
 
 onMounted(() => {
@@ -497,7 +505,7 @@ defineExpose({
 })
 </script>
 <template>
-  <template v-if="!isLoading">
+  <template v-if="!isLoading && !isImporting">
     <div class="flex flex-row">
       <form @submit.prevent="" autocomplete="off" class="h-full w-full">
         <div class="w-full">
@@ -1288,7 +1296,7 @@ defineExpose({
       </form>
     </div>
   </template>
-  <template v-else-if="isLoading">
+  <template v-else-if="isLoading || isImporting">
     <div class="bg-surface-2 h-full w-full animate-pulse rounded-md p-6">
       <!-- --------------------------- Form Title --------------------------- -->
       <div class="mb-6">

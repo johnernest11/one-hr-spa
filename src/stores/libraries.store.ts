@@ -1,7 +1,13 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { WbAutoCompleteOption } from '@/components/webkit/WbAutoComplete.vue'
-import { DivisionResponse, ItemNumberResponse, OfficesResponse, SectionorUnitResponse } from '@/typings/models.types'
+import {
+  CountryResponse,
+  DivisionResponse,
+  ItemNumberResponse,
+  OfficesResponse,
+  SectionorUnitResponse,
+} from '@/typings/models.types'
 import { ApiResponseBody } from '@/typings/http-resources.types'
 import { useApiCall } from '@/composables/network'
 import { useAuthStore } from './auth.store'
@@ -147,6 +153,28 @@ export const useLibrariesStore = defineStore('libraries', () => {
     return res
   }
 
+  const fetchCountries = async () => {
+    if (countryOptions.value.length > 0) return null
+
+    countryOptionsLoading.value = true
+
+    const { data } = await useApiCall('/libraries/countries?limit=1000', authStore.authenticationToken).get().json()
+    const res: ApiResponseBody = data.value
+
+    if (res.success && Array.isArray(res.data)) {
+      const countriesListResponse = res.data as CountryResponse[]
+      countryOptions.value = [
+        ...countriesListResponse.map((c) => ({
+          value: c.id,
+          label: c.common_name,
+        })),
+      ]
+    }
+
+    countryOptionsLoading.value = false
+    return res
+  }
+
   /** Actions */
 
   return {
@@ -166,6 +194,7 @@ export const useLibrariesStore = defineStore('libraries', () => {
     fundingSourcesOptionsLoading,
     positionsOptions,
     positionsOptionsLoading,
+    fetchCountries,
     countryOptions,
     countryOptionsLoading,
     sexOptions,
