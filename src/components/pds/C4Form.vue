@@ -164,13 +164,11 @@ const handleRemoveReference = (referenceIndex: number) => {
   const reference = payload.individual_reference?.[idx]
 
   if (reference?.id) {
-    // mark for backend soft-delete
     payload.individual_reference[idx] = {
       ...reference,
       _delete: true,
     }
   } else {
-    // not saved yet → remove completely
     payload.individual_reference.splice(idx, 1)
   }
 }
@@ -998,7 +996,9 @@ defineExpose({
                         leaveFrom="opacity-100"
                         leaveTo="opacity-0"
                       >
-                        <p class="mb-4 text-surface-700">Reference # {{ referenceIndex }}</p>
+                        <p v-if="referenceIndex !== null && referenceIndex !== undefined" class="mb-4 text-surface-700">
+                          Reference # {{ referenceIndex }}
+                        </p>
                         <div v-if="!payload.individual_reference[referenceIndex - 1]?._delete">
                           <div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-5">
                             <div class="md:col-span-2">
