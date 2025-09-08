@@ -7,6 +7,7 @@ import { useRoute } from 'vue-router'
 
 import Button from 'primevue/button'
 import Column from 'primevue/column'
+import Chip from 'primevue/chip'
 import DataTable from 'primevue/datatable'
 import Dialog from 'primevue/dialog'
 import InputText from 'primevue/inputtext'
@@ -28,6 +29,7 @@ const createActiveDirectory = ref(false)
 const searchSubmitted = ref(false)
 const activeDirectorysIsLoading = ref(false)
 const isLoading = ref(true)
+const isEditMode = ref(false)
 const formIsSubmitting = ref(false)
 const showErrorAlert = ref(false)
 const paginationLimit = 5
@@ -47,7 +49,11 @@ const openActiveDirectoryDialog = (AD: ActiveDiretoryResponse | null = null) => 
     return
   }
   if (AD) {
-    updatePayloadFromActiveDirectory(AD)
+    updatePayloadFromReport(AD)
+    isEditMode.value = true
+  } else {
+    resetPayload() // clear form if new
+    isEditMode.value = false
   }
   createActiveDirectory.value = true
 }
@@ -62,6 +68,7 @@ const payload = reactive<ADPayload>({
   name: '',
   username: '',
   email: '',
+  active: false,
   password: '',
   password_confirmation: '',
 })
@@ -238,8 +245,11 @@ const handleSaveSubmissionif = async () => {
       <div
         class="flex flex-row items-center space-x-4 font-medium text-primary-700 dark:text-primary-100 md:ml-4 md:mt-2 md:flex-row"
       >
-        <h1 class="mb-2 mr-4 whitespace-nowrap text-xl text-surface-600 dark:text-primary-100 md:text-xl lg:text-4xl">
-          Active Directories Creation
+        <h1
+          class="mb-2 ml-4 mr-4 whitespace-nowrap text-xl font-semibold text-primary-800 dark:text-primary-100 md:text-xl lg:text-4xl"
+        >
+          <font-awesome-icon :icon="['fas', 'user-lock']" />
+          Active Directory Creation
         </h1>
 
         <div class="flex w-full items-center justify-end gap-4">
@@ -258,7 +268,7 @@ const handleSaveSubmissionif = async () => {
             <InputGroup v-model="searchQuery" class="w-full">
               <InputText
                 v-model="searchQuery"
-                placeholder="Search via Period or Date"
+                placeholder="Search via Fullname or Email"
                 class="w-full"
                 :disabled="activeDirectorysIsLoading"
                 @keyup.enter="handleSearchActiveDiretory"
@@ -329,6 +339,28 @@ const handleSaveSubmissionif = async () => {
                   <p class="text-surface-600">
                     {{ props.data.email }}
                   </p>
+                </template>
+              </Column>
+
+              <Column
+                field="status"
+                header="Status"
+                headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
+              >
+                <template #body="props">
+                  <template v-if="props.data.active === false">
+                    <Chip
+                      label="Deactive"
+                      class="flex items-center justify-center !bg-error-500 px-4 py-1 font-semibold !text-surface-0"
+                    >
+                    </Chip>
+                  </template>
+                  <template v-else-if="props.data.active === true">
+                    <Chip
+                      label="Active"
+                      class="flex items-center justify-center !bg-success-800 px-4 py-1 font-semibold !text-surface-0"
+                    />
+                  </template>
                 </template>
               </Column>
               <Column field="action" header="Action" headerClass="w-64 bg-surface-100 opacity-70 font-bold py-2">
@@ -472,8 +504,19 @@ const handleSaveSubmissionif = async () => {
         >
         </WbInputText>
       </div>
-      <div class="flex justify-end">
+      <div class="mt-2 flex justify-end gap-2">
         <Button
+          label="Cancel"
+          class="dark:text-secondary-100 border border-surface-400 text-base text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
+          text
+          @click="CreateActiveDirectory = false"
+        >
+          <template #icon>
+            <i class="pi pi-ban mr-2"></i>
+          </template>
+        </Button>
+        <Button
+          v-if="!isEditMode"
           @click="handleSaveSubmissionif"
           :loading="formIsSubmitting"
           :disabled="formIsSubmitting"
@@ -483,6 +526,18 @@ const handleSaveSubmissionif = async () => {
         >
           <template #icon>
             <font-awesome-icon icon="save" class="mr-2" />
+          </template>
+        </Button>
+        <Button
+          v-else
+          :loading="formIsSubmitting"
+          :disabled="formIsSubmitting"
+          label="Update"
+          class="dark:text-secondary-100 border border-primary-500 text-sm text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-600"
+          text
+        >
+          <template #icon>
+            <font-awesome-icon icon="edit" class="mr-2" />
           </template>
         </Button>
       </div>

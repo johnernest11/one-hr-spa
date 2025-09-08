@@ -28,6 +28,7 @@ const createPosition = ref(false)
 const searchSubmitted = ref(false)
 const positionsIsLoading = ref(false)
 const isLoading = ref(true)
+const isEditMode = ref(false)
 const formIsSubmitting = ref(false)
 const showErrorAlert = ref(false)
 const paginationLimit = 5
@@ -47,7 +48,11 @@ const openPositionDialog = (position: PositionResponse | null = null) => {
     return
   }
   if (position) {
-    updatePayloadFromPositions(position)
+    updatePayloadFromReport(position)
+    isEditMode.value = true
+  } else {
+    resetPayload() // clear form if new
+    isEditMode.value = false
   }
   createPosition.value = true
 }
@@ -225,8 +230,11 @@ const handleSaveSubmissionif = async () => {
       <div
         class="flex flex-row items-center space-x-4 font-medium text-primary-700 dark:text-primary-100 md:ml-4 md:mt-2 md:flex-row"
       >
-        <h1 class="mb-2 mr-4 whitespace-nowrap text-xl text-surface-600 dark:text-primary-100 md:text-xl lg:text-4xl">
-          Positions Creation
+        <h1
+          class="mb-2 ml-4 mr-4 whitespace-nowrap text-xl font-semibold text-primary-800 dark:text-primary-100 md:text-xl lg:text-4xl"
+        >
+          <font-awesome-icon :icon="['fas', 'users-rays']" />
+          Position Creation
         </h1>
 
         <div class="flex w-full items-center justify-end gap-4">
@@ -245,7 +253,7 @@ const handleSaveSubmissionif = async () => {
             <InputGroup v-model="searchQuery" class="w-full">
               <InputText
                 v-model="searchQuery"
-                placeholder="Search via Period or Date"
+                placeholder="Search via Title or Parenthentical Title"
                 class="w-full"
                 :disabled="positionsIsLoading"
                 @keyup.enter="handleSearchPosition"
@@ -429,8 +437,19 @@ const handleSaveSubmissionif = async () => {
         >
         </WbInputText>
       </div>
-      <div class="flex justify-end">
+      <div class="mt-2 flex justify-end gap-2">
         <Button
+          label="Cancel"
+          class="dark:text-secondary-100 border border-surface-400 text-base text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
+          text
+          @click="CreatePosition = false"
+        >
+          <template #icon>
+            <i class="pi pi-ban mr-2"></i>
+          </template>
+        </Button>
+        <Button
+          v-if="!isEditMode"
           @click="handleSaveSubmissionif"
           :loading="formIsSubmitting"
           :disabled="formIsSubmitting"
@@ -440,6 +459,18 @@ const handleSaveSubmissionif = async () => {
         >
           <template #icon>
             <font-awesome-icon icon="save" class="mr-2" />
+          </template>
+        </Button>
+        <Button
+          v-else
+          :loading="formIsSubmitting"
+          :disabled="formIsSubmitting"
+          label="Update"
+          class="dark:text-secondary-100 border border-primary-500 text-sm text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-600"
+          text
+        >
+          <template #icon>
+            <font-awesome-icon icon="edit" class="mr-2" />
           </template>
         </Button>
       </div>
