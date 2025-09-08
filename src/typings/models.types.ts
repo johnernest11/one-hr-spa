@@ -552,6 +552,7 @@ export type QrCodeResponse = {
   last_generated_at: string | null
   is_active: boolean
 } & ApiResponseData
+
 /** Leave Application (HTTP Responses) */
 export type LeaveApplicationResponse = {
   id: number | null

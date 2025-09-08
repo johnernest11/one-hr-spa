@@ -1,17 +1,22 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { QrcodeStream, DetectedBarcode } from 'vue-qrcode-reader'
-import { useDailyLogsStore } from '@/stores/daily-logs.store' // This store now correctly handles the image import
+import { useDailyLogsStore } from '@/stores/daily-logs.store'
+import { useLibrariesStore } from '@/stores/libraries.store'
 import Dialog from 'primevue/dialog'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { getManilaTodayISO, formatTime } from '@/utils/helpers.ts'
 import dswdLogoMark from '@/assets/image/DSWD logo_Mark.png'
+import { WbAutoCompleteOption, WbAutoComplete } from '@/components/webkit/WbAutoComplete.vue'
 
 const currentDate = ref('')
 const currentTime = ref('')
 const meridiem = ref('')
+const seconds = ref('')
 const showModal = ref(false)
+const showOfficeSelectionModal = ref(true)
 const dailyLogsStore = useDailyLogsStore()
+const librariesStore = useLibrariesStore()
 const todayISO = ref('')
 const errorMessage = ref<string | null>(null)
 const cameraError = ref<string | null>(null)
@@ -23,6 +28,15 @@ const isProcessingScan = ref(false)
 const scanTimeoutId = ref<number | undefined>(undefined)
 const intervalId = ref<number | undefined>(undefined)
 
+const qrStreamRef = ref<InstanceType<typeof QrcodeStream> | null>(null)
+
+const selectedOffice = ref<WbAutoCompleteOption | null>(null)
+
+const startKiosk = () => {
+  if (selectedOffice.value) {
+    showOfficeSelectionModal.value = false
+  }
+}
 const updateDailyLogsState = async (date: string) => {
   await dailyLogsStore.fetchDailyLogs(date)
 }
@@ -41,14 +55,19 @@ const updateDateTime = () => {
     timeZone: 'Asia/Manila',
     hour: 'numeric',
     minute: '2-digit',
+    second: '2-digit',
     hour12: true,
   } as const
 
   currentDate.value = now.toLocaleDateString('en-PH', optionsDate)
   const timeString = now.toLocaleTimeString('en-PH', optionsTime)
-  const [time, ampm] = timeString.split(' ')
-  currentTime.value = time
+
+  const [time, ampm] = timeString.split(/\s+/)
+  const [hours, minutes, newSeconds] = time.split(':')
+
+  currentTime.value = `${hours}:${minutes}`
   meridiem.value = ampm
+  seconds.value = newSeconds
 
   const newTodayISO = getManilaTodayISO()
 
@@ -60,6 +79,9 @@ const updateDateTime = () => {
 }
 
 onMounted(async () => {
+  await librariesStore.fetchOffices()
+  showOfficeSelectionModal.value = true
+
   const today = getManilaTodayISO()
   todayISO.value = today
 
@@ -68,9 +90,6 @@ onMounted(async () => {
 
   checkScreenSize()
   window.addEventListener('resize', checkScreenSize)
-
-  await dailyLogsStore.fetchWarmBodySummary(today)
-  await updateDailyLogsState(today)
 })
 
 onUnmounted(() => {
@@ -93,6 +112,29 @@ const onDetect = (detectedCodes: DetectedBarcode[]) => {
   }
 }
 
+const capturePhoto = () => {
+  if (!qrStreamRef.value) {
+    console.error('QR stream ref not available.')
+    return null
+  }
+
+  const videoElement = qrStreamRef.value.$el.querySelector('video')
+  if (!videoElement) {
+    console.error('Video element not found.')
+    return null
+  }
+
+  const canvas = document.createElement('canvas')
+  canvas.width = videoElement.videoWidth
+  canvas.height = videoElement.videoHeight
+  const context = canvas.getContext('2d')
+  if (context) {
+    context.drawImage(videoElement, 0, 0, canvas.width, canvas.height)
+    return canvas.toDataURL('image/jpeg', 0.8)
+  }
+  return null
+}
+
 const onDecode = async (result: string) => {
   if (scanTimeoutId.value) {
     clearTimeout(scanTimeoutId.value)
@@ -105,6 +147,8 @@ const onDecode = async (result: string) => {
 
   dailyLogsStore.clearScannedEmployee()
   errorMessage.value = null
+
+  const capturedImage = capturePhoto()
 
   if (!result || result.trim() === '') {
     dailyLogsStore.lastLogMessage = 'Empty QR code scanned. Please try again.'
@@ -119,7 +163,7 @@ const onDecode = async (result: string) => {
   const employeeIdentifierToSend = result
 
   try {
-    await dailyLogsStore.logEmployeeTime(employeeIdentifierToSend)
+    await dailyLogsStore.logEmployeeTime(employeeIdentifierToSend, capturedImage)
     showModal.value = true
   } catch (err: unknown) {
     showModal.value = true
@@ -236,32 +280,77 @@ const latestWarmBodyLogs = computed(() => {
       </div>
     </div>
 
-    <div class="flex w-full flex-col items-center space-y-4 bg-primary-100 p-4 md:w-3/4">
+    <template>
+      <div class="flex h-screen w-screen flex-col-reverse overflow-hidden md:flex-row">
+        <Dialog
+          v-model:visible="showOfficeSelectionModal"
+          :modal="true"
+          :closable="false"
+          :style="{ width: '30vw' }"
+          :breakpoints="{ '1199px': '75vw', '575px': '90vw' }"
+        >
+          <div class="flex flex-col items-center space-y-6 p-8 text-center">
+            <h2 class="text-3xl font-bold text-primary-800">Select Your Office</h2>
+            <p class="text-lg text-surface-700">Please select your office to proceed to the time log.</p>
+            <div class="w-full">
+              <WbAutoComplete
+                :useApiFilter="true"
+                :apiEndpoint="'/libraries/offices/search'"
+                :suggestions="librariesStore.officeOptions"
+                :loading="librariesStore.officeOptionsLoading"
+                apiOptionLabel="name"
+                placeholder="Type the Employee's Office to search and select"
+                v-model="selectedOffice"
+                optionLabel="label"
+                optionValue="value"
+                forceSelection
+              />
+            </div>
+            <button
+              @click="startKiosk"
+              :disabled="!selectedOffice"
+              class="rounded-full p-4 px-8 font-bold text-white transition-colors"
+              :class="{
+                'bg-primary-600 hover:bg-primary-700': selectedOffice,
+                'cursor-not-allowed bg-gray-400': !selectedOffice,
+              }"
+            >
+              Proceed to Kiosk
+            </button>
+          </div>
+        </Dialog>
+      </div>
+    </template>
+
+    <div class="flex w-full flex-col items-center space-y-4 overflow-y-auto bg-primary-100 p-4 md:w-3/4">
       <div class="w-full text-left">
         <div class="text-2xl text-surface-500">{{ currentDate }}</div>
         <div class="text-8xl font-bold text-surface-500">
-          {{ currentTime }} <span class="text-lg md:text-2xl">{{ meridiem }}</span>
+          {{ currentTime }}<span class="text-2xl">:{{ seconds }}s</span> <span class="text-lg md:text-2xl">{{ meridiem }}</span>
         </div>
       </div>
 
-      <div class="flex max-h-[500px] w-full items-center justify-center">
+      <div class="flex w-full flex-1 items-center justify-center">
         <div
-          class="relative flex h-[500px] w-full max-w-[500px] items-center justify-center overflow-hidden rounded-lg bg-white shadow"
+          class="relative flex h-full max-h-[80vh] w-full items-center justify-center overflow-hidden rounded-lg bg-white shadow"
         >
           <qrcode-stream
+            ref="qrStreamRef"
             @detect="onDetect"
             :constraints="{ facingMode: 'environment' }"
             @init="onInit"
             @camera-error="onCameraError"
             :paused="false"
-            class="h-full w-full object-cover"
+            class="h-full w-full"
           />
         </div>
       </div>
 
       <div v-if="cameraError" class="text-center font-semibold text-error-600">{{ cameraError }}</div>
 
-      <div class="text-center text-sm text-surface-700 md:text-base">Scan your QR Code here</div>
+      <div class="text-center text-sm font-semibold text-surface-800 md:text-base">
+        Scan your QR code here and ensure your full face is visible for capture.
+      </div>
     </div>
 
     <Dialog
@@ -275,8 +364,7 @@ const latestWarmBodyLogs = computed(() => {
       :pt="{
         root: 'flex flex-col h-full bg-white shadow-lg p-4 md:p-12',
         header: 'hidden',
-        // Modified content class:
-        content: 'flex-grow flex flex-col items-center justify-start space-y-6 md:space-y-12 text-center h-full overflow-y-auto', // Added overflow-y-auto
+        content: 'flex-grow flex flex-col items-center justify-start space-y-6 md:space-y-12 text-center h-full overflow-y-auto',
       }"
     >
       <template v-if="dailyLogsStore.lastLogMessage && !dailyLogsStore.currentScannedEmployee">
