@@ -1,138 +1,7 @@
-import { CountryCode, isValidPhoneNumber, parsePhoneNumber } from 'libphonenumber-js'
 import { Ref } from 'vue'
 import { TimeLogResponse } from '@/typings/models.types.ts'
 import { useDateFormat } from '@vueuse/core'
 import { helpers } from '@vuelidate/validators'
-/**
- * @description Halt code execution for x seconds
- * @example
- * import { sleep } from '@/composables/helpers.ts'
- * await sleep(2)
- */
-export const sleep = (seconds: number): Promise<boolean> => {
-  return new Promise((res) => {
-    setTimeout(() => {
-      res(true)
-    }, seconds * 1000)
-  })
-}
-
-export const getManilaTodayISO = (): string => {
-  const now = new Date()
-  const manilaDateTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Manila' }))
-  return manilaDateTime.toISOString().split('T')[0]
-}
-
-export const snakeCaseToTitleCase = (s: string) =>
-  s.replace(/^_*(.)|_+(.)/g, (_s, c, d) => (c ? c.toUpperCase() : ' ' + d.toUpperCase()))
-
-/**
- * @description Get the 2-letter initials from the full name
- * @example
- * import { getAvatarDisplayNamePlaceholder } from '@/composables/helpers.ts'
- * const placeholder = getAvatarDisplayNamePlaceholder('Juan Luna') // returns JL
- */
-export const getAvatarDisplayNamePlaceholder = (fullName: string) => {
-  if (!fullName) return null
-
-  // we'll display the initials for the fake avatar
-  const names = fullName.split(' ')
-  let initials = names[0].substring(0, 1).toUpperCase()
-
-  if (names.length > 1) {
-    initials += names[names.length - 1].substring(0, 1).toUpperCase()
-  }
-
-  return initials
-}
-
-/**
- * @description Check if a string is a valid phone number for a given country
- */
-export const checkIfValidMobileNumber = (value: string, country: CountryCode = 'PH') => {
-  let phone
-
-  // The library throws a NOT_A_NUMBER error if it can't parse
-  // the value properly
-  try {
-    phone = parsePhoneNumber(value, country)
-  } catch (err) {
-    return false
-  }
-
-  if (!phone) return false
-
-  return isValidPhoneNumber(value, country)
-}
-
-export const usePrependOrAppendOnce = (affix: string, type = 'append') => {
-  if (!['append', 'prepend'].includes(type)) {
-    throw new Error('Valid values are `prepend` and `append`')
-  }
-  return (value: string) => {
-    return type === 'append' ? `${value}-${affix}` : `${affix}-${value}`
-  }
-}
-
-/**
- * @description Generates URL with params (e.g. url?search=query&term=query)
- *
- * @param {string} url Base URL
- * @param {T} obj Parameters to append in the URL
- */
-export const createUrlWithParams = <T>(url: string | undefined, obj: T) => {
-  const params = []
-
-  for (const key in obj) {
-    params.push(`${encodeURIComponent(key)}=${encodeURIComponent(`${obj[key]}`)}`)
-  }
-
-  const urlParams = params.join('&')
-
-  return `${url}?${urlParams}`
-}
-
-export const getObjectValueUsingPath = <T>(obj: T, path: string) => {
-  /* eslint-disable  @typescript-eslint/no-explicit-any */
-  return path.split('.').reduce((a: any, b: any) => a[b], obj)
-}
-
-/**
- * Lower Case the first character in a string
- *
- * e.g.
- * lcFirst('ABC') outputs 'aBC'
- * lcFirst('A BC') outputs 'a BC'
- *
- *
- * @param string
- * @returns
- */
-export const lcFirst = (string: string) => {
-  if (typeof string !== 'string') {
-    return ''
-  }
-
-  if (string.length === 0) {
-    return string
-  }
-
-  return string[0].toLowerCase() + string.slice(1)
-}
-
-/**
- * @description Formats a numeric amount into a string with 2 decimal places and thousands separator.
- * @example formatAmount(12345.678) // "12,345.68"
- */
-export const formatAmount = (amount: number | string | null | undefined): string => {
-  if (amount === null || amount === undefined || isNaN(Number(amount))) {
-    return '0.00'
-  }
-  return parseFloat(String(amount)).toLocaleString('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })
-}
 
 /**
  * @description Calculates the duration in minutes between two times (e.g., "07:30" to "16:30"),
@@ -174,133 +43,6 @@ export const fmtHoursMins = (totalMinutes: number): string => {
   const hours = `${h}hr`
   const mins = m > 0 ? ` ${m}min` : ''
   return `${hours}${mins}`
-}
-
-/**
- * @description Extracts "Month Year" from a string like "1 December 2025".
- * @example "December 2025"
- */
-export const extractMonthYear = (period: string): string => {
-  const parts = period.trim().split(' ')
-  return parts.length >= 3 ? `${parts[1]} ${parts[2]}` : period
-}
-
-/**
- * @description Extracts "Month Year" from a string and increments the year by 1.
- * @example "December 2026"
- */
-export const extractMonthYearPlusOneYear = (period: string): string => {
-  const parts = period.trim().split(' ')
-  if (parts.length >= 3) {
-    const month = parts[1]
-    const year = parseInt(parts[2], 10)
-    return `${month} ${year + 1}`
-  }
-  return period
-}
-
-/**
- * @description Formats a date string into "DD MMM YYYY" format.
- * @example "14 Jun 2025"
- */
-export const formatDate = (dateString: string | null | undefined): string => {
-  if (!dateString) return ''
-  try {
-    const date = new Date(dateString)
-    if (isNaN(date.getTime())) {
-      console.error('Invalid date string:', dateString)
-      return 'Invalid Date'
-    }
-    const options: Intl.DateTimeFormatOptions = {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    }
-    const formattedDate = date.toLocaleDateString(undefined, options)
-    return formattedDate.replace(/^(\w+)\s(\d+),\s(\d+)$/, '$2 $1 $3')
-  } catch (error) {
-    console.error('Error formatting date:', error)
-    return 'Invalid Date'
-  }
-}
-
-/**
- * @description Formats a single date range into a readable string.
- * @example// "01 - 15 June 2025"
- */
-export const formatDateRangeObject = (start_date: string, end_date: string): string => {
-  const start = new Date(start_date)
-  const end = new Date(end_date)
-
-  const sameMonthYear = start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()
-  const formatDay = (date: Date) => date.getDate().toString().padStart(2, '0')
-  const formatMonthYear = (date: Date) => date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
-
-  return sameMonthYear
-    ? `${formatDay(start)} - ${formatDay(end)} ${formatMonthYear(end)}`
-    : `${formatDay(start)} ${formatMonthYear(start)} - ${formatDay(end)} ${formatMonthYear(end)}`
-}
-
-/**
- * @description Formats multiple date ranges into a readable string, comma-separated.
- * @example "01 - 15 June 2025, 01 - 15 July 2025"
- */
-export const formatDateRanges = (ranges: { start_date: string; end_date: string }[]): string => {
-  if (!ranges || !Array.isArray(ranges)) return ''
-
-  return ranges
-    .map(({ start_date, end_date }) => {
-      const start = new Date(start_date)
-      const end = new Date(end_date)
-
-      const sameMonthYear = start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()
-      const formatDay = (date: Date) => date.getDate().toString().padStart(2, '0')
-      const formatMonthYear = (date: Date) => date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
-
-      return sameMonthYear
-        ? `${formatDay(start)} - ${formatDay(end)} ${formatMonthYear(end)}`
-        : `${formatDay(start)} ${formatMonthYear(start)} - ${formatDay(end)} ${formatMonthYear(end)}`
-    })
-    .join(', ')
-}
-
-/**
- * @description Formats a date into full long-form for request payloads.
- * @example formatDateRequest('2025-06-14') // "Saturday, June 14, 2025"
- */
-export const formatDateRequest = (dateInput: string | null | undefined): string => {
-  if (!dateInput) return ''
-
-  const date = new Date(dateInput)
-  if (isNaN(date.getTime())) return ''
-
-  const options: Intl.DateTimeFormatOptions = {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  }
-
-  return new Intl.DateTimeFormat('en-US', options).format(date)
-}
-
-/**
- * @description Formats a payroll period string like "2025-06-01, 2025-06-15" to "1–15 June 2025".
- * @example formatPayrollPeriod('2025-06-01, 2025-06-15') // "1–15 June 2025"
- */
-export const formatPayrollPeriod = (periodStr: string | null): string => {
-  if (!periodStr) return ''
-
-  const [startStr, endStr] = periodStr.split(',').map((s) => s.trim())
-  const startDate = new Date(startStr)
-  const endDate = new Date(endStr)
-
-  if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-    return ''
-  }
-
-  const options: Intl.DateTimeFormatOptions = { month: 'long', year: 'numeric' }
-  return `${startDate.getDate()}–${endDate.getDate()} ${endDate.toLocaleDateString('en-US', options)}`
 }
 
 /**
@@ -502,6 +244,18 @@ export const getDTRDayOfWeek = (dateString: string): string => {
 
 export const toTimestamp = (date: string, time: string) => `${date}T${time}`
 
+/**
+ * Resolves raw DTR time log entries into structured slots (in1, out1, in2, out2).
+ *
+ * Rules:
+ * - `in1`: First IN between 6:00 AM – 12:00 PM
+ * - `out1`: First OUT between 12:00 PM – 1:00 PM
+ * - `in2`: First IN between 12:00 PM – 2:00 PM (must be at least 15 mins after `out1`)
+ * - `out2`: First OUT from 2:00 PM onwards
+ *
+ * @param entries - Array of time log responses
+ * @returns An object with resolved slots: { in1, out1, in2, out2 }
+ */
 export const resolveDTRSlots = (entries: TimeLogResponse[] = []) => {
   const inLogs = entries
     .filter((e) => e.is_in)
@@ -528,8 +282,8 @@ export const resolveDTRSlots = (entries: TimeLogResponse[] = []) => {
     return hours >= startHour && hours < endHour
   }
 
-  // 1. Assign in1: between 6:00 - 9:00
-  const in1Candidate = inLogs.find((e) => isBetween(toTimestamp(e.date, e.scanned_time), 1, 12))
+  // 1. Assign in1: between 6:00 - 12:00
+  const in1Candidate = inLogs.find((e) => isBetween(toTimestamp(e.date, e.scanned_time), 6, 12))
   if (in1Candidate) {
     slots.in1 = toTimestamp(in1Candidate.date, in1Candidate.scanned_time)
   }
@@ -644,3 +398,36 @@ export function isNotMoreThanYearsAgo(maxYearsAgo: number) {
     return inputDate >= oldestAllowed
   })
 }
+
+/**
+ * Computation of Undertime & Overtime total worked hours based on DTR slots,
+ * with a fixed lunch break (12:00–1:00) excluded.
+ */
+export const computeWorkedHours = (timeLog: TimeLogResponse[]): number => {
+  const { in1, out1, in2, out2 } = resolveDTRSlots(timeLog ?? [])
+  if (!in1 || !out1 || !in2 || !out2) return 0
+
+  const toDate = (t: string) => new Date(t)
+
+  const amHours = (toDate(out1).getTime() - toDate(in1).getTime()) / 36e5
+
+  // clamp in2 to 1:00 PM if earlier
+  const pmStart = new Date(in2)
+  const onePM = new Date(in2)
+  onePM.setHours(13, 0, 0, 0)
+  if (pmStart < onePM) pmStart.setTime(onePM.getTime())
+
+  const pmHours = (toDate(out2).getTime() - pmStart.getTime()) / 36e5
+
+  return +(Math.max(amHours, 0) + Math.max(pmHours, 0)).toFixed(2)
+}
+
+/**
+ * Computes undertime (UT).
+ */
+export const computeUT = (worked: number): number => (worked < 8 ? parseFloat((8 - worked).toFixed(2)) : 0)
+
+/**
+ * Computes overtime (OT).
+ */
+export const computeOT = (worked: number): number => (worked > 8 ? parseFloat((worked - 8).toFixed(2)) : 0)

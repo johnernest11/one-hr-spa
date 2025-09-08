@@ -10,6 +10,7 @@ import WbTextArea from '@/components/webkit/WbTextArea.vue'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
 import { useToast } from 'primevue/usetoast'
+import { computeOT, computeUT, computeWorkedHours } from '@/utils/dtr-helpers'
 const dailyTimeRecordsStore = useDailyTimeRecordsStore()
 const toast = useToast()
 const isLoading = ref(true)
@@ -258,8 +259,11 @@ const monthDates = computed(() => {
                   }"
                   @click="
                     () => {
-                      const hasMissing = Object.values(resolveDTRSlots(item.row?.time_log ?? [])).some((value) => value === '')
-                      if (hasMissing) {
+                      const slots = resolveDTRSlots(item.row?.time_log ?? [])
+                      const hasMissing = Object.values(slots).some((value) => value === '')
+                      const hasEnoughEntries = (item.row?.time_log?.length ?? 0) >= 4
+
+                      if (!hasMissing && hasEnoughEntries) {
                         toggleAccordion(index)
                       }
                     }
@@ -358,7 +362,7 @@ const monthDates = computed(() => {
                   v-else-if="item.row && item.row.time_log?.length && !resolveDTRSlots(item.row.time_log).out2"
                   label=""
                   v-model="remarksMap[`out2-${item.date.toISOString()}`]"
-                  placeholder="Enter PM OUT"
+                  placeholder="Missing"
                   class="h-8 md:h-8 md:w-24"
                 />
               </div>
@@ -367,13 +371,13 @@ const monthDates = computed(() => {
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">UT</p>
                 <p class="text-base text-surface-600">
-                  {{ item.row?.ut ?? '' }}
+                  {{ item.row ? computeUT(computeWorkedHours(item.row.time_log ?? [])) : '' }}
                 </p>
               </div>
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">OT</p>
                 <p class="text-base text-surface-600">
-                  {{ item.row?.ot ?? '' }}
+                  {{ item.row ? computeOT(computeWorkedHours(item.row.time_log ?? [])) : '' }}
                 </p>
               </div>
               <div>
