@@ -290,36 +290,41 @@ export const usePdsStore = defineStore('pds', () => {
       },
     },
     individual_educational_background: [],
+
     /** PDS C2 */
-    individual_eligibility: [
-      {
-        id: null,
-        eligibility: '',
-        rating: '',
-        date_of_examination_conferment: '',
-        place_of_examination: '',
-        license_number: null,
-        license_date_of_validity: null,
-        _delete: null,
-      },
-    ],
-    individual_work_experience: [
-      {
-        id: 0,
-        is_current_work: false,
-        inclusive_date_from: '',
-        inclusive_date_to: '',
-        position_title: '',
-        department_agency_office_company: '',
-        monthly_salary: '',
-        salary_grade_id: null,
-        salary_grade: null,
-        custom_salary_grade: '',
-        status_of_appointment: null,
-        is_gov_service: false,
-        _delete: null,
-      },
-    ],
+    individual_eligibility: Array.isArray(individual?.individual_eligibility)
+      ? individual.individual_eligibility.map((elgi) => ({
+        ...elgi,
+        id: elgi.id ?? null,
+        eligibility: elgi.eligibility ?? '',
+        rating: elgi.rating ?? '',
+        date_of_examination_conferment: elgi.date_of_examination_conferment ?? '',
+        place_of_examination: elgi.place_of_examination ?? '',
+        license_number: elgi.license_number ?? null,
+        license_date_of_validity: elgi.license_date_of_validity ?? null,
+        _delete: elgi._delete ?? null,
+      }))
+      : [],
+
+    individual_work_experience: Array.isArray(individual?.individual_work_experience)
+      ? individual.individual_work_experience.map((exp) => ({
+        ...exp,
+        id: exp.id ?? null,
+        is_current_work: exp.is_current_work ?? false,
+        inclusive_date_from: exp.inclusive_date_from ?? '',
+        inclusive_date_to: exp.inclusive_date_to ?? '',
+        position_title: exp.position_title ?? '',
+        department_agency_office_company: exp.department_agency_office_company ?? '',
+        monthly_salary: exp.monthly_salary ?? '',
+        salary_grade_id: exp.salary_grade_id ?? null,
+        salary_grade: exp.salary_grade ?? null,
+        custom_salary_grade: exp.custom_salary_grade ?? '',
+        status_of_appointment: exp.status_of_appointment ?? null,
+        is_gov_service: exp.is_gov_service ?? false,
+        _delete: exp._delete ?? null,
+      }))
+      : [],
+
     /** PDS C3 */
     individual_voluntary_work: Array.isArray(individual?.individual_voluntary_work)
       ? individual.individual_voluntary_work.map((work) => ({
