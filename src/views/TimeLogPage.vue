@@ -10,12 +10,12 @@ import dswdLogoMark from '@/assets/image/DSWD logo_Mark.png'
 import WbAutoComplete from '@/components/webkit/WbAutoComplete.vue'
 import { WbAutoCompleteOption } from '@/components/webkit/WbAutoComplete.vue' // Import the type
 
-const currentDate = ref('')
-const currentTime = ref('')
-const meridiem = ref('')
-const seconds = ref('')
-const showModal = ref(false)
-const showOfficeSelectionModal = ref(true)
+const currentDate: Ref<string> = ref('')
+const currentTime: Ref<string> = ref('')
+const meridiem: Ref<string> = ref('')
+const seconds: Ref<string> = ref('')
+const showModal: Ref<boolean> = ref(false)
+const showOfficeSelectionModal: Ref<boolean> = ref(true)
 const dailyLogsStore = useDailyLogsStore()
 const librariesStore = useLibrariesStore()
 const todayISO = ref('')
@@ -35,9 +35,11 @@ const selectedOffice = ref<WbAutoCompleteOption | null>(null)
 
 const startKiosk = () => {
   if (selectedOffice.value) {
+    localStorage.setItem('kioskOfficeId', selectedOffice.value.value as string)
     showOfficeSelectionModal.value = false
   }
 }
+
 const updateDailyLogsState = async (date: string) => {
   await dailyLogsStore.fetchDailyLogs(date)
 }
@@ -81,7 +83,15 @@ const updateDateTime = () => {
 
 onMounted(async () => {
   await librariesStore.fetchOffices()
-  showOfficeSelectionModal.value = true
+
+  const storedOfficeId = localStorage.getItem('kioskOfficeId')
+
+  if (storedOfficeId) {
+    showOfficeSelectionModal.value = false
+    selectedOffice.value = librariesStore.officeOptions.find((office) => office.value === storedOfficeId)
+  } else {
+    showOfficeSelectionModal.value = true
+  }
 
   const today = getManilaTodayISO()
   todayISO.value = today
@@ -290,34 +300,48 @@ const latestWarmBodyLogs = computed(() => {
           :style="{ width: '30vw' }"
           :breakpoints="{ '1199px': '75vw', '575px': '90vw' }"
         >
-          <div class="flex flex-col items-center space-y-6 p-8 text-center">
-            <h2 class="text-3xl font-bold text-primary-800">Select Your Office</h2>
-            <p class="text-lg text-surface-700">Please select your office to proceed to the time log.</p>
-            <div class="w-full">
+          <template #header>
+            <div class="flex items-center space-x-3 pt-4 sm:px-6 md:px-8">
+              <font-awesome-icon :icon="['fas', 'map-location-dot']" class="h-6 text-surface-600 sm:h-7 md:h-8" />
+              <h1 class="text-2xl font-semibold text-surface-600 sm:text-xl md:text-2xl">Select official station</h1>
+            </div>
+          </template>
+          <hr />
+
+          <div class="flex flex-col space-y-6 p-8 text-center">
+            <p class="text-lg text-surface-600">Select the official station of this Time Log to proceed</p>
+            <div class="w-full items-center">
               <WbAutoComplete
                 :useApiFilter="true"
                 :apiEndpoint="'/libraries/offices/search'"
                 :suggestions="librariesStore.officeOptions"
                 :loading="librariesStore.officeOptionsLoading"
                 apiOptionLabel="name"
-                placeholder="Type the Employee's Office to search and select"
+                placeholder="Type to select from the list of official stations to proceed"
                 v-model="selectedOffice"
                 optionLabel="label"
                 optionValue="value"
                 forceSelection
               />
             </div>
-            <button
-              @click="startKiosk"
-              :disabled="!selectedOffice"
-              class="rounded-full p-4 px-8 font-bold text-white transition-colors"
-              :class="{
-                'bg-primary-600 hover:bg-primary-700': selectedOffice,
-                'cursor-not-allowed bg-gray-400': !selectedOffice,
-              }"
-            >
-              Proceed to Time Log
-            </button>
+
+            <div class="flex w-full justify-end">
+              <button
+                @click="startKiosk"
+                :disabled="!selectedOffice || librariesStore.officeOptionsLoading"
+                class="transform rounded-lg px-8 py-3 font-semibold text-primary-600 shadow-md duration-300 hover:scale-105"
+                :class="{
+                  'border border-primary-500 bg-white hover:bg-primary-700 hover:text-white': selectedOffice,
+                  'cursor-not-allowed bg-gray-400 text-white': !selectedOffice,
+                }"
+              >
+                <span v-if="librariesStore.officeOptionsLoading" class="flex items-center justify-center space-x-2">
+                  <span class="pi pi-spin pi-spinner"></span>
+                  <span>Loading...</span>
+                </span>
+                <span v-else>Proceed to Time Log</span>
+              </button>
+            </div>
           </div>
         </Dialog>
       </div>
