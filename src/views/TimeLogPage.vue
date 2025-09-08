@@ -7,7 +7,8 @@ import Dialog from 'primevue/dialog'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { getManilaTodayISO, formatTime } from '@/utils/helpers.ts'
 import dswdLogoMark from '@/assets/image/DSWD logo_Mark.png'
-import { WbAutoCompleteOption, WbAutoComplete } from '@/components/webkit/WbAutoComplete.vue'
+import WbAutoComplete from '@/components/webkit/WbAutoComplete.vue'
+import { WbAutoCompleteOption } from '@/components/webkit/WbAutoComplete.vue' // Import the type
 
 const currentDate = ref('')
 const currentTime = ref('')
@@ -315,7 +316,7 @@ const latestWarmBodyLogs = computed(() => {
                 'cursor-not-allowed bg-gray-400': !selectedOffice,
               }"
             >
-              Proceed to Kiosk
+              Proceed to Time Log
             </button>
           </div>
         </Dialog>
