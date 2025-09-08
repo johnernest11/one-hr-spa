@@ -445,7 +445,7 @@ export const usePdsStore = defineStore('pds', () => {
       gov_id_issuance: '',
     },
     employee: {
-      id: 0,
+      id: employee?.id ?? 0,
       individual_basic_detail_id: null,
       id_number: null,
       item_id: employee?.item_id ?? null,
@@ -986,6 +986,7 @@ export const usePdsStore = defineStore('pds', () => {
     pdsInfo,
     isMyPds,
     savePds,
+    isMyPds,
     importPds,
     generatePDSFormTemplate,
     pdsMode,
