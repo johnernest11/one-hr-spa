@@ -31,7 +31,7 @@ import { TabGroup, TabList, Tab, TabPanels, TabPanel } from '@headlessui/vue'
 import { usePrependOrAppendOnce, isNotMoreThanYearsAgo } from '@/utils/helpers.js'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { TransitionRoot } from '@headlessui/vue'
-import { ItemNumberResponse, PersonnelResponse } from '@/typings/models.types'
+import { IndividualEducBg, ItemNumberResponse, PersonnelResponse, IndividualFamily } from '@/typings/models.types'
 import { useRouter } from 'vue-router'
 import { useRoute } from 'vue-router'
 const getId = usePrependOrAppendOnce('pds-c1-section-form')
@@ -1072,7 +1072,6 @@ const handleRemoveChild = (childIndex: number) => {
     payload.individual_family_children.splice(idx, 1)
   }
 }
-
 // ──────────────────────────────────────────────────────────
 //          PDS Details Form - Fetching by ID & Update
 // ──────────────────────────────────────────────────────────
@@ -1086,8 +1085,67 @@ onMounted(async () => {
     const response = await pdsStore.fetchPdsById(id)
 
     if (response && response.success) {
-      console.log('Fetched PDS data:', response.data) // ✅ Console log added
-      pdsStore.updatePdsFromPersonnel(response.data as PersonnelResponse)
+      console.log('Fetched PDS data:', response.data)
+      console.log('Spouse payload:', payload.individual_family_spouse)
+      const data = response.data as PersonnelResponse
+      pdsStore.updatePdsFromPersonnel(data)
+
+      /** --------------------
+       * Handle Educations
+       * ------------------- */
+      const educationsRaw = data.individual_educational_background
+      const educationsArray: IndividualEducBg[] = Array.isArray(educationsRaw)
+        ? educationsRaw
+        : educationsRaw
+          ? [educationsRaw] // wrap single object in array
+          : []
+
+      educationsArray.forEach((edu) => {
+        switch (edu.level) {
+          case 'Elementary':
+            Object.assign(payload.educations.elementary, edu)
+            break
+          case 'Secondary':
+            Object.assign(payload.educations.high_school, edu)
+            break
+          case 'Vocational':
+            Object.assign(payload.educations.vocational, edu)
+            break
+          case 'College':
+            Object.assign(payload.educations.college, edu)
+            break
+          case 'Graduate':
+            Object.assign(payload.educations.graduate, edu)
+            break
+        }
+      })
+
+      /** --------------------
+       * Handle Family
+       * ------------------- */
+      const familyRaw = data.individual_family
+      const familyArray: IndividualFamily[] = Array.isArray(familyRaw)
+        ? familyRaw
+        : familyRaw
+          ? [familyRaw] // wrap single object in array
+          : []
+
+      familyArray.forEach((fam) => {
+        switch (fam.class) {
+          case 'Spouse':
+            Object.assign(payload.individual_family_spouse, fam)
+            break
+          case 'Father':
+            Object.assign(payload.individual_family_father, fam)
+            break
+          case 'Mother':
+            Object.assign(payload.individual_family_mothers_maiden, fam)
+            break
+          case 'Children':
+            payload.individual_family_children.push(fam) // array of children
+            break
+        }
+      })
     } else {
       console.warn('Failed to fetch PDS by ID or response unsuccessful.')
     }
@@ -1249,7 +1307,7 @@ const handleSaveC1Form = async () => {
     pdsErrors.value = result?.errors
     showToast('error', 'PDS Error', 'Pease see the validation messages')
   } else {
-    showToast('success', 'PDS', 'PDS has been saved')
+    showToast('success', 'Personal Data Sheet (PDS)', 'PDS has been successfully updated.')
     router.push({ name: 'employment' })
   }
 

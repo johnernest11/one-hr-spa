@@ -75,6 +75,10 @@ export type SectionorUnitResponse = {
   last_modified_by_user_id: string | null
 } & ApiResponseData
 
+export type ProgramResponse = {
+  name: string
+} & ApiResponseData
+
 export type ItemNumberResponse = {
   id: number
   number: string
@@ -127,6 +131,16 @@ export type UserResponse = {
   email_verified_at: string
   roles: Array<{ id: string | number; name: string }>
   user_profile?: UserProfileResponse
+} & ApiResponseData
+
+/** Active Directory (HTTP Responses) */
+export type ActiveDiretoryResponse = {
+  guid: string
+  name: string
+  username: string
+  email: string
+  active: boolean
+  email_verified_at: string
 } & ApiResponseData
 
 /** User Profile (HTTP Responses) */
@@ -336,7 +350,7 @@ export type IndividualFamily = {
   employers_business_name: string | null
   business_address: string | null
   telephone_no?: string | null
-  class: string
+  class: 'Spouse' | 'Father' | 'Mother' | 'Children' | null
   date_of_birth?: string | null
   _delete: boolean | null
 } & Omit<ApiResponseData, 'id'>
@@ -426,7 +440,7 @@ export type IndividualMembership = {
 
 /**Personnel Data Sheet (C4 FORM) (HTTP Responses) */
 export type IndividualQuestion = {
-  id: number
+  id: number | null
   q34_a: boolean
   q34_b: boolean
   q34_details: string | null
@@ -451,13 +465,15 @@ export type IndividualQuestion = {
   q40_b_details: string | null
   q40_c_solo_parent: boolean
   q40_c_details: string | null
-}
+} & Omit<ApiResponseData, 'id'>
 
 export type IndividualReference = {
+  id: number | null
   name: string | null
   address: string | null
   tel_no: string | null
-}
+  _delete: boolean | null
+} & Omit<ApiResponseData, 'id'>
 
 export type IndividualGovernmentIssue = {
   gov_id_name: string | null

@@ -2,6 +2,7 @@
 import { reactive, ref, computed, onMounted, watch, toRef } from 'vue'
 import { usePdsStore, PersonalDataSheetPayload } from '@/stores/pds.store.ts'
 import { useSalaryGradesStore } from '@/stores/salary-grades.store.ts'
+import { useAuthStore } from '@/stores/auth.store.ts'
 import { isGovServiceYesNoOptions, EmploymentStatusOptions } from '@/typings/employee-entry.types'
 import { useRouter } from 'vue-router'
 import { useRoute } from 'vue-router'
@@ -27,6 +28,7 @@ import { PersonnelResponse } from '@/typings/models.types'
 const getId = usePrependOrAppendOnce('pds-c2-section-form')
 const sgStore = useSalaryGradesStore()
 const pdsStore = usePdsStore()
+const authStore = useAuthStore()
 const toast = useToast()
 const router = useRouter()
 const route = useRoute()
@@ -223,14 +225,13 @@ watch(
     if (existing) {
       selectedWorkExperienceSG.value[idx] = existing
     } else {
-      // Watch for async-loaded options if not yet available
       const unwatch = watch(
         () => sgStore.salaryGradesOptions,
         (options) => {
           const found = options.find((opt) => opt.value === selectedId)
           if (found) {
             selectedWorkExperienceSG.value[idx] = found
-            unwatch() // stop watching after found
+            unwatch()
           }
         },
         { immediate: true }
@@ -282,13 +283,11 @@ const handleRemoveEligibility = (eligibilityIndex: number) => {
   const eligibility = payload.individual_eligibility?.[idx]
 
   if (eligibility?.id) {
-    // mark for backend soft-delete
     payload.individual_eligibility[idx] = {
       ...eligibility,
       _delete: true,
     }
   } else {
-    // not saved yet → remove completely
     payload.individual_eligibility.splice(idx, 1)
   }
 }
@@ -332,13 +331,11 @@ const handleRemoveWorkExperience = (workExperienceIndex: number) => {
   const workExperience = payload.individual_work_experience?.[idx]
 
   if (workExperience?.id) {
-    // mark for backend soft-delete
     payload.individual_work_experience[idx] = {
       ...workExperience,
       _delete: true,
     }
   } else {
-    // not saved yet → remove completely
     payload.individual_work_experience.splice(idx, 1)
   }
 }
@@ -380,12 +377,18 @@ watch(
   { immediate: true }
 )
 
+// ──────────────────────────────────────────────────────────
+//          PDS Details Form - Update Handler
+// ──────────────────────────────────────────────────────────
 const updateC2Form = async () => {
   IsBeingUpdated.value = true
   isC2Loading.value = true
   formIsSubmitting.value = true
 
-  const id = route.params.id as string
+  const id = pdsStore.isMyPds
+    ? authStore.authenticatedUser?.user_profile?.individual_basic_detail?.id?.toString()
+    : (route.params.id as string)
+
   if (!id) {
     showToast('error', 'PDS Error', 'No ID found for updating.')
     IsBeingUpdated.value = false
@@ -428,7 +431,7 @@ const updateC2Form = async () => {
     pdsErrors.value = result?.errors
     showToast('error', 'PDS C2 Error', 'Please see the validation messages')
   } else {
-    showToast('success', 'PDS', 'PDS has been saved')
+    showToast('success', 'Personal Data Sheet (PDS)', 'PDS has been successfully updated.')
   }
 
   IsBeingUpdated.value = false

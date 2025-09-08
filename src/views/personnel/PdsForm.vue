@@ -115,6 +115,7 @@ const handleUpdate = async () => {
 
             <!-- Show Update button only if id exists -->
             <Button
+              v-if="isMyPds || isEditMode"
               label="Update PDS"
               @click.prevent="handleUpdate"
               :loading="isSubmitting"
