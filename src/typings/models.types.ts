@@ -75,6 +75,10 @@ export type SectionorUnitResponse = {
   last_modified_by_user_id: string | null
 } & ApiResponseData
 
+export type ProgramResponse = {
+  name: string
+} & ApiResponseData
+
 export type ItemNumberResponse = {
   id: number
   number: string
@@ -267,7 +271,7 @@ export type PersonnelResponse = {
   individual_work_experience: IndividualWorkExperience | null
   individual_voluntary_work: IndividualVoluntaryWork | null
   individual_lnd: IndividualLearningDevelopment | null
-  individual_skills: IndividualSkills | null
+  individual_skills_hobby: IndividualSkills | null
   individual_recognition: IndividualRecognition | null
   individual_membership: IndividualMembership | null
   individual_question: IndividualQuestion | null
@@ -337,6 +341,7 @@ export type IndividualAddress = {
 }
 
 export type IndividualFamily = {
+  id: number | null
   first_name: string | null
   last_name: string | null
   middle_name?: string | null
@@ -345,11 +350,13 @@ export type IndividualFamily = {
   employers_business_name: string | null
   business_address: string | null
   telephone_no?: string | null
-  class: string
+  class: 'Spouse' | 'Father' | 'Mother' | 'Children' | null
   date_of_birth?: string | null
-}
+  _delete: boolean | null
+} & Omit<ApiResponseData, 'id'>
 
 export type IndividualEducBg = {
+  id: number | null
   schools_name: string | null
   education_description: string | null
   level: 'Elementary' | 'Secondary' | 'College' | 'Vocational' | 'Graduate' | null
@@ -363,7 +370,7 @@ export type IndividualEducBg = {
 
 /**Personnel Data Sheet (C2 FORM) (HTTP Responses) */
 export type IndividualEligibility = {
-  id: number
+  id: number | null
   eligibility: string | null
   rating: string | null
   date_of_examination_conferment: string | null
@@ -371,10 +378,10 @@ export type IndividualEligibility = {
   license_number: string | null
   license_date_of_validity: string | null
   _delete: boolean | null
-} & ApiResponseData
+} & Omit<ApiResponseData, 'id'>
 
 export type IndividualWorkExperience = {
-  id: number
+  id: number | null
   is_current_work: boolean
   inclusive_date_from: string | null
   inclusive_date_to: string | null
@@ -387,10 +394,11 @@ export type IndividualWorkExperience = {
   status_of_appointment: string | null
   is_gov_service: boolean
   _delete: boolean | null
-} & ApiResponseData
+} & Omit<ApiResponseData, 'id'>
 
 /**Personnel Data Sheet (C3 FORM) (HTTP Responses) */
 export type IndividualVoluntaryWork = {
+  id: number | null
   is_current_org: boolean
   org_name: string | null
   org_address: string | null
@@ -398,32 +406,41 @@ export type IndividualVoluntaryWork = {
   to: string | Date | null
   number_of_hours: string | null
   position_nature_of_work: string | null
-}
+  _delete: boolean | null
+} & Omit<ApiResponseData, 'id'>
 
 export type IndividualLearningDevelopment = {
+  id: number | null
   title: string | null
   from: string | null
   to: string | null
   number_of_hours: string | null
   type: string | null
   conducted_sponsor: string | null
-}
+  _delete: boolean | null
+} & Omit<ApiResponseData, 'id'>
 
 export type IndividualSkills = {
+  id: number | null
   skill_hobby: string | null
-}
+  _delete: boolean | null
+} & Omit<ApiResponseData, 'id'>
 
 export type IndividualRecognition = {
+  id: number | null
   recognition: string | null
-}
+  _delete: boolean | null
+} & Omit<ApiResponseData, 'id'>
 
 export type IndividualMembership = {
+  id: number | null
   association_organization: string | null
-}
+  _delete: boolean | null
+} & Omit<ApiResponseData, 'id'>
 
 /**Personnel Data Sheet (C4 FORM) (HTTP Responses) */
 export type IndividualQuestion = {
-  id: number
+  id: number | null
   q34_a: boolean
   q34_b: boolean
   q34_details: string | null
@@ -448,13 +465,15 @@ export type IndividualQuestion = {
   q40_b_details: string | null
   q40_c_solo_parent: boolean
   q40_c_details: string | null
-}
+} & Omit<ApiResponseData, 'id'>
 
 export type IndividualReference = {
+  id: number | null
   name: string | null
   address: string | null
   tel_no: string | null
-}
+  _delete: boolean | null
+} & Omit<ApiResponseData, 'id'>
 
 export type IndividualGovernmentIssue = {
   gov_id_name: string | null

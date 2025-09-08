@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onBeforeMount, ref, watch, reactive, onMounted } from 'vue'
-import { PositionResponse } from '@/typings/models.types.ts'
+import { FundSourceResponse } from '@/typings/models.types.ts'
 import { useToast } from 'primevue/usetoast'
 import { useRoute } from 'vue-router'
 
@@ -18,60 +18,56 @@ import { parseApiResponseError } from '@/utils/error-handle.ts'
 import { helpers, maxLength, required } from '@vuelidate/validators'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import WbInputText from '@/components/webkit/WbInputText.vue'
-import { PositionPayload, usePositionStore } from '@/stores/position.store'
+import { useFundSourceStore, FundSourcePayload } from '@/stores/fund-source.store'
+import { formatDate } from '@/utils/helpers'
 
-const positionStore = usePositionStore()
+const fundSourceStore = useFundSourceStore()
 const route = useRoute()
 const toast = useToast()
 
-const createPosition = ref(false)
+const createFundSource = ref(false)
 const searchSubmitted = ref(false)
-const positionsIsLoading = ref(false)
+const fundSourceIsLoading = ref(false)
 const isLoading = ref(true)
 const isEditMode = ref(false)
 const formIsSubmitting = ref(false)
 const showErrorAlert = ref(false)
 const paginationLimit = 5
-
 const searchQuery = ref<string | null>(null)
 const errorMessage = ref<string | null>(null)
 const errorDetails = ref<string[]>([])
 const pagination = ref<ApiResponsePagination | null>(null)
 
 const emit = defineEmits<{
-  (e: 'position-created', value: boolean): void
+  (e: 'fundSource-created', value: boolean): void
 }>()
 
-const openPositionDialog = (position: PositionResponse | null = null) => {
-  if (!position || !position.id) {
-    console.error('Cannot navigate to details: Position or ID is undefined', position)
+const openfundSourceDialog = (fundSource: FundSourceResponse | null = null) => {
+  if (!fundSource || !fundSource.id) {
+    console.error('Cannot navigate to details: Fund Source or ID is undefined', fundSource)
     return
   }
-  if (position) {
-    updatePayloadFromReport(position)
+  if (fundSource) {
+    updatePayloadFromReport(fundSource)
     isEditMode.value = true
   } else {
     resetPayload() // clear form if new
     isEditMode.value = false
   }
-  createPosition.value = true
+  createFundSource.value = true
 }
 
-const openPositionForm = () => {
+const openfundSourceForm = () => {
   resetPayload()
-  createPosition.value = true
+  createFundSource.value = true
 }
 
-const payload = reactive<PositionPayload>({
-  title: '',
-  parenthetical_title: '',
-  level: null,
+const payload = reactive<FundSourcePayload>({
+  name: '',
 })
 
 const resetPayload = () => {
-  payload.title = ''
-  payload.parenthetical_title = ''
-  payload.level = null
+  payload.name = ''
 }
 
 const globalStringMaxLength = import.meta.env.VITE_GLOBAL_STRING_MAX_LENGTH
@@ -82,105 +78,93 @@ const globalStringMaxLengthRule = helpers.withMessage(
 
 const formRules = () => ({
   $lazy: true,
-  title: {
-    required: helpers.withMessage('Title is required', required),
-    maxLength: helpers.withMessage('', globalStringMaxLengthRule),
-  },
-  parenthetical_title: {
-    required: helpers.withMessage('Parenthetical Title  is required', required),
-    maxLength: helpers.withMessage('', globalStringMaxLengthRule),
-  },
-  level: {
-    required: helpers.withMessage('Level is required', required),
+  name: {
+    required: helpers.withMessage('Name is required', required),
     maxLength: helpers.withMessage('', globalStringMaxLengthRule),
   },
 })
 
 onBeforeMount(async () => {
-  positionsIsLoading.value = true
-  const response = await positionStore.fetchListPosition(paginationLimit)
+  fundSourceIsLoading.value = true
+  const response = await fundSourceStore.fetchListFundSources(paginationLimit)
   if (response.success && response.pagination) {
     pagination.value = response.pagination
-    console.log('Fetched Position rows:', response.data)
+    console.log('Fetched Fund Source rows:', response.data)
   }
-  positionsIsLoading.value = false
+  fundSourceIsLoading.value = false
 })
 
 const handlePaginationPageChange = async (event: PageState) => {
   const pageSelected = event.page + 1
-  positionsIsLoading.value = true
-  const response = await positionStore.fetchListPosition(paginationLimit, pageSelected)
+  fundSourceIsLoading.value = true
+  const response = await fundSourceStore.fetchListFundSources(paginationLimit, pageSelected)
   if (response.success && response.pagination) {
     pagination.value = response.pagination
   }
-  positionsIsLoading.value = false
+  fundSourceIsLoading.value = false
 }
 
-const handleSearchPosition = async () => {
-  positionsIsLoading.value = true
+const handleSearchFundSources = async () => {
+  fundSourceIsLoading.value = true
   searchSubmitted.value = true
 
   if (!searchQuery.value) {
-    const response = await positionStore.fetchListPosition(paginationLimit)
+    const response = await fundSourceStore.fetchListFundSources(paginationLimit)
     if (response.success && response.pagination) {
       pagination.value = response.pagination
     }
-    positionsIsLoading.value = false
+    fundSourceIsLoading.value = false
     return
   }
 
-  const response = await positionStore.searchListPosition(searchQuery.value)
+  const response = await fundSourceStore.searchListFundSource(searchQuery.value)
   if (response.success && response.pagination) {
     pagination.value = response.pagination
 
     searchQuery.value = null
   }
-  positionsIsLoading.value = false
+  fundSourceIsLoading.value = false
 }
 
-type positionDetailsFormProps = {
-  position?: PositionResponse
+type fundSourceDetailsFormProps = {
+  fundSource?: FundSourceResponse
 }
-const props = defineProps<positionDetailsFormProps>()
+const props = defineProps<fundSourceDetailsFormProps>()
 onMounted(async () => {
   const id = route.params.id as string
   if (id) {
-    const response = await positionStore.fetchListPosition()
+    const response = await fundSourceStore.fetchListFundSources()
     if (response && response.success) {
-      updatePayloadFromPositions(response.data as PositionResponse)
+      updatePayloadFromReport(response.data as FundSourceResponse)
     }
   }
   isLoading.value = false
 })
 
-const updatePayloadFromPositions = (position: PositionResponse | null) => {
-  payload.title = position?.title ?? ''
-  payload.parenthetical_title = (position?.parenthetical_title ?? '') as string
-  payload.level = position?.level ?? null
+const updatePayloadFromReport = (fundSource: FundSourceResponse | null) => {
+  payload.name = fundSource?.name ?? ''
 }
 
 watch(
-  () => props.position,
+  () => props.fundSource,
   (newValue) => {
     if (newValue) {
-      updatePayloadFromPositions(newValue)
+      updatePayloadFromReport(newValue)
     } else {
-      payload.title = ''
-      payload.parenthetical_title = ''
-      payload.level = null
+      payload.name = ''
     }
   },
   { immediate: true }
 )
 
-const validator = useVuelidate<Partial<PositionPayload>>(formRules, payload)
+const validator = useVuelidate<Partial<FundSourcePayload>>(formRules, payload)
 const handleSaveSubmissionif = async () => {
   const valid = await validator.value.$validate()
   if (!valid) {
-    document.querySelector('.create-position-creds-section')?.scrollIntoView({ behavior: 'smooth' })
+    document.querySelector('.create-fundSource-creds-section')?.scrollIntoView({ behavior: 'smooth' })
     toast.add({
       severity: 'error',
-      summary: 'Create a Position Request',
+      summary: 'Create a Fund Source ',
       detail: 'Please see the validation messages',
       life: 5000,
     })
@@ -190,16 +174,14 @@ const handleSaveSubmissionif = async () => {
   formIsSubmitting.value = true
 
   try {
-    const position = {
-      title: payload.title,
-      parenthetical_title: payload.parenthetical_title,
-      level: payload.level,
+    const fundSource = {
+      name: payload.name,
     }
 
-    const periodResponse = await positionStore.createPosition(position)
+    const fundSourceResponse = await fundSourceStore.createFundSource(fundSource)
 
-    if (!periodResponse.success) {
-      const result = parseApiResponseError(periodResponse)
+    if (!fundSourceResponse.success) {
+      const result = parseApiResponseError(fundSourceResponse)
       if (!result) {
         formIsSubmitting.value = false
         return
@@ -208,17 +190,17 @@ const handleSaveSubmissionif = async () => {
       errorMessage.value = result.message
       errorDetails.value = result.errors
       formIsSubmitting.value = false
-      document.querySelector('.create-position-creds-section')?.scrollIntoView({ behavior: 'smooth' })
+      document.querySelector('.create-fundSource-creds-section')?.scrollIntoView({ behavior: 'smooth' })
       return
     }
 
     toast.add({
       severity: 'success',
       summary: 'Success',
-      detail: 'Position Request submitted successfully',
+      detail: 'Fund Source submitted successfully',
       life: 5000,
     })
-    emit('position-created', true)
+    emit('fundSource-created', true)
   } finally {
     formIsSubmitting.value = false
   }
@@ -233,36 +215,36 @@ const handleSaveSubmissionif = async () => {
         <h1
           class="mb-2 ml-4 mr-4 whitespace-nowrap text-xl font-semibold text-primary-800 dark:text-primary-100 md:text-xl lg:text-4xl"
         >
-          <font-awesome-icon :icon="['fas', 'users-rays']" />
-          Position Creation
+          <font-awesome-icon :icon="['fas', 'wallet']" />
+          Fund Source Creation
         </h1>
 
         <div class="flex w-full items-center justify-end gap-4">
           <div class="gap-4 whitespace-nowrap md:w-auto">
             <Button
               icon="pi pi-plus"
-              v-tooltip.top="'Position Creation'"
+              v-tooltip.top="'Fund Source Creation'"
               severity="info"
               size="large"
               class="border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100 sm:text-primary-400 md:text-primary-400 lg:text-primary-400 dark:lg:text-primary-400"
               text
-              @click="openPositionForm"
+              @click="openfundSourceForm"
             />
           </div>
           <div class="flex w-full md:w-auto lg:w-1/2">
             <InputGroup v-model="searchQuery" class="w-full">
               <InputText
                 v-model="searchQuery"
-                placeholder="Search via Title or Parenthentical Title"
+                placeholder="Search via Fund Name"
                 class="w-full"
-                :disabled="positionsIsLoading"
-                @keyup.enter="handleSearchPosition"
+                :disabled="fundSourceIsLoading"
+                @keyup.enter="handleSearchFundSources"
               />
               <Button
                 icon="pi pi-search"
-                @click="handleSearchPosition"
-                :loading="positionsIsLoading"
-                :disabled="positionsIsLoading"
+                @click="handleSearchFundSources"
+                :loading="fundSourceIsLoading"
+                :disabled="fundSourceIsLoading"
               />
             </InputGroup>
           </div>
@@ -271,39 +253,35 @@ const handleSaveSubmissionif = async () => {
 
       <div class="mt-6 flex flex-col">
         <div class="w-full">
-          <div v-if="positionStore.position && positionStore.position.length > 0" class="mx-auto flex h-full w-full flex-col">
-            <DataTable :value="positionStore.position" :loading="positionsIsLoading" class="mt-6" dataKey="id">
+          <div
+            v-if="fundSourceStore.fundSource && fundSourceStore.fundSource.length > 0"
+            class="mx-auto flex h-full w-full flex-col"
+          >
+            <DataTable :value="fundSourceStore.fundSource" :loading="fundSourceIsLoading" class="mt-6" dataKey="id">
               <template #loading>
                 <div class="flex h-full w-full items-center justify-center text-primary-600">
                   <i class="pi pi-spin pi-spinner text-3xl"></i>
                 </div>
               </template>
-              <Column field="title" header="TITLE" headerClass="w-80 bg-surface-100 border-surface-300 opacity-70 font-bold py-2">
-                <template #body="props">
-                  <p class="font-semibold text-surface-600">
-                    {{ props.data.title }}
-                  </p>
-                </template>
-              </Column>
               <Column
-                field="parenthentical title"
-                header="PARENTHETICAL TITLE"
-                headerClass=" w-80 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
+                field="title"
+                header="FUND NAME"
+                headerClass="w-80 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
               >
                 <template #body="props">
-                  <p class="text-surface-600">
-                    {{ props.data.parenthetical_title }}
+                  <p class="font-semibold text-surface-600">
+                    {{ props.data.name }}
                   </p>
                 </template>
               </Column>
               <Column
                 field="level"
-                header="LEVEL"
+                header="CREATED"
                 headerClass=" w-80 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
               >
                 <template #body="props">
                   <p class="text-surface-600">
-                    {{ props.data.level }}
+                    {{ formatDate(props.data.created_at) }}
                   </p>
                 </template>
               </Column>
@@ -318,7 +296,7 @@ const handleSaveSubmissionif = async () => {
                       class="border-none text-lg font-semibold text-primary-600 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
                       text
                       :disabled="props.data.status === 'released'"
-                      @click="openPositionDialog(props.data)"
+                      @click="openfundSourceDialog(props.data)"
                     />
                   </div>
                 </template>
@@ -339,51 +317,20 @@ const handleSaveSubmissionif = async () => {
           </div>
         </div>
         <div
-          v-if="searchSubmitted && !positionsIsLoading && !positionStore.position.length"
+          v-if="searchSubmitted && !fundSourceIsLoading && !fundSourceStore.fundSource.length"
           class="flex h-full w-full flex-col items-center justify-center font-menu text-lg dark:text-surface-300"
         >
           <i class="pi pi-exclamation-triangle mb-2 text-2xl"></i>
-          <p>No Position found</p>
+          <p>No Fund Sources found</p>
         </div>
       </div>
     </div>
   </div>
-  <Dialog v-model:visible="createPosition" modal header="Position Creation" :style="{ width: '90vw' }">
+  <!-- Create/Update Fund Source Dialog -->
+  <Dialog v-model:visible="createFundSource" modal header="Fund Source Creation" :style="{ width: '90vw' }">
     <template #header>
       <div class="flex items-center space-x-3 pt-4 sm:px-6 md:px-8">
-        <h1 class="font-base text-2xl text-surface-600 sm:text-xl md:text-2xl">Position Creation</h1>
-      </div>
-    </template>
-    <hr />
-
-    <div class="px-4 py-4 sm:px-6 sm:py-6 md:px-12">
-      <div class="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div></div>
-
-        <div></div>
-      </div>
-
-      <div class="flex justify-end">
-        <Button
-          @click="handleSaveSubmissionif"
-          :loading="formIsSubmitting"
-          :disabled="formIsSubmitting"
-          label="Submit"
-          class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-600"
-          text
-        >
-          <template #icon>
-            <font-awesome-icon :icon="['fas', 'save']" class="mr-2" />
-          </template>
-        </Button>
-      </div>
-    </div>
-  </Dialog>
-  <!-- Import PDS Dialog -->
-  <Dialog v-model:visible="createPosition" modal header="Position Creation" :style="{ width: '90vw' }">
-    <template #header>
-      <div class="flex items-center space-x-3 pt-4 sm:px-6 md:px-8">
-        <h1 class="font-base text-2xl text-surface-600 sm:text-xl md:text-2xl">Position Creation</h1>
+        <h1 class="font-base text-2xl text-surface-600 sm:text-xl md:text-2xl">Fund Source Creation</h1>
       </div>
     </template>
     <hr />
@@ -404,33 +351,11 @@ const handleSaveSubmissionif = async () => {
       </div>
     </div>
     <div class="px-4 py-4 sm:px-6 sm:py-6 md:px-12">
-      <div class="mb-2 flex flex-col gap-2 md:flex-row md:gap-4">
-        <WbInputText
-          v-model="payload.title"
-          required
-          label="Title"
-          label-class="text-md text-surface-600 dark:lg:text-surface-200"
-          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-          validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-        >
-        </WbInputText>
-      </div>
-      <div class="mb-2 flex flex-col gap-2 md:flex-row md:gap-4">
-        <WbInputText
-          v-model="payload.parenthetical_title"
-          required
-          label="Parenthetical Title"
-          label-class="text-md text-surface-600 dark:lg:text-surface-200"
-          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-          validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-        >
-        </WbInputText>
-      </div>
       <div class="mb-6 flex flex-col gap-2 md:flex-row md:gap-4">
         <WbInputText
-          v-model="payload.level"
+          v-model="payload.name"
           required
-          label="Level"
+          label="Fund Source Name"
           label-class="text-md text-surface-600 dark:lg:text-surface-200"
           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -442,7 +367,7 @@ const handleSaveSubmissionif = async () => {
           label="Cancel"
           class="dark:text-secondary-100 border border-surface-400 text-base text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
           text
-          @click="CreatePosition = false"
+          @click="createFundSource = false"
         >
           <template #icon>
             <i class="pi pi-ban mr-2"></i>
