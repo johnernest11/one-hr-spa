@@ -162,16 +162,14 @@ onMounted(async () => {
       })
     }
 
-    // ensure reactivity settles before enabling the watcher
     await nextTick()
-    setupSpouseWatch(false) // don't touch imported spouse on init
+    setupSpouseWatch(false)
   } else {
-    // no import path -> watcher initializes spouse fields based on current status
     setupSpouseWatch(true)
   }
 })
 
-onBeforeUnmount(() => stopSpouseWatch?.()) // Prevents memory leaks by cleaning up the watcher when the component unmounts.
+onBeforeUnmount(() => stopSpouseWatch?.())
 
 const { provinceOptions, cityOptions, barangayOptions } = storeToRefs(publicStore)
 const filteredProvinceOptionsByRegion = useFilterByParentId(
@@ -771,7 +769,6 @@ watch(
 let stopSpouseWatch: WatchStopHandle | null = null
 
 function setupSpouseWatch(immediate: boolean) {
-  // kill any previous watcher (defensive)
   stopSpouseWatch?.()
 
   stopSpouseWatch = watch(
@@ -793,7 +790,7 @@ function setupSpouseWatch(immediate: boolean) {
       if (newStatus === 'Single') fill('N/A')
       else fill('')
     },
-    { immediate } // <- immediate only when there was no import
+    { immediate }
   )
 }
 
