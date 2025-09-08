@@ -437,7 +437,7 @@ export type IndividualMembership = {
 
 /**Personnel Data Sheet (C4 FORM) (HTTP Responses) */
 export type IndividualQuestion = {
-  id: number
+  id: number | null
   q34_a: boolean
   q34_b: boolean
   q34_details: string | null
@@ -462,7 +462,7 @@ export type IndividualQuestion = {
   q40_b_details: string | null
   q40_c_solo_parent: boolean
   q40_c_details: string | null
-}
+} & Omit<ApiResponseData, 'id'>
 
 export type IndividualReference = {
   id: number | null

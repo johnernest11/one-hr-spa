@@ -1004,7 +1004,9 @@ defineExpose({
                         leaveFrom="opacity-100"
                         leaveTo="opacity-0"
                       >
-                        <p class="mb-4 text-surface-700">Reference # {{ referenceIndex }}</p>
+                        <p v-if="referenceIndex !== null && referenceIndex !== undefined" class="mb-4 text-surface-700">
+                          Reference # {{ referenceIndex }}
+                        </p>
                         <div v-if="!payload.individual_reference[referenceIndex - 1]?._delete">
                           <div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-5">
                             <div class="md:col-span-2">
