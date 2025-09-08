@@ -49,7 +49,7 @@ const openActiveDirectoryDialog = (AD: ActiveDiretoryResponse | null = null) => 
     return
   }
   if (AD) {
-    updatePayloadFromReport(AD)
+    updatePayloadFromActiveDirectory(AD)
     isEditMode.value = true
   } else {
     resetPayload() // clear form if new
@@ -509,7 +509,7 @@ const handleSaveSubmissionif = async () => {
           label="Cancel"
           class="dark:text-secondary-100 border border-surface-400 text-base text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
           text
-          @click="CreateActiveDirectory = false"
+          @click="createActiveDirectory = false"
         >
           <template #icon>
             <i class="pi pi-ban mr-2"></i>
