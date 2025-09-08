@@ -321,52 +321,57 @@ export const usePdsStore = defineStore('pds', () => {
       },
     ],
     /** PDS C3 */
-    individual_voluntary_work: [
-      {
-        id: null,
-        is_current_org: false,
-        org_name: '',
-        org_address: '',
-        from: null,
-        to: null,
-        number_of_hours: null,
-        position_nature_of_work: null,
-        _delete: null,
-      },
-    ],
-    individual_lnd: [
-      {
-        id: null,
-        title: '',
-        from: '',
-        to: null,
-        number_of_hours: null,
-        type: null,
-        conducted_sponsor: null,
-        _delete: null,
-      },
-    ],
-    individual_skills_hobby: [
-      {
-        id: null,
-        skill_hobby: '',
-        _delete: null,
-      },
-    ],
-    individual_recognition: [
-      {
-        id: null,
-        recognition: '',
-        _delete: null,
-      },
-    ],
-    individual_membership: [
-      {
-        id: null,
-        association_organization: '',
-        _delete: null,
-      },
-    ],
+    individual_voluntary_work: Array.isArray(individual?.individual_voluntary_work)
+      ? individual.individual_voluntary_work.map((work) => ({
+        ...work,
+        id: work.id ?? null,
+        is_current_org: work.is_current_org ?? false,
+        org_name: work.org_name ?? '',
+        org_address: work.org_address ?? '',
+        from: work.from ?? null,
+        to: work.to ?? null,
+        number_of_hours: work.number_of_hours ?? null,
+        position_nature_of_work: work.position_nature_of_work ?? null,
+        _delete: work._delete ?? null,
+      }))
+      : [],
+    individual_lnd: Array.isArray(individual?.individual_lnd)
+      ? individual.individual_lnd.map((lnd) => ({
+        ...lnd,
+        id: lnd.id ?? null,
+        title: lnd.title ?? '',
+        from: lnd.from ?? '',
+        to: lnd.to ?? null,
+        number_of_hours: lnd.number_of_hours ?? null,
+        type: lnd.type ?? null,
+        conducted_sponsor: lnd.conducted_sponsor ?? null,
+        _delete: lnd._delete ?? null,
+      }))
+      : [],
+    individual_skills_hobby: Array.isArray(individual?.individual_skills_hobby)
+      ? individual.individual_skills_hobby.map((skill) => ({
+        ...skill,
+        id: skill.id ?? null,
+        skill_hobby: skill.skill_hobby ?? '',
+        _delete: skill._delete ?? null,
+      }))
+      : [],
+    individual_recognition: Array.isArray(individual?.individual_recognition)
+      ? individual.individual_recognition.map((rec) => ({
+        ...rec,
+        id: rec.id ?? null,
+        recognition: rec.recognition ?? '',
+        _delete: rec._delete ?? null,
+      }))
+      : [],
+    individual_membership: Array.isArray(individual?.individual_membership)
+      ? individual.individual_membership.map((mem) => ({
+        ...mem,
+        id: mem.id ?? null,
+        association_organization: mem.association_organization ?? '',
+        _delete: mem._delete ?? null,
+      }))
+      : [],
     /** PDS C4 */
     individual_question: individual?.individual_question
       ? [
@@ -821,6 +826,7 @@ export const usePdsStore = defineStore('pds', () => {
 
   return {
     pdsInfo,
+    isMyPds,
     savePds,
     importPds,
     generatePDSFormTemplate,
