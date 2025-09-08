@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { reactive, ref, computed, onMounted, toRef, watch } from 'vue'
 import { usePdsStore, PersonalDataSheetPayload } from '@/stores/pds.store.ts'
+import { useAuthStore } from '@/stores/auth.store.ts'
 import { useLibrariesStore } from '@/stores/libraries.store.ts'
 import { useRouter } from 'vue-router'
 import { useRoute } from 'vue-router'
@@ -27,6 +28,7 @@ import { PersonnelResponse } from '@/typings/models.types'
 const getId = usePrependOrAppendOnce('pds-c3-section-form')
 const pdsStore = usePdsStore()
 const libraryStore = useLibrariesStore()
+const authStore = useAuthStore()
 const toast = useToast()
 const router = useRouter()
 const route = useRoute()
@@ -41,6 +43,7 @@ const isLoading = ref(true)
 const errorDetails = ref<string[]>([])
 
 const isC4Loading = ref(false)
+const isMyPds = route.name === 'my-pds'
 const isPdsError = ref(false)
 const activeToasts = ref<number>(0)
 const selectedCountry = ref<WbAutoCompleteOption[] | null>(null)
@@ -210,9 +213,14 @@ watch(
   { immediate: true }
 )
 
+// ──────────────────────────────────────────────────────────
+//          PDS Details Form - Update Handler
+// ──────────────────────────────────────────────────────────
 const updateC4Form = async () => {
   IsBeingUpdated.value = true
-  const id = route.params.id as string
+  const id = isMyPds
+    ? authStore.authenticatedUser?.user_profile?.individual_basic_detail?.id?.toString() ?? ''
+    : (route.params.id as string)
 
   formIsSubmitting.value = true
   const response = await pdsStore.updatePds({ ...payload }, id, 'C4')
@@ -1047,7 +1055,7 @@ defineExpose({
                                 :id="getId(`button-remove-learning-development-${referenceIndex}`)"
                                 icon="pi pi-trash"
                                 @click="handleRemoveReference(referenceIndex)"
-                                v-tooltip.top="'Remove L&D'"
+                                v-tooltip.top="'Remove Reference'"
                                 severity="danger"
                                 class="mb-2 text-lg font-semibold dark:text-primary-100"
                                 text
