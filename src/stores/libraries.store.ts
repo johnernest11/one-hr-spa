@@ -124,7 +124,7 @@ export const useLibrariesStore = defineStore('libraries', () => {
 
     officeOptionsLoading.value = true
 
-    const { data } = await useApiCall('/libraries/offices?per_page=1000', authStore.authenticationToken).get().json()
+    const { data } = await useApiCall('/libraries/offices?per_page&limit=1000', authStore.authenticationToken).get().json()
     const res: ApiResponseBody = data.value
 
     if (res.success && Array.isArray(res.data)) {
@@ -187,7 +187,7 @@ export const useLibrariesStore = defineStore('libraries', () => {
 
     divisionOptionsLoading.value = true
 
-    const { data } = await useApiCall('/libraries/divisions?per_page=1000', authStore.authenticationToken).get().json()
+    const { data } = await useApiCall('/libraries/divisions?per_page&limit=1000', authStore.authenticationToken).get().json()
     const res: ApiResponseBody = data.value
 
     if (res.success && Array.isArray(res.data)) {
@@ -250,7 +250,9 @@ export const useLibrariesStore = defineStore('libraries', () => {
 
     sectionUnitOptionsLoading.value = true
 
-    const { data } = await useApiCall('/libraries/section-or-units?per_page=1000', authStore.authenticationToken).get().json()
+    const { data } = await useApiCall('/libraries/section-or-units?per_page&limit=1000', authStore.authenticationToken)
+      .get()
+      .json()
     const res: ApiResponseBody = data.value
 
     if (res.success && Array.isArray(res.data)) {
