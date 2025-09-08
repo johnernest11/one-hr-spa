@@ -75,6 +75,10 @@ export type SectionorUnitResponse = {
   last_modified_by_user_id: string | null
 } & ApiResponseData
 
+export type ProgramResponse = {
+  name: string
+} & ApiResponseData
+
 export type ItemNumberResponse = {
   id: number
   number: string
@@ -127,6 +131,16 @@ export type UserResponse = {
   email_verified_at: string
   roles: Array<{ id: string | number; name: string }>
   user_profile?: UserProfileResponse
+} & ApiResponseData
+
+/** Active Directory (HTTP Responses) */
+export type ActiveDiretoryResponse = {
+  guid: string
+  name: string
+  username: string
+  email: string
+  active: boolean
+  email_verified_at: string
 } & ApiResponseData
 
 /** User Profile (HTTP Responses) */
