@@ -368,42 +368,47 @@ export const usePdsStore = defineStore('pds', () => {
       },
     ],
     /** PDS C4 */
-    individual_question: [
-      {
-        id: 0,
-        q34_a: false,
-        q34_b: false,
-        q34_details: null,
-        q35_a: false,
-        q35_a_details: null,
-        q35_b: false,
-        q35_b_date_filed: null,
-        q35_b_status: null,
-        q36: false,
-        q36_details: null,
-        q37: false,
-        q37_details: null,
-        q38_a: false,
-        q38_a_details: null,
-        q38_b: false,
-        q38_b_details: null,
-        q39: false,
-        country_id: null,
-        q40_a_indigenous_group: false,
-        q40_a_details: null,
-        q40_b_pwd: false,
-        q40_b_details: null,
-        q40_c_solo_parent: false,
-        q40_c_details: null,
-      },
-    ],
-    individual_reference: [
-      {
-        name: '',
-        address: '',
-        tel_no: '',
-      },
-    ],
+    individual_question: individual?.individual_question
+      ? [
+        {
+          id: individual.individual_question.id ?? null,
+          q34_a: individual.individual_question.q34_a ?? false,
+          q34_b: individual.individual_question.q34_b ?? false,
+          q34_details: individual.individual_question.q34_details ?? null,
+          q35_a: individual.individual_question.q35_a ?? false,
+          q35_a_details: individual.individual_question.q35_a_details ?? null,
+          q35_b: individual.individual_question.q35_b ?? false,
+          q35_b_date_filed: individual.individual_question.q35_b_date_filed ?? null,
+          q35_b_status: individual.individual_question.q35_b_status ?? null,
+          q36: individual.individual_question.q36 ?? false,
+          q36_details: individual.individual_question.q36_details ?? null,
+          q37: individual.individual_question.q37 ?? false,
+          q37_details: individual.individual_question.q37_details ?? null,
+          q38_a: individual.individual_question.q38_a ?? false,
+          q38_a_details: individual.individual_question.q38_a_details ?? null,
+          q38_b: individual.individual_question.q38_b ?? false,
+          q38_b_details: individual.individual_question.q38_b_details ?? null,
+          q39: individual.individual_question.q39 ?? false,
+          country_id: individual.individual_question.country_id ?? null,
+          q40_a_indigenous_group: individual.individual_question.q40_a_indigenous_group ?? false,
+          q40_a_details: individual.individual_question.q40_a_details ?? null,
+          q40_b_pwd: individual.individual_question.q40_b_pwd ?? false,
+          q40_b_details: individual.individual_question.q40_b_details ?? null,
+          q40_c_solo_parent: individual.individual_question.q40_c_solo_parent ?? false,
+          q40_c_details: individual.individual_question.q40_c_details ?? null,
+        },
+      ]
+      : [],
+
+    individual_reference: Array.isArray(individual?.individual_reference)
+      ? individual.individual_reference.map((ref) => ({
+        ...ref,
+        name: ref.name ?? '',
+        address: ref.address ?? '',
+        tel_no: ref.tel_no ?? '',
+        _delete: ref._delete ?? null,
+      }))
+      : [],
     individual_government_id: {
       gov_id_name: '',
       gov_id_no: '',
@@ -663,6 +668,7 @@ export const usePdsStore = defineStore('pds', () => {
         name: r.name ?? '',
         address: r.address ?? '',
         tel_no: r.tel_no ?? '',
+        _delete: r._delete ?? '',
       }))
       : []
   }
@@ -789,6 +795,12 @@ export const usePdsStore = defineStore('pds', () => {
       payload.individual_work_experience.forEach((work) => {
         work.inclusive_date_from = formatValidationDate(work.inclusive_date_from) // Y-m-d
         work.inclusive_date_to = formatValidationDate(work.inclusive_date_to) // Y-m-d
+      })
+    }
+
+    if (payload.individual_question) {
+      payload.individual_question.forEach((question) => {
+        question.q35_b_date_filed = formatValidationDate(question.q35_b_date_filed)
       })
     }
 

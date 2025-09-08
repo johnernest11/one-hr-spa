@@ -451,10 +451,12 @@ export type IndividualQuestion = {
 }
 
 export type IndividualReference = {
+  id: number | null
   name: string | null
   address: string | null
   tel_no: string | null
-}
+  _delete: boolean | null
+} & Omit<ApiResponseData, 'id'>
 
 export type IndividualGovernmentIssue = {
   gov_id_name: string | null

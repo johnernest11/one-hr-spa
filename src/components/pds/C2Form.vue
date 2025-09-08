@@ -428,7 +428,7 @@ const updateC2Form = async () => {
     pdsErrors.value = result?.errors
     showToast('error', 'PDS C2 Error', 'Please see the validation messages')
   } else {
-    showToast('success', 'PDS', 'PDS has been saved')
+    showToast('success', 'Personal Data Sheet (PDS)', 'PDS has been successfully updated.')
   }
 
   IsBeingUpdated.value = false
