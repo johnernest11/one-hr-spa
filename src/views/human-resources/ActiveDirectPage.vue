@@ -24,7 +24,7 @@ const activeDirectoriesStore = useActiveDirectoryStore()
 const route = useRoute()
 const toast = useToast()
 
-const CreateActiveDirectory = ref(false)
+const createActiveDirectory = ref(false)
 const searchSubmitted = ref(false)
 const activeDirectorysIsLoading = ref(false)
 const isLoading = ref(true)
@@ -41,20 +41,20 @@ const emit = defineEmits<{
   (e: 'activeDirectory-created', value: boolean): void
 }>()
 
-const openactiveDirectoryDialog = (AD: ActiveDiretoryResponse | null = null) => {
+const openActiveDirectoryDialog = (AD: ActiveDiretoryResponse | null = null) => {
   if (!AD || !AD.id) {
     console.error('Cannot navigate to details: Active Directory or ID is undefined', AD)
     return
   }
   if (AD) {
-    updatePayloadFromReport(AD)
+    updatePayloadFromActiveDirectory(AD)
   }
-  CreateActiveDirectory.value = true
+  createActiveDirectory.value = true
 }
 
 const openactiveDirectoryForm = () => {
   resetPayload()
-  CreateActiveDirectory.value = true
+  createActiveDirectory.value = true
 }
 
 const payload = reactive<ADPayload>({
@@ -152,13 +152,13 @@ onMounted(async () => {
   if (id) {
     const response = await activeDirectoriesStore.fetchUsers()
     if (response && response.success) {
-      updatePayloadFromReport(response.data as ActiveDiretoryResponse)
+      updatePayloadFromActiveDirectory(response.data as ActiveDiretoryResponse)
     }
   }
   isLoading.value = false
 })
 
-const updatePayloadFromReport = (activeDirectory: ActiveDiretoryResponse | null) => {
+const updatePayloadFromActiveDirectory = (activeDirectory: ActiveDiretoryResponse | null) => {
   payload.guid = activeDirectory?.guid ?? ''
   payload.name = activeDirectory?.name ?? ''
   payload.username = activeDirectory?.username ?? ''
@@ -169,7 +169,7 @@ watch(
   () => props.activeDirectory,
   (newValue) => {
     if (newValue) {
-      updatePayloadFromReport(newValue)
+      updatePayloadFromActiveDirectory(newValue)
     } else {
       payload.guid = ''
       payload.name = ''
@@ -187,7 +187,7 @@ const handleSaveSubmissionif = async () => {
     document.querySelector('.create-activeDirectory-creds-section')?.scrollIntoView({ behavior: 'smooth' })
     toast.add({
       severity: 'error',
-      summary: 'Create a Active Directory Request',
+      summary: 'Create a Active Directory',
       detail: 'Please see the validation messages',
       life: 5000,
     })
@@ -204,10 +204,10 @@ const handleSaveSubmissionif = async () => {
       email: payload.email,
     }
 
-    const periodResponse = await activeDirectoriesStore.createUser(activeDirectory)
+    const activedirectoryResponse = await activeDirectoriesStore.createUser(activeDirectory)
 
-    if (!periodResponse.success) {
-      const result = parseApiResponseError(periodResponse)
+    if (!activedirectoryResponse.success) {
+      const result = parseApiResponseError(activedirectoryResponse)
       if (!result) {
         formIsSubmitting.value = false
         return
@@ -217,22 +217,18 @@ const handleSaveSubmissionif = async () => {
       errorDetails.value = result.errors
       formIsSubmitting.value = false
       document.querySelector('.create-activeDirectory-creds-section')?.scrollIntoView({ behavior: 'smooth' })
-      return // Ensure you return after handling the error
+      return
     }
 
     toast.add({
       severity: 'success',
       summary: 'Success',
-      detail: 'Active Directory Request submitted successfully',
+      detail: 'Active Directory submitted successfully',
       life: 5000,
     })
     emit('activeDirectory-created', true)
-
-    setTimeout(() => {
-      window.location.reload() // Consider alternative approaches if full reload isn't necessary
-    }, 1000)
   } finally {
-    formIsSubmitting.value = false // Ensure formIsSubmitting is always set to false
+    formIsSubmitting.value = false
   }
 }
 </script>
@@ -243,7 +239,7 @@ const handleSaveSubmissionif = async () => {
         class="flex flex-row items-center space-x-4 font-medium text-primary-700 dark:text-primary-100 md:ml-4 md:mt-2 md:flex-row"
       >
         <h1 class="mb-2 mr-4 whitespace-nowrap text-xl text-surface-600 dark:text-primary-100 md:text-xl lg:text-4xl">
-          Active Directory Creation
+          Active Directories Creation
         </h1>
 
         <div class="flex w-full items-center justify-end gap-4">
@@ -290,6 +286,11 @@ const handleSaveSubmissionif = async () => {
               class="mt-6"
               dataKey="id"
             >
+              <template #loading>
+                <div class="flex h-full w-full items-center justify-center text-primary-600">
+                  <i class="pi pi-spin pi-spinner text-3xl"></i>
+                </div>
+              </template>
               <Column field="guid" header="GUID" headerClass="w-80 bg-surface-100 border-surface-300 opacity-70 font-bold py-2">
                 <template #body="props">
                   <p class="font-semibold text-surface-600">
@@ -341,7 +342,7 @@ const handleSaveSubmissionif = async () => {
                       class="border-none text-lg font-semibold text-primary-600 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
                       text
                       :disabled="props.data.status === 'released'"
-                      @click="openactiveDirectoryDialog(props.data)"
+                      @click="openActiveDirectoryDialog(props.data)"
                     />
                   </div>
                 </template>
@@ -363,7 +364,7 @@ const handleSaveSubmissionif = async () => {
         </div>
         <div
           v-if="searchSubmitted && !activeDirectorysIsLoading && !activeDirectoriesStore.activeDirectory.length"
-          class="flex h-full w-full flex-col items-center justify-center font-menu text-lg dark:text-surface-300"
+          class="flex h-full w-full flex-col items-center justify-center font-menu text-lg dark:text-primary-800"
         >
           <i class="pi pi-exclamation-triangle mb-2 text-2xl"></i>
           <p>No AD Account found</p>
@@ -371,7 +372,7 @@ const handleSaveSubmissionif = async () => {
       </div>
     </div>
   </div>
-  <Dialog v-model:visible="CreateActiveDirectory" modal header="Active Directory Creation" :style="{ width: '90vw' }">
+  <Dialog v-model:visible="createActiveDirectory" modal header="Active Directory Creation" :style="{ width: '90vw' }">
     <template #header>
       <div class="flex items-center space-x-3 pt-4 sm:px-6 md:px-8">
         <h1 class="font-base text-2xl text-surface-600 sm:text-xl md:text-2xl">Active Directory Creation</h1>
@@ -403,7 +404,7 @@ const handleSaveSubmissionif = async () => {
     </div>
   </Dialog>
   <!-- Import PDS Dialog -->
-  <Dialog v-model:visible="CreateActiveDirectory" modal header="Active Directory Creation" :style="{ width: '90vw' }">
+  <Dialog v-model:visible="createActiveDirectory" modal header="Active Directory Creation" :style="{ width: '90vw' }">
     <template #header>
       <div class="flex items-center space-x-3 pt-4 sm:px-6 md:px-8">
         <h1 class="font-base text-2xl text-surface-600 sm:text-xl md:text-2xl">Active Directory Creation</h1>

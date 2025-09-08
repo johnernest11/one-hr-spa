@@ -113,7 +113,6 @@ export const useLibrariesStore = defineStore('libraries', () => {
     const responseBody: ApiResponseBody = data.value
 
     if (responseBody.success) {
-      // Add new user to the beginning of the list
       offices.value.unshift(responseBody.data as OfficesResponse)
     }
 
@@ -177,7 +176,6 @@ export const useLibrariesStore = defineStore('libraries', () => {
     const responseBody: ApiResponseBody = data.value
 
     if (responseBody.success) {
-      // Add new user to the beginning of the list
       divisions.value.unshift(responseBody.data as OfficesResponse)
     }
 
@@ -241,7 +239,6 @@ export const useLibrariesStore = defineStore('libraries', () => {
     const responseBody: ApiResponseBody = data.value
 
     if (responseBody.success) {
-      // Add new user to the beginning of the list
       sectionsorunits.value.unshift(responseBody.data as SectionorUnitResponse)
     }
 

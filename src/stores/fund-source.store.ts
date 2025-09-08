@@ -6,7 +6,7 @@ import { WbAutoCompleteOption } from '@/components/webkit/WbAutoComplete.vue'
 import { FundSourceResponse } from '@/typings/models.types.ts'
 import { useAuthStore } from '@/stores/auth.store.ts'
 
-export type PositionPayload = {
+export type FundSourcePayload = {
   name: string
 }
 
@@ -23,7 +23,6 @@ export const useFundSourceStore = defineStore('fund-source', () => {
     const responseBody: ApiResponseBody = data.value
 
     if (responseBody.success) {
-      // Add new user to the beginning of the list
       fundSource.value.unshift(responseBody.data as FundSourceResponse)
     }
 

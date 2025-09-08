@@ -889,8 +889,8 @@ const routes = [
     },
     children: [
       {
-        path: '/active-directory',
-        name: 'active-directory',
+        path: '/active-directories',
+        name: 'active-directories',
         component: () => import('@/views/human-resources/ActiveDirectPage.vue'),
         meta: <RouteMeta>{
           label: 'Active Directory',
@@ -900,8 +900,8 @@ const routes = [
         },
       },
       {
-        path: '/position',
-        name: 'position',
+        path: '/positions',
+        name: 'positions',
         component: () => import('@/views/human-resources/PositionPage.vue'),
         meta: <RouteMeta>{
           label: 'Positions',
@@ -911,22 +911,22 @@ const routes = [
         },
       },
       {
-        path: '/fund-source',
-        name: 'fund-source',
+        path: '/fund-sources',
+        name: 'fund-sources',
         component: () => import('@/views/human-resources/FundSourcePage.vue'),
         meta: <RouteMeta>{
-          label: 'Fund Source',
+          label: 'Fund Sources',
           isSidebarMenu: true,
           authType: AuthType.AUTHENTICATED,
           roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
         },
       },
       {
-        path: '/salary-grade',
-        name: 'salary-grade',
+        path: '/salary-grades',
+        name: 'salary-grades',
         component: () => import('@/views/human-resources/SalaryGradePage.vue'),
         meta: <RouteMeta>{
-          label: 'Salary Grade',
+          label: 'Salary Grades',
           isSidebarMenu: true,
           authType: AuthType.AUTHENTICATED,
           roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
@@ -946,44 +946,44 @@ const routes = [
     },
     children: [
       {
-        path: '/office',
-        name: 'office',
+        path: '/offices',
+        name: 'offices',
         component: () => import('@/views/human-resources/OfficePage.vue'),
         meta: <RouteMeta>{
-          label: 'Office',
+          label: 'Offices',
           isSidebarMenu: true,
           authType: AuthType.AUTHENTICATED,
           roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
         },
       },
       {
-        path: '/division',
-        name: 'division',
+        path: '/divisions',
+        name: 'divisions',
         component: () => import('@/views/human-resources/DivisionsPage.vue'),
         meta: <RouteMeta>{
-          label: 'Division',
+          label: 'Divisions',
           isSidebarMenu: true,
           authType: AuthType.AUTHENTICATED,
           roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
         },
       },
       {
-        path: '/section_or_unit',
-        name: 'section_or_unit',
+        path: '/section_or_units',
+        name: 'section_or_units',
         component: () => import('@/views/human-resources/SectionorUnitPage.vue'),
         meta: <RouteMeta>{
-          label: 'Section/Unit',
+          label: 'Section/Units',
           isSidebarMenu: true,
           authType: AuthType.AUTHENTICATED,
           roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
         },
       },
       {
-        path: '/program',
-        name: 'program',
+        path: '/programs',
+        name: 'programs',
         component: () => import('@/views/human-resources/ProgramPage.vue'),
         meta: <RouteMeta>{
-          label: 'Program',
+          label: 'Programs',
           isSidebarMenu: true,
           authType: AuthType.AUTHENTICATED,
           roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],

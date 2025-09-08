@@ -167,29 +167,29 @@ export const useSidebarNavLinks = () => {
                   break
 
                 /*Management Routes */
-                case 'active-directory':
+                case 'active-directories':
                   childNavLink.icon = 'fas fa-user-lock'
                   break
-                case 'position':
+                case 'positions':
                   childNavLink.icon = 'fas fa-users-rays'
                   break
-                case 'fund-source':
+                case 'fund-sources':
                   childNavLink.icon = 'fas fa-wallet'
                   break
-                case 'salary-grade':
+                case 'salary-grades':
                   childNavLink.icon = 'fas fa-coins'
                   break
 
-                case 'office':
+                case 'offices':
                   childNavLink.icon = 'fas fa-building'
                   break
-                case 'division':
+                case 'divisions':
                   childNavLink.icon = 'fas fa-braille'
                   break
-                case 'section_or_unit':
+                case 'section_or_units':
                   childNavLink.icon = 'fas fa-layer-group'
                   break
-                case 'program':
+                case 'programs':
                   childNavLink.icon = 'fas fa-object-group'
                   break
 

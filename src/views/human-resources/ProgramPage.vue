@@ -25,7 +25,7 @@ const programStore = useLibrariesStore()
 const route = useRoute()
 const toast = useToast()
 
-const CreateProgram = ref(false)
+const createProgram = ref(false)
 const searchSubmitted = ref(false)
 const programIsLoading = ref(false)
 const isLoading = ref(true)
@@ -42,24 +42,24 @@ const emit = defineEmits<{
   (e: 'program-created', value: boolean): void
 }>()
 
-const openprogramDialog = (program: ProgramResponse | null = null) => {
+const openProgramDialog = (program: ProgramResponse | null = null) => {
   if (!program || !program.id) {
     console.error('Cannot navigate to details: Program or ID is undefined', program)
     return
   }
   if (program) {
-    updatePayloadFromReport(program)
+    updatePayloadFromPrograms(program)
     isEditMode.value = true
   } else {
-    resetPayload() // clear form if new
+    resetPayload()
     isEditMode.value = false
   }
-  CreateProgram.value = true
+  createProgram.value = true
 }
 
-const openprogramForm = () => {
+const openProgramForm = () => {
   resetPayload()
-  CreateProgram.value = true
+  createProgram.value = true
 }
 
 const payload = reactive<ProgramPayload>({
@@ -135,13 +135,13 @@ onMounted(async () => {
   if (id) {
     const response = await programStore.fetchListPrograms()
     if (response && response.success) {
-      updatePayloadFromReport(response.data as ProgramResponse)
+      updatePayloadFromPrograms(response.data as ProgramResponse)
     }
   }
   isLoading.value = false
 })
 
-const updatePayloadFromReport = (program: ProgramResponse | null) => {
+const updatePayloadFromPrograms = (program: ProgramResponse | null) => {
   payload.name = program?.name ?? ''
 }
 
@@ -149,7 +149,7 @@ watch(
   () => props.program,
   (newValue) => {
     if (newValue) {
-      updatePayloadFromReport(newValue)
+      updatePayloadFromPrograms(newValue)
     } else {
       payload.name = ''
     }
@@ -178,10 +178,10 @@ const handleSaveSubmissionif = async () => {
       name: payload.name,
     }
 
-    const periodResponse = await programStore.createPrograms(program)
+    const programResponse = await programStore.createPrograms(program)
 
-    if (!periodResponse.success) {
-      const result = parseApiResponseError(periodResponse)
+    if (!programResponse.success) {
+      const result = parseApiResponseError(programResponse)
       if (!result) {
         formIsSubmitting.value = false
         return
@@ -191,7 +191,7 @@ const handleSaveSubmissionif = async () => {
       errorDetails.value = result.errors
       formIsSubmitting.value = false
       document.querySelector('.create-program-creds-section')?.scrollIntoView({ behavior: 'smooth' })
-      return // Ensure you return after handling the error
+      return
     }
 
     toast.add({
@@ -201,12 +201,8 @@ const handleSaveSubmissionif = async () => {
       life: 5000,
     })
     emit('program-created', true)
-
-    setTimeout(() => {
-      window.location.reload() // Consider alternative approaches if full reload isn't necessary
-    }, 1000)
   } finally {
-    formIsSubmitting.value = false // Ensure formIsSubmitting is always set to false
+    formIsSubmitting.value = false
   }
 }
 </script>
@@ -220,7 +216,7 @@ const handleSaveSubmissionif = async () => {
           class="mb-2 ml-4 mr-4 whitespace-nowrap text-xl font-semibold text-primary-800 dark:text-primary-100 md:text-xl lg:text-4xl"
         >
           <font-awesome-icon :icon="['fas', 'object-group']" />
-          Program Creation
+          Programs Creation
         </h1>
 
         <div class="flex w-full items-center justify-end gap-4">
@@ -232,7 +228,7 @@ const handleSaveSubmissionif = async () => {
               size="large"
               class="border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100 sm:text-primary-400 md:text-primary-400 lg:text-primary-400 dark:lg:text-primary-400"
               text
-              @click="openprogramForm"
+              @click="openProgramForm"
             />
           </div>
           <div class="flex w-full md:w-auto lg:w-1/2">
@@ -254,6 +250,11 @@ const handleSaveSubmissionif = async () => {
         <div class="w-full">
           <div v-if="programStore.programs && programStore.programs.length > 0" class="mx-auto flex h-full w-full flex-col">
             <DataTable :value="programStore.programs" :loading="programIsLoading" class="mt-6" dataKey="id">
+              <template #loading>
+                <div class="flex h-full w-full items-center justify-center text-primary-600">
+                  <i class="pi pi-spin pi-spinner text-3xl"></i>
+                </div>
+              </template>
               <Column
                 field="title"
                 header="PROGRAM NAME"
@@ -286,7 +287,7 @@ const handleSaveSubmissionif = async () => {
                       size="large"
                       class="border-none text-lg font-semibold text-primary-600 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
                       text
-                      @click="openprogramDialog(props.data)"
+                      @click="openProgramDialog(props.data)"
                     />
                   </div>
                 </template>
@@ -317,7 +318,7 @@ const handleSaveSubmissionif = async () => {
     </div>
   </div>
   <!-- Create/Update Program Dialog -->
-  <Dialog v-model:visible="CreateProgram" modal header="Program Creation" :style="{ width: '90vw' }">
+  <Dialog v-model:visible="createProgram" modal header="Program Creation" :style="{ width: '90vw' }">
     <template #header>
       <div class="flex items-center space-x-3 pt-4 sm:px-6 md:px-8">
         <h1 class="font-base text-2xl text-surface-600 sm:text-xl md:text-2xl">Program Creation</h1>
@@ -357,7 +358,7 @@ const handleSaveSubmissionif = async () => {
           label="Cancel"
           class="dark:text-secondary-100 border border-surface-400 text-base text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
           text
-          @click="CreateProgram = false"
+          @click="createProgram = false"
         >
           <template #icon>
             <i class="pi pi-ban mr-2"></i>

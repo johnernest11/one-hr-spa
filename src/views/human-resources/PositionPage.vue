@@ -24,7 +24,7 @@ const positionStore = usePositionStore()
 const route = useRoute()
 const toast = useToast()
 
-const CreatePosition = ref(false)
+const createPosition = ref(false)
 const searchSubmitted = ref(false)
 const positionsIsLoading = ref(false)
 const isLoading = ref(true)
@@ -47,14 +47,14 @@ const openPositionDialog = (position: PositionResponse | null = null) => {
     return
   }
   if (position) {
-    updatePayloadFromReport(position)
+    updatePayloadFromPositions(position)
   }
-  CreatePosition.value = true
+  createPosition.value = true
 }
 
-const openpositionForm = () => {
+const openPositionForm = () => {
   resetPayload()
-  CreatePosition.value = true
+  createPosition.value = true
 }
 
 const payload = reactive<PositionPayload>({
@@ -142,13 +142,13 @@ onMounted(async () => {
   if (id) {
     const response = await positionStore.fetchListPosition()
     if (response && response.success) {
-      updatePayloadFromReport(response.data as PositionResponse)
+      updatePayloadFromPositions(response.data as PositionResponse)
     }
   }
   isLoading.value = false
 })
 
-const updatePayloadFromReport = (position: PositionResponse | null) => {
+const updatePayloadFromPositions = (position: PositionResponse | null) => {
   payload.title = position?.title ?? ''
   payload.parenthetical_title = (position?.parenthetical_title ?? '') as string
   payload.level = position?.level ?? null
@@ -158,7 +158,7 @@ watch(
   () => props.position,
   (newValue) => {
     if (newValue) {
-      updatePayloadFromReport(newValue)
+      updatePayloadFromPositions(newValue)
     } else {
       payload.title = ''
       payload.parenthetical_title = ''
@@ -204,7 +204,7 @@ const handleSaveSubmissionif = async () => {
       errorDetails.value = result.errors
       formIsSubmitting.value = false
       document.querySelector('.create-position-creds-section')?.scrollIntoView({ behavior: 'smooth' })
-      return // Ensure you return after handling the error
+      return
     }
 
     toast.add({
@@ -214,12 +214,8 @@ const handleSaveSubmissionif = async () => {
       life: 5000,
     })
     emit('position-created', true)
-
-    setTimeout(() => {
-      window.location.reload() // Consider alternative approaches if full reload isn't necessary
-    }, 1000)
   } finally {
-    formIsSubmitting.value = false // Ensure formIsSubmitting is always set to false
+    formIsSubmitting.value = false
   }
 }
 </script>
@@ -230,7 +226,7 @@ const handleSaveSubmissionif = async () => {
         class="flex flex-row items-center space-x-4 font-medium text-primary-700 dark:text-primary-100 md:ml-4 md:mt-2 md:flex-row"
       >
         <h1 class="mb-2 mr-4 whitespace-nowrap text-xl text-surface-600 dark:text-primary-100 md:text-xl lg:text-4xl">
-          Position Creation
+          Positions Creation
         </h1>
 
         <div class="flex w-full items-center justify-end gap-4">
@@ -242,7 +238,7 @@ const handleSaveSubmissionif = async () => {
               size="large"
               class="border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100 sm:text-primary-400 md:text-primary-400 lg:text-primary-400 dark:lg:text-primary-400"
               text
-              @click="openpositionForm"
+              @click="openPositionForm"
             />
           </div>
           <div class="flex w-full md:w-auto lg:w-1/2">
@@ -269,6 +265,11 @@ const handleSaveSubmissionif = async () => {
         <div class="w-full">
           <div v-if="positionStore.position && positionStore.position.length > 0" class="mx-auto flex h-full w-full flex-col">
             <DataTable :value="positionStore.position" :loading="positionsIsLoading" class="mt-6" dataKey="id">
+              <template #loading>
+                <div class="flex h-full w-full items-center justify-center text-primary-600">
+                  <i class="pi pi-spin pi-spinner text-3xl"></i>
+                </div>
+              </template>
               <Column field="title" header="TITLE" headerClass="w-80 bg-surface-100 border-surface-300 opacity-70 font-bold py-2">
                 <template #body="props">
                   <p class="font-semibold text-surface-600">
@@ -339,7 +340,7 @@ const handleSaveSubmissionif = async () => {
       </div>
     </div>
   </div>
-  <Dialog v-model:visible="CreatePosition" modal header="Position Creation" :style="{ width: '90vw' }">
+  <Dialog v-model:visible="createPosition" modal header="Position Creation" :style="{ width: '90vw' }">
     <template #header>
       <div class="flex items-center space-x-3 pt-4 sm:px-6 md:px-8">
         <h1 class="font-base text-2xl text-surface-600 sm:text-xl md:text-2xl">Position Creation</h1>
@@ -371,7 +372,7 @@ const handleSaveSubmissionif = async () => {
     </div>
   </Dialog>
   <!-- Import PDS Dialog -->
-  <Dialog v-model:visible="CreatePosition" modal header="Position Creation" :style="{ width: '90vw' }">
+  <Dialog v-model:visible="createPosition" modal header="Position Creation" :style="{ width: '90vw' }">
     <template #header>
       <div class="flex items-center space-x-3 pt-4 sm:px-6 md:px-8">
         <h1 class="font-base text-2xl text-surface-600 sm:text-xl md:text-2xl">Position Creation</h1>

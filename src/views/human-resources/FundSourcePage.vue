@@ -18,14 +18,14 @@ import { parseApiResponseError } from '@/utils/error-handle.ts'
 import { helpers, maxLength, required } from '@vuelidate/validators'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import WbInputText from '@/components/webkit/WbInputText.vue'
-import { useFundSourceStore, PositionPayload } from '@/stores/fund-source.store'
+import { useFundSourceStore, FundSourcePayload } from '@/stores/fund-source.store'
 import { formatDate } from '@/utils/helpers'
 
 const fundSourceStore = useFundSourceStore()
 const route = useRoute()
 const toast = useToast()
 
-const CreateFundSource = ref(false)
+const createFundSource = ref(false)
 const searchSubmitted = ref(false)
 const fundSourceIsLoading = ref(false)
 const isLoading = ref(true)
@@ -54,15 +54,15 @@ const openfundSourceDialog = (fundSource: FundSourceResponse | null = null) => {
     resetPayload() // clear form if new
     isEditMode.value = false
   }
-  CreateFundSource.value = true
+  createFundSource.value = true
 }
 
 const openfundSourceForm = () => {
   resetPayload()
-  CreateFundSource.value = true
+  createFundSource.value = true
 }
 
-const payload = reactive<PositionPayload>({
+const payload = reactive<FundSourcePayload>({
   name: '',
 })
 
@@ -104,7 +104,7 @@ const handlePaginationPageChange = async (event: PageState) => {
   fundSourceIsLoading.value = false
 }
 
-const handleSearchPosition = async () => {
+const handleSearchFundSources = async () => {
   fundSourceIsLoading.value = true
   searchSubmitted.value = true
 
@@ -157,14 +157,14 @@ watch(
   { immediate: true }
 )
 
-const validator = useVuelidate<Partial<PositionPayload>>(formRules, payload)
+const validator = useVuelidate<Partial<FundSourcePayload>>(formRules, payload)
 const handleSaveSubmissionif = async () => {
   const valid = await validator.value.$validate()
   if (!valid) {
     document.querySelector('.create-fundSource-creds-section')?.scrollIntoView({ behavior: 'smooth' })
     toast.add({
       severity: 'error',
-      summary: 'Create a Position Request',
+      summary: 'Create a Fund Source ',
       detail: 'Please see the validation messages',
       life: 5000,
     })
@@ -178,10 +178,10 @@ const handleSaveSubmissionif = async () => {
       name: payload.name,
     }
 
-    const periodResponse = await fundSourceStore.createFundSource(fundSource)
+    const fundSourceResponse = await fundSourceStore.createFundSource(fundSource)
 
-    if (!periodResponse.success) {
-      const result = parseApiResponseError(periodResponse)
+    if (!fundSourceResponse.success) {
+      const result = parseApiResponseError(fundSourceResponse)
       if (!result) {
         formIsSubmitting.value = false
         return
@@ -191,22 +191,18 @@ const handleSaveSubmissionif = async () => {
       errorDetails.value = result.errors
       formIsSubmitting.value = false
       document.querySelector('.create-fundSource-creds-section')?.scrollIntoView({ behavior: 'smooth' })
-      return // Ensure you return after handling the error
+      return
     }
 
     toast.add({
       severity: 'success',
       summary: 'Success',
-      detail: 'Fund Source Request submitted successfully',
+      detail: 'Fund Source submitted successfully',
       life: 5000,
     })
     emit('fundSource-created', true)
-
-    setTimeout(() => {
-      window.location.reload() // Consider alternative approaches if full reload isn't necessary
-    }, 1000)
   } finally {
-    formIsSubmitting.value = false // Ensure formIsSubmitting is always set to false
+    formIsSubmitting.value = false
   }
 }
 </script>
@@ -242,11 +238,11 @@ const handleSaveSubmissionif = async () => {
                 placeholder="Search via Fund Name"
                 class="w-full"
                 :disabled="fundSourceIsLoading"
-                @keyup.enter="handleSearchPosition"
+                @keyup.enter="handleSearchFundSources"
               />
               <Button
                 icon="pi pi-search"
-                @click="handleSearchPosition"
+                @click="handleSearchFundSources"
                 :loading="fundSourceIsLoading"
                 :disabled="fundSourceIsLoading"
               />
@@ -262,6 +258,11 @@ const handleSaveSubmissionif = async () => {
             class="mx-auto flex h-full w-full flex-col"
           >
             <DataTable :value="fundSourceStore.fundSource" :loading="fundSourceIsLoading" class="mt-6" dataKey="id">
+              <template #loading>
+                <div class="flex h-full w-full items-center justify-center text-primary-600">
+                  <i class="pi pi-spin pi-spinner text-3xl"></i>
+                </div>
+              </template>
               <Column
                 field="title"
                 header="FUND NAME"
@@ -320,13 +321,13 @@ const handleSaveSubmissionif = async () => {
           class="flex h-full w-full flex-col items-center justify-center font-menu text-lg dark:text-surface-300"
         >
           <i class="pi pi-exclamation-triangle mb-2 text-2xl"></i>
-          <p>No Position found</p>
+          <p>No Fund Sources found</p>
         </div>
       </div>
     </div>
   </div>
   <!-- Create/Update Fund Source Dialog -->
-  <Dialog v-model:visible="CreateFundSource" modal header="Fund Source Creation" :style="{ width: '90vw' }">
+  <Dialog v-model:visible="createFundSource" modal header="Fund Source Creation" :style="{ width: '90vw' }">
     <template #header>
       <div class="flex items-center space-x-3 pt-4 sm:px-6 md:px-8">
         <h1 class="font-base text-2xl text-surface-600 sm:text-xl md:text-2xl">Fund Source Creation</h1>
@@ -366,7 +367,7 @@ const handleSaveSubmissionif = async () => {
           label="Cancel"
           class="dark:text-secondary-100 border border-surface-400 text-base text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
           text
-          @click="CreateFundSource = false"
+          @click="createFundSource = false"
         >
           <template #icon>
             <i class="pi pi-ban mr-2"></i>

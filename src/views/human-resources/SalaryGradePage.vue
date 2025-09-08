@@ -27,7 +27,7 @@ const salaryGradeStore = useSalaryGradesStore()
 const route = useRoute()
 const toast = useToast()
 
-const CreateSalaryGrade = ref(false)
+const createSalaryGrade = ref(false)
 const creationMode = ref<'via-manual-input' | 'via-importation' | null>(null)
 const searchSubmitted = ref(false)
 const salaryGradeIsLoading = ref(false)
@@ -53,7 +53,7 @@ const creation_Selection = ref([
         mode: 'via-manual-input',
         command: () => {
           creationMode.value = 'via-manual-input'
-          CreateSalaryGrade.value = true
+          createSalaryGrade.value = true
         },
       },
       {
@@ -61,13 +61,13 @@ const creation_Selection = ref([
         mode: 'via-importation',
         command: () => {
           creationMode.value = 'via-importation'
-          CreateSalaryGrade.value = true
+          createSalaryGrade.value = true
         },
       },
     ],
   },
 ])
-const opensalaryGradeDialog = (salaryGrade: SalaryGradeResponse | null = null) => {
+const openSalaryGradeDialog = (salaryGrade: SalaryGradeResponse | null = null) => {
   if (!salaryGrade || !salaryGrade.id) {
     console.error('Cannot navigate to details: Salary grade or ID is undefined', salaryGrade)
     return
@@ -79,7 +79,7 @@ const opensalaryGradeDialog = (salaryGrade: SalaryGradeResponse | null = null) =
     resetPayload() // clear form if new
     isEditMode.value = false
   }
-  CreateSalaryGrade.value = true
+  createSalaryGrade.value = true
 }
 
 const payload = reactive<SalaryGradePayload>({
@@ -154,7 +154,7 @@ const handlePaginationPageChange = async (event: PageState) => {
   salaryGradeIsLoading.value = false
 }
 
-const handleSearchPosition = async () => {
+const handleSearchSalary = async () => {
   salaryGradeIsLoading.value = true
   searchSubmitted.value = true
 
@@ -246,7 +246,7 @@ const downloadTemplate = async () => {
   toast.add({
     severity: 'success',
     summary: 'Template Downloaded',
-    detail: 'The Salary-Grade-Template successfully.',
+    detail: 'The salary grade template for import has been downloaded successfully.',
     life: 5000,
   })
 }
@@ -277,10 +277,10 @@ const handleSaveSubmissionif = async () => {
       amount: payload.amount,
     }
 
-    const periodResponse = await salaryGradeStore.createSalaryGrade(salaryGrade)
+    const salaryResponse = await salaryGradeStore.createSalaryGrade(salaryGrade)
 
-    if (!periodResponse.success) {
-      const result = parseApiResponseError(periodResponse)
+    if (!salaryResponse.success) {
+      const result = parseApiResponseError(salaryResponse)
       if (!result) {
         formIsSubmitting.value = false
         return
@@ -290,7 +290,7 @@ const handleSaveSubmissionif = async () => {
       errorDetails.value = result.errors
       formIsSubmitting.value = false
       document.querySelector('.create-salaryGrade-creds-section')?.scrollIntoView({ behavior: 'smooth' })
-      return // Ensure you return after handling the error
+      return
     }
 
     toast.add({
@@ -300,12 +300,8 @@ const handleSaveSubmissionif = async () => {
       life: 5000,
     })
     emit('salaryGrade-created', true)
-
-    setTimeout(() => {
-      window.location.reload() // Consider alternative approaches if full reload isn't necessary
-    }, 1000)
   } finally {
-    formIsSubmitting.value = false // Ensure formIsSubmitting is always set to false
+    formIsSubmitting.value = false
   }
 }
 </script>
@@ -348,11 +344,11 @@ const handleSaveSubmissionif = async () => {
                 placeholder="Search via NBC No & Effective Date"
                 class="w-full"
                 :disabled="salaryGradeIsLoading"
-                @keyup.enter="handleSearchPosition"
+                @keyup.enter="handleSearchSalary"
               />
               <Button
                 icon="pi pi-search"
-                @click="handleSearchPosition"
+                @click="handleSearchSalary"
                 :loading="salaryGradeIsLoading"
                 :disabled="salaryGradeIsLoading"
               />
@@ -368,6 +364,11 @@ const handleSaveSubmissionif = async () => {
             class="mx-auto flex h-full w-full flex-col"
           >
             <DataTable :value="salaryGradeStore.salaryGrade" :loading="salaryGradeIsLoading" class="mt-6" dataKey="id">
+              <template #loading>
+                <div class="flex h-full w-full items-center justify-center text-primary-600">
+                  <i class="pi pi-spin pi-spinner text-3xl"></i>
+                </div>
+              </template>
               <Column
                 field="title"
                 header="NBC NO."
@@ -441,7 +442,7 @@ const handleSaveSubmissionif = async () => {
                       class="border-none text-lg font-semibold text-primary-600 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
                       text
                       :disabled="props.data.status === 'released'"
-                      @click="opensalaryGradeDialog(props.data)"
+                      @click="openSalaryGradeDialog(props.data)"
                     />
                   </div>
                 </template>
@@ -472,7 +473,7 @@ const handleSaveSubmissionif = async () => {
     </div>
   </div>
   <!-- Create/Update Salary Grade Dialog -->
-  <Dialog v-model:visible="CreateSalaryGrade" modal header="Salary Grades Creation" :style="{ width: '90vw' }">
+  <Dialog v-model:visible="createSalaryGrade" modal header="Salary Grades Creation" :style="{ width: '90vw' }">
     <template #header>
       <div class="flex items-center space-x-3 pt-4 sm:px-6 md:px-8">
         <h1 class="font-base text-2xl text-surface-600 sm:text-xl md:text-2xl">Salary Grades Creation</h1>
@@ -603,7 +604,7 @@ const handleSaveSubmissionif = async () => {
           label="Cancel"
           class="dark:text-secondary-100 border border-surface-400 text-base text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
           text
-          @click="CreateSalaryGrade = false"
+          @click="createSalaryGrade = false"
         >
           <template #icon>
             <i class="pi pi-ban mr-2"></i>

@@ -25,7 +25,7 @@ const officeStore = useLibrariesStore()
 const route = useRoute()
 const toast = useToast()
 
-const CreateOffice = ref(false)
+const createOffice = ref(false)
 const searchSubmitted = ref(false)
 const officeIsLoading = ref(false)
 const isLoading = ref(true)
@@ -42,24 +42,24 @@ const emit = defineEmits<{
   (e: 'office-created', value: boolean): void
 }>()
 
-const openofficeDialog = (office: OfficesResponse | null = null) => {
+const openOfficeDialog = (office: OfficesResponse | null = null) => {
   if (!office || !office.id) {
     console.error('Cannot navigate to details: Office or ID is undefined', office)
     return
   }
   if (office) {
-    updatePayloadFromReport(office)
+    updatePayloadFromOffices(office)
     isEditMode.value = true
   } else {
-    resetPayload() // clear form if new
+    resetPayload()
     isEditMode.value = false
   }
-  CreateOffice.value = true
+  createOffice.value = true
 }
 
-const openofficeForm = () => {
+const openOfficeForm = () => {
   resetPayload()
-  CreateOffice.value = true
+  createOffice.value = true
 }
 
 const payload = reactive<OfficePayload>({
@@ -135,13 +135,13 @@ onMounted(async () => {
   if (id) {
     const response = await officeStore.fetchListOffices()
     if (response && response.success) {
-      updatePayloadFromReport(response.data as OfficesResponse)
+      updatePayloadFromOffices(response.data as OfficesResponse)
     }
   }
   isLoading.value = false
 })
 
-const updatePayloadFromReport = (office: OfficesResponse | null) => {
+const updatePayloadFromOffices = (office: OfficesResponse | null) => {
   payload.name = office?.name ?? ''
 }
 
@@ -149,7 +149,7 @@ watch(
   () => props.office,
   (newValue) => {
     if (newValue) {
-      updatePayloadFromReport(newValue)
+      updatePayloadFromOffices(newValue)
     } else {
       payload.name = ''
     }
@@ -164,7 +164,7 @@ const handleSaveSubmissionif = async () => {
     document.querySelector('.create-office-creds-section')?.scrollIntoView({ behavior: 'smooth' })
     toast.add({
       severity: 'error',
-      summary: 'Create a Office Request',
+      summary: 'Create a Office',
       detail: 'Please see the validation messages',
       life: 5000,
     })
@@ -178,10 +178,10 @@ const handleSaveSubmissionif = async () => {
       name: payload.name,
     }
 
-    const periodResponse = await officeStore.createOffices(office)
+    const officeResponse = await officeStore.createOffices(office)
 
-    if (!periodResponse.success) {
-      const result = parseApiResponseError(periodResponse)
+    if (!officeResponse.success) {
+      const result = parseApiResponseError(officeResponse)
       if (!result) {
         formIsSubmitting.value = false
         return
@@ -191,7 +191,7 @@ const handleSaveSubmissionif = async () => {
       errorDetails.value = result.errors
       formIsSubmitting.value = false
       document.querySelector('.create-office-creds-section')?.scrollIntoView({ behavior: 'smooth' })
-      return // Ensure you return after handling the error
+      return
     }
 
     toast.add({
@@ -201,12 +201,8 @@ const handleSaveSubmissionif = async () => {
       life: 5000,
     })
     emit('office-created', true)
-
-    setTimeout(() => {
-      window.location.reload() // Consider alternative approaches if full reload isn't necessary
-    }, 1000)
   } finally {
-    formIsSubmitting.value = false // Ensure formIsSubmitting is always set to false
+    formIsSubmitting.value = false
   }
 }
 </script>
@@ -220,7 +216,7 @@ const handleSaveSubmissionif = async () => {
           class="mb-2 ml-4 mr-4 whitespace-nowrap text-xl font-semibold text-primary-800 dark:text-primary-100 md:text-xl lg:text-4xl"
         >
           <font-awesome-icon :icon="['fas', 'building']" />
-          Office Creation
+          Offices Creation
         </h1>
 
         <div class="flex w-full items-center justify-end gap-4">
@@ -232,7 +228,7 @@ const handleSaveSubmissionif = async () => {
               size="large"
               class="border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100 sm:text-primary-400 md:text-primary-400 lg:text-primary-400 dark:lg:text-primary-400"
               text
-              @click="openofficeForm"
+              @click="openOfficeForm"
             />
           </div>
           <div class="flex w-full md:w-auto lg:w-1/2">
@@ -254,6 +250,11 @@ const handleSaveSubmissionif = async () => {
         <div class="w-full">
           <div v-if="officeStore.offices && officeStore.offices.length > 0" class="mx-auto flex h-full w-full flex-col">
             <DataTable :value="officeStore.offices" :loading="officeIsLoading" class="mt-6" dataKey="id">
+              <template #loading>
+                <div class="flex h-full w-full items-center justify-center text-primary-600">
+                  <i class="pi pi-spin pi-spinner text-3xl"></i>
+                </div>
+              </template>
               <Column
                 field="title"
                 header="OFFICE NAME"
@@ -286,7 +287,7 @@ const handleSaveSubmissionif = async () => {
                       size="large"
                       class="border-none text-lg font-semibold text-primary-600 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
                       text
-                      @click="openofficeDialog(props.data)"
+                      @click="openOfficeDialog(props.data)"
                     />
                   </div>
                 </template>
@@ -308,7 +309,7 @@ const handleSaveSubmissionif = async () => {
         </div>
         <div
           v-if="searchSubmitted && !officeIsLoading && !officeStore.offices.length"
-          class="flex h-full w-full flex-col items-center justify-center font-menu text-lg dark:text-surface-300"
+          class="flex h-full w-full flex-col items-center justify-center font-menu text-lg dark:text-primary-300"
         >
           <i class="pi pi-exclamation-triangle mb-2 text-2xl"></i>
           <p>No Office found</p>
@@ -317,7 +318,7 @@ const handleSaveSubmissionif = async () => {
     </div>
   </div>
   <!-- Create/Update Office Dialog -->
-  <Dialog v-model:visible="CreateOffice" modal header="Office Creation" :style="{ width: '90vw' }">
+  <Dialog v-model:visible="createOffice" modal header="Office Creation" :style="{ width: '90vw' }">
     <template #header>
       <div class="flex items-center space-x-3 pt-4 sm:px-6 md:px-8">
         <h1 class="font-base text-2xl text-surface-600 sm:text-xl md:text-2xl">Office Creation</h1>
@@ -357,7 +358,7 @@ const handleSaveSubmissionif = async () => {
           label="Cancel"
           class="dark:text-secondary-100 border border-surface-400 text-base text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
           text
-          @click="CreateOffice = false"
+          @click="createOffice = false"
         >
           <template #icon>
             <i class="pi pi-ban mr-2"></i>

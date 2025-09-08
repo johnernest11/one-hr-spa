@@ -24,12 +24,12 @@ import { useLibrariesStore, SectionorUnitPayload } from '@/stores/libraries.stor
 import { formatDate } from '@/utils/helpers'
 import { usePrependOrAppendOnce } from '@/utils/helpers'
 
-const getId = usePrependOrAppendOnce('csection-or-unit')
+const getId = usePrependOrAppendOnce('section-or-unit')
 const sectionorunitStore = useLibrariesStore()
 const route = useRoute()
 const toast = useToast()
 
-const CreateSectionorUnit = ref(false)
+const createSectionorUnit = ref(false)
 const searchSubmitted = ref(false)
 const sectionorUnitIsLoading = ref(false)
 const isLoading = ref(true)
@@ -49,24 +49,24 @@ const emit = defineEmits<{
   (e: 'sectionorunit-created', value: boolean): void
 }>()
 
-const opensectionorunitDialog = (sectionorunit: SectionorUnitResponse | null = null) => {
+const openSectionUnitDialog = (sectionorunit: SectionorUnitResponse | null = null) => {
   if (!sectionorunit || !sectionorunit.id) {
     console.error('Cannot navigate to details: Section or Unit or ID is undefined', sectionorunit)
     return
   }
   if (sectionorunit) {
-    updatePayloadFromReport(sectionorunit)
+    updatePayloadFromSectionUnit(sectionorunit)
     isEditMode.value = true
   } else {
     resetPayload() // clear form if new
     isEditMode.value = false
   }
-  CreateSectionorUnit.value = true
+  createSectionorUnit.value = true
 }
 
 const opensectionorunitForm = () => {
   resetPayload()
-  CreateSectionorUnit.value = true
+  createSectionorUnit.value = true
 }
 
 const payload = reactive<SectionorUnitPayload>({
@@ -163,13 +163,13 @@ onMounted(async () => {
   if (id) {
     const response = await sectionorunitStore.fetchListSectionUnits()
     if (response && response.success) {
-      updatePayloadFromReport(response.data as SectionorUnitResponse)
+      updatePayloadFromSectionUnit(response.data as SectionorUnitResponse)
     }
   }
   isLoading.value = false
 })
 
-const updatePayloadFromReport = (sectionorunit: SectionorUnitResponse | null) => {
+const updatePayloadFromSectionUnit = (sectionorunit: SectionorUnitResponse | null) => {
   payload.name = sectionorunit?.name ?? ''
   payload.name = sectionorunit?.division_id ?? ''
 }
@@ -178,7 +178,7 @@ watch(
   () => props.sectionorunit,
   (newValue) => {
     if (newValue) {
-      updatePayloadFromReport(newValue)
+      updatePayloadFromSectionUnit(newValue)
     } else {
       payload.name = ''
       payload.division_id = ''
@@ -209,10 +209,10 @@ const handleSaveSubmissionif = async () => {
       division_id: payload.division_id,
     }
 
-    const periodResponse = await sectionorunitStore.createSectionUnits(sectionorunit)
+    const sectionunitResponse = await sectionorunitStore.createSectionUnits(sectionorunit)
 
-    if (!periodResponse.success) {
-      const result = parseApiResponseError(periodResponse)
+    if (!sectionunitResponse.success) {
+      const result = parseApiResponseError(sectionunitResponse)
       if (!result) {
         formIsSubmitting.value = false
         return
@@ -222,7 +222,7 @@ const handleSaveSubmissionif = async () => {
       errorDetails.value = result.errors
       formIsSubmitting.value = false
       document.querySelector('.create-sectionorunit-creds-section')?.scrollIntoView({ behavior: 'smooth' })
-      return // Ensure you return after handling the error
+      return
     }
 
     toast.add({
@@ -232,12 +232,8 @@ const handleSaveSubmissionif = async () => {
       life: 5000,
     })
     emit('sectionorunit-created', true)
-
-    setTimeout(() => {
-      window.location.reload() // Consider alternative approaches if full reload isn't necessary
-    }, 1000)
   } finally {
-    formIsSubmitting.value = false // Ensure formIsSubmitting is always set to false
+    formIsSubmitting.value = false
   }
 }
 </script>
@@ -303,6 +299,11 @@ const handleSaveSubmissionif = async () => {
             class="mx-auto flex h-full w-full flex-col"
           >
             <DataTable :value="sectionorunitStore.sectionsorunits" :loading="sectionorUnitIsLoading" class="mt-6" dataKey="id">
+              <template #loading>
+                <div class="flex h-full w-full items-center justify-center text-primary-600">
+                  <i class="pi pi-spin pi-spinner text-3xl"></i>
+                </div>
+              </template>
               <Column
                 field="title"
                 header="SECTION/UNIT NAME"
@@ -346,7 +347,7 @@ const handleSaveSubmissionif = async () => {
                       size="large"
                       class="border-none text-lg font-semibold text-primary-600 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
                       text
-                      @click="opensectionorunitDialog(props.data)"
+                      @click="openSectionUnitDialog(props.data)"
                     />
                   </div>
                 </template>
@@ -377,7 +378,7 @@ const handleSaveSubmissionif = async () => {
     </div>
   </div>
   <!-- Create/Update Section or Unit Dialog -->
-  <Dialog v-model:visible="CreateSectionorUnit" modal header="Section or Unit Creation" :style="{ width: '90vw' }">
+  <Dialog v-model:visible="createSectionorUnit" modal header="Section or Unit Creation" :style="{ width: '90vw' }">
     <template #header>
       <div class="flex items-center space-x-3 pt-4 sm:px-6 md:px-8">
         <h1 class="font-base text-2xl text-surface-600 sm:text-xl md:text-2xl">Section or Unit Creation</h1>
@@ -439,7 +440,7 @@ const handleSaveSubmissionif = async () => {
           label="Cancel"
           class="dark:text-secondary-100 border border-surface-400 text-base text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
           text
-          @click="CreateSectionorUnit = false"
+          @click="createSectionorUnit = false"
         >
           <template #icon>
             <i class="pi pi-ban mr-2"></i>

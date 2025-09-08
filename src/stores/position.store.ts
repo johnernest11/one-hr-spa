@@ -25,7 +25,6 @@ export const usePositionStore = defineStore('position', () => {
     const responseBody: ApiResponseBody = data.value
 
     if (responseBody.success) {
-      // Add new user to the beginning of the list
       position.value.unshift(responseBody.data as PositionResponse)
     }
 

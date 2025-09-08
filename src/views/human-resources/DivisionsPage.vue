@@ -42,7 +42,7 @@ const emit = defineEmits<{
   (e: 'division-created', value: boolean): void
 }>()
 
-const opendivisionDialog = (division: DivisionResponse | null = null) => {
+const openDivisionDialog = (division: DivisionResponse | null = null) => {
   if (!division || !division.id) {
     console.error('Cannot navigate to details: Division or ID is undefined', division)
     return
@@ -178,10 +178,10 @@ const handleSaveSubmissionif = async () => {
       name: payload.name,
     }
 
-    const periodResponse = await divisionStore.createDivisions(division)
+    const divisionResponse = await divisionStore.createDivisions(division)
 
-    if (!periodResponse.success) {
-      const result = parseApiResponseError(periodResponse)
+    if (!divisionResponse.success) {
+      const result = parseApiResponseError(divisionResponse)
       if (!result) {
         formIsSubmitting.value = false
         return
@@ -191,7 +191,7 @@ const handleSaveSubmissionif = async () => {
       errorDetails.value = result.errors
       formIsSubmitting.value = false
       document.querySelector('.create-division-creds-section')?.scrollIntoView({ behavior: 'smooth' })
-      return // Ensure you return after handling the error
+      return
     }
 
     toast.add({
@@ -201,12 +201,8 @@ const handleSaveSubmissionif = async () => {
       life: 5000,
     })
     emit('division-created', true)
-
-    setTimeout(() => {
-      window.location.reload() // Consider alternative approaches if full reload isn't necessary
-    }, 1000)
   } finally {
-    formIsSubmitting.value = false // Ensure formIsSubmitting is always set to false
+    formIsSubmitting.value = false
   }
 }
 </script>
@@ -259,6 +255,11 @@ const handleSaveSubmissionif = async () => {
         <div class="w-full">
           <div v-if="divisionStore.divisions && divisionStore.divisions.length > 0" class="mx-auto flex h-full w-full flex-col">
             <DataTable :value="divisionStore.divisions" :loading="divisionIsLoading" class="mt-6" dataKey="id">
+              <template #loading>
+                <div class="flex h-full w-full items-center justify-center text-primary-600">
+                  <i class="pi pi-spin pi-spinner text-3xl"></i>
+                </div>
+              </template>
               <Column
                 field="title"
                 header="DIVISION NAME"
@@ -291,7 +292,7 @@ const handleSaveSubmissionif = async () => {
                       size="large"
                       class="border-none text-lg font-semibold text-primary-600 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
                       text
-                      @click="opendivisionDialog(props.data)"
+                      @click="openDivisionDialog(props.data)"
                     />
                   </div>
                 </template>
