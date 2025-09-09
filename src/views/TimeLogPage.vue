@@ -8,7 +8,106 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { getManilaTodayISO, formatTime } from '@/utils/helpers.ts'
 import dswdLogoMark from '@/assets/image/DSWD logo_Mark.png'
 import WbAutoComplete from '@/components/webkit/WbAutoComplete.vue'
-import { WbAutoCompleteOption } from '@/components/webkit/WbAutoComplete.vue' // Import the type
+import { WbAutoCompleteOption } from '@/components/webkit/WbAutoComplete.vue'
+
+const mockOffices = [
+  {
+    value: 'fo-main',
+    label: 'FO MAIN',
+  },
+  {
+    value: 'regionwid',
+    label: 'REGIONWID',
+  },
+  {
+    value: 'erpmo-kc-slp-epahppoo-ilocos-sur-vigan-city',
+    label: 'ERPMO - KC-SLP-EPAHPPOO - ILOCOS SUR (VIGAN CITY)',
+  },
+  {
+    value: 'rrcy-i-bauang-la-union',
+    label: 'RRCY I, BAUANG, LA UNION',
+  },
+  {
+    value: 'hfw-dagupan-city-pangasinan',
+    label: 'HFW, DAGUPAN CITY, PANGASINAN',
+  },
+  {
+    value: 'cis-malasakit-center-mariano-marcos-memorial-hospital-batac-ilocos-norte',
+    label: 'CIS_MALASAKIT CENTER - MARIANO, MARCOS, MEMORIAL HOSPITAL (BATAC, ILOCOS NORTE)',
+  },
+  {
+    value: 'avrc-i-dagupan-city-pangasinan',
+    label: 'AVRC I, DAGUPAN CITY, PANGASINAN',
+  },
+  {
+    value: 'satellite-office-western-pangasinan-lingayen',
+    label: 'SATELLITE OFFICE - WESTERN PANGASINAN (LINGAYEN)',
+  },
+  {
+    value: 'hfg-agoo-la-union',
+    label: 'HFG, AGOO, LA UNION',
+  },
+  {
+    value: 'satellite-office-central-pangasinan-dagupan-city',
+    label: 'SATELLITE OFFICE - CENTRAL PANGASINAN (DAGUPAN CITY)',
+  },
+  {
+    value: 'th-rcc-dagupan-city-pangasinan',
+    label: 'TH-RCC - DAGUPAN CITY, PANGASINAN',
+  },
+  {
+    value: 'satellite-office-eastern-pangasinan-rosales',
+    label: 'SATELLITE OFFICE - EASTERN PANGASINAN(ROSALES)',
+  },
+  {
+    value: 'poo-ilocos-norte-laoag-city',
+    label: 'POO - ILOCOS NORTE (LAOAG CITY)',
+  },
+  {
+    value: 'rpmo-4ps',
+    label: 'RPMO - 4Ps',
+  },
+  {
+    value: 'poo-pangasinan-dagupan-city',
+    label: 'POO - PANGASINAN (DAGUPAN CITY)',
+  },
+  {
+    value: 'moo-pagudpud-bangui-ilocos-norte',
+    label: 'MOO - PAGUDPUD, BANGUI, ILOCOS NORTE',
+  },
+  {
+    value: 'poo-la-union-city-of-san-fernando',
+    label: 'POO - LA UNION (CITY OF SAN FERNANDO)',
+  },
+  {
+    value: 'cis-malasakit-center-mariano-marcos-memorial-hospital-batac-ilocos-norte',
+    label: 'CIS_MALASAKIT CENTER - MARIANO, MARCOS, MEMORIAL HOSPITAL (BATAC, ILOCOS NORTE)',
+  },
+  {
+    value: 'moo-banayoyo-lidlidda-san-emilio-and-quirino',
+    label: 'MOO - BANAYOYO, LIDLIDDA, SAN EMILIO AND QUIRINO',
+  },
+  {
+    value: 'cis-malasakit-center-mariano-marcos-memorial-hospital-batac-ilocos-norte',
+    label: 'CIS_MALASAKIT CENTER - MARIANO, MARCOS, MEMORIAL HOSPITAL (BATAC, ILOCOS NORTE)',
+  },
+  {
+    value: 'moo-bangar-luna-la-union',
+    label: 'MOO - BANGAR, LUNA, LA UNION',
+  },
+  {
+    value: 'moo-bauang-city-of-san-fernando-la-union',
+    label: 'MOO - BAUANG, CITY OF SAN FERNANDO, LA UNION',
+  },
+  {
+    value: 'moo-san-juan-bacnotan-san-gabriel-la-union',
+    label: 'MOO - SAN JUAN, BACNOTAN, SAN GABRIEL, LA UNION',
+  },
+  {
+    value: 'moo-balaoan-santol-sudipen-la-union',
+    label: 'MOO - BALAOAN, SANTOL, SUDIPEN, LA UNION',
+  },
+]
 
 const currentDate: Ref<string> = ref('')
 const currentTime: Ref<string> = ref('')
@@ -82,7 +181,7 @@ const updateDateTime = () => {
 }
 
 onMounted(async () => {
-  await librariesStore.fetchOffices()
+  librariesStore.officeOptions = mockOffices
 
   const storedOfficeId = localStorage.getItem('kioskOfficeId')
 
@@ -95,10 +194,8 @@ onMounted(async () => {
 
   const today = getManilaTodayISO()
   todayISO.value = today
-
   updateDateTime()
   intervalId.value = window.setInterval(updateDateTime, 1000)
-
   checkScreenSize()
   window.addEventListener('resize', checkScreenSize)
 })
@@ -265,184 +362,181 @@ const latestWarmBodyLogs = computed(() => {
 </script>
 
 <template>
-  <div class="flex h-screen w-screen flex-col-reverse overflow-hidden md:flex-row">
-    <div class="flex w-full flex-col overflow-hidden bg-primary-500 p-4 text-white md:w-1/4">
-      <div class="mb-8 flex items-center space-x-2">
-        <img src="@/assets/image/fo-bp.png" alt="DSWD Logo" class="h-16" />
-      </div>
-      <h2 class="mb-4 text-center text-2xl font-semibold md:text-3xl">WARM BODIES</h2>
-      <div class="mb-4 grid grid-cols-2 gap-4 text-center text-lg md:text-2xl">
-        <div>
-          <p>IN</p>
-          <p>{{ countInToday }}</p>
+  <div>
+    <Dialog
+      v-if="showOfficeSelectionModal"
+      v-model:visible="showOfficeSelectionModal"
+      :modal="true"
+      :closable="false"
+      :style="{ width: '30vw' }"
+      :breakpoints="{ '1199px': '75vw', '575px': '90vw' }"
+    >
+      <template #header>
+        <div class="flex items-center space-x-3 pt-4 sm:px-6 md:px-8">
+          <font-awesome-icon :icon="['fas', 'map-location-dot']" class="h-6 text-surface-600 sm:h-7 md:h-8" />
+          <h1 class="text-2xl font-semibold text-surface-600 sm:text-xl md:text-2xl">Select official station</h1>
         </div>
-        <div>
-          <p>OUT</p>
-          <p>{{ countOutToday }}</p>
+      </template>
+      <hr />
+
+      <div class="flex flex-col space-y-6 p-8 text-center">
+        <p class="text-lg text-surface-600">Select the official station of this Time Log to proceed</p>
+        <div class="w-full items-center">
+          <WbAutoComplete
+            :suggestions="librariesStore.officeOptions"
+            :loading="librariesStore.officeOptionsLoading"
+            placeholder="Type to select from the list of official stations to proceed"
+            v-model="selectedOffice"
+            optionLabel="label"
+            optionValue="value"
+            forceSelection
+          />
+        </div>
+
+        <div class="flex w-full justify-end">
+          <button
+            @click="startKiosk"
+            :disabled="!selectedOffice || librariesStore.officeOptionsLoading"
+            class="transform rounded-lg px-8 py-3 font-semibold text-primary-600 shadow-md duration-300 hover:scale-105"
+            :class="{
+              'border border-primary-500 bg-white hover:bg-primary-700 hover:text-white': selectedOffice,
+              'cursor-not-allowed bg-gray-400 text-white': !selectedOffice,
+            }"
+          >
+            <span v-if="librariesStore.officeOptionsLoading" class="flex items-center justify-center space-x-2">
+              <span class="pi pi-spin pi-spinner"></span>
+              <span>Loading...</span>
+            </span>
+            <span v-else>Proceed to Time Log</span>
+          </button>
         </div>
       </div>
-      <div class="scrollbar-hide flex-1 space-y-1 overflow-y-auto text-center font-mono text-sm md:text-base">
-        <template v-if="latestWarmBodyLogs.length">
-          <template v-for="entry in latestWarmBodyLogs" :key="entry.id">
-            <p>{{ formatTime(entry.timestamp) }} - {{ entry.employee_id }} ({{ entry.is_in ? 'IN' : 'OUT' }})</p>
+    </Dialog>
+
+    <div v-if="!showOfficeSelectionModal" class="flex h-screen w-screen flex-col-reverse overflow-hidden md:flex-row">
+      <div class="flex w-full flex-col overflow-hidden bg-primary-500 p-4 text-white md:w-1/4">
+        <div class="mb-8 flex items-center space-x-2">
+          <img src="@/assets/image/fo-bp.png" alt="DSWD Logo" class="h-16" />
+        </div>
+        <h2 class="mb-4 text-center text-2xl font-semibold md:text-3xl">WARM BODIES</h2>
+        <div class="mb-4 grid grid-cols-2 gap-4 text-center text-lg md:text-2xl">
+          <div>
+            <p>IN</p>
+            <p>{{ countInToday }}</p>
+          </div>
+          <div>
+            <p>OUT</p>
+            <p>{{ countOutToday }}</p>
+          </div>
+        </div>
+        <div class="scrollbar-hide flex-1 space-y-1 overflow-y-auto text-center font-mono text-sm md:text-base">
+          <template v-if="latestWarmBodyLogs.length">
+            <template v-for="entry in latestWarmBodyLogs" :key="entry.id">
+              <p>{{ formatTime(entry.timestamp) }} - {{ entry.employee_id }} ({{ entry.is_in ? 'IN' : 'OUT' }})</p>
+            </template>
           </template>
+          <p v-else class="text-gray-400">No logs found for today.</p>
+        </div>
+      </div>
+
+      <div class="flex w-full flex-col items-center space-y-4 overflow-y-auto bg-primary-100 p-4 md:w-3/4">
+        <div class="w-full text-left">
+          <div class="text-2xl text-surface-500">{{ currentDate }}</div>
+          <div class="text-8xl font-bold text-surface-500">
+            {{ currentTime }}<span class="text-2xl">:{{ seconds }}s</span> <span class="text-lg md:text-2xl">{{ meridiem }}</span>
+          </div>
+        </div>
+
+        <div class="flex w-full flex-1 items-center justify-center">
+          <div
+            class="relative flex h-full max-h-[80vh] w-full items-center justify-center overflow-hidden rounded-lg bg-white shadow"
+          >
+            <qrcode-stream
+              ref="qrStreamRef"
+              @detect="onDetect"
+              :constraints="{ facingMode: 'environment' }"
+              @init="onInit"
+              @camera-error="onCameraError"
+              :paused="false"
+              class="h-full w-full"
+            />
+          </div>
+        </div>
+
+        <div v-if="cameraError" class="text-center font-semibold text-error-600">{{ cameraError }}</div>
+
+        <div class="text-center text-sm font-semibold text-surface-800 md:text-base">
+          Scan your QR code here and ensure your full face is visible for capture.
+        </div>
+      </div>
+
+      <Dialog
+        v-model:visible="showModal"
+        :modal="false"
+        :closable="true"
+        :dismissableMask="true"
+        :position="dialogDynamicPosition"
+        :style="dialogDynamicStyle"
+        :breakpoints="{ '1199px': '75vw', '575px': '90vw' }"
+        :pt="{
+          root: 'flex flex-col h-full bg-white shadow-lg p-4 md:p-12',
+          header: 'hidden',
+          content:
+            'flex-grow flex flex-col items-center justify-start space-y-6 md:space-y-12 text-center h-full overflow-y-auto',
+        }"
+      >
+        <template v-if="dailyLogsStore.lastLogMessage && !dailyLogsStore.currentScannedEmployee">
+          <div class="flex items-center justify-center text-4xl font-semibold text-error-600 md:text-4xl">
+            <FontAwesomeIcon icon="fas fa-circle-xmark" class="mr-4 md:mr-6" />Error!
+          </div>
+          <p class="text-center text-xl font-medium text-surface-800 md:text-3xl">
+            {{ dailyLogsStore.lastLogMessage }}
+          </p>
         </template>
-        <p v-else class="text-gray-400">No logs found for today.</p>
-      </div>
-    </div>
 
-    <template>
-      <div class="flex h-screen w-screen flex-col-reverse overflow-hidden md:flex-row">
-        <Dialog
-          v-model:visible="showOfficeSelectionModal"
-          :modal="true"
-          :closable="false"
-          :style="{ width: '30vw' }"
-          :breakpoints="{ '1199px': '75vw', '575px': '90vw' }"
-        >
-          <template #header>
-            <div class="flex items-center space-x-3 pt-4 sm:px-6 md:px-8">
-              <font-awesome-icon :icon="['fas', 'map-location-dot']" class="h-6 text-surface-600 sm:h-7 md:h-8" />
-              <h1 class="text-2xl font-semibold text-surface-600 sm:text-xl md:text-2xl">Select official station</h1>
+        <template v-else-if="dailyLogsStore.currentScannedEmployee">
+          <div class="custom-scrollbar flex h-full w-full flex-grow flex-col items-center justify-start overflow-y-auto">
+            <hr class="mb-6 border-t border-surface-300" />
+
+            <div class="flex items-center text-4xl font-semibold text-success-600 md:text-4xl">
+              <FontAwesomeIcon :icon="['fas', 'circle-check']" class="mr-4 md:mr-6" />
+              {{ dynamicSuccessMessage }}
             </div>
-          </template>
-          <hr />
 
-          <div class="flex flex-col space-y-6 p-8 text-center">
-            <p class="text-lg text-surface-600">Select the official station of this Time Log to proceed</p>
-            <div class="w-full items-center">
-              <WbAutoComplete
-                :useApiFilter="true"
-                :apiEndpoint="'/libraries/offices/search'"
-                :suggestions="librariesStore.officeOptions"
-                :loading="librariesStore.officeOptionsLoading"
-                apiOptionLabel="name"
-                placeholder="Type to select from the list of official stations to proceed"
-                v-model="selectedOffice"
-                optionLabel="label"
-                optionValue="value"
-                forceSelection
+            <div class="mb-4 flex justify-center">
+              <img
+                :src="dailyLogsStore.currentScannedEmployee?.photo_url || dswdLogoMark"
+                alt="Employee Profile Photo"
+                class="h-auto max-w-full rounded-lg shadow"
+                style="aspect-ratio: 2270 / 2479"
               />
             </div>
 
-            <div class="flex w-full justify-end">
-              <button
-                @click="startKiosk"
-                :disabled="!selectedOffice || librariesStore.officeOptionsLoading"
-                class="transform rounded-lg px-8 py-3 font-semibold text-primary-600 shadow-md duration-300 hover:scale-105"
-                :class="{
-                  'border border-primary-500 bg-white hover:bg-primary-700 hover:text-white': selectedOffice,
-                  'cursor-not-allowed bg-gray-400 text-white': !selectedOffice,
-                }"
-              >
-                <span v-if="librariesStore.officeOptionsLoading" class="flex items-center justify-center space-x-2">
-                  <span class="pi pi-spin pi-spinner"></span>
-                  <span>Loading...</span>
-                </span>
-                <span v-else>Proceed to Time Log</span>
-              </button>
+            <div class="w-full space-y-4 px-4 text-left md:space-y-8 md:pl-0 md:pr-0">
+              <div>
+                <span class="mb-2 block text-xl font-semibold uppercase text-surface-500 md:mb-4 md:text-xl">Name:</span>
+                <p class="text-2xl font-bold text-surface-800 md:text-2xl">
+                  {{ dailyLogsStore.currentScannedEmployee?.name || 'N/A' }}
+                </p>
+              </div>
+
+              <div>
+                <span class="mb-2 block text-xl font-semibold uppercase text-surface-500 md:mb-4 md:text-xl">ID Number:</span>
+                <p class="font-mono text-2xl text-primary-700 md:text-2xl">
+                  {{ dailyLogsStore.currentScannedEmployee?.id || 'N/A' }}
+                </p>
+              </div>
+
+              <div>
+                <span class="mb-2 block text-xl font-semibold uppercase text-surface-500 md:mb-4 md:text-xl">Position:</span>
+                <p class="text-2xl font-bold text-surface-800 md:text-2xl">
+                  {{ dailyLogsStore.currentScannedEmployee?.position || 'N/A' }}
+                </p>
+              </div>
             </div>
           </div>
-        </Dialog>
-      </div>
-    </template>
-
-    <div class="flex w-full flex-col items-center space-y-4 overflow-y-auto bg-primary-100 p-4 md:w-3/4">
-      <div class="w-full text-left">
-        <div class="text-2xl text-surface-500">{{ currentDate }}</div>
-        <div class="text-8xl font-bold text-surface-500">
-          {{ currentTime }}<span class="text-2xl">:{{ seconds }}s</span> <span class="text-lg md:text-2xl">{{ meridiem }}</span>
-        </div>
-      </div>
-
-      <div class="flex w-full flex-1 items-center justify-center">
-        <div
-          class="relative flex h-full max-h-[80vh] w-full items-center justify-center overflow-hidden rounded-lg bg-white shadow"
-        >
-          <qrcode-stream
-            ref="qrStreamRef"
-            @detect="onDetect"
-            :constraints="{ facingMode: 'environment' }"
-            @init="onInit"
-            @camera-error="onCameraError"
-            :paused="false"
-            class="h-full w-full"
-          />
-        </div>
-      </div>
-
-      <div v-if="cameraError" class="text-center font-semibold text-error-600">{{ cameraError }}</div>
-
-      <div class="text-center text-sm font-semibold text-surface-800 md:text-base">
-        Scan your QR code here and ensure your full face is visible for capture.
-      </div>
+        </template>
+      </Dialog>
     </div>
-
-    <Dialog
-      v-model:visible="showModal"
-      :modal="false"
-      :closable="true"
-      :dismissableMask="true"
-      :position="dialogDynamicPosition"
-      :style="dialogDynamicStyle"
-      :breakpoints="{ '1199px': '75vw', '575px': '90vw' }"
-      :pt="{
-        root: 'flex flex-col h-full bg-white shadow-lg p-4 md:p-12',
-        header: 'hidden',
-        content: 'flex-grow flex flex-col items-center justify-start space-y-6 md:space-y-12 text-center h-full overflow-y-auto',
-      }"
-    >
-      <template v-if="dailyLogsStore.lastLogMessage && !dailyLogsStore.currentScannedEmployee">
-        <div class="flex items-center justify-center text-4xl font-semibold text-error-600 md:text-4xl">
-          <FontAwesomeIcon icon="fas fa-circle-xmark" class="mr-4 md:mr-6" />Error!
-        </div>
-        <p class="text-center text-xl font-medium text-surface-800 md:text-3xl">
-          {{ dailyLogsStore.lastLogMessage }}
-        </p>
-      </template>
-
-      <template v-else-if="dailyLogsStore.currentScannedEmployee">
-        <div class="custom-scrollbar flex h-full w-full flex-grow flex-col items-center justify-start overflow-y-auto">
-          <hr class="mb-6 border-t border-surface-300" />
-
-          <div class="flex items-center text-4xl font-semibold text-success-600 md:text-4xl">
-            <FontAwesomeIcon :icon="['fas', 'circle-check']" class="mr-4 md:mr-6" />
-            {{ dynamicSuccessMessage }}
-          </div>
-
-          <div class="mb-4 flex justify-center">
-            <img
-              :src="dailyLogsStore.currentScannedEmployee?.photo_url || dswdLogoMark"
-              alt="Employee Profile Photo"
-              class="h-auto max-w-full rounded-lg shadow"
-              style="aspect-ratio: 2270 / 2479"
-            />
-          </div>
-
-          <div class="w-full space-y-4 px-4 text-left md:space-y-8 md:pl-0 md:pr-0">
-            <div>
-              <span class="mb-2 block text-xl font-semibold uppercase text-surface-500 md:mb-4 md:text-xl">Name:</span>
-              <p class="text-2xl font-bold text-surface-800 md:text-2xl">
-                {{ dailyLogsStore.currentScannedEmployee?.name || 'N/A' }}
-              </p>
-            </div>
-
-            <div>
-              <span class="mb-2 block text-xl font-semibold uppercase text-surface-500 md:mb-4 md:text-xl">ID Number:</span>
-              <p class="font-mono text-2xl text-primary-700 md:text-2xl">
-                {{ dailyLogsStore.currentScannedEmployee?.id || 'N/A' }}
-              </p>
-            </div>
-
-            <div>
-              <span class="mb-2 block text-xl font-semibold uppercase text-surface-500 md:mb-4 md:text-xl">Position:</span>
-              <p class="text-2xl font-bold text-surface-800 md:text-2xl">
-                {{ dailyLogsStore.currentScannedEmployee?.position || 'N/A' }}
-              </p>
-            </div>
-          </div>
-        </div>
-      </template>
-    </Dialog>
   </div>
 </template>
