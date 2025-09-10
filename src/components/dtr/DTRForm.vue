@@ -3,14 +3,23 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { ViewDailyTimeRecordResponse } from '@/typings/models.types.ts'
 import { useDailyTimeRecordsStore } from '@/stores/daily-time-record.store'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-import { formatDTRTime, getDTRDayOfWeek, getFormattedDTRDate, resolveDTRSlots, toTimestamp } from '@/utils/helpers'
 import WbCalendar from '@/components/webkit/WbCalendar.vue'
 import WbInputText from '@/components/webkit/WbInputText.vue'
 import WbTextArea from '@/components/webkit/WbTextArea.vue'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
 import { useToast } from 'primevue/usetoast'
-import { computeOT, computeUT, computeWorkedHours } from '@/utils/dtr-helpers'
+import {
+  formatDTRTime,
+  getDTRDayOfWeek,
+  getFormattedDTRDate,
+  toTimestamp,
+  computeOT,
+  computeUT,
+  computeWorkedHours,
+  isWeekend,
+  resolveDTRSlots,
+} from '@/utils/dtr-helpers'
 const dailyTimeRecordsStore = useDailyTimeRecordsStore()
 const toast = useToast()
 const isLoading = ref(true)
@@ -371,13 +380,14 @@ const monthDates = computed(() => {
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">UT</p>
                 <p class="text-base text-surface-600">
-                  {{ item.row ? computeUT(computeWorkedHours(item.row.time_log ?? [])) : '' }}
+                  {{ item.row ? computeUT(computeWorkedHours(item.row.time_log ?? []), isWeekend(item.row.date)) : '' }}
                 </p>
               </div>
+
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">OT</p>
                 <p class="text-base text-surface-600">
-                  {{ item.row ? computeOT(computeWorkedHours(item.row.time_log ?? [])) : '' }}
+                  {{ item.row ? computeOT(computeWorkedHours(item.row.time_log ?? []), isWeekend(item.row.date)) : '' }}
                 </p>
               </div>
               <div>
