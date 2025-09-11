@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, Ref } from 'vue'
 import { QrcodeStream, DetectedBarcode } from 'vue-qrcode-reader'
 import { useDailyLogsStore } from '@/stores/daily-logs.store'
 import { useLibrariesStore } from '@/stores/libraries.store'
@@ -9,105 +9,6 @@ import { getManilaTodayISO, formatTime } from '@/utils/helpers.ts'
 import dswdLogoMark from '@/assets/image/DSWD logo_Mark.png'
 import WbAutoComplete from '@/components/webkit/WbAutoComplete.vue'
 import { WbAutoCompleteOption } from '@/components/webkit/WbAutoComplete.vue'
-
-const mockOffices = [
-  {
-    value: 'fo-main',
-    label: 'FO MAIN',
-  },
-  {
-    value: 'regionwid',
-    label: 'REGIONWID',
-  },
-  {
-    value: 'erpmo-kc-slp-epahppoo-ilocos-sur-vigan-city',
-    label: 'ERPMO - KC-SLP-EPAHPPOO - ILOCOS SUR (VIGAN CITY)',
-  },
-  {
-    value: 'rrcy-i-bauang-la-union',
-    label: 'RRCY I, BAUANG, LA UNION',
-  },
-  {
-    value: 'hfw-dagupan-city-pangasinan',
-    label: 'HFW, DAGUPAN CITY, PANGASINAN',
-  },
-  {
-    value: 'cis-malasakit-center-mariano-marcos-memorial-hospital-batac-ilocos-norte',
-    label: 'CIS_MALASAKIT CENTER - MARIANO, MARCOS, MEMORIAL HOSPITAL (BATAC, ILOCOS NORTE)',
-  },
-  {
-    value: 'avrc-i-dagupan-city-pangasinan',
-    label: 'AVRC I, DAGUPAN CITY, PANGASINAN',
-  },
-  {
-    value: 'satellite-office-western-pangasinan-lingayen',
-    label: 'SATELLITE OFFICE - WESTERN PANGASINAN (LINGAYEN)',
-  },
-  {
-    value: 'hfg-agoo-la-union',
-    label: 'HFG, AGOO, LA UNION',
-  },
-  {
-    value: 'satellite-office-central-pangasinan-dagupan-city',
-    label: 'SATELLITE OFFICE - CENTRAL PANGASINAN (DAGUPAN CITY)',
-  },
-  {
-    value: 'th-rcc-dagupan-city-pangasinan',
-    label: 'TH-RCC - DAGUPAN CITY, PANGASINAN',
-  },
-  {
-    value: 'satellite-office-eastern-pangasinan-rosales',
-    label: 'SATELLITE OFFICE - EASTERN PANGASINAN(ROSALES)',
-  },
-  {
-    value: 'poo-ilocos-norte-laoag-city',
-    label: 'POO - ILOCOS NORTE (LAOAG CITY)',
-  },
-  {
-    value: 'rpmo-4ps',
-    label: 'RPMO - 4Ps',
-  },
-  {
-    value: 'poo-pangasinan-dagupan-city',
-    label: 'POO - PANGASINAN (DAGUPAN CITY)',
-  },
-  {
-    value: 'moo-pagudpud-bangui-ilocos-norte',
-    label: 'MOO - PAGUDPUD, BANGUI, ILOCOS NORTE',
-  },
-  {
-    value: 'poo-la-union-city-of-san-fernando',
-    label: 'POO - LA UNION (CITY OF SAN FERNANDO)',
-  },
-  {
-    value: 'cis-malasakit-center-mariano-marcos-memorial-hospital-batac-ilocos-norte',
-    label: 'CIS_MALASAKIT CENTER - MARIANO, MARCOS, MEMORIAL HOSPITAL (BATAC, ILOCOS NORTE)',
-  },
-  {
-    value: 'moo-banayoyo-lidlidda-san-emilio-and-quirino',
-    label: 'MOO - BANAYOYO, LIDLIDDA, SAN EMILIO AND QUIRINO',
-  },
-  {
-    value: 'cis-malasakit-center-mariano-marcos-memorial-hospital-batac-ilocos-norte',
-    label: 'CIS_MALASAKIT CENTER - MARIANO, MARCOS, MEMORIAL HOSPITAL (BATAC, ILOCOS NORTE)',
-  },
-  {
-    value: 'moo-bangar-luna-la-union',
-    label: 'MOO - BANGAR, LUNA, LA UNION',
-  },
-  {
-    value: 'moo-bauang-city-of-san-fernando-la-union',
-    label: 'MOO - BAUANG, CITY OF SAN FERNANDO, LA UNION',
-  },
-  {
-    value: 'moo-san-juan-bacnotan-san-gabriel-la-union',
-    label: 'MOO - SAN JUAN, BACNOTAN, SAN GABRIEL, LA UNION',
-  },
-  {
-    value: 'moo-balaoan-santol-sudipen-la-union',
-    label: 'MOO - BALAOAN, SANTOL, SUDIPEN, LA UNION',
-  },
-]
 
 const currentDate: Ref<string> = ref('')
 const currentTime: Ref<string> = ref('')
@@ -132,6 +33,8 @@ const qrStreamRef = ref<InstanceType<typeof QrcodeStream> | null>(null)
 
 const selectedOffice = ref<WbAutoCompleteOption | null>(null)
 
+const recentLogs = ref<string[]>([])
+
 const startKiosk = () => {
   if (selectedOffice.value) {
     localStorage.setItem('kioskOfficeId', selectedOffice.value.value as string)
@@ -141,29 +44,16 @@ const startKiosk = () => {
 
 const updateDailyLogsState = async (date: string) => {
   await dailyLogsStore.fetchDailyLogs(date)
+  recentLogs.value = dailyLogsStore.getTodayWarmBodies(date).slice(0, 10)
 }
 
 const updateDateTime = () => {
   const now = new Date()
-
-  const optionsDate = {
-    timeZone: 'Asia/Manila',
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-  } as const
-
-  const optionsTime = {
-    timeZone: 'Asia/Manila',
-    hour: 'numeric',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: true,
-  } as const
+  const optionsDate = { timeZone: 'Asia/Manila', weekday: 'long', month: 'long', day: 'numeric' } as const
+  const optionsTime = { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true } as const
 
   currentDate.value = now.toLocaleDateString('en-PH', optionsDate)
   const timeString = now.toLocaleTimeString('en-PH', optionsTime)
-
   const [time, ampm] = timeString.split(/\s+/)
   const [hours, minutes, newSeconds] = time.split(':')
 
@@ -172,7 +62,6 @@ const updateDateTime = () => {
   seconds.value = newSeconds
 
   const newTodayISO = getManilaTodayISO()
-
   if (newTodayISO !== todayISO.value) {
     todayISO.value = newTodayISO
     void dailyLogsStore.fetchWarmBodySummary(todayISO.value)
@@ -181,8 +70,6 @@ const updateDateTime = () => {
 }
 
 onMounted(async () => {
-  librariesStore.officeOptions = mockOffices
-
   const storedOfficeId = localStorage.getItem('kioskOfficeId')
 
   if (storedOfficeId) {
@@ -198,40 +85,29 @@ onMounted(async () => {
   intervalId.value = window.setInterval(updateDateTime, 1000)
   checkScreenSize()
   window.addEventListener('resize', checkScreenSize)
+
+  await updateDailyLogsState(todayISO.value)
 })
 
 onUnmounted(() => {
-  if (intervalId.value) {
-    clearInterval(intervalId.value)
-  }
+  if (intervalId.value) clearInterval(intervalId.value)
   window.removeEventListener('resize', checkScreenSize)
-  if (scanTimeoutId.value) {
-    clearTimeout(scanTimeoutId.value)
-  }
+  if (scanTimeoutId.value) clearTimeout(scanTimeoutId.value)
 })
 
 const onDetect = (detectedCodes: DetectedBarcode[]) => {
   if (detectedCodes.length > 0 && !isProcessingScan.value) {
     const firstCode = detectedCodes[0]
     const decodedString = firstCode.rawValue
-
     isProcessingScan.value = true
     onDecode(decodedString)
   }
 }
 
 const capturePhoto = () => {
-  if (!qrStreamRef.value) {
-    console.error('QR stream ref not available.')
-    return null
-  }
-
+  if (!qrStreamRef.value) return null
   const videoElement = qrStreamRef.value.$el.querySelector('video')
-  if (!videoElement) {
-    console.error('Video element not found.')
-    return null
-  }
-
+  if (!videoElement) return null
   const canvas = document.createElement('canvas')
   canvas.width = videoElement.videoWidth
   canvas.height = videoElement.videoHeight
@@ -248,10 +124,7 @@ const onDecode = async (result: string) => {
     clearTimeout(scanTimeoutId.value)
     scanTimeoutId.value = undefined
   }
-
-  if (showModal.value) {
-    handleCloseDialog()
-  }
+  if (showModal.value) handleCloseDialog()
 
   dailyLogsStore.clearScannedEmployee()
   errorMessage.value = null
@@ -262,90 +135,68 @@ const onDecode = async (result: string) => {
     dailyLogsStore.lastLogMessage = 'Empty QR code scanned. Please try again.'
     showModal.value = true
     isProcessingScan.value = false
-    scanTimeoutId.value = setTimeout(() => {
-      handleCloseDialog()
-    }, MODAL_DISPLAY_DURATION_MS) as unknown as number
+    scanTimeoutId.value = setTimeout(() => handleCloseDialog(), MODAL_DISPLAY_DURATION_MS) as unknown as number
     return
   }
 
-  const employeeIdentifierToSend = result
-
   try {
-    await dailyLogsStore.logEmployeeTime(employeeIdentifierToSend, capturedImage)
+    const response = await dailyLogsStore.logEmployeeTime(result, capturedImage)
+
+    if (response?.data?.log) {
+      const newLog = response.data.log
+
+      if (!newLog.captured_image && capturedImage) {
+        newLog.captured_image = capturedImage
+      }
+
+      recentLogs.value.unshift(newLog)
+      recentLogs.value = recentLogs.value.slice(0, 10)
+
+      showModal.value = true
+    } else {
+      dailyLogsStore.lastLogMessage = 'QR Code not recognized. Please try again.'
+      showModal.value = true
+    }
+  } catch (err) {
+    dailyLogsStore.lastLogMessage = 'An error occurred while logging. Please try again.'
     showModal.value = true
-  } catch (err: unknown) {
-    showModal.value = true
-  } finally {
-    isProcessingScan.value = false
-    scanTimeoutId.value = setTimeout(() => {
-      handleCloseDialog()
-    }, MODAL_DISPLAY_DURATION_MS) as unknown as number
   }
 }
 
 const onInit = (promise: Promise<void>) => {
   promise
-    .then(() => {
-      cameraError.value = null
-    })
+    .then(() => (cameraError.value = null))
     .catch((err) => {
-      if (err.name === 'NotAllowedError') {
-        cameraError.value = 'Camera access denied. Please grant permission.'
-      } else if (err.name === 'NotFoundError') {
-        cameraError.value = 'No camera found. Please ensure a camera is connected.'
-      } else if (err.name === 'NotReadableError') {
-        cameraError.value = 'Camera is in use or not accessible. Try closing other apps.'
-      } else if (err.name === 'OverconstrainedError') {
-        cameraError.value = 'Camera does not support requested constraints.'
-      } else if (err.name === 'StreamApiNotSupportedError') {
-        cameraError.value = 'Browser does not support camera API.'
-      } else {
-        cameraError.value = 'An unknown camera error occurred during initialization.'
-      }
+      if (err.name === 'NotAllowedError') cameraError.value = 'Camera access denied. Please grant permission.'
+      else if (err.name === 'NotFoundError') cameraError.value = 'No camera found. Please ensure a camera is connected.'
+      else if (err.name === 'NotReadableError') cameraError.value = 'Camera is in use or not accessible.'
+      else if (err.name === 'OverconstrainedError') cameraError.value = 'Camera does not support requested constraints.'
+      else if (err.name === 'StreamApiNotSupportedError') cameraError.value = 'Browser does not support camera API.'
+      else cameraError.value = 'An unknown camera error occurred.'
     })
 }
 
 const onCameraError = (error: unknown) => {
-  if (error instanceof Error) {
-    cameraError.value = `Camera stream error: ${error.message}`
-  } else {
-    cameraError.value = 'An unexpected camera stream error occurred.'
-  }
+  if (error instanceof Error) cameraError.value = `Camera stream error: ${error.message}`
+  else cameraError.value = 'An unexpected camera stream error occurred.'
 }
 
 const countInToday = computed(() => dailyLogsStore.warmBodySummary?.in_office || 0)
 const countOutToday = computed(() => dailyLogsStore.warmBodySummary?.out_of_office || 0)
 
-const checkScreenSize = () => {
-  isMobile.value = window.innerWidth <= 575
-}
+const checkScreenSize = () => (isMobile.value = window.innerWidth <= 575)
 
-const dialogDynamicStyle = computed(() => {
-  if (isMobile.value) {
-    return {
-      width: '100vw',
-      height: '100vh',
-      maxWidth: 'unset',
-      maxHeight: 'unset',
-    }
-  } else {
-    return {
-      width: '25vw',
-    }
-  }
-})
+const dialogDynamicStyle = computed(() =>
+  isMobile.value ? { width: '100vw', height: '100vh', maxWidth: 'unset', maxHeight: 'unset' } : { width: '25vw' }
+)
 
-const dialogDynamicPosition = computed(() => {
-  return isMobile.value ? 'center' : 'right'
-})
+const dialogDynamicPosition = computed(() => (isMobile.value ? 'center' : 'right'))
 
 const dynamicSuccessMessage = computed(() => {
   if (dailyLogsStore.currentScannedEmployee) {
     return dailyLogsStore.currentScannedEmployee.is_in ? 'Timed In!' : 'Timed Out!'
   }
-  if (dailyLogsStore.lastLogMessage) {
-    return dailyLogsStore.lastLogMessage
-  }
+  if (dailyLogsStore.lastLogMessage) return dailyLogsStore.lastLogMessage
   return 'Processing...'
 })
 
@@ -355,10 +206,7 @@ const handleCloseDialog = () => {
   dailyLogsStore.clearScannedEmployee()
 }
 
-const latestWarmBodyLogs = computed(() => {
-  const today = getManilaTodayISO()
-  return dailyLogsStore.getTodayWarmBodies(today).slice(0, 10)
-})
+const latestWarmBodyLogs = computed(() => recentLogs.value)
 </script>
 
 <template>
@@ -429,17 +277,42 @@ const latestWarmBodyLogs = computed(() => {
             <p>{{ countOutToday }}</p>
           </div>
         </div>
-        <div class="scrollbar-hide flex-1 space-y-1 overflow-y-auto text-center font-mono text-sm md:text-base">
+        <div class="scrollbar-hide flex flex-1 justify-center overflow-y-auto font-mono text-sm md:text-base">
           <template v-if="latestWarmBodyLogs.length">
-            <template v-for="entry in latestWarmBodyLogs" :key="entry.id">
-              <p>{{ formatTime(entry.timestamp) }} - {{ entry.employee_id }} ({{ entry.is_in ? 'IN' : 'OUT' }})</p>
-            </template>
+            <table class="w-1/2 text-center">
+              <tbody>
+                <tr v-for="entry in latestWarmBodyLogs" :key="entry.id">
+                  <td class="p-2">
+                    <img
+                      v-if="entry.captured_image || entry.photo_url"
+                      :src="entry.captured_image || entry.photo_url"
+                      alt="Captured"
+                      class="h-14 w-14 rounded-md object-cover"
+                    />
+                  </td>
+
+                  <td class="p-2">
+                    <p class="text-xs">{{ entry.employee_id }} - {{ formatTime(entry.timestamp) }}</p>
+                  </td>
+
+                  <td class="p-2">
+                    <span
+                      class="rounded-full px-3 py-1 text-xs font-bold"
+                      :class="entry.is_in ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'"
+                    >
+                      {{ entry.is_in ? 'IN' : 'OUT' }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </template>
-          <p v-else class="text-gray-400">No logs found for today.</p>
+
+          <p v-else class="text-center text-gray-400">No logs found for today.</p>
         </div>
       </div>
 
-      <div class="flex w-full flex-col items-center space-y-4 overflow-y-auto bg-primary-100 p-4 md:w-3/4">
+      <div class="flex w-full flex-col items-center space-y-4 overflow-y-hidden bg-primary-100 p-4 md:w-3/4">
         <div class="w-full text-left">
           <div class="text-2xl text-surface-500">{{ currentDate }}</div>
           <div class="text-8xl font-bold text-surface-500">
@@ -449,7 +322,7 @@ const latestWarmBodyLogs = computed(() => {
 
         <div class="flex w-full flex-1 items-center justify-center">
           <div
-            class="relative flex h-full max-h-[80vh] w-full items-center justify-center overflow-hidden rounded-lg bg-white shadow"
+            class="relative flex h-full max-h-[80vh] w-full items-center justify-center overflow-hidden rounded-lg bg-black shadow"
           >
             <qrcode-stream
               ref="qrStreamRef"
@@ -458,15 +331,15 @@ const latestWarmBodyLogs = computed(() => {
               @init="onInit"
               @camera-error="onCameraError"
               :paused="false"
-              class="h-full w-full"
+              class="h-full w-full object-cover"
+            />
+
+            <img
+              src="@/assets/image/scanning.gif"
+              alt="Scanning Animation"
+              class="pointer-events-none absolute inset-0 h-full w-full object-cover"
             />
           </div>
-        </div>
-
-        <div v-if="cameraError" class="text-center font-semibold text-error-600">{{ cameraError }}</div>
-
-        <div class="text-center text-sm font-semibold text-surface-800 md:text-base">
-          Scan your QR code here and ensure your full face is visible for capture.
         </div>
       </div>
 

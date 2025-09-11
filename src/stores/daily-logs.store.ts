@@ -61,12 +61,13 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     return log ? [...log.warm_bodies].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) : []
   })
 
-  const logEmployeeTime = async (rawQrText: string) => {
+  const logEmployeeTime = async (rawQrText: string, capturedImage: string | null) => {
     currentScannedEmployee.value = null
     lastLogMessage.value = null
 
     const payload = {
       scanned_qr: rawQrText,
+      captured_image: capturedImage,
     }
 
     try {
