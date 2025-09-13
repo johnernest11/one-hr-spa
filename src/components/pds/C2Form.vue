@@ -76,12 +76,21 @@ const globalStringMaxLengthRule = helpers.withMessage(
 )
 const formRules = computed(() => ({
   individual_eligibility: payload.individual_eligibility.map(() => ({
+    eligibility: {
+      maxLength: globalStringMaxLengthRule,
+    },
     date_of_examination_conferment: {
       isAfterOrEqualFromDate: helpers.withMessage('Date must be today or earlier.', (val: string | Date | null) => {
         if (!val) return true
         const selectedDate = new Date(val)
         return selectedDate <= today
       }),
+    },
+    place_of_examination: {
+      maxLength: globalStringMaxLengthRule,
+    },
+    license_number: {
+      maxLength: globalStringMaxLengthRule,
     },
     license_date_of_validity: {
       isAfterOrEqualFromDate: helpers.withMessage(
@@ -103,6 +112,7 @@ const formRules = computed(() => ({
         if (val === null || val === '') return true // allow empty
         return !isNaN(Number(val))
       }),
+      maxLength: globalStringMaxLengthRule,
     },
   })),
   individual_work_experience: payload.individual_work_experience.map(() => ({
@@ -288,7 +298,20 @@ const handleRemoveEligibility = (eligibilityIndex: number) => {
       _delete: true,
     }
   } else {
-    payload.individual_eligibility.splice(idx, 1)
+    if (payload.individual_eligibility.length === 1) {
+      payload.individual_eligibility[idx] = {
+        id: null,
+        eligibility: null,
+        rating: null,
+        date_of_examination_conferment: null,
+        place_of_examination: null,
+        license_number: null,
+        license_date_of_validity: null,
+        _delete: null,
+      }
+    } else {
+      payload.individual_eligibility.splice(idx, 1)
+    }
   }
 }
 
@@ -560,6 +583,11 @@ defineExpose({
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                                :invalid="validator.individual_eligibility[eligibilityIndex - 1].eligibility.$error"
+                                :invalidText="
+                                  validator.individual_eligibility[eligibilityIndex - 1].eligibility.$errors[0]?.$message
+                                "
+                                @blur="validator.individual_eligibility[eligibilityIndex - 1].eligibility.$touch()"
                               />
                             </div>
 
@@ -605,6 +633,11 @@ defineExpose({
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                                :invalid="validator.individual_eligibility[eligibilityIndex - 1].place_of_examination.$error"
+                                :invalidText="
+                                  validator.individual_eligibility[eligibilityIndex - 1].place_of_examination.$errors[0]?.$message
+                                "
+                                @blur="validator.individual_eligibility[eligibilityIndex - 1].place_of_examination.$touch()"
                               />
                             </div>
 
@@ -615,6 +648,11 @@ defineExpose({
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                                :invalid="validator.individual_eligibility[eligibilityIndex - 1].license_number.$error"
+                                :invalidText="
+                                  validator.individual_eligibility[eligibilityIndex - 1].license_number.$errors[0]?.$message
+                                "
+                                @blur="validator.individual_eligibility[eligibilityIndex - 1].license_number.$touch()"
                               />
                             </div>
 
@@ -636,7 +674,7 @@ defineExpose({
                               />
                               <!-- Delete button aligned right, below label -->
                               <Button
-                                v-show="eligibilityIndex > 0"
+                                v-show="eligibilityIndex > 1"
                                 :id="getId(`button-remove-eligibility-${eligibilityIndex}`)"
                                 icon="pi pi-trash"
                                 @click="handleRemoveEligibility(eligibilityIndex)"
