@@ -35,9 +35,9 @@ const selectedOffice = ref<WbAutoCompleteOption | null>(null)
 
 const recentLogs = ref<string[]>([])
 
-const startKiosk = () => {
+const startTimeLogs = () => {
   if (selectedOffice.value) {
-    localStorage.setItem('kioskOfficeId', selectedOffice.value.value as string)
+    localStorage.setItem('timeLogsOfficeId', selectedOffice.value.value as string) // changed key
     showOfficeSelectionModal.value = false
   }
 }
@@ -70,7 +70,7 @@ const updateDateTime = () => {
 }
 
 onMounted(async () => {
-  const storedOfficeId = localStorage.getItem('kioskOfficeId')
+  const storedOfficeId = localStorage.getItem('timeLogsOfficeId')
 
   if (storedOfficeId) {
     showOfficeSelectionModal.value = false
@@ -243,7 +243,7 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
 
         <div class="flex w-full justify-end">
           <button
-            @click="startKiosk"
+            @click="startTimeLogs"
             :disabled="!selectedOffice || librariesStore.officeOptionsLoading"
             class="transform rounded-lg px-8 py-3 font-semibold text-primary-600 shadow-md duration-300 hover:scale-105"
             :class="{
