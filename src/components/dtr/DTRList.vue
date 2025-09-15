@@ -12,40 +12,55 @@ import { ApiResponsePagination } from '@/typings/http-resources.types.ts'
 import { DailyTimeRecordResponse } from '@/typings/models.types.ts'
 import { useDailyTimeRecordsStore } from '@/stores/daily-time-record.store.ts'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
+
 import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
-import { formatDate } from '@/utils/helpers.ts'
 import { useRoute } from 'vue-router'
+import { collapseDtrByMonth } from '@/utils/dtr-helpers'
 const route = useRoute()
 const router = useRouter()
 
-const navigateToDetails = (dailyTimeRecord: DailyTimeRecordResponse) => {
-  if (!dailyTimeRecord || !dailyTimeRecord.id) {
-    console.error('Cannot navigate to details: Daily Time Record or ID is undefined', dailyTimeRecord)
+const navigateToDetails = (monthlyGroup: { month: string; records: DailyTimeRecordResponse[] }) => {
+  if (!monthlyGroup || !monthlyGroup.month) {
+    console.error('Cannot navigate to details: Month is undefined', monthlyGroup)
     return
   }
+
+  // Parse "September 2025" → year + month
+  const [monthName, yearStr] = monthlyGroup.month.split(' ')
+  const year = Number(yearStr)
+
+  // Map month names to numbers
+  const monthIndex = new Date(`${monthName} 1, ${year}`).getMonth() // e.g. "September" → 8
+
   let targetRouteName
   if (isHumanResourceActive.value) {
     targetRouteName = 'leave-applications/editor'
   } else {
-    targetRouteName = 'my-leaveapplications/editor'
+    targetRouteName = 'my-monthly-dtrs'
   }
 
   router.push({
     name: targetRouteName,
-    params: {
-      id: dailyTimeRecord.id,
+    query: {
+      year: year.toString(),
+      month: (monthIndex + 1).toString().padStart(2, '0'), // "09"
     },
   })
 }
 
 const dailyTimeRecordStore = useDailyTimeRecordsStore()
 
+const monthlyRecords = computed(() => {
+  return collapseDtrByMonth(dailyTimeRecordStore.dailyTimeRecords)
+})
 const dailyTimeRecordIsLoading = ref(false)
-const paginationLimit = 5
+
 onBeforeMount(async () => {
   dailyTimeRecordIsLoading.value = true
-  const response = await dailyTimeRecordStore.fetchDailyTimeRecords(paginationLimit)
+  const response = await dailyTimeRecordStore.fetchDailyTimeRecords()
+
+  console.log('REsult', response)
   if (response.success && response.pagination) {
     pagination.value = response.pagination
   }
@@ -53,46 +68,45 @@ onBeforeMount(async () => {
 })
 
 const pagination = ref<ApiResponsePagination | null>(null)
-const fetchDailyTimeRecordBasedOnContext = async (page = 1) => {
-  dailyTimeRecordIsLoading.value = true
-  const statusFilter = isHumanResourceActive.value ? ['for review', 'approved'] : undefined
+const currentPage = ref(1)
+const rowsPerPage = 5
 
-  const response = await dailyTimeRecordStore.fetchDailyTimeRecords(paginationLimit, page, statusFilter)
-  if (response.success && response.pagination) {
-    pagination.value = response.pagination
-  }
-  dailyTimeRecordIsLoading.value = false
-}
+const paginatedMonthlyRecords = computed(() => {
+  const start = (currentPage.value - 1) * rowsPerPage
+  const end = start + rowsPerPage
+  return monthlyRecords.value.slice(start, end)
+})
 
-onBeforeMount(() => fetchDailyTimeRecordBasedOnContext())
-
-const handlePaginationPageChange = async (event: PageState) => {
-  await fetchDailyTimeRecordBasedOnContext(event.page + 1)
+const handlePaginationPageChange = (event: PageState) => {
+  currentPage.value = event.page + 1
 }
 
 const roleFilter = ref<number | null>(null)
 const searchQuery = ref<string | null>(null)
 const isSearching = ref(false)
+
 watch(
   () => roleFilter.value,
   async () => {
     dailyTimeRecordIsLoading.value = true
     searchQuery.value = null
     isSearching.value = false
-    const response = await dailyTimeRecordStore.fetchDailyTimeRecords(paginationLimit)
+    const response = await dailyTimeRecordStore.fetchDailyTimeRecords()
     if (response.success && response.pagination) {
       pagination.value = response.pagination
     }
     dailyTimeRecordIsLoading.value = false
   }
 )
+
 const searchSubmitted = ref(false)
+
 const handleSearchApplicationLeave = async () => {
   dailyTimeRecordIsLoading.value = true
   searchSubmitted.value = true
 
   if (!searchQuery.value) {
-    const response = await dailyTimeRecordStore.fetchDailyTimeRecords(paginationLimit)
+    const response = await dailyTimeRecordStore.fetchDailyTimeRecords()
     if (response.success && response.pagination) {
       pagination.value = response.pagination
     }
@@ -193,27 +207,21 @@ const isHumanResourceActive = computed(() => route.name === 'daily-time-records'
       <div class="mt-6 flex flex-col">
         <div class="w-full">
           <div class="mx-auto flex h-full w-full flex-col">
-            <DataTable :value="dailyTimeRecordStore.dailyTimeRecords" class="mt-6" dataKey="id">
+            <DataTable :value="paginatedMonthlyRecords" class="mt-6" dataKey="month">
               <Column field="period" headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2">
                 <template #header>
                   <div class="flex flex-col">
                     <span class="text-base text-surface-600">PERIOD</span>
-                    <span class="text-sm font-normal text-surface-500">From - To</span>
+                    <span class="text-sm font-normal text-surface-500">Month</span>
                   </div>
                 </template>
                 <template #body="props">
-                  <p class="uppercase text-surface-600">{{ formatDate(props.data.date) }}</p>
+                  <p class="uppercase text-surface-600">
+                    {{ props.data.month }}
+                  </p>
                 </template>
               </Column>
-              <Column
-                field="edited_at"
-                header="LAST EDITED"
-                headerClass=" w-80 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
-              >
-                <template #body="props">
-                  <p class="uppercase text-surface-600">{{ formatDate(props.data.updated_at) }}</p>
-                </template>
-              </Column>
+
               <Column
                 field="status"
                 header="STATUS"
@@ -267,14 +275,13 @@ const isHumanResourceActive = computed(() => route.name === 'daily-time-records'
           </div>
           <div class="mt-6 flex w-full justify-center md:mt-10">
             <Paginator
-              v-if="pagination && pagination.total > 0"
-              :rows="pagination.per_page"
-              :total-records="pagination.total"
+              v-if="monthlyRecords.length"
+              :rows="rowsPerPage"
+              :total-records="monthlyRecords.length"
               template="CurrentPageReport FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink"
               currentPageReportTemplate="Showing {first} to {last} of {totalRecords}"
-              @page="(event: PageState) => handlePaginationPageChange(event)"
+              @page="handlePaginationPageChange"
               class="text-s md:text-sm"
-              :pt="{ pageButton: {} }"
             />
           </div>
         </div>

@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed, reactive, watch } from 'vue'
 import { ViewDailyTimeRecordResponse } from '@/typings/models.types.ts'
-import { useDailyTimeRecordsStore } from '@/stores/daily-time-record.store'
+import { DailyTimeRecordPayload, useDailyTimeRecordsStore } from '@/stores/daily-time-record.store'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-import WbCalendar from '@/components/webkit/WbCalendar.vue'
 import WbInputText from '@/components/webkit/WbInputText.vue'
 import WbTextArea from '@/components/webkit/WbTextArea.vue'
 import Button from 'primevue/button'
@@ -20,26 +19,54 @@ import {
   isWeekend,
   resolveDTRSlots,
 } from '@/utils/dtr-helpers'
-
 import { useRoute } from 'vue-router'
-
+import { getMonthAndYear } from '@/utils/helpers'
+import { parseApiResponseError } from '@/utils/error-handle'
+const dailyTimeRecordsStore = useDailyTimeRecordsStore()
 const route = useRoute()
-
-// Use query params (from navigateToDetails) to build initial monthDate
 const initialYear = route.query.year ? Number(route.query.year) : new Date().getFullYear()
 const initialMonth = route.query.month ? Number(route.query.month) - 1 : new Date().getMonth()
-
 const monthDate = ref<Date>(new Date(initialYear, initialMonth))
-const dailyTimeRecordsStore = useDailyTimeRecordsStore()
+
 const toast = useToast()
 const isLoading = ref(true)
 const selectedTimeLogId = ref<number[]>([])
 const allDailyTimeRecordsData = ref<ViewDailyTimeRecordResponse[]>([])
 const fromDate = ref<Date | null>(null)
 const toDate = ref<Date | null>(null)
-// const monthDate = ref<Date>(new Date())
 const remarksMap = ref<Record<string, string>>({})
 const activeIndices = ref<number[]>([])
+
+const errorMessage = ref<string | null>(null)
+const errorDetails = ref<string[]>([])
+const formIsSubmitting = ref(false)
+const showErrorAlert = ref(false)
+const IsBeingUpdated = ref(false)
+
+/** Payload */
+const payload = reactive<DailyTimeRecordPayload>({
+  ...dailyTimeRecordsStore.dailyTimeRecordInfo,
+})
+
+// Define month/year props with defaults
+const props = withDefaults(
+  defineProps<{
+    year?: number
+    month?: number
+  }>(),
+  {
+    year: new Date().getFullYear(),
+    month: new Date().getMonth(),
+  }
+)
+const filterYear = ref(props.year!)
+const filterMonth = ref(props.month!)
+
+/** Emits */
+const emit = defineEmits<{
+  (e: 'my-monthy-dtr-updated', value: boolean): void
+}>()
+
 const toggleAccordion = (index: number) => {
   if (activeIndices.value.includes(index)) {
     activeIndices.value = activeIndices.value.filter((i) => i !== index)
@@ -58,7 +85,6 @@ const selectRequest = (id: number) => {
 }
 
 // Dummy implementation for isRequestSelected; update logic as needed
-
 const isRequestSelected = (id: number): boolean => selectedTimeLogId.value.includes(id)
 onMounted(async () => {
   await handleViewDtr()
@@ -83,59 +109,19 @@ const handleViewDtr = async () => {
   }
 }
 
-// Define month/year props with defaults
-const props = withDefaults(
-  defineProps<{
-    year?: number
-    month?: number
-  }>(),
-  {
-    year: new Date().getFullYear(),
-    month: new Date().getMonth(),
-  }
-)
-const filterYear = ref(props.year!)
-const filterMonth = ref(props.month!)
-
-watch([fromDate, toDate], ([from, to]) => {
-  // Prefer the 'from' date to set the calendar's month view
-  const refDate = from || to
-  if (refDate) {
-    filterYear.value = refDate.getFullYear()
-    filterMonth.value = refDate.getMonth()
-  } else {
-    filterYear.value = props.year!
-    filterMonth.value = props.month!
-  }
-})
-
 watch(
-  () => monthDate.value,
-  async (newValue) => {
-    console.log('month and date', monthDate)
-    // Prefer the 'from' date to set the calendar's month view
-    if (newValue) {
-      filterYear.value = newValue.getFullYear()
-      filterMonth.value = newValue.getMonth()
-      isLoading.value = true
-      await handleViewDtr()
-      isLoading.value = false
-    } else {
-      filterYear.value = props.year!
-      filterMonth.value = props.month!
-    }
-  }
-)
+  () => [route.query.year, route.query.month],
+  ([newYear, newMonth]) => {
+    const year = newYear ? Number(newYear) : new Date().getFullYear()
+    const month = newMonth ? Number(newMonth) - 1 : new Date().getMonth()
 
-watch(
-  () => route.query,
-  (newQuery) => {
-    if (newQuery.year && newQuery.month) {
-      const y = Number(newQuery.year)
-      const m = Number(newQuery.month) - 1
-      monthDate.value = new Date(y, m)
-    }
-  }
+    filterYear.value = year
+    filterMonth.value = month
+    monthDate.value = new Date(year, month)
+
+    handleViewDtr()
+  },
+  { immediate: true }
 )
 
 const minMaxTs = computed<{ min: number; max: number } | null>(() => {
@@ -183,6 +169,36 @@ const monthDates = computed(() => {
 
   return arr
 })
+
+/** Handle updating the item number */
+const updateButtonSubmission = async () => {
+  IsBeingUpdated.value = true
+  const id = route.params.id as string
+
+  formIsSubmitting.value = true
+  const response = await dailyTimeRecordsStore.updateDailyTimeRecords(payload, id)
+
+  if (!response.success) {
+    const result = parseApiResponseError(response)
+    if (!result) return (formIsSubmitting.value = false)
+
+    showErrorAlert.value = true
+    errorMessage.value = result.message
+    errorDetails.value = result.errors
+    IsBeingUpdated.value = false
+  }
+
+  formIsSubmitting.value = false
+  toast.add({
+    severity: 'success',
+    summary: 'Item Number Details update',
+    detail: `${id || 'The Item Number '} was successfully updated`,
+    life: 1000,
+  })
+
+  formIsSubmitting.value = false
+  emit('my-monthy-dtr-updated', true)
+}
 </script>
 
 <template>
@@ -201,7 +217,7 @@ const monthDates = computed(() => {
           />
           <h2 class="mb-2 ml-4 text-3xl text-surface-600 dark:text-primary-100 md:ml-4">
             <font-awesome-icon :icon="['fas', 'calendar']" class="h-5 text-surface-600 sm:h-6 md:h-7" />
-            My Daily Time Record (DTR)
+            My Daily Time Record (DTR) for {{ getMonthAndYear(monthDate.toISOString()) }}
           </h2>
         </div>
 
@@ -214,7 +230,7 @@ const monthDates = computed(() => {
           <div class="flex w-full flex-col gap-4 md:w-auto md:flex-row md:justify-end">
             <RouterLink :to="{ name: 'my-dtrs/list' }" class="w-full md:w-auto">
               <Button
-                label="Show All DTRs"
+                label="Export DTR"
                 class="dark:text-secondary-100 w-full border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
                 text
               >
@@ -226,17 +242,6 @@ const monthDates = computed(() => {
           </div>
         </div>
         <br />
-        <div class="mb-12 grid grid-cols-1 gap-x-12 gap-y-4 px-4 md:grid-cols-2">
-          <WbCalendar
-            v-model="monthDate"
-            dateFormat="MM yy"
-            :maxDate="new Date()"
-            required
-            label="Month"
-            label-class="text-md text-surface-600 dark:lg:text-surface-200"
-            view="month"
-          />
-        </div>
 
         <div id="dtr_table" class="relative">
           <!-- Spinner -->
@@ -289,8 +294,11 @@ const monthDates = computed(() => {
                   }"
                   @click="
                     () => {
-                      const hasMissing = Object.values(resolveDTRSlots(item.row?.time_log ?? [])).some((value) => value === '')
-                      if (hasMissing) {
+                      const slots = resolveDTRSlots(item.row?.time_log ?? [])
+                      const hasMissing = Object.values(slots).some((value) => value === '')
+                      const hasEnoughEntries = (item.row?.time_log?.length ?? 0) >= 4
+
+                      if (!hasMissing && hasEnoughEntries) {
                         toggleAccordion(index)
                       }
                     }
@@ -389,7 +397,7 @@ const monthDates = computed(() => {
                   v-else-if="item.row && item.row.time_log?.length && !resolveDTRSlots(item.row.time_log).out2"
                   label=""
                   v-model="remarksMap[`out2-${item.date.toISOString()}`]"
-                  placeholder="Enter PM OUT"
+                  placeholder="Missing"
                   class="h-8 md:h-8 md:w-24"
                 />
               </div>
@@ -411,7 +419,6 @@ const monthDates = computed(() => {
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">Remarks</p>
                 <WbTextArea
-                  v-model="item.is_missing"
                   v-if="item.row && (item.row.time_log?.length ?? 0) <= 4 && resolveDTRSlots(item.row.time_log ?? [])"
                   label=""
                   class="h-8 md:h-8 md:w-48"
@@ -419,6 +426,34 @@ const monthDates = computed(() => {
                 />
               </div>
             </div>
+
+            <!-- Other content -->
+            <div class="mt-2 flex justify-end gap-2">
+              <Button
+                label="Cancel"
+                class="dark:text-secondary-100 border border-surface-400 text-base text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
+                text
+                @click="$router.go(-1)"
+              >
+                <template #icon>
+                  <i class="pi pi-ban mr-2"></i>
+                </template>
+              </Button>
+              <Button
+                label="Update"
+                @click="updateButtonSubmission"
+                :loading="formIsSubmitting"
+                :disabled="formIsSubmitting"
+                size="large"
+                class="dark:text-secondary-100 border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+                text
+              >
+                <template #icon>
+                  <i class="pi pi-save mr-2"></i>
+                </template>
+              </Button>
+            </div>
+            <!-- End Action Buttons -->
           </div>
         </div>
       </template>
