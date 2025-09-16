@@ -61,7 +61,7 @@ const handleUpdate = async () => {
 
   try {
     const promises = [
-      // c1FormRef.value?.updateC1Form?.(),
+      c1FormRef.value?.updateC1Form?.(),
       c2FormRef.value?.updateC2Form?.(),
       c3FormRef.value?.updateC3Form?.(),
       c4FormRef.value?.updateC4Form?.(),
@@ -115,7 +115,7 @@ const handleUpdate = async () => {
 
             <!-- Show Update button only if id exists -->
             <Button
-              v-if="!isMyPds && isEditMode"
+              v-if="isMyPds || isEditMode"
               label="Update PDS"
               @click.prevent="handleUpdate"
               :loading="isSubmitting"

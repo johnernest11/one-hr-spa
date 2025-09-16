@@ -9,8 +9,8 @@ import { useAddressStore } from '@/stores/address.store.ts'
 import { useLibrariesStore } from '@/stores/libraries.store.ts'
 import { useItemNumberStore } from '@/stores/item-number.store.ts'
 import { useSalaryGradesStore } from '@/stores/salary-grades.store.ts'
-import { useProfileStore } from '@/stores/profile.store.ts'
 import { usePdsStore, PersonalDataSheetPayload } from '@/stores/pds.store.ts'
+import { useAuthStore } from '@/stores/auth.store.ts'
 import { useToast } from 'primevue/usetoast'
 import { parseApiResponseError } from '@/utils/error-handle.ts'
 
@@ -22,7 +22,6 @@ import WbDropdown from '@/components/webkit/WbDropdown.vue'
 import WbInputMask from '@/components/webkit/WbInputMask.vue'
 import Checkbox from 'primevue/checkbox'
 import Button from 'primevue/button'
-
 import RadioButton from 'primevue/radiobutton'
 import WbAutoComplete from '@/components/webkit/WbAutoComplete.vue'
 import { WbAutoCompleteOption, WbAutoCompleteOptionTrueValue } from '@/components/webkit/WbAutoComplete.vue'
@@ -32,7 +31,7 @@ import { TabGroup, TabList, Tab, TabPanels, TabPanel } from '@headlessui/vue'
 import { usePrependOrAppendOnce, isNotMoreThanYearsAgo } from '@/utils/helpers.js'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { TransitionRoot } from '@headlessui/vue'
-import { ItemNumberResponse, PersonnelResponse } from '@/typings/models.types'
+import { IndividualEducBg, ItemNumberResponse, PersonnelResponse, IndividualFamily } from '@/typings/models.types'
 import { useRouter } from 'vue-router'
 import { useRoute } from 'vue-router'
 const getId = usePrependOrAppendOnce('pds-c1-section-form')
@@ -41,10 +40,11 @@ const libraryStore = useLibrariesStore()
 const itemStore = useItemNumberStore()
 const sgStore = useSalaryGradesStore()
 const pdsStore = usePdsStore()
+const authStore = useAuthStore()
 const toast = useToast()
 const router = useRouter()
 const route = useRoute()
-const isMyPds = route.name === 'my-pds'
+// const pdsStore.isMyPds = route.name === 'my-pds'
 
 const currentlyEnrolledGraduate = ref(false)
 const currentlyEnrolledVocational = ref(false)
@@ -89,12 +89,9 @@ const IsBeingUpdated = ref(false)
 const pdsErrors = ref()
 const isPdsError = ref(false)
 const errorMessage = ref()
-const profileStore = useProfileStore()
-
 onBeforeMount(async () => {
   addressesAreLoading.value = true
   await Promise.allSettled([
-    profileStore.fetchProfile(),
     publicStore.fetchRegions(),
     publicStore.fetchProvinces(),
     publicStore.fetchCities(),
@@ -106,7 +103,29 @@ onBeforeMount(async () => {
     sgStore.fetchSalaryGrade(),
   ])
 
-  addressesAreLoading.value = false
+  const individual = authStore.authenticatedUser?.user_profile?.individual_basic_detail
+
+  if (individual) {
+    payload.individual.first_name = payload.individual.first_name ?? individual.first_name
+    payload.individual.last_name = payload.individual.last_name ?? individual.last_name
+    payload.individual.middle_name = payload.individual.middle_name ?? individual.middle_name
+    payload.individual.ext_name = payload.individual.ext_name ?? individual.ext_name
+    payload.individual.birthday = payload.individual.birthday ?? individual.birthday
+    payload.individual.sex = payload.individual.sex ?? (individual.sex as 'male' | 'female')
+    payload.individual.place_of_birth = payload.individual.place_of_birth ?? individual.place_of_birth
+    payload.individual.civil_status =
+      payload.individual.civil_status ?? (individual.civil_status as 'Single' | 'Married' | 'Widowed' | 'Divorced' | 'Separated')
+    payload.individual.height = payload.individual.height ?? individual.height
+    payload.individual.weight = payload.individual.weight ?? individual.weight
+    payload.individual.blood_type = payload.individual.blood_type ?? individual.blood_type
+    payload.individual.gsis_no = payload.individual.gsis_no ?? individual.gsis_no
+    payload.individual.pag_ibig_no = payload.individual.pag_ibig_no ?? individual.pag_ibig_no
+    payload.individual.philhealth_no = payload.individual.philhealth_no ?? individual.philhealth_no
+    payload.individual.sss_no = payload.individual.sss_no ?? individual.sss_no
+    payload.individual.tin = payload.individual.tin ?? individual.tin
+    payload.individual.citizenship = payload.individual.citizenship ?? individual.citizenship
+    payload.individual.citizenship_acquisition = payload.individual.citizenship_acquisition ?? individual.citizenship_acquisition
+  }
 })
 
 const { provinceOptions, cityOptions, barangayOptions } = storeToRefs(publicStore)
@@ -534,13 +553,6 @@ const formRules = computed(() => ({
 
 const validator = useVuelidate<PersonalDataSheetPayload>(formRules, payload)
 
-// defineProps({
-//   activeSubTab: {
-//     type: Number,
-//     default: undefined,
-//   },
-// })
-
 watch(isSameResidential, (newVal) => {
   if (newVal === true) {
     selectedPermanentRegion.value = selectedResidentialRegion.value
@@ -713,20 +725,11 @@ watch(
       spouse.first_name = 'N/A'
       spouse.middle_name = 'N/A'
       spouse.last_name = 'N/A'
-      spouse.ext_name = 'N/A'
+      spouse.ext_name = null
       spouse.occupation = 'N/A'
       spouse.employers_business_name = 'N/A'
       spouse.business_address = 'N/A'
-      spouse.telephone_no = 'N/A'
-    } else {
-      spouse.first_name = ''
-      spouse.middle_name = ''
-      spouse.last_name = ''
-      spouse.ext_name = ''
-      spouse.occupation = ''
-      spouse.employers_business_name = ''
-      spouse.business_address = ''
-      spouse.telephone_no = ''
+      spouse.telephone_no = null
     }
   },
   { immediate: true }
@@ -827,8 +830,9 @@ watch(
 watch(
   () => payload.employee.agency_employee_no,
   (newAgencyNo) => {
-    payload.employee.id_number = newAgencyNo || null
-  }
+    payload.employee.id_number = newAgencyNo ?? null
+  },
+  { immediate: true }
 )
 
 watch(
@@ -1040,6 +1044,7 @@ const showToast = (
 
 const handleAdditionalChild = () => {
   payload.individual_family_children?.push({
+    id: null,
     first_name: null,
     last_name: null,
     middle_name: null,
@@ -1050,13 +1055,23 @@ const handleAdditionalChild = () => {
     telephone_no: null,
     class: 'Children',
     date_of_birth: null,
+    _delete: null,
   })
 }
 
 const handleRemoveChild = (childIndex: number) => {
-  payload.individual_family_children?.splice(childIndex, 1)
-}
+  const idx = childIndex - 1
+  const family_children = payload.individual_family_children?.[idx]
 
+  if (family_children?.id) {
+    payload.individual_family_children[idx] = {
+      ...family_children,
+      _delete: true,
+    }
+  } else {
+    payload.individual_family_children.splice(idx, 1)
+  }
+}
 // ──────────────────────────────────────────────────────────
 //          PDS Details Form - Fetching by ID & Update
 // ──────────────────────────────────────────────────────────
@@ -1070,8 +1085,67 @@ onMounted(async () => {
     const response = await pdsStore.fetchPdsById(id)
 
     if (response && response.success) {
-      console.log('Fetched PDS data:', response.data) // ✅ Console log added
-      pdsStore.updatePdsFromPersonnel(response.data as PersonnelResponse)
+      console.log('Fetched PDS data:', response.data)
+      console.log('Spouse payload:', payload.individual_family_spouse)
+      const data = response.data as PersonnelResponse
+      pdsStore.updatePdsFromPersonnel(data)
+
+      /** --------------------
+       * Handle Educations
+       * ------------------- */
+      const educationsRaw = data.individual_educational_background
+      const educationsArray: IndividualEducBg[] = Array.isArray(educationsRaw)
+        ? educationsRaw
+        : educationsRaw
+          ? [educationsRaw] // wrap single object in array
+          : []
+
+      educationsArray.forEach((edu) => {
+        switch (edu.level) {
+          case 'Elementary':
+            Object.assign(payload.educations.elementary, edu)
+            break
+          case 'Secondary':
+            Object.assign(payload.educations.high_school, edu)
+            break
+          case 'Vocational':
+            Object.assign(payload.educations.vocational, edu)
+            break
+          case 'College':
+            Object.assign(payload.educations.college, edu)
+            break
+          case 'Graduate':
+            Object.assign(payload.educations.graduate, edu)
+            break
+        }
+      })
+
+      /** --------------------
+       * Handle Family
+       * ------------------- */
+      const familyRaw = data.individual_family
+      const familyArray: IndividualFamily[] = Array.isArray(familyRaw)
+        ? familyRaw
+        : familyRaw
+          ? [familyRaw] // wrap single object in array
+          : []
+
+      familyArray.forEach((fam) => {
+        switch (fam.class) {
+          case 'Spouse':
+            Object.assign(payload.individual_family_spouse, fam)
+            break
+          case 'Father':
+            Object.assign(payload.individual_family_father, fam)
+            break
+          case 'Mother':
+            Object.assign(payload.individual_family_mothers_maiden, fam)
+            break
+          case 'Children':
+            payload.individual_family_children.push(fam) // array of children
+            break
+        }
+      })
     } else {
       console.warn('Failed to fetch PDS by ID or response unsuccessful.')
     }
@@ -1081,15 +1155,13 @@ onMounted(async () => {
 })
 
 watch(
-  () => props.personnelPds, // assumes props.personnel is of type PersonnelEmployeeResponse | null
+  () => props.personnelPds,
   (newPersonnel) => {
     if (newPersonnel) {
       pdsStore.updatePdsFromPersonnel(newPersonnel)
     } else {
       for (const key in payload.individual) {
         payload.individual[key as keyof typeof payload.individual] = null
-        payload.contact_info[key as keyof typeof payload.contact_info] = null
-        payload.individual_address_init[key as keyof typeof payload.individual_address_init] = null
       }
     }
   },
@@ -1098,34 +1170,56 @@ watch(
 
 const updateC1Form = async () => {
   IsBeingUpdated.value = true
-  const id = route.params.id as string
+  const id = pdsStore.isMyPds
+    ? authStore.authenticatedUser?.user_profile?.individual_basic_detail?.id?.toString() ?? 0
+    : (route.params.id as string)
 
   formIsSubmitting.value = true
-  const response = await pdsStore.updatePds(
-    { ...payload }, // only payload properties
-    id,
-    'C1' // pass form_type as a separate argument if your store expects it
-  )
+
+  const familyArray = [
+    payload.individual_family_spouse,
+    payload.individual_family_father,
+    payload.individual_family_mothers_maiden,
+    ...(payload.individual_family_children || []),
+  ].filter((fam) => fam && (fam.first_name || fam.last_name))
+
+  const educationsArray = [
+    payload.educations.elementary,
+    payload.educations.high_school,
+    payload.educations.vocational,
+    payload.educations.college,
+    payload.educations.graduate,
+  ].filter((edu) => edu.schools_name || edu.education_description)
+
+  const requestPayload = {
+    ...payload,
+    individual_educational_background: educationsArray,
+    individual_family: familyArray,
+  }
+
+  const response = await pdsStore.updatePds(requestPayload, id, 'C1')
 
   if (!response.success) {
     const result = parseApiResponseError(response)
-    if (!result) return (formIsSubmitting.value = false)
+    if (!result) {
+      formIsSubmitting.value = false
+      return
+    }
 
     showErrorAlert.value = true
     errorMessage.value = result.message
     errorDetails.value = result.errors
     IsBeingUpdated.value = false
+    return
   }
 
   formIsSubmitting.value = false
   toast.add({
     severity: 'success',
-    summary: 'Item Number Details update',
-    detail: `${id || 'The Item Number '} was successfully updated`,
+    summary: 'C1 Form update',
+    detail: `${id || 'The PDS'} was successfully updated`,
     life: 1000,
   })
-
-  formIsSubmitting.value = false
 }
 
 // ──────────────────────────────────────────────────────────
@@ -1213,7 +1307,7 @@ const handleSaveC1Form = async () => {
     pdsErrors.value = result?.errors
     showToast('error', 'PDS Error', 'Pease see the validation messages')
   } else {
-    showToast('success', 'PDS', 'PDS has been saved')
+    showToast('success', 'Personal Data Sheet (PDS)', 'PDS has been successfully updated.')
     router.push({ name: 'employment' })
   }
 
@@ -1297,7 +1391,7 @@ defineExpose({
                           optionLabel="label"
                           optionValue="value"
                           required
-                          :disabled="isMyPds"
+                          :disabled="pdsStore.isMyPds"
                           @on-true-value-computed="
                             (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
                               useWbAutoCompleteHandleTrueValue(value, toRef(payload.employee, 'item_id'))
@@ -1313,7 +1407,7 @@ defineExpose({
                         </WbAutoComplete>
 
                         <RouterLink
-                          v-if="!isMyPds"
+                          v-if="!pdsStore.isMyPds"
                           :to="{ name: 'support', state: { from: 'recruitment' } }"
                           v-tooltip.top="'Add Item Number'"
                         >
@@ -1345,7 +1439,7 @@ defineExpose({
                         optionLabel="label"
                         optionValue="value"
                         required
-                        :disabled="isMyPds"
+                        :disabled="pdsStore.isMyPds"
                         @on-true-value-computed="
                           (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
                             useWbAutoCompleteHandleTrueValue(value, toRef(payload.employee, 'salary_grade_id'))
@@ -1374,7 +1468,7 @@ defineExpose({
                           optionLabel="label"
                           optionValue="value"
                           required
-                          :disabled="isMyPds"
+                          :disabled="pdsStore.isMyPds"
                           forceSelection
                           @on-true-value-computed="
                             (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
@@ -1402,7 +1496,7 @@ defineExpose({
                           optionLabel="label"
                           optionValue="value"
                           required
-                          :disabled="isMyPds"
+                          :disabled="pdsStore.isMyPds"
                           @on-true-value-computed="
                             (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
                               useWbAutoCompleteHandleTrueValue(value, toRef(payload.employee, 'division_id'))
@@ -1429,7 +1523,7 @@ defineExpose({
                           optionLabel="label"
                           optionValue="value"
                           required
-                          :disabled="isMyPds"
+                          :disabled="pdsStore.isMyPds"
                           @on-true-value-computed="
                             (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
                               useWbAutoCompleteHandleTrueValue(value, toRef(payload.employee, 'section_or_unit_id'))
@@ -1453,7 +1547,7 @@ defineExpose({
                         v-model="payload.individual.last_name"
                         label="Surname"
                         required
-                        :disabled="isMyPds"
+                        :disabled="pdsStore.isMyPds"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -1467,7 +1561,7 @@ defineExpose({
                         v-model="payload.individual.first_name"
                         label="First Name"
                         required
-                        :disabled="isMyPds"
+                        :disabled="pdsStore.isMyPds"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -1479,7 +1573,7 @@ defineExpose({
                       <WbInputText
                         v-model="payload.individual.middle_name"
                         label="Middle Name"
-                        :disabled="isMyPds"
+                        :disabled="pdsStore.isMyPds"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -1493,7 +1587,7 @@ defineExpose({
                         optionLabel="label"
                         optionValue="value"
                         :options="ExtensionTypeOptions"
-                        :disabled="isMyPds"
+                        :disabled="pdsStore.isMyPds"
                         label="Extension Name"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
@@ -1509,7 +1603,7 @@ defineExpose({
                         dateFormat="yy-mm-dd"
                         :maxDate="new Date()"
                         required
-                        :disabled="isMyPds"
+                        :disabled="pdsStore.isMyPds"
                         label="Date of Birth"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         :invalid="validator.individual.birthday.$invalid"
@@ -1528,7 +1622,7 @@ defineExpose({
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                        :disabled="isMyPds"
+                        :disabled="pdsStore.isMyPds"
                         :invalid="validator.individual.place_of_birth.$invalid"
                         :invalid-text="validator.individual.place_of_birth.$errors[0]?.$message"
                         @blur="validator.individual.place_of_birth.$touch"
@@ -1542,7 +1636,7 @@ defineExpose({
                         optionLabel="label"
                         optionValue="value"
                         label="Sex"
-                        :disabled="isMyPds"
+                        :disabled="pdsStore.isMyPds"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         :invalid="validator.individual.sex.$invalid"
                         :invalid-text="validator.individual.sex.$errors[0]?.$message"
@@ -1565,7 +1659,7 @@ defineExpose({
                               :id="getId('input-citizenship-fil')"
                               name="citizenship"
                               value="Filipino"
-                              :disabled="isMyPds"
+                              :disabled="pdsStore.isMyPds"
                             />
                             <label :for="getId('input-citizenship-fil')" class="ml-2 cursor-pointer">Filipino</label>
                           </div>
@@ -1575,7 +1669,7 @@ defineExpose({
                               :id="getId('input-citizenship-dual')"
                               name="citizenship"
                               value="Dual Citizenship"
-                              :disabled="isMyPds"
+                              :disabled="pdsStore.isMyPds"
                             />
                             <label :for="getId('input-citizenship-dual')" class="ml-2 cursor-pointer">Dual Citizen</label>
                           </div>
@@ -1589,7 +1683,7 @@ defineExpose({
                         optionLabel="label"
                         optionValue="value"
                         label="Civil Status"
-                        :disabled="isMyPds"
+                        :disabled="pdsStore.isMyPds"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         :invalid="validator.individual.civil_status.$invalid"
                         :invalid-text="validator.individual.civil_status.$errors[0]?.$message"
@@ -1608,7 +1702,7 @@ defineExpose({
                         optionValue="value"
                         label="Filipino by"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                        :disabled="isMyPds"
+                        :disabled="pdsStore.isMyPds"
                         :invalid="validator.individual.citizenship_acquisition.$invalid"
                         :invalid-text="validator.individual.citizenship_acquisition.$errors[0]?.$message"
                         @blur="validator.individual.citizenship_acquisition.$touch"
@@ -1642,7 +1736,7 @@ defineExpose({
                         optionLabel="label"
                         optionValue="value"
                         label="Blood Type"
-                        :disabled="isMyPds"
+                        :disabled="pdsStore.isMyPds"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         :invalid="validator.individual.blood_type.$invalid"
                         :invalid-text="validator.individual.blood_type.$errors[0]?.$message"
@@ -1676,7 +1770,7 @@ defineExpose({
                         label="GSIS ID No."
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                        :disabled="isMyPds"
+                        :disabled="pdsStore.isMyPds"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         :invalid="validator.individual.gsis_no.$invalid"
                         :invalid-text="validator.individual.gsis_no.$errors[0]?.$message"
@@ -1690,7 +1784,7 @@ defineExpose({
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                        :disabled="isMyPds"
+                        :disabled="pdsStore.isMyPds"
                         :invalid="validator.individual.pag_ibig_no.$invalid"
                         :invalid-text="validator.individual.pag_ibig_no.$errors[0]?.$message"
                         @blur="validator.individual.pag_ibig_no.$touch"
@@ -1703,7 +1797,7 @@ defineExpose({
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                        :disabled="isMyPds"
+                        :disabled="pdsStore.isMyPds"
                         :invalid="validator.individual.philhealth_no.$invalid"
                         :invalid-text="validator.individual.philhealth_no.$errors[0]?.$message"
                         @blur="validator.individual.philhealth_no.$touch"
@@ -1716,7 +1810,7 @@ defineExpose({
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                        :disabled="isMyPds"
+                        :disabled="pdsStore.isMyPds"
                         :invalid="validator.individual.tin.$invalid"
                         :invalid-text="validator.individual.tin.$errors[0]?.$message"
                         @blur="validator.individual.tin.$touch"
@@ -1729,7 +1823,7 @@ defineExpose({
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                        :disabled="isMyPds"
+                        :disabled="pdsStore.isMyPds"
                         :invalid="validator.individual.sss_no.$invalid"
                         :invalid-text="validator.individual.sss_no.$errors[0]?.$message"
                         @blur="validator.individual.sss_no.$touch"
@@ -1744,7 +1838,7 @@ defineExpose({
                         placeholder="+63 XXX XXX XXXX"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                        :disabled="isMyPds"
+                        :disabled="pdsStore.isMyPds"
                         :invalid="validator.contact_info.mobile_no.$invalid"
                         :invalid-text="validator.contact_info.mobile_no.$errors[0]?.$message"
                         @blur="validator.contact_info.mobile_no.$touch"
@@ -1762,7 +1856,7 @@ defineExpose({
                         placeholder="(072) 687-8000"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                        :disabled="isMyPds"
+                        :disabled="pdsStore.isMyPds"
                         :invalid="validator.contact_info.tel_no.$invalid"
                         :invalid-text="validator.contact_info.tel_no.$errors[0]?.$message"
                         @blur="validator.contact_info.tel_no.$touch"
@@ -1779,7 +1873,7 @@ defineExpose({
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                        :disabled="isMyPds"
+                        :disabled="pdsStore.isMyPds"
                         :invalid="validator.employee.agency_employee_no.$invalid"
                         :invalid-text="validator.employee.agency_employee_no.$errors[0]?.$message"
                         @blur="validator.employee.agency_employee_no.$touch"
@@ -1792,7 +1886,7 @@ defineExpose({
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                        :disabled="isMyPds"
+                        :disabled="pdsStore.isMyPds"
                         :invalid="validator.contact_info.email_address.$invalid"
                         :invalid-text="validator.contact_info.email_address.$errors[0]?.$message"
                         @blur="validator.contact_info.email_address.$touch"
@@ -2367,80 +2461,86 @@ defineExpose({
                         leaveFrom="opacity-100"
                         leaveTo="opacity-0"
                       >
-                        <div class="flex flex-col items-center gap-x-12 gap-y-4 md:flex-row">
-                          <WbInputText
-                            v-model="payload.individual_family_children[childIdx - 1].last_name"
-                            label="Surname"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                            :invalid="validator.individual_family_children?.[childIdx - 1]?.last_name?.$error"
-                            :invalid-text="validator.individual_family_children?.[childIdx - 1]?.last_name?.$errors[0]?.$message"
-                            @blur="validator.individual_family_children?.[childIdx - 1]?.last_name?.$touch()"
-                          />
+                        <div v-if="!payload.individual_family_children[childIdx - 1]?._delete">
+                          <div class="flex flex-col items-center gap-x-12 gap-y-4 md:flex-row">
+                            <WbInputText
+                              v-model="payload.individual_family_children[childIdx - 1].last_name"
+                              label="Surname"
+                              label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                              :invalid="validator.individual_family_children?.[childIdx - 1]?.last_name?.$error"
+                              :invalid-text="
+                                validator.individual_family_children?.[childIdx - 1]?.last_name?.$errors[0]?.$message
+                              "
+                              @blur="validator.individual_family_children?.[childIdx - 1]?.last_name?.$touch()"
+                            />
 
-                          <WbInputText
-                            v-model="payload.individual_family_children[childIdx - 1].first_name"
-                            label="First Name"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                            :invalid="validator.individual_family_children?.[childIdx - 1]?.first_name?.$error"
-                            :invalid-text="validator.individual_family_children?.[childIdx - 1]?.first_name?.$errors[0]?.$message"
-                            @blur="validator.individual_family_children?.[childIdx - 1]?.first_name?.$touch()"
-                          />
+                            <WbInputText
+                              v-model="payload.individual_family_children[childIdx - 1].first_name"
+                              label="First Name"
+                              label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                              :invalid="validator.individual_family_children?.[childIdx - 1]?.first_name?.$error"
+                              :invalid-text="
+                                validator.individual_family_children?.[childIdx - 1]?.first_name?.$errors[0]?.$message
+                              "
+                              @blur="validator.individual_family_children?.[childIdx - 1]?.first_name?.$touch()"
+                            />
 
-                          <WbInputText
-                            v-model="payload.individual_family_children[childIdx - 1].middle_name"
-                            label="Middle Name"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                            :invalid="validator.individual_family_children?.[childIdx - 1]?.middle_name?.$error"
-                            :invalid-text="
-                              validator.individual_family_children?.[childIdx - 1]?.middle_name?.$errors[0]?.$message
-                            "
-                            @blur="validator.individual_family_children?.[childIdx - 1]?.middle_name?.$touch()"
-                          />
+                            <WbInputText
+                              v-model="payload.individual_family_children[childIdx - 1].middle_name"
+                              label="Middle Name"
+                              label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                              :invalid="validator.individual_family_children?.[childIdx - 1]?.middle_name?.$error"
+                              :invalid-text="
+                                validator.individual_family_children?.[childIdx - 1]?.middle_name?.$errors[0]?.$message
+                              "
+                              @blur="validator.individual_family_children?.[childIdx - 1]?.middle_name?.$touch()"
+                            />
 
-                          <WbDropdown
-                            v-model="payload.individual_family_children[childIdx - 1].ext_name"
-                            optionLabel="label"
-                            optionValue="value"
-                            :options="ExtensionTypeOptions"
-                            label="Extension Name"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                          />
+                            <WbDropdown
+                              v-model="payload.individual_family_children[childIdx - 1].ext_name"
+                              optionLabel="label"
+                              optionValue="value"
+                              :options="ExtensionTypeOptions"
+                              label="Extension Name"
+                              label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                            />
 
-                          <WbCalendar
-                            v-model="payload.individual_family_children[childIdx - 1].date_of_birth"
-                            dateFormat="MM dd, yy"
-                            :maxDate="new Date()"
-                            label="Date of Birth"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            :invalid="validator.individual_family_children?.[childIdx - 1]?.date_of_birth?.$error"
-                            :invalid-text="
-                              validator.individual_family_children?.[childIdx - 1]?.date_of_birth?.$errors[0]?.$message
-                            "
-                            @blur="validator.individual_family_children?.[childIdx - 1]?.date_of_birth?.$touch()"
-                          >
-                            <template #prepend-icon>
-                              <i class="pi pi-gift" />
-                            </template>
-                          </WbCalendar>
+                            <WbCalendar
+                              v-model="payload.individual_family_children[childIdx - 1].date_of_birth"
+                              dateFormat="MM dd, yy"
+                              :maxDate="new Date()"
+                              label="Date of Birth"
+                              label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                              :invalid="validator.individual_family_children?.[childIdx - 1]?.date_of_birth?.$error"
+                              :invalid-text="
+                                validator.individual_family_children?.[childIdx - 1]?.date_of_birth?.$errors[0]?.$message
+                              "
+                              @blur="validator.individual_family_children?.[childIdx - 1]?.date_of_birth?.$touch()"
+                            >
+                              <template #prepend-icon>
+                                <i class="pi pi-gift" />
+                              </template>
+                            </WbCalendar>
 
-                          <Button
-                            v-show="childIdx > 0"
-                            :id="getId(`button-remove-child-${childIdx - 1}`)"
-                            icon="pi pi-trash"
-                            @click="handleRemoveChild(childIdx - 1)"
-                            v-tooltip.top="'Remove Child'"
-                            severity="danger"
-                            class="mt-8 text-lg font-semibold dark:text-primary-100"
-                            text
-                          />
+                            <Button
+                              v-show="childIdx > 0"
+                              :id="getId(`button-remove-child-${childIdx}`)"
+                              icon="pi pi-trash"
+                              @click="handleRemoveChild(childIdx)"
+                              v-tooltip.top="'Remove Child'"
+                              severity="danger"
+                              class="mt-8 text-lg font-semibold dark:text-primary-100"
+                              text
+                            />
+                          </div>
                         </div>
                       </TransitionRoot>
                     </template>
