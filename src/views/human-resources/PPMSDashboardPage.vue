@@ -95,7 +95,7 @@ function getId(id: string) {
     <div class="p-6">
       <div class="mb-6 flex items-center justify-between">
         <h1 class="mb-2 mr-4 whitespace-nowrap text-xl text-surface-600 dark:text-primary-100 md:text-xl lg:text-4xl">
-          PMPS Dashboard
+          PPMS Dashboard
         </h1>
         <div class="flex items-center gap-2 p-2">
           <Button
