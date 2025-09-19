@@ -7,11 +7,23 @@ import { LocatorSlipResponse } from '@/typings/models.types'
 import { locatorslipmockData } from '@/utils/mock-data'
 
 export type LocatorSlipPayload = {
-  period_covered_from: string | null
-  period_covered_to: string | null
-  period_request: string | null
-  locator_slip_no: string | null
-  status: string | null
+  form_type: string
+  month: string | null
+  period: string | null
+  ls_logger: LSLoggerPayload[]
+}
+
+export type LSLoggerPayload = {
+  id?: number | null
+  locator_slip_id: number | null
+  date: string | null
+  time_in: string | null
+  time_out: string | null
+  destination: string | null
+  purpose: string | null
+  approve_for: string | null
+  duration: number | null
+  remarks: string | null
 }
 
 export const useLocatorSlipStore = defineStore('locator-slip', () => {
@@ -87,11 +99,9 @@ export const useLocatorSlipStore = defineStore('locator-slip', () => {
       if (!query) return true
       const q = query.toLowerCase()
 
-      const fromDate = new Date(item.period_covered_from)
-      const monthName = fromDate.toLocaleString('default', { month: 'long' }).toLowerCase()
+      const monthName = item.month.toLowerCase()
       return (
         monthName.includes(q) ||
-        item.period_covered_from.toLowerCase().includes(q) ||
         item.locator_slip_no?.toLowerCase().includes(q) ||
         item.status.toLowerCase().includes(q) ||
         item.employee_id.first_name.toLowerCase().includes(q) ||
@@ -163,6 +173,7 @@ export const useLocatorSlipStore = defineStore('locator-slip', () => {
     createLocatorSlip,
     fetchLocatorSlip,
     fetchLocatorSlipById,
+    selectedlocatorSlip,
     updateLocatorSlip,
     searchLocatorSlip,
     filterLocatorSlip,

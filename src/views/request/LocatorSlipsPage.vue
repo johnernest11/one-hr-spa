@@ -1,36 +1,34 @@
 <script setup lang="ts">
-import { onBeforeMount, ref, watch, computed, reactive, onMounted, toRef } from 'vue'
+import { onBeforeMount, ref, computed, reactive, toRef } from 'vue'
 import { useLibrariesStore } from '@/stores/libraries.store'
 import { useLocatorSlipStore, LocatorSlipPayload } from '@/stores/locator-slip.store'
 import { LocatorSlipResponse } from '@/typings/models.types.ts'
 import { useToast } from 'primevue/usetoast'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import Button from 'primevue/button'
 import Card from 'primevue/card'
-import Chip from 'primevue/chip'
 import Column from 'primevue/column'
 import DataTable from 'primevue/datatable'
 import Dialog from 'primevue/dialog'
 import InputText from 'primevue/inputtext'
 import InputGroup from 'primevue/inputgroup'
 import Paginator, { PageState } from 'primevue/paginator'
-import WbCalendar from '@/components/webkit/WbCalendar.vue'
 import WbDropdown from '@/components/webkit/WbDropdown.vue'
 import WbAutoComplete, { WbAutoCompleteOption, WbAutoCompleteOptionTrueValue } from '@/components/webkit/WbAutoComplete.vue'
 import { useWbAutoCompleteHandleTrueValue } from '@/composables/wb-ui-components'
 
 import useVuelidate from '@vuelidate/core'
 import { ApiResponsePagination } from '@/typings/http-resources.types.ts'
-import { parseApiResponseError } from '@/utils/error-handle.ts'
-import { helpers, maxLength, required } from '@vuelidate/validators'
-import { getMonthAndYear, formatDateRanges, snakeCaseToTitleCase, isAfterOrEqualFromDate } from '@/utils/helpers.ts'
+import { helpers, required } from '@vuelidate/validators'
+import { snakeCaseToTitleCase } from '@/utils/helpers.ts'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { usePrependOrAppendOnce } from '@/utils/helpers'
 
 const locatorSlipsStore = useLocatorSlipStore()
 const libraryStore = useLibrariesStore()
 const route = useRoute()
+const router = useRouter()
 const toast = useToast()
 const isHumanResourceActive = computed(() => route.name === 'locator-slips')
 const getId = usePrependOrAppendOnce('generate-payroll')
@@ -38,15 +36,11 @@ const getId = usePrependOrAppendOnce('generate-payroll')
 const RequestLocatorSlip = ref(false)
 const searchSubmitted = ref(false)
 const locatorSlipsIsLoading = ref(false)
-const isLoading = ref(true)
 const formIsSubmitting = ref(false)
 const showModal = ref(false)
-const showErrorAlert = ref(false)
 const paginationLimit = 5
 
 const searchQuery = ref<string | null>(null)
-const errorMessage = ref<string | null>(null)
-const errorDetails = ref<string[]>([])
 const selectedStatus = ref<string | null>(null)
 const selectedDivision = ref<WbAutoCompleteOption[] | null>(null)
 const selectedSectionUnit = ref<WbAutoCompleteOption[] | null>(null)
@@ -57,15 +51,20 @@ const emit = defineEmits<{
   (e: 'locator-created', value: boolean): void
 }>()
 
-const openLocatorSlipDialog = (slip: LocatorSlipResponse | null = null) => {
+const openLocatorSlip = (slip: LocatorSlipResponse | null = null) => {
   if (!slip || !slip.id) {
     console.error('Cannot navigate to details: Locator Slip or ID is undefined', slip)
     return
+  } else {
+    //updatePayloadFromReport(slip)
+    router.push({
+      name: 'my-locator-slips/editor',
+      params: {
+        id: slip.id,
+      },
+    })
   }
-  if (slip) {
-    updatePayloadFromReport(slip)
-  }
-  RequestLocatorSlip.value = true
+  //RequestLocatorSlip.value = true
 }
 
 const openNewLocatorSlipForm = () => {
@@ -73,63 +72,38 @@ const openNewLocatorSlipForm = () => {
   RequestLocatorSlip.value = true
 }
 
-const employementStatusOptions = [
-  { label: 'Permanent', value: 'Permanent' },
-  { label: 'Contractual', value: 'Contractual' },
-  { label: 'Contract of Service', value: 'Contract of Service' },
-  { label: 'Job Order', value: 'Job Order' },
-]
-
-const requestOptions = ref([
-  { label: '1st request for this period', value: '1st request for this period' },
-  { label: '2nd request for this period', value: '2nd request for this period' },
-])
-
-const statusOptions = ref([
-  { label: 'Pending', value: 'pending' },
-  { label: 'In Progress', value: 'in progress' },
-  { label: 'Released', value: 'released' },
+const formTypeOptions = ref([
+  { label: 'Locator Slip Form A', value: 'a' },
+  { label: 'Locator Slip Form C', value: 'c' },
 ])
 
 const payload = reactive<LocatorSlipPayload>({
-  period_covered_from: '',
-  period_covered_to: '',
-  period_request: '',
-  locator_slip_no: '',
-  status: '',
+  form_type: '',
+  month: null,
+  period: null,
+  ls_logger: [
+    {
+      locator_slip_id: null,
+      date: null,
+      time_in: null,
+      time_out: null,
+      destination: '',
+      purpose: '',
+      approve_for: null,
+      duration: null,
+      remarks: '',
+    },
+  ],
 })
 
 const resetPayload = () => {
-  payload.period_covered_from = ''
-  payload.period_covered_to = ''
-  payload.period_request = ''
-  payload.locator_slip_no = ''
-  payload.status = ''
+  payload.form_type = ''
 }
-
-const globalStringMaxLength = import.meta.env.VITE_GLOBAL_STRING_MAX_LENGTH
-const globalStringMaxLengthRule = helpers.withMessage(
-  `Must not exceed ${globalStringMaxLength} characters`,
-  maxLength(globalStringMaxLength)
-)
 
 const formRules = () => ({
   $lazy: true,
-  period_covered_from: {
-    type_request: helpers.withMessage('Period Covered From is required', required),
-    maxLength: helpers.withMessage('', globalStringMaxLengthRule),
-  },
-  period_covered_to: {
-    required: helpers.withMessage('Period Covered To is required', required),
-    maxLength: helpers.withMessage('', globalStringMaxLengthRule),
-    isAfterOrEqualFromDate: helpers.withMessage(
-      'Period Covered To must be after or equal to  From',
-      isAfterOrEqualFromDate(() => payload.period_covered_from ?? '')
-    ),
-  },
-  period_request: {
-    required: helpers.withMessage('Period Request is required', required),
-    maxLength: helpers.withMessage('', globalStringMaxLengthRule),
+  form_type: {
+    type_request: helpers.withMessage('Form Type is required', required),
   },
 })
 
@@ -196,12 +170,16 @@ const handleFilterLocatorSlip = async () => {
 }
 
 const exportPdf = async (locatorSlips: LocatorSlipResponse) => {
-  const { period_covered_from, period_covered_to, id } = locatorSlips
+  const { period, month, id } = locatorSlips
+
+  const message = period
+    ? `Exporting locator slip for the ${period} of ${month}.`
+    : `Exporting locator slip for the month of ${month}.`
 
   toast.add({
     severity: 'info',
     summary: 'Exporting Locator Slip...',
-    detail: `Exporting locator slip for the period ${period_covered_from} to ${period_covered_to}.`,
+    detail: message,
     life: 5000,
   })
 
@@ -221,10 +199,14 @@ const exportPdf = async (locatorSlips: LocatorSlipResponse) => {
       document.body.removeChild(a)
       window.URL.revokeObjectURL(url)
 
+      const successMessage = period
+        ? `Locator Slip for the ${period} of ${month} was exported successfully.`
+        : `Locator Slip for the month of ${month} was exported successfully.`
+
       toast.add({
         severity: 'success',
         summary: 'Export Successful',
-        detail: `Locator Slip for ${period_covered_from} to ${period_covered_to} was exported successfully.`,
+        detail: successMessage,
         life: 5000,
       })
     } else {
@@ -241,45 +223,6 @@ const exportPdf = async (locatorSlips: LocatorSlipResponse) => {
   }
 }
 
-type LocatorSlipDetailsFormProps = {
-  locatorSlip?: LocatorSlipResponse
-}
-const props = defineProps<LocatorSlipDetailsFormProps>()
-onMounted(async () => {
-  const id = route.params.id as string
-  if (id) {
-    const response = await locatorSlipsStore.fetchLocatorSlipById(id)
-    if (response && response.success) {
-      updatePayloadFromReport(response.data as LocatorSlipResponse)
-    }
-  }
-  isLoading.value = false
-})
-
-const updatePayloadFromReport = (locatorSlip: LocatorSlipResponse | null) => {
-  payload.period_covered_from = locatorSlip?.period_covered_from ?? null
-  payload.period_covered_to = locatorSlip?.period_covered_to ?? ''
-  payload.period_request = locatorSlip?.period_request ?? ''
-  payload.locator_slip_no = locatorSlip?.locator_slip_no ?? ''
-  payload.status = locatorSlip?.status ?? ''
-}
-
-watch(
-  () => props.locatorSlip,
-  (newValue) => {
-    if (newValue) {
-      updatePayloadFromReport(newValue)
-    } else {
-      payload.period_covered_from = ''
-      payload.period_covered_to = ''
-      payload.period_request = ''
-      payload.locator_slip_no = ''
-      payload.status = ''
-    }
-  },
-  { immediate: true }
-)
-
 const validator = useVuelidate<Partial<LocatorSlipPayload>>(formRules, payload)
 const handleSaveSubmissionif = async () => {
   const valid = await validator.value.$validate()
@@ -287,7 +230,7 @@ const handleSaveSubmissionif = async () => {
     document.querySelector('.create-locator-creds-section')?.scrollIntoView({ behavior: 'smooth' })
     toast.add({
       severity: 'error',
-      summary: 'Create a Locator Slip Request',
+      summary: 'Cannot create a Locator Slip Request',
       detail: 'Please see the validation messages',
       life: 5000,
     })
@@ -297,41 +240,21 @@ const handleSaveSubmissionif = async () => {
   formIsSubmitting.value = true
 
   try {
-    const periodData = {
-      period_covered_from: payload.period_covered_from,
-      period_covered_to: payload.period_covered_to,
-      period_request: payload.period_request,
-    }
-
-    const periodResponse = await locatorSlipsStore.createLocatorSlip(periodData)
-
-    if (!periodResponse.success) {
-      const result = parseApiResponseError(periodResponse)
-      if (!result) {
-        formIsSubmitting.value = false
-        return
-      }
-      showErrorAlert.value = true
-      errorMessage.value = result.message
-      errorDetails.value = result.errors
-      formIsSubmitting.value = false
-      document.querySelector('.create-locator-creds-section')?.scrollIntoView({ behavior: 'smooth' })
-      return // Ensure you return after handling the error
-    }
+    //@todo add logic here when its time to integrate
 
     toast.add({
       severity: 'success',
       summary: 'Success',
-      detail: 'Locator Slip Request submitted successfully',
+      detail: 'Locator Slip created successfully',
       life: 5000,
     })
     emit('locator-created', true)
 
     setTimeout(() => {
-      window.location.reload() // Consider alternative approaches if full reload isn't necessary
+      window.location.reload()
     }, 1000)
   } finally {
-    formIsSubmitting.value = false // Ensure formIsSubmitting is always set to false
+    formIsSubmitting.value = false
   }
 }
 </script>
@@ -341,7 +264,10 @@ const handleSaveSubmissionif = async () => {
       <div
         class="flex flex-row items-center space-x-4 font-medium text-primary-700 dark:text-primary-100 md:ml-4 md:mt-2 md:flex-row"
       >
-        <h1 class="mb-2 mr-4 whitespace-nowrap text-xl text-surface-600 dark:text-primary-100 md:text-xl lg:text-4xl">
+        <h1
+          class="mb-2 mr-4 whitespace-nowrap text-xl font-semibold text-primary-800 dark:text-primary-100 md:text-xl lg:text-4xl"
+        >
+          <font-awesome-icon :icon="['fas', 'location-dot']" />
           {{ !isHumanResourceActive ? '  My Locator Slip ' : 'Locator Slip' }}
         </h1>
 
@@ -371,76 +297,35 @@ const handleSaveSubmissionif = async () => {
             <Dialog v-model:visible="RequestLocatorSlip" modal header="Request Locator Slip" :style="{ width: '90vw' }">
               <template #header>
                 <div class="flex items-center space-x-3 pt-4 sm:px-6 md:px-8">
-                  <font-awesome-icon :icon="['fas', 'location-dot']" class="h-6 text-surface-600 sm:h-7 md:h-8" />
-                  <h1 class="font-base text-2xl text-surface-600 sm:text-xl md:text-2xl">Request Locator Slip</h1>
+                  <font-awesome-icon
+                    :icon="['fas', 'location-dot']"
+                    class="h-6 text-primary-800 dark:text-primary-100 sm:h-7 md:h-8"
+                  />
+                  <h1 class="font-base text-2xl text-primary-800 dark:text-primary-100 sm:text-xl md:text-2xl">
+                    New Locator Slip
+                  </h1>
                 </div>
               </template>
               <hr />
 
               <div class="px-4 py-4 sm:px-6 sm:py-6 md:px-12">
-                <div class="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div>
-                    <WbCalendar
-                      v-model="payload.period_covered_from"
-                      :invalid="validator.period_covered_from.$invalid"
-                      :invalid-text="validator.period_covered_from.$errors[0]?.$message"
-                      @blur="validator.period_covered_from.$touch"
-                      @focusin="validator.period_covered_from.$dirty = false"
-                      label="Period Covered From"
-                      required
-                      placeholder="DD / MM / YYYY"
-                      :disabled="isHumanResourceActive"
-                      class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                    />
-                  </div>
-
-                  <div>
-                    <WbCalendar
-                      v-model="payload.period_covered_to"
-                      :invalid="validator.period_covered_to.$invalid"
-                      :invalid-text="validator.period_covered_to.$errors[0]?.$message"
-                      @blur="validator.period_covered_to.$touch"
-                      @focusin="validator.period_covered_to.$dirty = false"
-                      label="Period Covered to"
-                      required
-                      placeholder="DD / MM / YYYY"
-                      :disabled="isHumanResourceActive"
-                      class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                    />
-                  </div>
-                </div>
-
                 <div class="mb-2">
                   <WbDropdown
-                    v-model="payload.period_request"
-                    label="Number of Request Made within the Period Covered "
+                    v-model="payload.form_type"
+                    label="Type"
                     required
-                    :invalid="validator.period_request.$invalid"
-                    :invalid-text="validator.period_request.$errors[0]?.$message"
-                    @blur="validator.period_request.$touch"
-                    @focusin="validator.period_request.$dirty = false"
-                    :options="requestOptions"
+                    :invalid="validator.form_type.$invalid"
+                    :invalid-text="validator.form_type.$errors[0]?.$message"
+                    @blur="validator.form_type.$touch"
+                    @focusin="validator.form_type.$dirty = false"
+                    :options="formTypeOptions"
                     optionLabel="label"
                     optionValue="value"
                     class="mb-4 w-full"
-                    placeholder="Choose Period Covered"
+                    placeholder="Choose the type of locator slip."
                     :disabled="isHumanResourceActive"
                   />
                 </div>
-
-                <div class="mb-6">
-                  <WbDropdown
-                    v-if="isHumanResourceActive"
-                    v-model="payload.status"
-                    label="Status "
-                    :options="statusOptions"
-                    optionLabel="label"
-                    optionValue="value"
-                    class="mb-4 w-full"
-                    placeholder="Choose Status"
-                  />
-                </div>
-
                 <div class="flex justify-end">
                   <Button
                     @click="handleSaveSubmissionif"
@@ -462,7 +347,7 @@ const handleSaveSubmissionif = async () => {
             <InputGroup v-model="searchQuery" class="w-full">
               <InputText
                 v-model="searchQuery"
-                placeholder="Search via Period or Date"
+                placeholder="Search via Period/Date/Month"
                 class="w-full"
                 :disabled="locatorSlipsIsLoading"
                 @keyup.enter="handleSearchLocatorSlip"
@@ -486,13 +371,14 @@ const handleSaveSubmissionif = async () => {
           >
             <DataTable :value="locatorSlipsStore.locatorSlip" :loading="locatorSlipsIsLoading" class="mt-6" dataKey="id">
               <Column
-                field="period"
-                header="Period Request"
-                headerClass="w-1/2 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
+                field="form_type"
+                header="Locator Slip"
+                headerClass="w-1/4 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
               >
                 <template #body="props">
                   <p class="font-semibold uppercase text-surface-600">
-                    {{ getMonthAndYear(props.data.period_covered_from) }}
+                    Locator Slip Form
+                    {{ props.data.form_type }}
                   </p>
 
                   <p v-if="isHumanResourceActive" class="uppercase text-surface-600">
@@ -500,67 +386,45 @@ const handleSaveSubmissionif = async () => {
                     {{ snakeCaseToTitleCase(props.data.employee_id.middle_name ?? '') }}
                     {{ snakeCaseToTitleCase(props.data.employee_id.last_name) }}
                   </p>
-
-                  <p v-if="props.data.status?.toLowerCase() === 'released'" class="font-semibold uppercase text-success-600">
-                    LS No: {{ props.data.locator_slip_no }}
+                </template>
+              </Column>
+              <Column
+                field="locator_slip_no"
+                header="LS No."
+                headerClass="w-1/4 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
+              >
+                <template #body="props">
+                  <p class="font-semibold uppercase text-surface-600">
+                    {{ props.data.locator_slip_no }}
                   </p>
                 </template>
               </Column>
               <Column
-                field="edited_at"
-                header="Period Covered"
+                field="period"
+                header="Period"
                 headerClass=" w-80 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
               >
                 <template #body="props">
                   <p class="uppercase text-surface-600">
-                    {{
-                      formatDateRanges([{ start_date: props.data.period_covered_from, end_date: props.data.period_covered_to }])
-                    }}
+                    {{ props.data.period }}
+                    {{ props.data.month }}
                   </p>
                 </template>
               </Column>
-              <Column
-                field="status"
-                header="Status"
-                headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
-              >
-                <template #body="props">
-                  <template v-if="props.data.status === 'pending'">
-                    <Chip
-                      label="Pending"
-                      class="flex items-center justify-center !bg-warn-500 px-4 py-1 font-semibold !text-surface-0"
-                    >
-                    </Chip>
-                  </template>
-                  <template v-else-if="props.data.status === 'in progress'">
-                    <Chip
-                      label="In Progress"
-                      class="flex items-center justify-center !bg-success-800 px-4 py-1 font-semibold !text-surface-0"
-                    />
-                  </template>
-                  <template v-else-if="props.data.status === 'released'">
-                    <Chip
-                      label="Released"
-                      class="flex items-center justify-center !bg-info-800 px-4 py-1 font-semibold !text-surface-0"
-                    />
-                  </template>
-                </template>
-              </Column>
-              <Column field="action" header="Action" headerClass="w-64 bg-surface-100 opacity-70 font-bold py-2">
+              <Column field="action" header="Actions" headerClass="w-64 bg-surface-100 opacity-70 font-bold py-2">
                 <template #body="props">
                   <div class="flex gap-4 whitespace-nowrap md:w-auto">
                     <Button
                       icon="pi pi-eye"
-                      v-tooltip.top="'Update Status'"
+                      v-tooltip.top="'View Locator Slip'"
                       severity="info"
                       size="large"
                       class="border-none text-lg font-semibold text-primary-600 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
                       text
                       :disabled="props.data.status === 'released'"
-                      @click="openLocatorSlipDialog(props.data)"
+                      @click="openLocatorSlip(props.data)"
                     />
                     <Button
-                      v-if="props.data.status?.toLowerCase() === 'released'"
                       icon="pi pi-download"
                       v-tooltip.top="'Download Locator Slip'"
                       severity="info"
@@ -721,27 +585,6 @@ const handleSaveSubmissionif = async () => {
           label-class="text-sm text-start text-surface-600 dark:lg:text-surface-200"
           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-        />
-      </div>
-      <div class="mb-4" v-if="isHumanResourceActive">
-        <WbDropdown
-          :options="employementStatusOptions"
-          optionLabel="label"
-          optionValue="value"
-          label="Employment Status"
-          placeholder="Select Employment Status"
-          label-class="text-sm text-start text-surface-600"
-        />
-      </div>
-      <div class="mb-40">
-        <WbDropdown
-          v-model="selectedStatus"
-          :options="statusOptions"
-          optionLabel="label"
-          optionValue="value"
-          label="Status"
-          placeholder="Select Status"
-          label-class="text-sm text-start text-surface-600"
         />
       </div>
     </div>
