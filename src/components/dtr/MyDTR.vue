@@ -346,8 +346,12 @@ const updateDTRTimeLogs = async () => {
 
         const remarksChanged = enteredRemarks !== (existingDTR.employee_remarks ?? '')
         const remarksHrChanged = enteredHRRemarks !== (existingDTR.hr_remarks ?? '')
-        const utChanged = enteredUT !== (existingDTR.ut ?? 0)
-        const otChanged = enteredOT !== (existingDTR.ot ?? 0)
+
+        // Only allow UT/OT changes if route.params.id exists
+        const canUpdateUTOT = !!route.params.id
+
+        const utChanged = canUpdateUTOT && enteredUT !== (existingDTR.ut ?? 0)
+        const otChanged = canUpdateUTOT && enteredOT !== (existingDTR.ot ?? 0)
 
         if (remarksChanged || remarksHrChanged || utChanged || otChanged || timeLogsToAdd.length > 0) {
           return {
