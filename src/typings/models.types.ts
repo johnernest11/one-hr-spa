@@ -507,7 +507,7 @@ export type ViewDailyTimeRecordResponse = {
   hr_remarks: string | null
   status: string | null
   time_log: Array<TimeLogResponse> | null | undefined
-}
+} & Omit<ApiResponseData, 'id'>
 
 export type ViewTimeLogsResponse = {
   dtr_date: string
@@ -562,7 +562,7 @@ export type TimeLogResponse = {
   scanned_time: string
   is_in: boolean // true = IN, false = OUT
   is_selected: boolean // true = SELECTED, false = NOT SELECTED
-}
+} & Omit<ApiResponseData, 'id'>
 
 export type QrCodeResponse = {
   id: number

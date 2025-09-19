@@ -1,8 +1,9 @@
 import { CountryCode, isValidPhoneNumber, parsePhoneNumber } from 'libphonenumber-js'
 import { Ref } from 'vue'
-import { TimeLogResponse } from '@/typings/models.types.ts'
+// import { TimeLogResponse } from '@/typings/models.types.ts'
 import { useDateFormat } from '@vueuse/core'
 import { helpers } from '@vuelidate/validators'
+import { TimeLogResponse } from '@/typings/models.types'
 /**
  * @description Halt code execution for x seconds
  * @example
@@ -449,16 +450,6 @@ export const summarizeLeaveDates = (dates: { start_date: string; end_date: strin
   })
 
   return `${dayStrings.join(', ')} ${monthYear}`
-}
-
-export const formatDTRTime = (dateString: string | undefined): string => {
-  if (!dateString) return ''
-  const date = new Date(dateString)
-  return date.toLocaleString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  })
 }
 
 export const formatTimeTo12Hour = (timeString: string | undefined): string => {

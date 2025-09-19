@@ -321,7 +321,7 @@ const routes = [
         name: 'my-payslip/editor',
         component: () => import('@/components/payslip/PayslipView.vue'),
         meta: <RouteMeta>{
-          isSidebarMenu: false,
+          label: 'Payslip',
           authType: AuthType.AUTHENTICATED,
           roles: [
             AuthRole.STANDARD_USER,
@@ -355,13 +355,32 @@ const routes = [
           ],
         },
       },
+      {
+        path: '/my-monthly-dtrs/:id?/:year/:month',
+        name: 'my-monthly-dtrs',
+        component: () => import('@/components/dtr/MyDTR.vue'),
+        meta: <RouteMeta>{
+          label: 'Daily Time Record',
+          authType: AuthType.AUTHENTICATED,
+          roles: [
+            AuthRole.STANDARD_USER,
+            AuthRole.SECTION_HEAD,
+            AuthRole.DIVISION_HEAD,
+            AuthRole.HR_PPMS_ADMIN,
+            AuthRole.HR_PAS_ADMIN,
+            AuthRole.ADMIN,
+            AuthRole.SUPER_USER,
+            AuthRole.SYSTEM_SUPPORT,
+          ],
+        },
+      },
 
       {
-        path: '/my-dtrs/list',
+        path: '/my-dtrs/list/:id?',
         name: 'my-dtrs/list',
         component: () => import('@/components/dtr/DTRList.vue'),
         meta: <RouteMeta>{
-          isSidebarMenu: false,
+          label: 'Daily Time Record',
           authType: AuthType.AUTHENTICATED,
           roles: [
             AuthRole.STANDARD_USER,
