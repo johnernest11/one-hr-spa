@@ -182,6 +182,26 @@ function getId(id: string) {
         <div class="flex-1 px-4 pb-24">
           <h2 class="mb-2 mt-4 text-lg font-semibold text-surface-500">Filters</h2>
 
+          <div class="mt-4">
+            <label class="text-md mb-2 block text-surface-600">Year</label>
+            <select v-model="selectedYear" class="w-full rounded border p-2">
+              <option :value="null">All Years</option>
+              <option v-for="y in yearOptions" :key="y" :value="y">
+                {{ y }}
+              </option>
+            </select>
+          </div>
+
+          <div class="mb-4 mt-4">
+            <label class="text-md mb-2 block text-surface-600">Month</label>
+            <select v-model="selectedMonth" class="w-full rounded border p-2">
+              <option :value="null">All Months</option>
+              <option v-for="m in monthOptions" :key="m.value" :value="m.value">
+                {{ m.label }}
+              </option>
+            </select>
+          </div>
+
           <WbAutoComplete
             :useApiFilter="true"
             :apiEndpoint="'/libraries/divisions/search'"
@@ -222,26 +242,6 @@ function getId(id: string) {
             "
             class="w-full text-sm"
           />
-
-          <div class="mt-4">
-            <label class="text-md mb-2 block text-surface-600">Year</label>
-            <select v-model="selectedYear" class="w-full rounded border p-2">
-              <option :value="null">All Years</option>
-              <option v-for="y in yearOptions" :key="y" :value="y">
-                {{ y }}
-              </option>
-            </select>
-          </div>
-
-          <div class="mt-4">
-            <label class="text-md mb-2 block text-surface-600">Month</label>
-            <select v-model="selectedMonth" class="w-full rounded border p-2">
-              <option :value="null">All Months</option>
-              <option v-for="m in monthOptions" :key="m.value" :value="m.value">
-                {{ m.label }}
-              </option>
-            </select>
-          </div>
         </div>
 
         <div class="absolute bottom-0 left-0 right-0 border-t border-surface-300 bg-surface-0 px-4 py-3">
