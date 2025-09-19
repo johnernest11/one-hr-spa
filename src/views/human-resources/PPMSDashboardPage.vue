@@ -19,9 +19,8 @@ const selectedSectionLabel = ref<string | null>(null)
 
 const employees = ref<string[]>([])
 
-/** 🔹 Year & Month Filters */
 const currentYear = new Date().getFullYear()
-const currentMonth = new Date().getMonth() + 1 // JS months are 0-based
+const currentMonth = new Date().getMonth() + 1
 
 const selectedYear = ref<number | null>(currentYear)
 const selectedMonth = ref<number | null>(currentMonth)
@@ -45,7 +44,6 @@ const monthOptions = [
   { value: 12, label: 'December' },
 ]
 
-/** 🔹 Filtering employees */
 const filteredEmployees = computed(() => {
   let data = employees.value
 
@@ -68,14 +66,12 @@ const filteredEmployees = computed(() => {
   return data
 })
 
-/** 🔹 Counters */
 const totalMale = computed(() => filteredEmployees.value.reduce((sum, e) => sum + e.male, 0))
 const totalFemale = computed(() => filteredEmployees.value.reduce((sum, e) => sum + e.female, 0))
 const totalFilled = computed(() => filteredEmployees.value.reduce((sum, e) => sum + (e.filledTotal || 0), 0))
 const totalUnfilled = computed(() => filteredEmployees.value.reduce((sum, e) => sum + (e.unfilled || 0), 0))
 const totalPositions = computed(() => filteredEmployees.value.reduce((sum, e) => sum + (e.totalPositions || 0), 0))
 
-/** 🔹 Charts */
 const employmentChartSeries = computed(() => [
   { name: 'Male', data: filteredEmployees.value.map((d) => d.male) },
   { name: 'Female', data: filteredEmployees.value.map((d) => d.female) },
@@ -101,7 +97,6 @@ const genderChartOptions = {
   legend: { position: 'bottom' },
 }
 
-/** 🔹 Apply Filter */
 const handleFilterEmployees = () => {
   selectedDivisionLabel.value = selectedDivision.value ? selectedDivision.value.label : null
   selectedSectionLabel.value = selectedSectionUnit.value ? selectedSectionUnit.value.label : null
