@@ -19,6 +19,33 @@ const selectedSectionLabel = ref<string | null>(null)
 
 const employees = ref<string[]>([])
 
+/** 🔹 Year & Month Filters */
+const currentYear = new Date().getFullYear()
+const currentMonth = new Date().getMonth() + 1 // JS months are 0-based
+
+const selectedYear = ref<number | null>(currentYear)
+const selectedMonth = ref<number | null>(currentMonth)
+
+const yearOptions = computed(() => {
+  return Array.from({ length: 6 }, (_, i) => currentYear - i)
+})
+
+const monthOptions = [
+  { value: 1, label: 'January' },
+  { value: 2, label: 'February' },
+  { value: 3, label: 'March' },
+  { value: 4, label: 'April' },
+  { value: 5, label: 'May' },
+  { value: 6, label: 'June' },
+  { value: 7, label: 'July' },
+  { value: 8, label: 'August' },
+  { value: 9, label: 'September' },
+  { value: 10, label: 'October' },
+  { value: 11, label: 'November' },
+  { value: 12, label: 'December' },
+]
+
+/** 🔹 Filtering employees */
 const filteredEmployees = computed(() => {
   let data = employees.value
 
@@ -30,40 +57,36 @@ const filteredEmployees = computed(() => {
     data = data.filter((e) => e.section === selectedSectionLabel.value)
   }
 
+  if (selectedYear.value) {
+    data = data.filter((e) => e.year === selectedYear.value)
+  }
+
+  if (selectedMonth.value) {
+    data = data.filter((e) => e.month === selectedMonth.value)
+  }
+
   return data
 })
 
+/** 🔹 Counters */
 const totalMale = computed(() => filteredEmployees.value.reduce((sum, e) => sum + e.male, 0))
 const totalFemale = computed(() => filteredEmployees.value.reduce((sum, e) => sum + e.female, 0))
 const totalFilled = computed(() => filteredEmployees.value.reduce((sum, e) => sum + (e.filledTotal || 0), 0))
 const totalUnfilled = computed(() => filteredEmployees.value.reduce((sum, e) => sum + (e.unfilled || 0), 0))
 const totalPositions = computed(() => filteredEmployees.value.reduce((sum, e) => sum + (e.totalPositions || 0), 0))
 
+/** 🔹 Charts */
 const employmentChartSeries = computed(() => [
-  {
-    name: 'Male',
-    data: filteredEmployees.value.map((d) => d.male),
-  },
-  {
-    name: 'Female',
-    data: filteredEmployees.value.map((d) => d.female),
-  },
+  { name: 'Male', data: filteredEmployees.value.map((d) => d.male) },
+  { name: 'Female', data: filteredEmployees.value.map((d) => d.female) },
 ])
 
 const employmentChartOptions = computed(() => ({
   chart: { type: 'bar', stacked: true },
-  plotOptions: {
-    bar: {
-      horizontal: false,
-      columnWidth: '55%',
-      endingShape: 'rounded',
-    },
-  },
+  plotOptions: { bar: { horizontal: false, columnWidth: '55%', endingShape: 'rounded' } },
   dataLabels: { enabled: true },
   stroke: { show: true, width: 2, colors: ['transparent'] },
-  xaxis: {
-    categories: filteredEmployees.value.map((d) => d.status),
-  },
+  xaxis: { categories: filteredEmployees.value.map((d) => d.status) },
   yaxis: { title: { text: 'Number of Employees' } },
   fill: { opacity: 1 },
   legend: { position: 'top' },
@@ -71,7 +94,6 @@ const employmentChartOptions = computed(() => ({
 }))
 
 const genderChartSeries = computed(() => [totalMale.value, totalFemale.value])
-
 const genderChartOptions = {
   chart: { type: 'donut' },
   labels: ['Male', 'Female'],
@@ -79,6 +101,7 @@ const genderChartOptions = {
   legend: { position: 'bottom' },
 }
 
+/** 🔹 Apply Filter */
 const handleFilterEmployees = () => {
   selectedDivisionLabel.value = selectedDivision.value ? selectedDivision.value.label : null
   selectedSectionLabel.value = selectedSectionUnit.value ? selectedSectionUnit.value.label : null
@@ -115,6 +138,7 @@ function getId(id: string) {
         </div>
       </div>
 
+      <!-- Counters -->
       <div class="mb-6 grid grid-cols-1 gap-6 md:grid-cols-3">
         <div class="rounded-xl bg-white p-4 text-center shadow">
           <h2 class="text-lg font-semibold text-gray-600">Filled Positions</h2>
@@ -170,50 +194,69 @@ function getId(id: string) {
         <div class="flex-1 px-4 pb-24">
           <h2 class="mb-2 mt-4 text-lg font-semibold text-surface-500">Filters</h2>
 
-          <WbAutoComplete
-            :useApiFilter="true"
-            :apiEndpoint="'/libraries/divisions/search'"
-            :suggestions="libraryStore.divisionOptions"
-            :loading="libraryStore.divisionOptionsLoading"
-            apiOptionLabel="name"
-            label="Division"
-            placeholder="Type the Division"
-            v-model="selectedDivision"
-            :id="getId('input-division')"
-            optionLabel="label"
-            optionValue="value"
-            required
-            @on-true-value-computed="
-              (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) => {
-                useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'division'))
-              }
-            "
-            label-class="mt-4 text-md text-surface-600 dark:lg:text-surface-200"
-            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-          />
+          <div class="mt-4">
+            <label class="text-md mb-2 block text-surface-600">Year</label>
+            <select v-model="selectedYear" class="w-full rounded border p-2">
+              <option :value="null">All Years</option>
+              <option v-for="y in yearOptions" :key="y" :value="y">
+                {{ y }}
+              </option>
+            </select>
+          </div>
 
-          <WbAutoComplete
-            :useApiFilter="true"
-            :apiEndpoint="'/libraries/section-or-units/search'"
-            :suggestions="libraryStore.sectionUnitOptions"
-            :loading="libraryStore.sectionUnitOptionsLoading"
-            apiOptionLabel="name"
-            label="Section/Unit"
-            placeholder="Type the Section / Unit"
-            v-model="selectedSectionUnit"
-            :id="getId('input-section-unit')"
-            optionLabel="label"
-            optionValue="value"
-            required
-            @on-true-value-computed="
-              (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
-                useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'section'))
-            "
-            label-class="mt-4 text-md text-surface-600 dark:lg:text-surface-200"
-            class="lg:text-md lg:placeholder:text-md relative w-full max-w-[600px] text-sm placeholder:text-sm"
-            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-          />
+          <div class="mt-4">
+            <label class="text-md mb-2 block text-surface-600">Month</label>
+            <select v-model="selectedMonth" class="w-full rounded border p-2">
+              <option :value="null">All Months</option>
+              <option v-for="m in monthOptions" :key="m.value" :value="m.value">
+                {{ m.label }}
+              </option>
+            </select>
+          </div>
+
+          <div class="mt-4">
+            <WbAutoComplete
+              :useApiFilter="true"
+              :apiEndpoint="'/libraries/divisions/search'"
+              :suggestions="libraryStore.divisionOptions"
+              :loading="libraryStore.divisionOptionsLoading"
+              apiOptionLabel="name"
+              label="Division"
+              placeholder="Type the Division"
+              v-model="selectedDivision"
+              :id="getId('input-division')"
+              optionLabel="label"
+              optionValue="value"
+              required
+              @on-true-value-computed="
+                (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) => {
+                  useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'division'))
+                }
+              "
+              class="w-full text-sm"
+            />
+          </div>
+          <div class="mt-4">
+            <WbAutoComplete
+              :useApiFilter="true"
+              :apiEndpoint="'/libraries/section-or-units/search'"
+              :suggestions="libraryStore.sectionUnitOptions"
+              :loading="libraryStore.sectionUnitOptionsLoading"
+              apiOptionLabel="name"
+              label="Section/Unit"
+              placeholder="Type the Section / Unit"
+              v-model="selectedSectionUnit"
+              :id="getId('input-section-unit')"
+              optionLabel="label"
+              optionValue="value"
+              required
+              @on-true-value-computed="
+                (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
+                  useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'section'))
+              "
+              class="w-full text-sm"
+            />
+          </div>
         </div>
 
         <div class="absolute bottom-0 left-0 right-0 border-t border-surface-300 bg-surface-0 px-4 py-3">
