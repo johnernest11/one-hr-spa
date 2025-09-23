@@ -3,13 +3,23 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { ViewDailyTimeRecordResponse } from '@/typings/models.types.ts'
 import { useDailyTimeRecordsStore } from '@/stores/daily-time-record.store'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-import { formatDTRTime, getDTRDayOfWeek, getFormattedDTRDate, resolveDTRSlots, toTimestamp } from '@/utils/helpers'
 import WbCalendar from '@/components/webkit/WbCalendar.vue'
 import WbInputText from '@/components/webkit/WbInputText.vue'
 import WbTextArea from '@/components/webkit/WbTextArea.vue'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
 import { useToast } from 'primevue/usetoast'
+import {
+  formatDTRTime,
+  getDTRDayOfWeek,
+  getFormattedDTRDate,
+  toTimestamp,
+  computeOT,
+  computeUT,
+  computeWorkedHours,
+  isWeekend,
+  resolveDTRSlots,
+} from '@/utils/dtr-helpers'
 const dailyTimeRecordsStore = useDailyTimeRecordsStore()
 const toast = useToast()
 const isLoading = ref(true)
@@ -25,6 +35,16 @@ const toggleAccordion = (index: number) => {
     activeIndices.value = activeIndices.value.filter((i) => i !== index)
   } else {
     activeIndices.value.push(index)
+  }
+}
+
+const onAccordionClick = (item: { is_missing: string; date: Date; row: ViewDailyTimeRecordResponse | null }, index: number) => {
+  const slots = resolveDTRSlots(item.row?.time_log ?? [])
+  const hasMissing = Object.values(slots).some((value) => value === '')
+  const hasEnoughEntries = (item.row?.time_log?.length ?? 0) >= 4
+
+  if (!hasMissing && hasEnoughEntries) {
+    toggleAccordion(index)
   }
 }
 
@@ -256,14 +276,7 @@ const monthDates = computed(() => {
                     'cursor-pointer text-error-900':
                       item.row && Object.values(resolveDTRSlots(item.row?.time_log ?? [])).some((value) => value === ''),
                   }"
-                  @click="
-                    () => {
-                      const hasMissing = Object.values(resolveDTRSlots(item.row?.time_log ?? [])).some((value) => value === '')
-                      if (hasMissing) {
-                        toggleAccordion(index)
-                      }
-                    }
-                  "
+                  @click="onAccordionClick(item, index)"
                 >
                   {{ getFormattedDTRDate(item.date.toISOString()) }}
                 </p>
@@ -358,7 +371,7 @@ const monthDates = computed(() => {
                   v-else-if="item.row && item.row.time_log?.length && !resolveDTRSlots(item.row.time_log).out2"
                   label=""
                   v-model="remarksMap[`out2-${item.date.toISOString()}`]"
-                  placeholder="Enter PM OUT"
+                  placeholder="Missing"
                   class="h-8 md:h-8 md:w-24"
                 />
               </div>
@@ -367,13 +380,14 @@ const monthDates = computed(() => {
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">UT</p>
                 <p class="text-base text-surface-600">
-                  {{ item.row?.ut ?? '' }}
+                  {{ item.row ? computeUT(computeWorkedHours(item.row.time_log ?? []), isWeekend(item.row.date)) : '' }}
                 </p>
               </div>
+
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">OT</p>
                 <p class="text-base text-surface-600">
-                  {{ item.row?.ot ?? '' }}
+                  {{ item.row ? computeOT(computeWorkedHours(item.row.time_log ?? []), isWeekend(item.row.date)) : '' }}
                 </p>
               </div>
               <div>
