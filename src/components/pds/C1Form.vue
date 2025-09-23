@@ -555,15 +555,30 @@ const validator = useVuelidate<PersonalDataSheetPayload>(formRules, payload)
 
 watch(isSameResidential, (newVal) => {
   if (newVal === true) {
+    const residential = payload.individual_address_init
+    if (
+      !residential.residential_house_block_lot_no &&
+      !residential.residential_street &&
+      !residential.residential_subdivision_village &&
+      !residential.residential_zip_code &&
+      !selectedResidentialRegion.value &&
+      !selectedResidentialProvince.value &&
+      !selectedResidentialCity.value &&
+      !selectedResidentialBarangay.value
+    ) {
+      showToast('error', 'Validation Error', 'Please enter your residential address first.')
+      isSameResidential.value = false
+      return
+    }
+
     selectedPermanentRegion.value = selectedResidentialRegion.value
     selectedPermanentProvince.value = selectedResidentialProvince.value
     selectedPermanentCity.value = selectedResidentialCity.value
     selectedPermanentBarangay.value = selectedResidentialBarangay.value
-    payload.individual_address_init.permanent_house_block_lot_no = payload.individual_address_init.residential_house_block_lot_no
-    payload.individual_address_init.permanent_street = payload.individual_address_init.residential_street
-    payload.individual_address_init.permanent_subdivision_village =
-      payload.individual_address_init.residential_subdivision_village
-    payload.individual_address_init.permanent_zip_code = payload.individual_address_init.residential_zip_code
+    payload.individual_address_init.permanent_house_block_lot_no = residential.residential_house_block_lot_no
+    payload.individual_address_init.permanent_street = residential.residential_street
+    payload.individual_address_init.permanent_subdivision_village = residential.residential_subdivision_village
+    payload.individual_address_init.permanent_zip_code = residential.residential_zip_code
   } else {
     selectedPermanentRegion.value = null
     selectedPermanentProvince.value = null
@@ -1587,10 +1602,10 @@ defineExpose({
                         optionLabel="label"
                         optionValue="value"
                         :options="ExtensionTypeOptions"
-                        :disabled="pdsStore.isMyPds"
+                        :disabled="pdsStore.isMyPds || payload.individual.sex === 'female'"
                         label="Extension Name"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                        class="lg:text-md lg:placeholder:text-md cursor-not-allowed bg-surface-200 text-sm placeholder:text-sm read-only:cursor-not-allowed disabled:cursor-not-allowed"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         :invalid="validator.individual.ext_name.$invalid"
                         :invalid-text="validator.individual.ext_name.$errors[0]?.$message"
@@ -2515,7 +2530,7 @@ defineExpose({
 
                             <WbCalendar
                               v-model="payload.individual_family_children[childIdx - 1].date_of_birth"
-                              dateFormat="MM dd, yy"
+                              dateFormat="mm/dd/yy"
                               :maxDate="new Date()"
                               label="Date of Birth"
                               label-class="text-md text-surface-600 dark:lg:text-surface-200"
