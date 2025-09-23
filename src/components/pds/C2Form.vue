@@ -89,19 +89,21 @@ const formRules = computed(() => ({
         const selectedDate = new Date(val)
         return selectedDate <= today
       }),
-      required: helpers.withMessage('Date of Examination/Conferment is required.', (val, vm) =>
+      required: helpers.withMessage('Fill Up Date of Examination/Conferment since other information is provided.', (val, vm) =>
         hasAnyValue(vm) ? helpers.req(val) : true
       ),
       maxLength: globalStringMaxLengthRule,
     },
     place_of_examination: {
-      required: helpers.withMessage('Place of Examination is required.', (val, vm) =>
+      required: helpers.withMessage('Fill Up Place of Examination since other information is provided.', (val, vm) =>
         hasAnyValue(vm) ? helpers.req(val) : true
       ),
       maxLength: globalStringMaxLengthRule,
     },
     license_number: {
-      required: helpers.withMessage('License number is required.', (val, vm) => (hasAnyValue(vm) ? helpers.req(val) : true)),
+      required: helpers.withMessage('Fill Up License Number since other information is provided.', (val, vm) =>
+        hasAnyValue(vm) ? helpers.req(val) : true
+      ),
       maxLength: globalStringMaxLengthRule,
     },
     license_date_of_validity: {
@@ -117,7 +119,9 @@ const formRules = computed(() => ({
           return isNaN(licenseDate.getTime()) || isNaN(examDate.getTime()) || licenseDate >= examDate
         }
       ),
-      required: helpers.withMessage('License Validity is required.', (val, vm) => (hasAnyValue(vm) ? helpers.req(val) : true)),
+      required: helpers.withMessage('Fill Up License Validity since other information is provided.', (val, vm) =>
+        hasAnyValue(vm) ? helpers.req(val) : true
+      ),
       maxLength: globalStringMaxLengthRule,
     },
     rating: {
@@ -125,7 +129,9 @@ const formRules = computed(() => ({
         if (val === null || val === '') return true // allow empty
         return !isNaN(Number(val))
       }),
-      required: helpers.withMessage('Rating is required.', (val, vm) => (hasAnyValue(vm) ? helpers.req(val) : true)),
+      required: helpers.withMessage('Fill Up Rating since other information is provided.', (val, vm) =>
+        hasAnyValue(vm) ? helpers.req(val) : true
+      ),
       maxLength: globalStringMaxLengthRule,
     },
   })),
@@ -477,8 +483,8 @@ const handleSaveC2Form = async () => {
     )
 
     let errorTabs = []
-    if (hasEligibilityError) errorTabs.push('Civil Service Eligibility')
-    if (hasWorkExperienceError) errorTabs.push('Work Experience')
+    if (hasEligibilityError) errorTabs.push('C2 - Civil Service Eligibility')
+    if (hasWorkExperienceError) errorTabs.push('C2 - Work Experience')
 
     const tabList = errorTabs.join(', ')
     showToast('error', 'Validation Error', `Please check the following tab(s): ${tabList}`)
@@ -677,7 +683,12 @@ defineExpose({
                                 @click="handleRemoveEligibility(eligibilityIndex)"
                                 v-tooltip.top="'Remove Eligibility'"
                                 severity="danger"
-                                class="mb-2 text-lg font-semibold dark:text-primary-100"
+                                :class="[
+                                  'text-lg font-semibold dark:text-primary-100',
+                                  validator.individual_eligibility[eligibilityIndex - 1].license_date_of_validity.$error
+                                    ? 'mb-8'
+                                    : 'mb-2',
+                                ]"
                                 text
                               />
                             </div>
@@ -1009,7 +1020,12 @@ defineExpose({
                                 @click="handleRemoveWorkExperience(workExperienceIndex)"
                                 v-tooltip.top="'Remove Work Experience'"
                                 severity="danger"
-                                class="mb-2 text-lg font-semibold dark:text-primary-100 md:mb-2"
+                                :class="[
+                                  'text-lg font-semibold dark:text-primary-100',
+                                  validator.individual_work_experience[workExperienceIndex - 1].is_gov_service.$error
+                                    ? 'mb-8'
+                                    : 'mb-2',
+                                ]"
                                 text
                               />
                             </div>
