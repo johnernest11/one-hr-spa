@@ -100,7 +100,6 @@ onBeforeMount(async () => {
   dailyTimeRecordIsLoading.value = true
   const response = await dailyTimeRecordStore.fetchDailyTimeRecords()
 
-  console.log('REsult', response)
   if (response.success && response.pagination) {
     pagination.value = response.pagination
   }

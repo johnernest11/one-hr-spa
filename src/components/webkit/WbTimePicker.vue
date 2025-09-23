@@ -22,6 +22,7 @@ type WbCalendarProps = {
   validationErrorMessageClass?: string
   validationSuccessMessageClass?: string
   required?: boolean
+  warning: boolean
 }
 
 const props = withDefaults(defineProps<WbCalendarProps>(), {
@@ -64,9 +65,17 @@ const props = withDefaults(defineProps<WbCalendarProps>(), {
         :minuteStep="5"
         :aria-describedby="`${$.uid.toString()}-help`"
         :class="`h-12 w-full ${$attrs.class}`"
-        :input-class="`h-12 w-full ${$slots['prepend-icon'] ? 'pl-10' : ''} ${
-          props.invalid ? '!ring-error-500 dark:!ring-error-300' : ''
-        } ${$attrs.disabled ? '!text-surface-600 dark:!text-surface-0/70' : ''} ${$attrs.inputClass}`"
+        :input-class="
+          [
+            'h-12 w-full',
+            $slots['prepend-icon'] ? 'pl-10' : '',
+            props.invalid ? '!ring-error-500 dark:!ring-error-300' : '',
+            props.success ? '!ring-success-500 dark:!ring-success-300' : '',
+            props.warning ? '!ring-warn-400 dark:!ring-warn-300' : '', // ✅ yellow border
+            $attrs.disabled ? '!text-surface-600 dark:!text-surface-0/70' : '',
+            $attrs.inputClass,
+          ].join(' ')
+        "
       />
     </div>
     <!-- End Calendar -->

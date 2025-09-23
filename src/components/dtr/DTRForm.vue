@@ -179,6 +179,20 @@ const monthDates = computed(() => {
 
   return arr
 })
+
+const computeUTValue = computed(() => {
+  return (item: { is_missing: string; date: Date; row: ViewDailyTimeRecordResponse | null }) => {
+    if (!item.row) return ''
+    return computeUT(computeWorkedHours(item.row.time_log ?? []), isWeekend(item.row.date))
+  }
+})
+
+const computeOTValue = computed(() => {
+  return (item: { is_missing: string; date: Date; row: ViewDailyTimeRecordResponse | null }) => {
+    if (!item.row) return ''
+    return computeOT(computeWorkedHours(item.row.time_log ?? []), isWeekend(item.row.date))
+  }
+})
 </script>
 
 <template>
@@ -402,14 +416,14 @@ const monthDates = computed(() => {
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">UT</p>
                 <p class="text-base text-surface-600">
-                  {{ item.row ? computeUT(computeWorkedHours(item.row.time_log ?? []), isWeekend(item.row.date)) : '' }}
+                  {{ computeUTValue(item) }}
                 </p>
               </div>
 
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">OT</p>
                 <p class="text-base text-surface-600">
-                  {{ item.row ? computeOT(computeWorkedHours(item.row.time_log ?? []), isWeekend(item.row.date)) : '' }}
+                  {{ computeOTValue(item) }}
                 </p>
               </div>
               <div>

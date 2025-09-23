@@ -610,10 +610,19 @@ const updateDTRTimeLogs = async () => {
                   "
                   v-model="remarksMap[`in1-${dtr.date.toISOString()}`]"
                   label=""
+                  :warning="
+                    !!dtr.row?.time_log?.find(
+                      (log) =>
+                        log.id &&
+                        log.is_in === false &&
+                        log.created_at &&
+                        formatDateYMD(new Date(log.date)) !== formatDateYMD(new Date(log.created_at))
+                    )
+                  "
                   :showIcon="false"
                   placeholder="HH:mm"
                   v-tooltip.bottom="'This time logs is edited'"
-                  class="h-10 border-4 border-warn-200 border-b-warn-500 md:h-8 md:w-24"
+                  class="h-10 md:h-8 md:w-24"
                 />
               </div>
 
@@ -660,10 +669,19 @@ const updateDTRTimeLogs = async () => {
                   "
                   v-model="remarksMap[`out1-${dtr.date.toISOString()}`]"
                   label=""
+                  :warning="
+                    !!dtr.row?.time_log?.find(
+                      (log) =>
+                        log.id &&
+                        log.is_in === false &&
+                        log.created_at &&
+                        formatDateYMD(new Date(log.date)) !== formatDateYMD(new Date(log.created_at))
+                    )
+                  "
                   :showIcon="false"
                   placeholder="HH:mm"
                   v-tooltip.bottom="'This time logs is edited'"
-                  class="h-10 border-4 border-warn-200 border-b-warn-500 md:h-8 md:w-24"
+                  class="h-10 md:h-8 md:w-24"
                 />
               </div>
 
@@ -710,10 +728,19 @@ const updateDTRTimeLogs = async () => {
                   "
                   v-model="remarksMap[`in2-${dtr.date.toISOString()}`]"
                   label=""
+                  :warning="
+                    !!dtr.row?.time_log?.find(
+                      (log) =>
+                        log.id &&
+                        log.is_in === false &&
+                        log.created_at &&
+                        formatDateYMD(new Date(log.date)) !== formatDateYMD(new Date(log.created_at))
+                    )
+                  "
                   :showIcon="false"
                   placeholder="HH:mm"
                   v-tooltip.bottom="'This time logs is edited'"
-                  class="h-10 border-4 border-warn-200 border-b-warn-500 md:h-8 md:w-24"
+                  class="h-10 md:h-8 md:w-24"
                 />
               </div>
 
@@ -760,10 +787,19 @@ const updateDTRTimeLogs = async () => {
                   "
                   v-model="remarksMap[`out2-${dtr.date.toISOString()}`]"
                   label=""
+                  :warning="
+                    !!dtr.row?.time_log?.find(
+                      (log) =>
+                        log.id &&
+                        log.is_in === false &&
+                        log.created_at &&
+                        formatDateYMD(new Date(log.date)) !== formatDateYMD(new Date(log.created_at))
+                    )
+                  "
                   :showIcon="false"
                   placeholder="HH:mm"
-                  v-tooltip.bottom="'This time logs is edited'"
-                  class="h-10 border-4 border-warn-200 border-b-warn-500 md:h-8 md:w-24"
+                  v-tooltip.top="resolveDTRSlots(dtr.row?.time_log ?? []).out2 ? 'This time log is Edited' : ''"
+                  class="h-10 md:h-8 md:w-24"
                 />
               </div>
 
