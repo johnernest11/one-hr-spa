@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { useStorage } from '@vueuse/core'
 import { useApiCall } from '@/composables/network.ts'
 import { useAuthStore } from '@/stores/auth.store'
 import type { ApiResponseBody, WarmBodyLogEntry, DailyLogEntry } from '@/typings/http-resources.types.ts'
@@ -40,7 +41,7 @@ interface TimeLogEntry {
 
 export const useDailyLogsStore = defineStore('dailyLogs', () => {
   const authStore = useAuthStore()
-
+  const timelogOfficeId = useStorage<string | null>('timelogOfficeId', null)
   const dailyLogs = ref<DailyLogEntry[]>([])
   const currentScannedEmployee = ref<ScannedEmployeeResponse | null>(null)
   const lastLogMessage = ref<string | null>(null)
@@ -248,6 +249,7 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
   }
 
   return {
+    timelogOfficeId,
     dailyLogs,
     currentScannedEmployee,
     lastLogMessage,
