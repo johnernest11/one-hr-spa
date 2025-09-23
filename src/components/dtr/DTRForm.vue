@@ -38,6 +38,16 @@ const toggleAccordion = (index: number) => {
   }
 }
 
+const onAccordionClick = (item: { is_missing: string; date: Date; row: ViewDailyTimeRecordResponse | null }, index: number) => {
+  const slots = resolveDTRSlots(item.row?.time_log ?? [])
+  const hasMissing = Object.values(slots).some((value) => value === '')
+  const hasEnoughEntries = (item.row?.time_log?.length ?? 0) >= 4
+
+  if (!hasMissing && hasEnoughEntries) {
+    toggleAccordion(index)
+  }
+}
+
 // Add selectRequest function to handle log selection
 const selectRequest = (id: number) => {
   if (selectedTimeLogId.value.includes(id)) {
@@ -266,17 +276,7 @@ const monthDates = computed(() => {
                     'cursor-pointer text-error-900':
                       item.row && Object.values(resolveDTRSlots(item.row?.time_log ?? [])).some((value) => value === ''),
                   }"
-                  @click="
-                    () => {
-                      const slots = resolveDTRSlots(item.row?.time_log ?? [])
-                      const hasMissing = Object.values(slots).some((value) => value === '')
-                      const hasEnoughEntries = (item.row?.time_log?.length ?? 0) >= 4
-
-                      if (!hasMissing && hasEnoughEntries) {
-                        toggleAccordion(index)
-                      }
-                    }
-                  "
+                  @click="onAccordionClick(item, index)"
                 >
                   {{ getFormattedDTRDate(item.date.toISOString()) }}
                 </p>
