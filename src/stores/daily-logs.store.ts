@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { useStorage } from '@vueuse/core'
 import { useApiCall } from '@/composables/network.ts'
 import { useAuthStore } from '@/stores/auth.store'
 import type { ApiResponseBody, WarmBodyLogEntry, DailyLogEntry } from '@/typings/http-resources.types.ts'
@@ -8,7 +7,6 @@ import type { ScannedEmployeeResponse } from '@/typings/models.types'
 import { getManilaTodayISO } from '@/utils/helpers.ts'
 import defaultLogoMark from '@/assets/image/DSWD logo_Mark.png'
 
-/** Interfaces */
 interface DivisionSectionSummary {
   name: string
   count: number
@@ -42,78 +40,123 @@ interface TimeLogEntry {
 
 export const useDailyLogsStore = defineStore('dailyLogs', () => {
   const authStore = useAuthStore()
-  const timelogOfficeId = useStorage<string | null>('timelogOfficeId', null)
+
   const dailyLogs = ref<DailyLogEntry[]>([])
   const currentScannedEmployee = ref<ScannedEmployeeResponse | null>(null)
   const lastLogMessage = ref<string | null>(null)
   const warmBodySummary = ref<WarmBodySummary | null>(null)
 
-  const countIn = computed(
-    () => (date: string) => dailyLogs.value.find((l) => l.date === date)?.warm_bodies.filter((wb) => wb.is_in).length ?? 0
-  )
+  const countIn = (date: string): number => {
+    const log = dailyLogs.value.find((l) => l.date === date)
+    return log ? log.warm_bodies.filter((wb) => wb.is_in).length : 0
+  }
 
-  const countOut = computed(
-    () => (date: string) => dailyLogs.value.find((l) => l.date === date)?.warm_bodies.filter((wb) => !wb.is_in).length ?? 0
-  )
+  const countOut = (date: string): number => {
+    const log = dailyLogs.value.find((l) => l.date === date)
+    return log ? log.warm_bodies.filter((wb) => !wb.is_in).length : 0
+  }
 
-  const getTodayWarmBodies = computed(
-    () => (date: string) =>
-      dailyLogs.value.find((l) => l.date === date)
-        ? [...dailyLogs.value.find((l) => l.date === date)!.warm_bodies].sort(
-          (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-        )
-        : []
-  )
+  const getTodayWarmBodies = computed(() => (date: string) => {
+    const log = dailyLogs.value.find((l) => l.date === date)
+    return log ? [...log.warm_bodies].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) : []
+  })
 
   const logEmployeeTime = async (rawQrText: string, capturedImage: string | null) => {
     currentScannedEmployee.value = null
     lastLogMessage.value = null
 
+    const payload = {
+      scanned_qr: rawQrText,
+      captured_image: capturedImage,
+    }
+
     try {
-      const payload = { scanned_qr: rawQrText, captured_image: capturedImage }
       const { data, error } = await useApiCall('employees/log-time', authStore.authenticationToken).post(payload).json()
 
       if (error.value) {
-        lastLogMessage.value = error.value.message || 'Network error. Please try again.'
-        return { success: false, message: lastLogMessage.value, data: null }
+        let errorToDisplay = 'An unexpected network error occurred. Please try again.'
+        const backendErrorBody: ApiResponseBody | null = data.value as ApiResponseBody | null
+
+        if (backendErrorBody) {
+          if (backendErrorBody.errors && backendErrorBody.errors.length > 0) {
+            const scannedQrError = backendErrorBody.errors.find((err) => err.field === 'scanned_qr')
+            if (scannedQrError && scannedQrError.messages && scannedQrError.messages.length > 0) {
+              errorToDisplay = scannedQrError.messages[0]
+            } else {
+              errorToDisplay = backendErrorBody.errors[0].messages[0] || backendErrorBody.message || errorToDisplay
+            }
+          } else if (backendErrorBody.error_message) {
+            errorToDisplay = backendErrorBody.error_message
+          } else if (backendErrorBody.message) {
+            errorToDisplay = backendErrorBody.message
+          }
+        } else {
+          errorToDisplay = error.value.message || 'Network unreachable or server down. Check your connection.'
+        }
+
+        lastLogMessage.value = errorToDisplay
+        currentScannedEmployee.value = null
+        throw new Error(lastLogMessage.value)
       }
 
       const responseBody: ApiResponseBody = data.value
-      if (!responseBody.success) {
-        lastLogMessage.value = responseBody.error_message || responseBody.message || 'Failed to log time.'
-        return { success: false, message: lastLogMessage.value, data: null }
-      }
 
-      lastLogMessage.value = responseBody.message || 'Time logged successfully.'
-      const warmBodyLog = responseBody.data as WarmBodyLogEntry
-      const employeeDetails = warmBodyLog?.daily_time_record?.employee?.individual_basic_detail
-      const employeeItem = warmBodyLog?.daily_time_record?.employee?.item
+      if (responseBody.success) {
+        lastLogMessage.value = responseBody.message || 'Time logged successfully.'
+        const warmBodyLog = responseBody.data as WarmBodyLogEntry
 
-      if (!employeeDetails || !employeeItem) {
-        lastLogMessage.value = 'Incomplete employee details.'
-        return { success: false, message: lastLogMessage.value, data: null }
-      }
+        const employeeDetails = warmBodyLog?.daily_time_record?.employee?.individual_basic_detail
+        const employeeItem = warmBodyLog?.daily_time_record?.employee?.item
 
-      currentScannedEmployee.value = {
-        id: warmBodyLog.daily_time_record.employee.id_number || 'N/A',
-        name: `${employeeDetails.first_name || ''} ${employeeDetails.last_name || ''}`.trim() || 'N/A',
-        position: employeeItem.position?.title || 'N/A',
-        is_in: warmBodyLog.is_in,
-        timestamp: warmBodyLog.created_at || new Date().toISOString(),
-        photo_url:
-          employeeDetails.user_profile?.profile_picture_url?.trim() !== ''
+        const photoUrl =
+          employeeDetails?.user_profile?.profile_picture_url && employeeDetails.user_profile.profile_picture_url.trim() !== ''
             ? employeeDetails.user_profile.profile_picture_url
-            : defaultLogoMark,
+            : defaultLogoMark
+
+        if (warmBodyLog && employeeDetails && employeeItem) {
+          currentScannedEmployee.value = {
+            id: warmBodyLog.daily_time_record?.employee?.id_number || 'N/A',
+            name: `${employeeDetails.first_name || ''} ${employeeDetails.last_name || ''}`.trim() || 'N/A',
+            position: employeeItem.position?.title || 'N/A',
+            is_in: warmBodyLog.is_in,
+            timestamp: warmBodyLog.created_at || new Date().toISOString(),
+            photo_url: photoUrl,
+          }
+        } else {
+          lastLogMessage.value = 'Failed to retrieve complete employee details. Please try again.'
+          currentScannedEmployee.value = null
+          throw new Error(lastLogMessage.value)
+        }
+
+        const today = getManilaTodayISO()
+        void fetchWarmBodySummary(today)
+        void fetchDailyLogs(today)
+      } else {
+        lastLogMessage.value = responseBody.error_message || responseBody.message || 'Failed to log time due to server logic.'
+        currentScannedEmployee.value = null
+        throw new Error(lastLogMessage.value)
       }
 
-      const today = getManilaTodayISO()
-      void fetchWarmBodySummary(today)
-      void fetchDailyLogs(today)
-
-      return { success: true, message: lastLogMessage.value, data: currentScannedEmployee.value }
-    } catch (err) {
-      lastLogMessage.value = err instanceof Error ? err.message : typeof err === 'string' ? err : 'Unexpected error occurred.'
-      return { success: false, message: lastLogMessage.value, data: null }
+      return {
+        success: responseBody.success,
+        message: lastLogMessage.value,
+        data: currentScannedEmployee.value,
+      }
+    } catch (err: unknown) {
+      if (!lastLogMessage.value) {
+        if (err instanceof Error) {
+          lastLogMessage.value = err.message || 'An unexpected client-side error occurred.'
+        } else if (typeof err === 'string') {
+          lastLogMessage.value = err
+        } else {
+          lastLogMessage.value = 'An unexpected client-side error occurred.'
+        }
+      }
+      return {
+        success: false,
+        message: lastLogMessage.value,
+        data: null,
+      }
     }
   }
 
@@ -131,27 +174,48 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
         .get()
         .json()
 
-      if (error.value) return { success: false, message: error.value.message }
-
-      const responseBody: ApiResponseBody = data.value
-      if (!responseBody.success || !Array.isArray(responseBody.data)) {
-        updateDailyLogs(date, [])
-        return responseBody
+      if (error.value) {
+        const logEntry = dailyLogs.value.find((l) => l.date === date)
+        if (logEntry) {
+          logEntry.warm_bodies = []
+        }
+        return { success: false, message: error.value.message }
       }
 
-      const mappedLogs = (responseBody.data as TimeLogEntry[]).map((log) => ({
-        employee_id: log.id_number,
-        timestamp: `${log.time_log_date}T${log.scanned_time}`,
-        is_in: log.is_in,
-        id: log.time_log_id,
-        daily_time_record_id: undefined,
-      }))
+      const responseBody: ApiResponseBody = data.value
 
-      updateDailyLogs(date, mappedLogs)
-      return { success: true, message: responseBody.message }
-    } catch {
-      updateDailyLogs(date, [])
-      return { success: false, message: 'Failed to fetch daily logs.' }
+      if (responseBody.success && Array.isArray(responseBody.data)) {
+        const mappedLogs = (responseBody.data as TimeLogEntry[]).map((log: TimeLogEntry) => ({
+          employee_id: log.id_number,
+          timestamp: `${log.time_log_date}T${log.scanned_time}`,
+          is_in: log.is_in,
+          id: log.time_log_id,
+          daily_time_record_id: undefined,
+        }))
+
+        const logEntry = dailyLogs.value.find((l) => l.date === date)
+        if (logEntry) {
+          logEntry.warm_bodies = mappedLogs
+        } else {
+          dailyLogs.value.push({
+            date: date,
+            warm_bodies: mappedLogs,
+          })
+        }
+        return { success: true, message: responseBody.message }
+      } else {
+        const logEntry = dailyLogs.value.find((l) => l.date === date)
+        if (logEntry) {
+          logEntry.warm_bodies = []
+        }
+        return responseBody
+      }
+    } catch (err) {
+      const logEntry = dailyLogs.value.find((l) => l.date === date)
+      if (logEntry) {
+        logEntry.warm_bodies = []
+      }
+      return { success: false, message: 'An unexpected error occurred while fetching daily logs.' }
     }
   }
 
@@ -170,25 +234,20 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
       }
 
       const responseBody: ApiResponseBody = data.value
-      warmBodySummary.value = responseBody.success ? (responseBody.data as WarmBodySummary) : null
-      return responseBody
-    } catch {
-      warmBodySummary.value = null
-      return { success: false, message: 'Failed to fetch warm body summary.' }
-    }
-  }
 
-  const updateDailyLogs = (date: string, logs: WarmBodyLogEntry[]) => {
-    const logEntry = dailyLogs.value.find((l) => l.date === date)
-    if (logEntry) {
-      logEntry.warm_bodies = logs
-    } else {
-      dailyLogs.value.push({ date, warm_bodies: logs })
+      if (responseBody.success) {
+        warmBodySummary.value = responseBody.data as WarmBodySummary
+      } else {
+        warmBodySummary.value = null
+      }
+      return responseBody
+    } catch (err) {
+      warmBodySummary.value = null
+      return { success: false, message: 'An unexpected error occurred while fetching warm body summary.' }
     }
   }
 
   return {
-    timelogOfficeId,
     dailyLogs,
     currentScannedEmployee,
     lastLogMessage,
