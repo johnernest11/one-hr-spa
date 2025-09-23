@@ -111,13 +111,13 @@ const formRules = computed(() => ({
   })),
   individual_voluntary_work: payload.individual_voluntary_work.map(() => ({
     org_name: {
-      required: helpers.withMessage('Name of Organization  is required.', (val, vm) =>
+      required: helpers.withMessage(' Fill up Name of Organization since other information is provided.', (val, vm) =>
         hasAnyValue(vm) ? helpers.req(val) : true
       ),
       maxLength: globalStringMaxLengthRule,
     },
     org_address: {
-      required: helpers.withMessage('Address of Organization  is required.', (val, vm) =>
+      required: helpers.withMessage('Fill up Address of Organization since other information is provided.', (val, vm) =>
         hasAnyValue(vm) ? helpers.req(val) : true
       ),
       maxLength: globalStringMaxLengthRule,
@@ -142,16 +142,20 @@ const formRules = computed(() => ({
           return from <= to
         }
       ),
+      notInFuture: helpers.withMessage('End date must not be in the future.', notInFuture),
     },
     to: {
       isAfterOrEqualFromDate,
+      notInFuture: helpers.withMessage('End date must not be in the future.', notInFuture),
     },
     number_of_hours: {
-      required: helpers.withMessage('No of Hours is required.', (val, vm) => (hasAnyValue(vm) ? helpers.req(val) : true)),
+      required: helpers.withMessage('Fill up No of Hours since other information is provided.', (val, vm) =>
+        hasAnyValue(vm) ? helpers.req(val) : true
+      ),
       maxLength: globalStringMaxLengthRule,
     },
     position_nature_of_work: {
-      required: helpers.withMessage('Position / Nature of Work  is required.', (val, vm) =>
+      required: helpers.withMessage('Fill up Position / Nature of Work since other information is provided.', (val, vm) =>
         hasAnyValue(vm) ? helpers.req(val) : true
       ),
       maxLength: globalStringMaxLengthRule,
@@ -676,7 +680,12 @@ defineExpose({
                                 @click="handleRemoveVoluntaryWork(voluntaryWorkIndex)"
                                 v-tooltip.top="'Remove Voluntary Work'"
                                 severity="danger"
-                                class="mb-2 text-lg font-semibold dark:text-primary-100"
+                                :class="[
+                                  'text-lg font-semibold dark:text-primary-100',
+                                  validator.individual_voluntary_work[voluntaryWorkIndex - 1].position_nature_of_work.$error
+                                    ? 'mb-8'
+                                    : 'mb-2',
+                                ]"
                                 text
                               />
                             </div>
@@ -840,7 +849,12 @@ defineExpose({
                                 @click="handleRemoveLearningDevelopment(learningDevelopmentIndex)"
                                 v-tooltip.top="'Remove L&D'"
                                 severity="danger"
-                                class="mb-2 text-lg font-semibold dark:text-primary-100"
+                                :class="[
+                                  'text-lg font-semibold dark:text-primary-100',
+                                  validator.individual_lnd[learningDevelopmentIndex - 1].conducted_sponsor.$error
+                                    ? 'mb-8'
+                                    : 'mb-2',
+                                ]"
                                 text
                               />
                             </div>
@@ -927,7 +941,10 @@ defineExpose({
                                 @click="handleRemoveSkillHobbies(skillHobbiesIndex)"
                                 v-tooltip.top="'Remove Special Skills and Hobbies'"
                                 severity="danger"
-                                class="mb-2 text-lg font-semibold dark:text-primary-100 md:mb-2"
+                                :class="[
+                                  'text-lg font-semibold dark:text-primary-100',
+                                  validator.individual_skills_hobby[skillHobbiesIndex - 1].skill_hobby.$error ? 'mb-8' : 'mb-2',
+                                ]"
                                 text
                               />
                             </div>
@@ -996,7 +1013,10 @@ defineExpose({
                                 @click="handleRemoveRecognition(recognitionIndex)"
                                 v-tooltip.top="'Remove Non-Academic Distinctions / Recognition'"
                                 severity="danger"
-                                class="mb-2 text-lg font-semibold dark:text-primary-100 md:mb-2"
+                                :class="[
+                                  'text-lg font-semibold dark:text-primary-100',
+                                  validator.individual_recognition[recognitionIndex - 1].recognition.$error ? 'mb-8' : 'mb-2',
+                                ]"
                                 text
                               />
                             </div>
@@ -1067,7 +1087,12 @@ defineExpose({
                                 @click="handleRemoveMembership(membershipIndex)"
                                 v-tooltip.top="'Remove Membership in Association / Organization'"
                                 severity="danger"
-                                class="mb-2 text-lg font-semibold dark:text-primary-100 md:mb-2"
+                                :class="[
+                                  'text-lg font-semibold dark:text-primary-100',
+                                  validator.individual_membership[membershipIndex - 1].association_organization.$error
+                                    ? 'mb-8'
+                                    : 'mb-2',
+                                ]"
                                 text
                               />
                             </div>
