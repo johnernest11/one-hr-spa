@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, Ref } from 'vue'
 import { QrcodeStream, DetectedBarcode } from 'vue-qrcode-reader'
 import { useDailyLogsStore } from '@/stores/daily-logs.store'
 import { useLibrariesStore } from '@/stores/libraries.store'
@@ -187,7 +187,7 @@ onMounted(async () => {
 
   if (storedOfficeId) {
     showOfficeSelectionModal.value = false
-    selectedOffice.value = librariesStore.officeOptions.find((office) => office.value === storedOfficeId)
+    selectedOffice.value = librariesStore.officeOptions.find((office) => office.value === storedOfficeId) ?? null
   } else {
     showOfficeSelectionModal.value = true
   }
@@ -220,28 +220,28 @@ const onDetect = (detectedCodes: DetectedBarcode[]) => {
   }
 }
 
-const capturePhoto = () => {
-  if (!qrStreamRef.value) {
-    console.error('QR stream ref not available.')
-    return null
-  }
+// const capturePhoto = () => {
+//   if (!qrStreamRef.value) {
+//     console.error('QR stream ref not available.')
+//     return null
+//   }
 
-  const videoElement = qrStreamRef.value.$el.querySelector('video')
-  if (!videoElement) {
-    console.error('Video element not found.')
-    return null
-  }
+//   const videoElement = qrStreamRef.value.$el.querySelector('video')
+//   if (!videoElement) {
+//     console.error('Video element not found.')
+//     return null
+//   }
 
-  const canvas = document.createElement('canvas')
-  canvas.width = videoElement.videoWidth
-  canvas.height = videoElement.videoHeight
-  const context = canvas.getContext('2d')
-  if (context) {
-    context.drawImage(videoElement, 0, 0, canvas.width, canvas.height)
-    return canvas.toDataURL('image/jpeg', 0.8)
-  }
-  return null
-}
+//   const canvas = document.createElement('canvas')
+//   canvas.width = videoElement.videoWidth
+//   canvas.height = videoElement.videoHeight
+//   const context = canvas.getContext('2d')
+//   if (context) {
+//     context.drawImage(videoElement, 0, 0, canvas.width, canvas.height)
+//     return canvas.toDataURL('image/jpeg', 0.8)
+//   }
+//   return null
+// }
 
 const onDecode = async (result: string) => {
   if (scanTimeoutId.value) {
@@ -256,7 +256,7 @@ const onDecode = async (result: string) => {
   dailyLogsStore.clearScannedEmployee()
   errorMessage.value = null
 
-  const capturedImage = capturePhoto()
+  // const capturedImage = capturePhoto()
 
   if (!result || result.trim() === '') {
     dailyLogsStore.lastLogMessage = 'Empty QR code scanned. Please try again.'
@@ -271,7 +271,8 @@ const onDecode = async (result: string) => {
   const employeeIdentifierToSend = result
 
   try {
-    await dailyLogsStore.logEmployeeTime(employeeIdentifierToSend, capturedImage)
+    // await dailyLogsStore.logEmployeeTime(employeeIdentifierToSend, capturedImage)
+    await dailyLogsStore.logEmployeeTime(employeeIdentifierToSend)
     showModal.value = true
   } catch (err: unknown) {
     showModal.value = true
@@ -383,6 +384,7 @@ const latestWarmBodyLogs = computed(() => {
         <p class="text-lg text-surface-600">Select the official station of this Time Log to proceed</p>
         <div class="w-full items-center">
           <WbAutoComplete
+            label=""
             :suggestions="librariesStore.officeOptions"
             :loading="librariesStore.officeOptionsLoading"
             placeholder="Type to select from the list of official stations to proceed"

@@ -106,12 +106,6 @@ const formRules = computed(() => ({
       ),
       maxLength: globalStringMaxLengthRule,
     },
-    place_of_examination: {
-      maxLength: globalStringMaxLengthRule,
-    },
-    license_number: {
-      maxLength: globalStringMaxLengthRule,
-    },
     license_date_of_validity: {
       isAfterOrEqualFromDate: helpers.withMessage(
         'License Date of Validity should not be earlier than the Date of Examination Conferment',
