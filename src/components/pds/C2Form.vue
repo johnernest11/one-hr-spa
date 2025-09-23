@@ -74,9 +74,13 @@ const globalStringMaxLengthRule = helpers.withMessage(
   `Must not exceed ${globalStringMaxLength} characters`,
   maxLength(globalStringMaxLength)
 )
+
+const hasAnyValue = (vm: Record<string, unknown>) => Object.values(vm).some((v) => helpers.req(v))
+
 const formRules = computed(() => ({
   individual_eligibility: payload.individual_eligibility.map(() => ({
     eligibility: {
+      required: helpers.withMessage('Eligibility is required.', (val, vm) => (hasAnyValue(vm) ? helpers.req(val) : true)),
       maxLength: globalStringMaxLengthRule,
     },
     date_of_examination_conferment: {
@@ -85,6 +89,22 @@ const formRules = computed(() => ({
         const selectedDate = new Date(val)
         return selectedDate <= today
       }),
+      required: helpers.withMessage('Fill Up Date of Examination/Conferment since other information is provided.', (val, vm) =>
+        hasAnyValue(vm) ? helpers.req(val) : true
+      ),
+      maxLength: globalStringMaxLengthRule,
+    },
+    place_of_examination: {
+      required: helpers.withMessage('Fill Up Place of Examination since other information is provided.', (val, vm) =>
+        hasAnyValue(vm) ? helpers.req(val) : true
+      ),
+      maxLength: globalStringMaxLengthRule,
+    },
+    license_number: {
+      required: helpers.withMessage('Fill Up License Number since other information is provided.', (val, vm) =>
+        hasAnyValue(vm) ? helpers.req(val) : true
+      ),
+      maxLength: globalStringMaxLengthRule,
     },
     place_of_examination: {
       maxLength: globalStringMaxLengthRule,
@@ -105,6 +125,9 @@ const formRules = computed(() => ({
           return isNaN(licenseDate.getTime()) || isNaN(examDate.getTime()) || licenseDate >= examDate
         }
       ),
+      required: helpers.withMessage('Fill Up License Validity since other information is provided.', (val, vm) =>
+        hasAnyValue(vm) ? helpers.req(val) : true
+      ),
       maxLength: globalStringMaxLengthRule,
     },
     rating: {
@@ -112,6 +135,9 @@ const formRules = computed(() => ({
         if (val === null || val === '') return true // allow empty
         return !isNaN(Number(val))
       }),
+      required: helpers.withMessage('Fill Up Rating since other information is provided.', (val, vm) =>
+        hasAnyValue(vm) ? helpers.req(val) : true
+      ),
       maxLength: globalStringMaxLengthRule,
     },
   })),
@@ -187,12 +213,8 @@ const formRules = computed(() => ({
 watch(isCurrentlyEmployed, (newVal) => {
   payload.individual_work_experience.forEach((entry, index) => {
     if (index === 0) {
-      // Only first work experience is current if employed
-      entry.is_current_work = newVal ? true : false
-      // If currently employed, clear the inclusive_date_to field
-      if (newVal) {
-        entry.inclusive_date_to = null
-      }
+      entry.is_current_work = !!newVal
+      entry.inclusive_date_to = newVal ? null : entry.inclusive_date_to
     } else {
       entry.is_current_work = false
     }
@@ -480,8 +502,8 @@ const handleSaveC2Form = async () => {
     )
 
     let errorTabs = []
-    if (hasEligibilityError) errorTabs.push('Civil Service Eligibility')
-    if (hasWorkExperienceError) errorTabs.push('Work Experience')
+    if (hasEligibilityError) errorTabs.push('C2 - Civil Service Eligibility')
+    if (hasWorkExperienceError) errorTabs.push('C2 - Work Experience')
 
     const tabList = errorTabs.join(', ')
     showToast('error', 'Validation Error', `Please check the following tab(s): ${tabList}`)
@@ -680,7 +702,12 @@ defineExpose({
                                 @click="handleRemoveEligibility(eligibilityIndex)"
                                 v-tooltip.top="'Remove Eligibility'"
                                 severity="danger"
-                                class="mb-2 text-lg font-semibold dark:text-primary-100"
+                                :class="[
+                                  'text-lg font-semibold dark:text-primary-100',
+                                  validator.individual_eligibility[eligibilityIndex - 1].license_date_of_validity.$error
+                                    ? 'mb-8'
+                                    : 'mb-2',
+                                ]"
                                 text
                               />
                             </div>
@@ -782,7 +809,7 @@ defineExpose({
                               />
                             </div>
                             <!-- For the first entry -->
-                            <div v-if="workExperienceIndex === 0">
+                            <div v-if="workExperienceIndex === 1">
                               <!-- If NOT currently employed, show calendar -->
                               <WbCalendar
                                 v-if="!isCurrentlyEmployed"
@@ -868,7 +895,7 @@ defineExpose({
                                 "
                                 @blur="
                                   validator.individual_work_experience[
-                                    workExperienceIndex
+                                    workExperienceIndex - 1
                                   ].department_agency_office_company.$touch()
                                 "
                                 required
@@ -1012,7 +1039,12 @@ defineExpose({
                                 @click="handleRemoveWorkExperience(workExperienceIndex)"
                                 v-tooltip.top="'Remove Work Experience'"
                                 severity="danger"
-                                class="mb-2 text-lg font-semibold dark:text-primary-100 md:mb-2"
+                                :class="[
+                                  'text-lg font-semibold dark:text-primary-100',
+                                  validator.individual_work_experience[workExperienceIndex - 1].is_gov_service.$error
+                                    ? 'mb-8'
+                                    : 'mb-2',
+                                ]"
                                 text
                               />
                             </div>
