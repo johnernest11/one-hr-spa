@@ -37,7 +37,6 @@ const selectedTimeLogId = ref<number[]>([])
 const allDailyTimeRecordsData = ref<ViewDailyTimeRecordResponse[]>([])
 const fromDate = ref<Date | null>(null)
 const toDate = ref<Date | null>(null)
-// const monthDate = ref<Date>(new Date())
 const remarksMap = ref<Record<string, string>>({})
 const activeIndices = ref<number[]>([])
 const toggleAccordion = (index: number) => {

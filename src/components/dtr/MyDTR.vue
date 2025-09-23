@@ -205,7 +205,7 @@ const updateButtonSubmission = async () => {
   <div class="flex h-full w-full flex-col">
     <Card class="h-full shadow-none">
       <template #content>
-        <div class="flex w-full flex-col items-start md:flex-row">
+        <div class="flex w-full flex-col items-start md:flex-row md:items-center">
           <Button
             icon="pi pi-angle-left"
             severity="secondary"
