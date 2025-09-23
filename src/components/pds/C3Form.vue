@@ -149,7 +149,7 @@ const formRules = computed(() => ({
       notInFuture: helpers.withMessage('End date must not be in the future.', notInFuture),
     },
     number_of_hours: {
-      required: helpers.withMessage('Fill up No of Hours since other information is provided.', (val, vm) =>
+      required: helpers.withMessage('Fill up Hours since other info is provided.', (val, vm) =>
         hasAnyValue(vm) ? helpers.req(val) : true
       ),
       maxLength: globalStringMaxLengthRule,
@@ -557,7 +557,10 @@ defineExpose({
                                 v-model="payload.individual_voluntary_work[voluntaryWorkIndex - 1].org_name"
                                 label="Name of Organization"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  validator.individual_voluntary_work[voluntaryWorkIndex - 1].org_name.$error ? 'mb-0' : 'mb-6',
+                                ]"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalidText="
                                   validator.individual_voluntary_work[voluntaryWorkIndex - 1].org_name.$errors[0]?.$message
@@ -571,7 +574,12 @@ defineExpose({
                                 v-model="payload.individual_voluntary_work[voluntaryWorkIndex - 1].org_address"
                                 label="Address of Organization"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  validator.individual_voluntary_work[voluntaryWorkIndex - 1].org_address.$error
+                                    ? 'mb-0'
+                                    : 'mb-6',
+                                ]"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalidText="
                                   validator.individual_voluntary_work[voluntaryWorkIndex - 1].org_address.$errors[0]?.$message
@@ -587,7 +595,10 @@ defineExpose({
                                 v-model="payload.individual_voluntary_work[voluntaryWorkIndex - 1].from"
                                 label="From"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  validator.individual_voluntary_work[voluntaryWorkIndex - 1].from.$error ? 'mb-0' : 'mb-6',
+                                ]"
                                 :dateFormat="'yy-mm-dd'"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalidText="
@@ -606,6 +617,10 @@ defineExpose({
                                 label="To"
                                 :dateFormat="'yy-mm-dd'"
                                 class="w-full text-sm"
+                                :class="[
+                                  'w-full text-sm',
+                                  validator.individual_voluntary_work[voluntaryWorkIndex - 1].to.$error ? 'mb-0' : 'mb-6',
+                                ]"
                                 label-class="text-md text-surface-600 md:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold"
                                 :invalidText="validator.individual_voluntary_work[voluntaryWorkIndex - 1].to.$errors[0]?.$message"
@@ -631,7 +646,10 @@ defineExpose({
                                 v-model="payload.individual_voluntary_work[voluntaryWorkIndex - 1].to"
                                 label="To"
                                 :dateFormat="'yy-mm-dd'"
-                                class="w-full text-sm"
+                                :class="[
+                                  'w-full text-sm',
+                                  validator.individual_voluntary_work[voluntaryWorkIndex - 1].to.$error ? 'mb-0' : 'mb-6',
+                                ]"
                                 label-class="text-md text-surface-600 md:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalidText="validator.individual_voluntary_work[voluntaryWorkIndex - 1].to.$errors[0]?.$message"
@@ -645,7 +663,12 @@ defineExpose({
                                 v-model="payload.individual_voluntary_work[voluntaryWorkIndex - 1].number_of_hours"
                                 label="No of Hours"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  validator.individual_voluntary_work[voluntaryWorkIndex - 1].number_of_hours.$error
+                                    ? 'mb-0'
+                                    : 'mb-6',
+                                ]"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalidText="
                                   validator.individual_voluntary_work[voluntaryWorkIndex - 1].number_of_hours.$errors[0]?.$message
@@ -659,7 +682,12 @@ defineExpose({
                                 v-model="payload.individual_voluntary_work[voluntaryWorkIndex - 1].position_nature_of_work"
                                 label="Position / Nature of Work"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  validator.individual_voluntary_work[voluntaryWorkIndex - 1].position_nature_of_work.$error
+                                    ? 'mb-0'
+                                    : 'mb-10',
+                                ]"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalidText="
                                   validator.individual_voluntary_work[voluntaryWorkIndex - 1].position_nature_of_work.$errors[0]
@@ -684,7 +712,7 @@ defineExpose({
                                   'text-lg font-semibold dark:text-primary-100',
                                   validator.individual_voluntary_work[voluntaryWorkIndex - 1].position_nature_of_work.$error
                                     ? 'mb-8'
-                                    : 'mb-2',
+                                    : 'mb-12',
                                 ]"
                                 text
                               />
@@ -755,7 +783,10 @@ defineExpose({
                                 v-model="payload.individual_lnd[learningDevelopmentIndex - 1].title"
                                 label="Title of L & D Interventions / Training Programs"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-xs md:mb-1"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  validator.individual_lnd[learningDevelopmentIndex - 1].title.$error ? 'mb-0' : 'mb-6',
+                                ]"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalidText="validator.individual_lnd[learningDevelopmentIndex - 1].title.$errors[0]?.$message"
                                 :invalid="validator.individual_lnd[learningDevelopmentIndex - 1].title.$error"
@@ -769,7 +800,10 @@ defineExpose({
                                 v-model="payload.individual_lnd[learningDevelopmentIndex - 1].from"
                                 label="From"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  validator.individual_lnd[learningDevelopmentIndex - 1].from.$error ? 'mb-0' : 'mb-6',
+                                ]"
                                 :dateFormat="'yy-mm-dd'"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalidText="validator.individual_lnd[learningDevelopmentIndex - 1].from.$errors[0]?.$message"
@@ -784,7 +818,10 @@ defineExpose({
                                 v-model="payload.individual_lnd[learningDevelopmentIndex - 1].to"
                                 label="To"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  validator.individual_lnd[learningDevelopmentIndex - 1].to.$error ? 'mb-0' : 'mb-2',
+                                ]"
                                 :dateFormat="'yy-mm-dd'"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalidText="validator.individual_lnd[learningDevelopmentIndex - 1].to.$errors[0]?.$message"
@@ -799,7 +836,10 @@ defineExpose({
                                 v-model="payload.individual_lnd[learningDevelopmentIndex - 1].number_of_hours"
                                 label="No of Hours"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  validator.individual_lnd[learningDevelopmentIndex - 1].number_of_hours.$error ? 'mb-0' : 'mb-6',
+                                ]"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalidText="
                                   validator.individual_lnd[learningDevelopmentIndex - 1].number_of_hours.$errors[0]?.$message
@@ -817,7 +857,10 @@ defineExpose({
                                 v-model="payload.individual_lnd[learningDevelopmentIndex - 1].type"
                                 label="Type of LD"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  validator.individual_lnd[learningDevelopmentIndex - 1].type.$error ? 'mb-0' : 'mb-2',
+                                ]"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalidText="validator.individual_lnd[learningDevelopmentIndex - 1].type.$errors[0]?.$message"
                                 :invalid="validator.individual_lnd[learningDevelopmentIndex - 1].type.$error"
@@ -832,7 +875,12 @@ defineExpose({
                                 v-model="payload.individual_lnd[learningDevelopmentIndex - 1].conducted_sponsor"
                                 label="Conducted / Sponsored By"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md flex-1 text-sm placeholder:text-sm"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md flex-1 text-sm placeholder:text-sm',
+                                  validator.individual_lnd[learningDevelopmentIndex - 1].conducted_sponsor.$error
+                                    ? 'mb-0'
+                                    : 'mb-6',
+                                ]"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalidText="
                                   validator.individual_lnd[learningDevelopmentIndex - 1].conducted_sponsor.$errors[0]?.$message
@@ -925,7 +973,10 @@ defineExpose({
                                 v-model="payload.individual_skills_hobby[skillHobbiesIndex - 1].skill_hobby"
                                 label="Special Skill / Hobby"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  validator.individual_skills_hobby[skillHobbiesIndex - 1].skill_hobby.$error ? 'mb-8' : 'mb-2',
+                                ]"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalidText="
                                   validator.individual_skills_hobby[skillHobbiesIndex - 1].skill_hobby.$errors[0]?.$message
