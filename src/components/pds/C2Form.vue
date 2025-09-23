@@ -74,14 +74,35 @@ const globalStringMaxLengthRule = helpers.withMessage(
   `Must not exceed ${globalStringMaxLength} characters`,
   maxLength(globalStringMaxLength)
 )
+
+const hasAnyValue = (vm: Record<string, unknown>) => Object.values(vm).some((v) => helpers.req(v))
+
 const formRules = computed(() => ({
   individual_eligibility: payload.individual_eligibility.map(() => ({
+    eligibility: {
+      required: helpers.withMessage('Eligibility is required.', (val, vm) => (hasAnyValue(vm) ? helpers.req(val) : true)),
+      maxLength: globalStringMaxLengthRule,
+    },
     date_of_examination_conferment: {
       isAfterOrEqualFromDate: helpers.withMessage('Date must be today or earlier.', (val: string | Date | null) => {
         if (!val) return true
         const selectedDate = new Date(val)
         return selectedDate <= today
       }),
+      required: helpers.withMessage('Date of Examination/Conferment is required.', (val, vm) =>
+        hasAnyValue(vm) ? helpers.req(val) : true
+      ),
+      maxLength: globalStringMaxLengthRule,
+    },
+    place_of_examination: {
+      required: helpers.withMessage('Place of Examination is required.', (val, vm) =>
+        hasAnyValue(vm) ? helpers.req(val) : true
+      ),
+      maxLength: globalStringMaxLengthRule,
+    },
+    license_number: {
+      required: helpers.withMessage('License number is required.', (val, vm) => (hasAnyValue(vm) ? helpers.req(val) : true)),
+      maxLength: globalStringMaxLengthRule,
     },
     license_date_of_validity: {
       isAfterOrEqualFromDate: helpers.withMessage(
@@ -96,6 +117,7 @@ const formRules = computed(() => ({
           return isNaN(licenseDate.getTime()) || isNaN(examDate.getTime()) || licenseDate >= examDate
         }
       ),
+      required: helpers.withMessage('License Validity is required.', (val, vm) => (hasAnyValue(vm) ? helpers.req(val) : true)),
       maxLength: globalStringMaxLengthRule,
     },
     rating: {
@@ -103,6 +125,8 @@ const formRules = computed(() => ({
         if (val === null || val === '') return true // allow empty
         return !isNaN(Number(val))
       }),
+      required: helpers.withMessage('Rating is required.', (val, vm) => (hasAnyValue(vm) ? helpers.req(val) : true)),
+      maxLength: globalStringMaxLengthRule,
     },
   })),
   individual_work_experience: payload.individual_work_experience.map(() => ({
@@ -177,12 +201,8 @@ const formRules = computed(() => ({
 watch(isCurrentlyEmployed, (newVal) => {
   payload.individual_work_experience.forEach((entry, index) => {
     if (index === 0) {
-      // Only first work experience is current if employed
-      entry.is_current_work = newVal ? true : false
-      // If currently employed, clear the inclusive_date_to field
-      if (newVal) {
-        entry.inclusive_date_to = null
-      }
+      entry.is_current_work = !!newVal
+      entry.inclusive_date_to = newVal ? null : entry.inclusive_date_to
     } else {
       entry.is_current_work = false
     }
@@ -560,6 +580,11 @@ defineExpose({
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                                :invalid="validator.individual_eligibility[eligibilityIndex - 1].eligibility.$error"
+                                :invalidText="
+                                  validator.individual_eligibility[eligibilityIndex - 1].eligibility.$errors[0]?.$message
+                                "
+                                @blur="validator.individual_eligibility[eligibilityIndex - 1].eligibility.$touch()"
                               />
                             </div>
 
@@ -605,6 +630,11 @@ defineExpose({
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                                :invalid="validator.individual_eligibility[eligibilityIndex - 1].place_of_examination.$error"
+                                :invalidText="
+                                  validator.individual_eligibility[eligibilityIndex - 1].place_of_examination.$errors[0]?.$message
+                                "
+                                @blur="validator.individual_eligibility[eligibilityIndex - 1].place_of_examination.$touch()"
                               />
                             </div>
 
@@ -615,6 +645,11 @@ defineExpose({
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                                :invalid="validator.individual_eligibility[eligibilityIndex - 1].license_number.$error"
+                                :invalidText="
+                                  validator.individual_eligibility[eligibilityIndex - 1].license_number.$errors[0]?.$message
+                                "
+                                @blur="validator.individual_eligibility[eligibilityIndex - 1].license_number.$touch()"
                               />
                             </div>
 
@@ -744,7 +779,7 @@ defineExpose({
                               />
                             </div>
                             <!-- For the first entry -->
-                            <div v-if="workExperienceIndex === 0">
+                            <div v-if="workExperienceIndex === 1">
                               <!-- If NOT currently employed, show calendar -->
                               <WbCalendar
                                 v-if="!isCurrentlyEmployed"
@@ -830,7 +865,7 @@ defineExpose({
                                 "
                                 @blur="
                                   validator.individual_work_experience[
-                                    workExperienceIndex
+                                    workExperienceIndex - 1
                                   ].department_agency_office_company.$touch()
                                 "
                                 required
