@@ -7,42 +7,42 @@ import WbAutoComplete, { WbAutoCompleteOptionTrueValue } from '@/components/webk
 import { useWbAutoCompleteHandleTrueValue } from '@/composables/wb-ui-components.ts'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { useLibrariesStore } from '@/stores/libraries.store'
+import { SexType, EmploymentStatusType } from '@/employee-entry.types'
+import { monthOptions, getYearOptions } from '@/typings/dashboard.types'
+import { usePrependOrAppendOnce } from '@/utils/helpers'
 
+export interface Employee {
+  id: string
+  firstName: string
+  lastName: string
+  sex: SexType
+  employmentStatus: EmploymentStatusType
+  division: string
+  section: string
+  year: number
+  month: number
+  status: 'Filled' | 'Unfilled'
+  male: number
+  female: number
+  filledTotal: number
+  unfilled: number
+  totalPositions: number
+}
+
+const getId = usePrependOrAppendOnce('dashboard')
 const libraryStore = useLibrariesStore()
-
 const showSidebar = ref(false)
 const payload = reactive({ division: null, section: null })
 const selectedDivision = ref<string | null>(null)
 const selectedSectionUnit = ref<string | null>(null)
 const selectedDivisionLabel = ref<string | null>(null)
 const selectedSectionLabel = ref<string | null>(null)
-
-const employees = ref<string[]>([])
-
 const currentYear = new Date().getFullYear()
 const currentMonth = new Date().getMonth() + 1
-
+const employees = ref<Employee[]>([])
 const selectedYear = ref<number | null>(currentYear)
 const selectedMonth = ref<number | null>(currentMonth)
-
-const yearOptions = computed(() => {
-  return Array.from({ length: 6 }, (_, i) => currentYear - i)
-})
-
-const monthOptions = [
-  { value: 1, label: 'January' },
-  { value: 2, label: 'February' },
-  { value: 3, label: 'March' },
-  { value: 4, label: 'April' },
-  { value: 5, label: 'May' },
-  { value: 6, label: 'June' },
-  { value: 7, label: 'July' },
-  { value: 8, label: 'August' },
-  { value: 9, label: 'September' },
-  { value: 10, label: 'October' },
-  { value: 11, label: 'November' },
-  { value: 12, label: 'December' },
-]
+const yearList = computed(() => getYearOptions(currentYear, 6))
 
 const filteredEmployees = computed(() => {
   let data = employees.value
@@ -86,14 +86,14 @@ const employmentChartOptions = computed(() => ({
   yaxis: { title: { text: 'Number of Employees' } },
   fill: { opacity: 1 },
   legend: { position: 'top' },
-  colors: ['#3B82F6', '#F472B6'],
+  colors: ['#155dfc', '#f0b100'],
 }))
 
 const genderChartSeries = computed(() => [totalMale.value, totalFemale.value])
 const genderChartOptions = {
   chart: { type: 'donut' },
   labels: ['Male', 'Female'],
-  colors: ['#3B82F6', '#F472B6'],
+  colors: ['#155dfc', '#f0b100'],
   legend: { position: 'bottom' },
 }
 
@@ -101,10 +101,6 @@ const handleFilterEmployees = () => {
   selectedDivisionLabel.value = selectedDivision.value ? selectedDivision.value.label : null
   selectedSectionLabel.value = selectedSectionUnit.value ? selectedSectionUnit.value.label : null
   showSidebar.value = false
-}
-
-function getId(id: string) {
-  return id
 }
 </script>
 
@@ -136,6 +132,11 @@ function getId(id: string) {
       <!-- Counters -->
       <div class="mb-6 grid grid-cols-1 gap-6 md:grid-cols-3">
         <div class="rounded-xl bg-white p-4 text-center shadow">
+          <h2 class="text-lg font-semibold text-gray-600">Total Positions</h2>
+          <p class="text-2xl font-bold text-blue-600">{{ totalPositions }}</p>
+        </div>
+
+        <div class="rounded-xl bg-white p-4 text-center shadow">
           <h2 class="text-lg font-semibold text-gray-600">Filled Positions</h2>
           <p class="text-2xl font-bold text-green-600">{{ totalFilled }}</p>
         </div>
@@ -144,16 +145,11 @@ function getId(id: string) {
           <h2 class="text-lg font-semibold text-gray-600">Unfilled Positions</h2>
           <p class="text-2xl font-bold text-red-600">{{ totalUnfilled }}</p>
         </div>
-
-        <div class="rounded-xl bg-white p-4 text-center shadow">
-          <h2 class="text-lg font-semibold text-gray-600">Total Positions</h2>
-          <p class="text-2xl font-bold text-blue-600">{{ totalPositions }}</p>
-        </div>
       </div>
 
       <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
         <div class="rounded-xl bg-white p-4 shadow">
-          <h2 class="mb-4 text-lg font-semibold">Number of SDOs</h2>
+          <h2 class="mb-4 text-lg font-semibold">Number of Employees</h2>
           <VueApexCharts type="donut" height="300" :options="genderChartOptions" :series="genderChartSeries" />
         </div>
 
@@ -193,9 +189,7 @@ function getId(id: string) {
             <label class="text-md mb-2 block text-surface-600">Year</label>
             <select v-model="selectedYear" class="w-full rounded border p-2">
               <option :value="null">All Years</option>
-              <option v-for="y in yearOptions" :key="y" :value="y">
-                {{ y }}
-              </option>
+              <option v-for="y in yearList" :key="y" :value="y">{{ y }}</option>
             </select>
           </div>
 
