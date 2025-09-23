@@ -95,10 +95,11 @@ export const useEmployeeEntryStore = defineStore('personnel', () => {
       if (responseBody.success) {
         employees.value = responseBody.data as PersonnelResponse[]
       }
+
       return responseBody
     } catch (error) {
       console.error('Error fetching employees:', error)
-      return { success: false, message: 'Failed to fetch employees' }
+      return { success: false, message: String(error) } as ApiResponseBody
     } finally {
       isEmployeesLoading.value = false
     }
@@ -116,7 +117,6 @@ export const useEmployeeEntryStore = defineStore('personnel', () => {
   }
 
   const updatePersonalDataSheet = async (payload: Partial<PersonalDataSheetPayload>) => {
-    // The API only accepts Y-m-d format (2024-01-31)
     if (payload.birthday) {
       payload.birthday = useDateFormat(payload.birthday, 'YYYY-MM-DD').value.toString()
     }
