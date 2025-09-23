@@ -15,7 +15,7 @@ import { useToast } from 'primevue/usetoast'
 import { parseApiResponseError } from '@/utils/error-handle.ts'
 import { helpers, maxLength, required } from '@vuelidate/validators'
 import { TabGroup, TabList, Tab, TabPanels, TabPanel } from '@headlessui/vue'
-import { isAfterOrEqualFromDate, usePrependOrAppendOnce } from '@/utils/helpers.js'
+import { isAfterOrEqualFromDate, usePrependOrAppendOnce, notInFuture } from '@/utils/helpers.js'
 import { TransitionRoot } from '@headlessui/vue'
 import { PersonnelResponse } from '@/typings/models.types'
 
@@ -55,6 +55,8 @@ const globalStringMaxLengthRule = helpers.withMessage(
   maxLength(globalStringMaxLength)
 )
 
+const hasAnyValue = (vm: Record<string, unknown>) => Object.values(vm).some((v) => helpers.req(v))
+
 const formRules = computed(() => ({
   individual_lnd: payload.individual_lnd.map(() => ({
     title: {
@@ -81,12 +83,14 @@ const formRules = computed(() => ({
           return from <= to
         }
       ),
+      notInFuture: helpers.withMessage('Start date must not be in the future.', notInFuture),
     },
     to: {
       required: helpers.withMessage('Inclusive "To" date is required', (val, vm) => {
         return vm.is_current_work === true ? true : helpers.req(val)
       }),
       isAfterOrEqualFromDate,
+      notInFuture: helpers.withMessage('End date must not be in the future.', notInFuture),
     },
     number_of_hours: {
       required: helpers.withMessage('Number of hours is required.', required),
@@ -94,15 +98,30 @@ const formRules = computed(() => ({
         if (val === null || val === '') return true // allow empty (if not required)
         return Number.isInteger(Number(val))
       }),
+      maxLength: globalStringMaxLengthRule,
     },
     type: {
       required: helpers.withMessage('Type is required.', required),
+      maxLength: globalStringMaxLengthRule,
     },
     conducted_sponsor: {
       required: helpers.withMessage('Conducted Sponsor is required.', required),
+      maxLength: globalStringMaxLengthRule,
     },
   })),
   individual_voluntary_work: payload.individual_voluntary_work.map(() => ({
+    org_name: {
+      required: helpers.withMessage('Name of Organization  is required.', (val, vm) =>
+        hasAnyValue(vm) ? helpers.req(val) : true
+      ),
+      maxLength: globalStringMaxLengthRule,
+    },
+    org_address: {
+      required: helpers.withMessage('Address of Organization  is required.', (val, vm) =>
+        hasAnyValue(vm) ? helpers.req(val) : true
+      ),
+      maxLength: globalStringMaxLengthRule,
+    },
     from: {
       isAfterOrEqualTo: helpers.withMessage(
         'Inclusive "From" date must not be after "To" date.',
@@ -126,6 +145,31 @@ const formRules = computed(() => ({
     },
     to: {
       isAfterOrEqualFromDate,
+    },
+    number_of_hours: {
+      required: helpers.withMessage('No of Hours is required.', (val, vm) => (hasAnyValue(vm) ? helpers.req(val) : true)),
+      maxLength: globalStringMaxLengthRule,
+    },
+    position_nature_of_work: {
+      required: helpers.withMessage('Position / Nature of Work  is required.', (val, vm) =>
+        hasAnyValue(vm) ? helpers.req(val) : true
+      ),
+      maxLength: globalStringMaxLengthRule,
+    },
+  })),
+  individual_skills_hobby: payload.individual_skills_hobby.map(() => ({
+    skill_hobby: {
+      maxLength: globalStringMaxLengthRule,
+    },
+  })),
+  individual_recognition: payload.individual_skills_hobby.map(() => ({
+    recognition: {
+      maxLength: globalStringMaxLengthRule,
+    },
+  })),
+  individual_membership: payload.individual_skills_hobby.map(() => ({
+    association_organization: {
+      maxLength: globalStringMaxLengthRule,
     },
   })),
 }))
@@ -511,6 +555,11 @@ defineExpose({
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                                :invalidText="
+                                  validator.individual_voluntary_work[voluntaryWorkIndex - 1].org_name.$errors[0]?.$message
+                                "
+                                :invalid="validator.individual_voluntary_work[voluntaryWorkIndex - 1].org_name.$error"
+                                @blur="validator.individual_voluntary_work[voluntaryWorkIndex - 1].org_name.$touch()"
                               />
                             </div>
                             <div>
@@ -520,6 +569,11 @@ defineExpose({
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                                :invalidText="
+                                  validator.individual_voluntary_work[voluntaryWorkIndex - 1].org_address.$errors[0]?.$message
+                                "
+                                :invalid="validator.individual_voluntary_work[voluntaryWorkIndex - 1].org_address.$error"
+                                @blur="validator.individual_voluntary_work[voluntaryWorkIndex - 1].org_address.$touch()"
                               />
                             </div>
                           </div>
@@ -589,6 +643,11 @@ defineExpose({
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                                :invalidText="
+                                  validator.individual_voluntary_work[voluntaryWorkIndex - 1].number_of_hours.$errors[0]?.$message
+                                "
+                                :invalid="validator.individual_voluntary_work[voluntaryWorkIndex - 1].number_of_hours.$error"
+                                @blur="validator.individual_voluntary_work[voluntaryWorkIndex - 1].number_of_hours.$touch()"
                               />
                             </div>
                             <div class="flex items-end gap-2 md:col-span-3">
@@ -598,6 +657,16 @@ defineExpose({
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                                :invalidText="
+                                  validator.individual_voluntary_work[voluntaryWorkIndex - 1].position_nature_of_work.$errors[0]
+                                    ?.$message
+                                "
+                                :invalid="
+                                  validator.individual_voluntary_work[voluntaryWorkIndex - 1].position_nature_of_work.$error
+                                "
+                                @blur="
+                                  validator.individual_voluntary_work[voluntaryWorkIndex - 1].position_nature_of_work.$touch()
+                                "
                               />
                               <!-- Delete button aligned right, below label -->
                               <Button
@@ -844,6 +913,11 @@ defineExpose({
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                                :invalidText="
+                                  validator.individual_skills_hobby[skillHobbiesIndex - 1].skill_hobby.$errors[0]?.$message
+                                "
+                                :invalid="validator.individual_skills_hobby[skillHobbiesIndex - 1].skill_hobby.$error"
+                                @blur="validator.individual_skills_hobby[skillHobbiesIndex - 1].skill_hobby.$touch()"
                               />
                               <!-- Delete button aligned right, below label -->
                               <Button
@@ -908,6 +982,11 @@ defineExpose({
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                                :invalidText="
+                                  validator.individual_recognition[recognitionIndex - 1].recognition.$errors[0]?.$message
+                                "
+                                :invalid="validator.individual_recognition[recognitionIndex - 1].recognition.$error"
+                                @blur="validator.individual_recognition[recognitionIndex - 1].recognition.$touch()"
                               />
                               <!-- Delete button aligned right, below label -->
                               <Button
@@ -973,6 +1052,12 @@ defineExpose({
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                                :invalidText="
+                                  validator.individual_membership[membershipIndex - 1].association_organization.$errors[0]
+                                    ?.$message
+                                "
+                                :invalid="validator.individual_membership[membershipIndex - 1].association_organization.$error"
+                                @blur="validator.individual_membership[membershipIndex - 1].association_organization.$touch()"
                               />
                               <!-- Delete button aligned right, below label -->
                               <Button
