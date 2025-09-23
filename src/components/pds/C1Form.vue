@@ -1605,7 +1605,7 @@ defineExpose({
                         :disabled="pdsStore.isMyPds || payload.individual.sex === 'female'"
                         label="Extension Name"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                        class="lg:text-md lg:placeholder:text-md cursor-not-allowed bg-surface-200 text-sm placeholder:text-sm read-only:cursor-not-allowed disabled:cursor-not-allowed"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         :invalid="validator.individual.ext_name.$invalid"
                         :invalid-text="validator.individual.ext_name.$errors[0]?.$message"
