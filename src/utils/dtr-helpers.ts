@@ -192,3 +192,27 @@ export const computeOT = (worked: number, weekend = false): number => {
   if (weekend) return parseFloat(worked.toFixed(2))
   return worked > 8 ? parseFloat((worked - 8).toFixed(2)) : 0
 }
+
+// dtr-helpers.ts
+export const collapseDtrByMonth = (dtrs: { date: string }[]) => {
+  if (!dtrs.length) return []
+
+  const grouped: Record<string, { month: string; records: typeof dtrs }> = {}
+
+  dtrs.forEach((dtr) => {
+    const d = new Date(dtr.date)
+    const year = d.getFullYear()
+    const month = d.getMonth()
+    const key = `${year}-${month}`
+
+    if (!grouped[key]) {
+      grouped[key] = {
+        month: d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+        records: [],
+      }
+    }
+    grouped[key].records.push(dtr)
+  })
+
+  return Object.values(grouped)
+}

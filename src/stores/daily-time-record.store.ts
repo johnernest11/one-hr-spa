@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { reactive, ref } from 'vue'
 import { useAuthStore } from '@/stores/auth.store.ts'
 import { useApiCall } from '@/composables/network'
 import { ApiResponseBody } from '@/typings/http-resources.types.ts'
@@ -10,7 +10,6 @@ import {
   ViewDailyTimeRecordResponse,
   ViewTimeLogsResponse,
 } from '@/typings/models.types'
-import { dailyTimeRecordsmockData } from '@/utils/mock-data'
 
 export type DailyTimeRecordPayload = {
   id: number
@@ -43,6 +42,19 @@ export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => 
   const countTimeLogs = ref<CountWarmBodiesResponse[]>([])
   const selectedDailyTimeRecords = ref<DailyTimeRecordResponse | null>(null)
 
+  const dailyTimeRecordInfo = reactive<DailyTimeRecordPayload>({
+    id: 0,
+    date: '',
+    ut: null,
+    is_edit_ut: null,
+    ot: null,
+    is_missing: null,
+    employee_remarks: null,
+    hr_remarks: null,
+    status: null,
+    warm_bodies: [],
+  })
+
   const fetchDailyTimeRecordsByMonth = async (date: Date, limit = 31) => {
     const individual = auth.authenticatedUser.user_profile?.individual_basic_detail as PersonnelResponse
     if (!individual) {
@@ -71,55 +83,35 @@ export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => 
     return responseBody
   }
 
-  const fetchDailyTimeRecords = async (limit = 10, page = 1, status?: string | string[]) => {
-    let filteredData = [...dailyTimeRecordsmockData]
-
-    // Normalize status filter
-    if (status) {
-      const statuses = Array.isArray(status) ? status.map((s) => s.toLowerCase()) : [status.toLowerCase()]
-
-      filteredData = filteredData.filter((item) => statuses.includes(item.status.toLowerCase()))
+  const fetchDailyTimeRecords = async () => {
+    const individual = auth.authenticatedUser.user_profile?.individual_basic_detail as PersonnelResponse
+    if (!individual?.employee) {
+      throw new Error('No employee data linked to current user')
     }
 
-    const total = filteredData.length
-    const start = (page - 1) * limit
-    const paginated = filteredData.slice(start, start + limit)
+    const uri = `/employees/${individual.employee.id}/daily-time-records/view-dtr?start_date=1900-01-01&end_date=2100-12-31&sort=asc`
 
-    dailyTimeRecords.value = [...paginated]
-
-    return {
-      success: true,
-      data: paginated,
-      pagination: {
-        current_page: page,
-        last_page: Math.ceil(total / limit),
-        per_page: limit,
-        total,
-        from: start + 1,
-        to: start + paginated.length,
-        first_page_url: '',
-        last_page_url: '',
-        next_page_url: null,
-        previous_page_url: null,
-        path: '',
-      },
-    }
-  }
-  const fetchDailyTimeRecordsById = async (id: string) => {
-    await new Promise((resolve) => setTimeout(resolve, 300))
-
-    const foundData = dailyTimeRecordsmockData.find((dtr) => dtr.id === parseInt(id))
-
-    const responseBody = {
-      success: !!foundData,
-      data: foundData || null,
-      message: foundData ? 'Data fetched successfully.' : 'Record not found.',
-    }
+    const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
+    const responseBody: ApiResponseBody = data.value
 
     if (responseBody.success) {
-      selectedDailyTimeRecords.value = responseBody.data
+      const dailyTimeRecordList = Array.isArray(responseBody.data) ? (responseBody.data as DailyTimeRecordResponse[]) : []
+      dailyTimeRecords.value = [...dailyTimeRecordList]
     }
+    return responseBody
+  }
 
+  const fetchDailyTimeRecordsById = async (id: string) => {
+    const individual = auth.authenticatedUser.user_profile?.individual_basic_detail as PersonnelResponse
+    if (!individual?.employee) {
+      throw new Error('No employee data linked to current user')
+    }
+    const url = `/employees/${individual.employee.id}/daily-time-records/${id}`
+    const { data } = await useApiCall(url, auth.authenticationToken).get().json()
+    const responseBody: ApiResponseBody = data.value
+    if (responseBody.success) {
+      selectedDailyTimeRecords.value = responseBody.data as DailyTimeRecordResponse
+    }
     return responseBody
   }
 
@@ -215,6 +207,7 @@ export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => 
 
   return {
     dailyTimeRecords,
+    dailyTimeRecordInfo,
     createDailyTimeRecords,
     fetchDailyTimeRecords,
     fetchDailyTimeRecordsByMonth,
