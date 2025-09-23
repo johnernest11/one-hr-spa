@@ -106,6 +106,12 @@ const formRules = computed(() => ({
       ),
       maxLength: globalStringMaxLengthRule,
     },
+    place_of_examination: {
+      maxLength: globalStringMaxLengthRule,
+    },
+    license_number: {
+      maxLength: globalStringMaxLengthRule,
+    },
     license_date_of_validity: {
       isAfterOrEqualFromDate: helpers.withMessage(
         'License Date of Validity should not be earlier than the Date of Examination Conferment',
@@ -314,7 +320,20 @@ const handleRemoveEligibility = (eligibilityIndex: number) => {
       _delete: true,
     }
   } else {
-    payload.individual_eligibility.splice(idx, 1)
+    if (payload.individual_eligibility.length === 1) {
+      payload.individual_eligibility[idx] = {
+        id: null,
+        eligibility: null,
+        rating: null,
+        date_of_examination_conferment: null,
+        place_of_examination: null,
+        license_number: null,
+        license_date_of_validity: null,
+        _delete: null,
+      }
+    } else {
+      payload.individual_eligibility.splice(idx, 1)
+    }
   }
 }
 
@@ -677,7 +696,7 @@ defineExpose({
                               />
                               <!-- Delete button aligned right, below label -->
                               <Button
-                                v-show="eligibilityIndex > 0"
+                                v-show="eligibilityIndex > 1"
                                 :id="getId(`button-remove-eligibility-${eligibilityIndex}`)"
                                 icon="pi pi-trash"
                                 @click="handleRemoveEligibility(eligibilityIndex)"
