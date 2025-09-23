@@ -37,7 +37,7 @@ const recentLogs = ref<string[]>([])
 
 const startTimeLogs = () => {
   if (selectedOffice.value) {
-    localStorage.setItem('timelogOfficeId', selectedOffice.value.value as string)
+    dailyLogsStore.timelogOfficeId = selectedOffice.value.value as string
     showOfficeSelectionModal.value = false
   }
 }
@@ -70,10 +70,11 @@ const updateDateTime = () => {
 }
 
 onMounted(async () => {
-  const storedOfficeId = localStorage.getItem('timelogOfficeId')
-  if (storedOfficeId) {
+  await librariesStore.fetchOffices()
+
+  if (dailyLogsStore.timelogOfficeId) {
     showOfficeSelectionModal.value = false
-    selectedOffice.value = librariesStore.officeOptions.find((office) => office.value === storedOfficeId)
+    selectedOffice.value = librariesStore.officeOptions.find((office) => office.value === dailyLogsStore.timelogOfficeId)
   } else {
     showOfficeSelectionModal.value = true
   }
