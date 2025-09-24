@@ -11,6 +11,7 @@ export enum AuthRole {
   EMPLOYEE = 'employee',
   SECTION_HEAD = 'section_head',
   DIVISION_HEAD = 'division_head',
+  TIME_LOGGER = 'time_logger',
   HR_PAS_ADMIN = 'hr_pas_admin',
   HR_PPMS_ADMIN = 'hr_ppms_admin',
   SYSTEM_SUPPORT = 'system_support',

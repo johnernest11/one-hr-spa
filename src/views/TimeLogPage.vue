@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, Ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { QrcodeStream, DetectedBarcode } from 'vue-qrcode-reader'
 import { useDailyLogsStore } from '@/stores/daily-logs.store'
 import { useLibrariesStore } from '@/stores/libraries.store'
+import { useAuthStore } from '@/stores/auth.store'
+import { useRoute } from 'vue-router'
 import Dialog from 'primevue/dialog'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { getManilaTodayISO, formatTime } from '@/utils/helpers.ts'
@@ -116,6 +118,8 @@ const seconds: Ref<string> = ref('')
 const showModal: Ref<boolean> = ref(false)
 const showOfficeSelectionModal: Ref<boolean> = ref(true)
 const dailyLogsStore = useDailyLogsStore()
+const authStore = useAuthStore()
+const route = useRoute()
 const librariesStore = useLibrariesStore()
 const todayISO = ref('')
 const errorMessage = ref<string | null>(null)
@@ -130,7 +134,7 @@ const intervalId = ref<number | undefined>(undefined)
 
 const qrStreamRef = ref<InstanceType<typeof QrcodeStream> | null>(null)
 
-const selectedOffice = ref<WbAutoCompleteOption | null>(null)
+const selectedOffice = ref<WbAutoCompleteOption | null | undefined>(null)
 
 const startKiosk = () => {
   if (selectedOffice.value) {
@@ -198,7 +202,28 @@ onMounted(async () => {
   intervalId.value = window.setInterval(updateDateTime, 1000)
   checkScreenSize()
   window.addEventListener('resize', checkScreenSize)
+
+  await dailyLogsStore.fetchWarmBodySummary(today)
+  await updateDailyLogsState(today)
 })
+
+watch(
+  () => route.name,
+  (newName) => {
+    // Need to get it from sessionStorage since for some reason, authStore.authenticationTokenExpiration is null on second or more navigation to time-logs
+    const expiration = sessionStorage.getItem('auth-token-expiration')
+    const userRoles = authStore.authRoles
+
+    if (newName === 'time-logs' && expiration && userRoles.includes('time_logger')) {
+      authStore.clearScheduledRefresh()
+      authStore.scheduleTokenRefresh(new Date(expiration))
+      console.log('Token refresh scheduler is now active...')
+    } else {
+      authStore.clearScheduledRefresh()
+    }
+  },
+  { immediate: true }
+)
 
 onUnmounted(() => {
   if (intervalId.value) {
@@ -387,6 +412,7 @@ const latestWarmBodyLogs = computed(() => {
             :loading="librariesStore.officeOptionsLoading"
             placeholder="Type to select from the list of official stations to proceed"
             v-model="selectedOffice"
+            label=""
             optionLabel="label"
             optionValue="value"
             forceSelection
