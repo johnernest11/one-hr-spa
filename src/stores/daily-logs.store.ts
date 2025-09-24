@@ -68,6 +68,7 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
 
     const payload = {
       scanned_qr: rawQrText,
+      captured_image: capturedImage,
     }
 
     try {
