@@ -404,6 +404,18 @@ export const isAfterOrEqualFromDate = (getFromDate: () => string | null) => (val
 }
 
 /**
+ * Validator: ensures a given date is not in the future.
+ */
+export const notInFuture = (val: string | number | Date | null) => {
+  if (!helpers.req(val)) return true // skip if empty
+  const date = new Date(val as string | number | Date)
+  if (isNaN(date.getTime())) return true
+  const today = new Date()
+  today.setHours(0, 0, 0, 0) // normalize to midnight
+  return date <= today
+}
+
+/**
  * Summarizes leave date ranges by grouping consecutive dates into ranges.
  * Formats multiple ranges (or single dates) into a compact string.
  *
