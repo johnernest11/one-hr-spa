@@ -13,6 +13,7 @@ defineOptions({
 
 /** Props */
 type WbTextAreaProps = {
+  modelValue?: string
   label: string
   required?: boolean
   invalid?: boolean
@@ -38,6 +39,10 @@ const props = withDefaults(defineProps<WbTextAreaProps>(), {
   validationSuccessMessageClass: '',
   rows: 5, // Default rows for textarea
 })
+
+const emit = defineEmits<{
+  (e: 'update:modelValue', value: string): void
+}>()
 </script>
 
 <template>
@@ -62,6 +67,8 @@ const props = withDefaults(defineProps<WbTextAreaProps>(), {
         v-bind="$attrs"
         :aria-describedby="`${$.uid.toString()}-help`"
         :rows="props.rows"
+        :value="props.modelValue"
+        @input="emit('update:modelValue', ($event.target as HTMLTextAreaElement).value)"
         :class="`min-h-[3rem] w-full resize-y rounded-md border border-surface-300 bg-surface-0 p-3 text-surface-800 shadow-sm outline-none transition-all duration-300 ease-in-out focus:text-surface-900 dark:border-surface-700 dark:bg-surface-900 dark:text-surface-0 ${$slots['prepend-icon'] ? 'pl-10' : ''} ${
           props.invalid ? 'ring-2 !ring-error-500 dark:!ring-error-300' : '' // Added ring-2 for invalid state
         } ${$attrs.disabled ? '!bg-surface-100 hover:cursor-not-allowed dark:!bg-surface-800 dark:!text-surface-0/70' : ''}`"

@@ -3,6 +3,8 @@ import { ref, onMounted, onUnmounted, computed, Ref } from 'vue'
 import { QrcodeStream, DetectedBarcode } from 'vue-qrcode-reader'
 import { useDailyLogsStore } from '@/stores/daily-logs.store'
 import { useLibrariesStore } from '@/stores/libraries.store'
+import { useAuthStore } from '@/stores/auth.store'
+import { useRoute } from 'vue-router'
 import Dialog from 'primevue/dialog'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { getManilaTodayISO, formatTime } from '@/utils/helpers.ts'
@@ -17,6 +19,8 @@ const seconds: Ref<string> = ref('')
 const showModal: Ref<boolean> = ref(false)
 const showOfficeSelectionModal: Ref<boolean> = ref(true)
 const dailyLogsStore = useDailyLogsStore()
+const authStore = useAuthStore()
+const route = useRoute()
 const librariesStore = useLibrariesStore()
 const todayISO = ref('')
 const errorMessage = ref<string | null>(null)
@@ -31,7 +35,7 @@ const intervalId = ref<number | undefined>(undefined)
 
 const qrStreamRef = ref<InstanceType<typeof QrcodeStream> | null>(null)
 
-const selectedOffice = ref<WbAutoCompleteOption | null>(null)
+const selectedOffice = ref<WbAutoCompleteOption | null | undefined>(null)
 
 const recentLogs = ref<string[]>([])
 
@@ -84,9 +88,26 @@ onMounted(async () => {
   intervalId.value = window.setInterval(updateDateTime, 1000)
   checkScreenSize()
   window.addEventListener('resize', checkScreenSize)
-
-  await updateDailyLogsState(todayISO.value)
+  await dailyLogsStore.fetchWarmBodySummary(today)
+  await updateDailyLogsState(today)
 })
+
+watch(
+  () => route.name,
+  (newName) => {
+    const expiration = sessionStorage.getItem('auth-token-expiration')
+    const userRoles = authStore.authRoles
+
+    if (newName === 'time-logs' && expiration && userRoles.includes('time_logger')) {
+      authStore.clearScheduledRefresh()
+      authStore.scheduleTokenRefresh(new Date(expiration))
+      console.log('Token refresh scheduler is now active...')
+    } else {
+      authStore.clearScheduledRefresh()
+    }
+  },
+  { immediate: true }
+)
 
 onUnmounted(() => {
   if (intervalId.value) clearInterval(intervalId.value)
@@ -234,6 +255,7 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
             :loading="librariesStore.officeOptionsLoading"
             placeholder="Type to select from the list of official stations to proceed"
             v-model="selectedOffice"
+            label=""
             optionLabel="label"
             optionValue="value"
             forceSelection

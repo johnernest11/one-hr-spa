@@ -20,6 +20,9 @@ export type AuthResponse = {
   token_name: string
   expires_at: string
   user: UserResponse
+  refresh_token: string | null
+  refresh_token_name: string | null
+  refresh_token_expires_at: string | null
 }
 
 type MfaResponseData = {
@@ -75,6 +78,7 @@ export type VerifyEmailPayload = {
 }
 
 export const useAuthStore = defineStore('auth', () => {
+  const refreshTimer = ref<number | null>(null)
   /**
    * States
    * We use sessionStorage to hydrate state when the page reloads
@@ -89,6 +93,20 @@ export const useAuthStore = defineStore('auth', () => {
     mergeDefaults: true,
   })
   const authExpired = ref(false)
+
+  const authenticationTokenExpiration = useStorage<Date>('auth-token-expiration', null, sessionStorage, {
+    serializer: StorageSerializers.date,
+  })
+
+  const refreshToken = useStorage<string>('refresh-token', null, localStorage, {
+    serializer: StorageSerializers.string,
+  })
+
+  const refreshTokenExpiration = useStorage<Date>('refresh-token-expiration', null, localStorage, {
+    serializer: StorageSerializers.date,
+  })
+
+  const refreshTokenExpired = ref(false)
 
   const mfaToken = useStorage<string>('mfa-token', null, sessionStorage, {
     serializer: StorageSerializers.string,
@@ -193,7 +211,16 @@ export const useAuthStore = defineStore('auth', () => {
       const authResponse = response as AuthResponse
       authenticationToken.value = authResponse.token
       authenticatedUser.value = authResponse.user
+      authenticationTokenExpiration.value = new Date(authResponse.expires_at)
+
+      if (authResponse.refresh_token && authResponse.refresh_token_expires_at) {
+        refreshToken.value = authResponse.refresh_token
+        refreshTokenExpiration.value = new Date(authResponse.refresh_token_expires_at)
+        scheduleTokenRefresh(authenticationTokenExpiration.value)
+      }
+
       authExpired.value = false
+      refreshTokenExpired.value = false
     }
 
     return responseData
@@ -207,6 +234,7 @@ export const useAuthStore = defineStore('auth', () => {
       const authResponse = responseBody.data as AuthResponse
       authenticationToken.value = authResponse.token
       authenticatedUser.value = authResponse.user
+      authenticationTokenExpiration.value = new Date(authResponse.expires_at)
       authExpired.value = false
       return responseBody
     }
@@ -233,6 +261,7 @@ export const useAuthStore = defineStore('auth', () => {
       const authResponse = responseBody.data as AuthResponse
       authenticationToken.value = authResponse.token
       authenticatedUser.value = authResponse.user
+      authenticationTokenExpiration.value = new Date(authResponse.expires_at)
       authExpired.value = false
     }
 
@@ -243,9 +272,21 @@ export const useAuthStore = defineStore('auth', () => {
     await useApiCall('auth/tokens', authenticationToken.value).delete()
     authenticatedUser.value = null
     authenticationToken.value = null
+    authenticationTokenExpiration.value = null
     authExpired.value = false
     mfaToken.value = null
     mfaSteps.value = null
+
+    if (refreshToken.value) {
+      refreshToken.value = null
+      refreshTokenExpiration.value = null
+      refreshTokenExpired.value = false
+    }
+
+    if (refreshTimer.value) {
+      clearTimeout(refreshTimer.value)
+      refreshTimer.value = null
+    }
   }
 
   const requestForgotPassword = async (email: string) => {
@@ -310,6 +351,7 @@ export const useAuthStore = defineStore('auth', () => {
         const authResponse = responseBody.data as AuthResponse
         authenticationToken.value = authResponse.token
         authenticatedUser.value = authResponse.user
+        authenticationTokenExpiration.value = new Date(authResponse.expires_at)
         authExpired.value = false
       }
     }
@@ -359,10 +401,90 @@ export const useAuthStore = defineStore('auth', () => {
     return requiredRoles.some((r: string) => userRoles.includes(r))
   }
 
+  const refreshCurrentTokens = async () => {
+    if (!refreshToken.value) return
+
+    try {
+      const { data } = await useApiCall('auth/tokens/refresh', refreshToken.value).post().json()
+      const responseData: ApiResponseBody = data.value
+
+      if (responseData.success) {
+        const response = responseData.data
+        const authResponse = response as AuthResponse
+
+        authenticationToken.value = authResponse.token
+        authenticatedUser.value = authResponse.user
+        authenticationTokenExpiration.value = new Date(authResponse.expires_at)
+        authExpired.value = false
+
+        if (authResponse.refresh_token || authResponse.refresh_token_expires_at) {
+          refreshToken.value = authResponse.refresh_token
+          refreshTokenExpiration.value = authResponse.refresh_token_expires_at
+            ? new Date(authResponse.refresh_token_expires_at)
+            : null
+          refreshTokenExpired.value = false
+
+          scheduleTokenRefresh(authenticationTokenExpiration.value)
+          console.log('Token is refreshed!')
+        }
+      } else {
+        refreshTokenExpired.value = true
+        clearScheduledRefresh()
+        throw new Error(responseData.error_message)
+      }
+
+      return responseData
+    } catch (err) {
+      console.error('Refresh token request failed', err)
+      refreshTokenExpired.value = true
+      clearScheduledRefresh()
+      throw err
+    }
+  }
+
+  /**
+   * Schedule proactive refresh
+   */
+  const scheduleTokenRefresh = (expiresAt: Date | null): void => {
+    if (!expiresAt) return
+    if (refreshTokenExpired.value) return
+
+    if (refreshTimer.value) {
+      clearScheduledRefresh()
+    }
+
+    const refreshIn = expiresAt.getTime() - Date.now() - 5000
+    if (refreshIn <= 0) return
+
+    console.log('Initializing token refresh scheduler...')
+    refreshTimer.value = window.setTimeout(async () => {
+      try {
+        console.log('Token is nearing expiration. Refreshing...')
+        await refreshCurrentTokens()
+      } catch (err) {
+        console.error('Auto refresh failed', err)
+        refreshTokenExpired.value = true
+        clearScheduledRefresh()
+      }
+    }, refreshIn)
+  }
+
+  const clearScheduledRefresh = () => {
+    if (refreshTimer.value !== null) {
+      console.log('Token refresh scheduler cleared.')
+      clearTimeout(refreshTimer.value)
+      refreshTimer.value = null
+    }
+  }
+
   return {
     authenticationToken,
     authenticatedUser,
     authExpired,
+    authenticationTokenExpiration,
+    refreshToken,
+    refreshTokenExpiration,
+    refreshTokenExpired,
     isAuthenticated,
     authEmailIsVerified,
     avatarDisplayNamePlaceholder: authAvatarDisplayNamePlaceholder,
@@ -388,5 +510,8 @@ export const useAuthStore = defineStore('auth', () => {
     verifyMfaBackupCode,
     fetchAllAvailableMfaMethods,
     unEnrollUserFromMfaMethod,
+    refreshCurrentTokens,
+    scheduleTokenRefresh,
+    clearScheduledRefresh,
   }
 })
