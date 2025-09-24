@@ -31,7 +31,7 @@ const intervalId = ref<number | undefined>(undefined)
 
 const qrStreamRef = ref<InstanceType<typeof QrcodeStream> | null>(null)
 
-const selectedOffice = ref<WbAutoCompleteOption | null | undefined>(null)
+const selectedOffice = ref<WbAutoCompleteOption | null>(null)
 
 const recentLogs = ref<string[]>([])
 
@@ -85,6 +85,8 @@ onMounted(async () => {
   intervalId.value = window.setInterval(updateDateTime, 1000)
   checkScreenSize()
   window.addEventListener('resize', checkScreenSize)
+
+  await updateDailyLogsState(todayISO.value)
 })
 
 onUnmounted(() => {
@@ -117,47 +119,57 @@ const capturePhoto = () => {
   return null
 }
 
-const onDecode = async (result: string) => {
-  if (scanTimeoutId.value) {
-    clearTimeout(scanTimeoutId.value)
-    scanTimeoutId.value = undefined
-  }
-  if (showModal.value) handleCloseDialog()
+const modalTimeoutId = ref<number | null>(null)
 
-  dailyLogsStore.clearScannedEmployee()
+const handleCloseDialog = () => {
+  showModal.value = false
   errorMessage.value = null
-
-  const capturedImage = capturePhoto()
-
-  if (!result || result.trim() === '') {
-    dailyLogsStore.lastLogMessage = 'Empty QR code scanned. Please try again.'
-    showModal.value = true
-    isProcessingScan.value = false
-    scanTimeoutId.value = setTimeout(() => handleCloseDialog(), MODAL_DISPLAY_DURATION_MS) as unknown as number
-    return
+  dailyLogsStore.clearScannedEmployee()
+  if (modalTimeoutId.value) {
+    clearTimeout(modalTimeoutId.value)
+    modalTimeoutId.value = null
   }
+}
+
+const onDecode = async (rawQrText: string) => {
+  if (isProcessingScan.value) return
+  isProcessingScan.value = true
 
   try {
-    const response = await dailyLogsStore.logEmployeeTime(result, capturedImage)
+    handleCloseDialog()
 
-    if (response?.data?.log) {
-      const newLog = response.data.log
+    const capturedImage = capturePhoto()
+    const response = await dailyLogsStore.logEmployeeTime({
+      scanned_qr: rawQrText,
+      captured_image: capturedImage,
+    })
 
-      if (!newLog.captured_image && capturedImage) {
-        newLog.captured_image = capturedImage
-      }
-
-      recentLogs.value.unshift(newLog)
-      recentLogs.value = recentLogs.value.slice(0, 10)
-
+    if (!response.success) {
+      errorMessage.value = response.error_message || response.message || 'Failed to log time.'
       showModal.value = true
-    } else {
-      dailyLogsStore.lastLogMessage = 'QR Code not recognized. Please try again.'
-      showModal.value = true
+      return
     }
-  } catch (err) {
-    dailyLogsStore.lastLogMessage = 'An error occurred while logging. Please try again.'
+
     showModal.value = true
+
+    recentLogs.value.unshift({
+      ...(response.data as string),
+      captured_image: capturedImage,
+      created_at: new Date().toISOString(),
+    })
+
+    void dailyLogsStore.fetchWarmBodySummary(getManilaTodayISO())
+    void dailyLogsStore.fetchDailyLogs(getManilaTodayISO())
+
+    modalTimeoutId.value = window.setTimeout(() => {
+      handleCloseDialog()
+    }, MODAL_DISPLAY_DURATION_MS)
+  } catch (err) {
+    console.error('Error logging employee time:', err)
+    errorMessage.value = 'An error occurred while logging the time.'
+    showModal.value = true
+  } finally {
+    isProcessingScan.value = false
   }
 }
 
@@ -198,12 +210,6 @@ const dynamicSuccessMessage = computed(() => {
   return 'Processing...'
 })
 
-const handleCloseDialog = () => {
-  showModal.value = false
-  errorMessage.value = null
-  dailyLogsStore.clearScannedEmployee()
-}
-
 const latestWarmBodyLogs = computed(() => recentLogs.value)
 </script>
 
@@ -233,7 +239,6 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
             :loading="librariesStore.officeOptionsLoading"
             placeholder="Type to select from the list of official stations to proceed"
             v-model="selectedOffice"
-            label=""
             optionLabel="label"
             optionValue="value"
             forceSelection
