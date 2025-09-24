@@ -57,7 +57,9 @@ const handleSubmit = async () => {
     const resultC4 = await c4FormRef.value?.handleSaveC4Form?.()
     if (resultC4?.valid === false) return
 
-    window.location.reload()
+    if (route.query.mode !== 'via-pds-importation') {
+      window.location.reload()
+    }
   } finally {
     isSubmitting.value = false
   }
@@ -97,7 +99,7 @@ const handleUpdate = async () => {
           <span class="flex flex-col justify-center">
             <p class="text-xl md:text-3xl">Personal Data Sheet</p>
             <p v-if="isImporting" class="text-lg md:text-xl lg:text-2xl">Reviewing Imported Information</p>
-            <p class="text-surface-500">{{ lcFirst(pdsStore.pdsMode) }}</p>
+            <p v-if="!isEditMode" class="text-surface-500">{{ lcFirst(pdsStore.pdsMode) }}</p>
           </span>
         </div>
 
