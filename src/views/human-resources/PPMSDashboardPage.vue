@@ -131,19 +131,34 @@ const handleFilterEmployees = () => {
 
       <!-- Counters -->
       <div class="mb-6 grid grid-cols-1 gap-6 md:grid-cols-3">
-        <div class="rounded-xl bg-white p-4 text-center shadow">
-          <h2 class="text-lg font-semibold text-gray-600">Total Positions</h2>
-          <p class="text-2xl font-bold text-blue-600">{{ totalPositions }}</p>
+        <div class="flex items-center rounded-xl bg-white p-4 shadow">
+          <div class="flex-1 text-center md:text-left">
+            <font-awesome-icon :icon="['fas', 'users']" class="text-3xl text-blue-600" />
+          </div>
+          <div class="flex-1 text-center md:text-left">
+            <h2 class="text-lg font-semibold text-gray-600">Total Positions</h2>
+            <p class="text-2xl font-bold text-blue-600">{{ totalPositions }}</p>
+          </div>
         </div>
 
-        <div class="rounded-xl bg-white p-4 text-center shadow">
-          <h2 class="text-lg font-semibold text-gray-600">Filled Positions</h2>
-          <p class="text-2xl font-bold text-green-600">{{ totalFilled }}</p>
+        <div class="flex items-center rounded-xl bg-white p-4 shadow">
+          <div class="flex-1 text-center md:text-left">
+            <font-awesome-icon :icon="['fas', 'sitemap']" class="text-3xl text-green-600" />
+          </div>
+          <div class="flex-1 text-center md:text-left">
+            <h2 class="text-lg font-semibold text-gray-600">Filled Positions</h2>
+            <p class="text-2xl font-bold text-green-600">{{ totalFilled }}</p>
+          </div>
         </div>
 
-        <div class="rounded-xl bg-white p-4 text-center shadow">
-          <h2 class="text-lg font-semibold text-gray-600">Unfilled Positions</h2>
-          <p class="text-2xl font-bold text-red-600">{{ totalUnfilled }}</p>
+        <div class="flex items-center rounded-xl bg-white p-4 shadow">
+          <div class="flex-1 text-center md:text-left">
+            <font-awesome-icon :icon="['fas', 'users-slash']" class="text-3xl text-red-600" />
+          </div>
+          <div class="flex-1 text-center md:text-left">
+            <h2 class="text-lg font-semibold text-gray-600">Unfilled Positions</h2>
+            <p class="text-2xl font-bold text-red-600">{{ totalUnfilled }}</p>
+          </div>
         </div>
       </div>
 
