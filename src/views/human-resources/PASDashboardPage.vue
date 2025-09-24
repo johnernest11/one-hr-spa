@@ -16,7 +16,7 @@ const selectedSectionUnit = ref<string | null>(null)
 const selectedDivisionLabel = ref<string | null>(null)
 const selectedSectionLabel = ref<string | null>(null)
 
-const employees = ref<string[]>([
+const employees = ref([
   {
     id: 1,
     name: 'Juan Dela Cruz',
@@ -27,6 +27,8 @@ const employees = ref<string[]>([
     disbursedTotal: 120,
     unfilled: 10,
     totalPositions: 130,
+    onLeave: 2,
+    payroll: 50000,
   },
   {
     id: 2,
@@ -38,6 +40,8 @@ const employees = ref<string[]>([
     disbursedTotal: 90,
     unfilled: 5,
     totalPositions: 95,
+    onLeave: 0,
+    payroll: 45000,
   },
   {
     id: 3,
@@ -49,6 +53,8 @@ const employees = ref<string[]>([
     disbursedTotal: 150,
     unfilled: 15,
     totalPositions: 165,
+    onLeave: 5,
+    payroll: 60000,
   },
   {
     id: 4,
@@ -60,6 +66,8 @@ const employees = ref<string[]>([
     disbursedTotal: 100,
     unfilled: 0,
     totalPositions: 100,
+    onLeave: 0,
+    payroll: 40000,
   },
 ])
 
@@ -67,7 +75,9 @@ const totalDisbursed = computed(() => filteredEmployees.value.reduce((sum, e) =>
 
 const currentYear = new Date().getFullYear()
 const currentMonth = new Date().getMonth() + 1
-
+const totalEmployees = computed(() => filteredEmployees.value.length)
+const totalOnleave = computed(() => filteredEmployees.value.reduce((sum, e) => sum + (e.onLeave || 0), 0))
+const totalPayroll = computed(() => filteredEmployees.value.reduce((sum, e) => sum + (e.payroll || 0), 0))
 const selectedYear = ref<number | null>(currentYear)
 const selectedMonth = ref<number | null>(currentMonth)
 
@@ -148,7 +158,29 @@ function getId(id: string) {
         </div>
       </div>
 
-      <div class="mb-6 grid grid-cols-1 gap-6 md:grid-cols-4">
+      <div class="mb-12 grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div class="flex items-center rounded-xl bg-white p-4 shadow">
+          <div class="flex-1 text-center md:text-left">
+            <font-awesome-icon :icon="['fas', 'users-slash']" class="text-3xl text-red-600" />
+          </div>
+          <div class="flex-1 text-center md:text-left">
+            <h2 class="text-lg font-semibold text-gray-600">Employees on leave</h2>
+            <p class="text-2xl font-bold text-red-600">{{ totalOnleave }}</p>
+          </div>
+        </div>
+
+        <div class="flex items-center rounded-xl bg-white p-4 shadow">
+          <div class="flex-1 text-center md:text-left">
+            <font-awesome-icon :icon="['fas', 'peso-sign']" class="text-3xl text-yellow-600" />
+          </div>
+          <div class="flex-1 text-center md:text-left">
+            <h2 class="text-lg font-semibold text-gray-600">Total Payroll</h2>
+            <p class="text-2xl font-bold text-yellow-600">{{ totalPayroll }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
         <div class="flex items-center rounded-xl bg-white p-4 shadow">
           <div class="flex-1 text-center md:text-left">
             <font-awesome-icon :icon="['fas', 'map-location-dot']" class="text-3xl text-green-600" />
@@ -166,26 +198,6 @@ function getId(id: string) {
           <div class="flex-1 text-center md:text-left">
             <h2 class="text-lg font-semibold text-gray-600">Total Employees</h2>
             <p class="text-2xl font-bold text-blue-600">{{ totalEmployees }}</p>
-          </div>
-        </div>
-
-        <div class="flex items-center rounded-xl bg-white p-4 shadow">
-          <div class="flex-1 text-center md:text-left">
-            <font-awesome-icon :icon="['fas', 'users-slash']" class="text-3xl text-red-600" />
-          </div>
-          <div class="flex-1 text-center md:text-left">
-            <h2 class="text-lg font-semibold text-gray-600">Employees on leave</h2>
-            <p class="text-2xl font-bold text-red-600">{{ totalUnfilled }}</p>
-          </div>
-        </div>
-
-        <div class="flex items-center rounded-xl bg-white p-4 shadow">
-          <div class="flex-1 text-center md:text-left">
-            <font-awesome-icon :icon="['fas', 'peso-sign']" class="text-3xl text-yellow-600" />
-          </div>
-          <div class="flex-1 text-center md:text-left">
-            <h2 class="text-lg font-semibold text-gray-600">Total Payroll</h2>
-            <p class="text-2xl font-bold text-yellow-600">{{ totalUnfilled }}</p>
           </div>
         </div>
       </div>
