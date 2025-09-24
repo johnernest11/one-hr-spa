@@ -31,7 +31,7 @@ const intervalId = ref<number | undefined>(undefined)
 
 const qrStreamRef = ref<InstanceType<typeof QrcodeStream> | null>(null)
 
-const selectedOffice = ref<WbAutoCompleteOption | null>(null)
+const selectedOffice = ref<WbAutoCompleteOption | null | undefined>(null)
 
 const recentLogs = ref<string[]>([])
 
@@ -85,8 +85,6 @@ onMounted(async () => {
   intervalId.value = window.setInterval(updateDateTime, 1000)
   checkScreenSize()
   window.addEventListener('resize', checkScreenSize)
-
-  await updateDailyLogsState(todayISO.value)
 })
 
 onUnmounted(() => {
@@ -235,6 +233,7 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
             :loading="librariesStore.officeOptionsLoading"
             placeholder="Type to select from the list of official stations to proceed"
             v-model="selectedOffice"
+            label=""
             optionLabel="label"
             optionValue="value"
             forceSelection

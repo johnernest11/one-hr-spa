@@ -39,6 +39,7 @@ const routes = [
         AuthRole.ADMIN,
         AuthRole.SUPER_USER,
         AuthRole.SYSTEM_SUPPORT,
+        AuthRole.TIME_LOGGER,
       ],
     },
   },
@@ -71,7 +72,7 @@ const routes = [
       isSidebarMenu: true,
       authType: AuthType.AUTHENTICATED,
       hideNavigation: true,
-      roles: [AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER, AuthRole.SYSTEM_SUPPORT],
+      roles: [AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER, AuthRole.SYSTEM_SUPPORT, AuthRole.TIME_LOGGER],
     },
   },
   /*Request Routes */
@@ -321,7 +322,7 @@ const routes = [
         name: 'my-payslip/editor',
         component: () => import('@/components/payslip/PayslipView.vue'),
         meta: <RouteMeta>{
-          isSidebarMenu: false,
+          label: 'Payslip',
           authType: AuthType.AUTHENTICATED,
           roles: [
             AuthRole.STANDARD_USER,
@@ -355,13 +356,32 @@ const routes = [
           ],
         },
       },
+      {
+        path: '/my-monthly-dtrs/:id?/:year/:month',
+        name: 'my-monthly-dtrs',
+        component: () => import('@/components/dtr/MyDTR.vue'),
+        meta: <RouteMeta>{
+          label: 'Daily Time Record',
+          authType: AuthType.AUTHENTICATED,
+          roles: [
+            AuthRole.STANDARD_USER,
+            AuthRole.SECTION_HEAD,
+            AuthRole.DIVISION_HEAD,
+            AuthRole.HR_PPMS_ADMIN,
+            AuthRole.HR_PAS_ADMIN,
+            AuthRole.ADMIN,
+            AuthRole.SUPER_USER,
+            AuthRole.SYSTEM_SUPPORT,
+          ],
+        },
+      },
 
       {
-        path: '/my-dtrs/list',
+        path: '/my-dtrs/list/:id?',
         name: 'my-dtrs/list',
         component: () => import('@/components/dtr/DTRList.vue'),
         meta: <RouteMeta>{
-          isSidebarMenu: false,
+          label: 'Daily Time Record',
           authType: AuthType.AUTHENTICATED,
           roles: [
             AuthRole.STANDARD_USER,
@@ -1196,6 +1216,15 @@ router.beforeEach(async (to, from) => {
 
   // Protect routes that need authentication
   if (to.meta.authType === AuthType.AUTHENTICATED && !authStore.isAuthenticated) {
+    if (authStore.refreshToken) {
+      try {
+        await authStore.refreshCurrentTokens()
+        return { name: 'time-logs' }
+      } catch (err) {
+        console.error('Failed to refresh tokens:', err)
+        return { name: 'login' }
+      }
+    }
     if (authStore.mfaToken) return { name: 'mfa-guard-page' }
     return { name: 'login' }
   }
