@@ -148,11 +148,45 @@ function getId(id: string) {
         </div>
       </div>
 
-      <!-- Counters -->
-      <div class="mb-6 w-full gap-6 md:grid-cols-3">
-        <div class="rounded-xl bg-white p-4 text-center shadow">
-          <h2 class="text-lg font-semibold text-gray-600">Disbursed Locator Slips</h2>
-          <p class="text-2xl font-bold text-green-600">{{ totalDisbursed }}</p>
+      <div class="mb-6 grid grid-cols-1 gap-6 md:grid-cols-4">
+        <div class="flex items-center rounded-xl bg-white p-4 shadow">
+          <div class="flex-1 text-center md:text-left">
+            <font-awesome-icon :icon="['fas', 'map-location-dot']" class="text-3xl text-green-600" />
+          </div>
+          <div class="flex-1 text-center md:text-left">
+            <h2 class="text-lg font-semibold text-gray-600">Total Disbursed Locator Slips</h2>
+            <p class="text-2xl font-bold text-green-600">{{ totalDisbursed }}</p>
+          </div>
+        </div>
+
+        <div class="flex items-center rounded-xl bg-white p-4 shadow">
+          <div class="flex-1 text-center md:text-left">
+            <font-awesome-icon :icon="['fas', 'users']" class="text-3xl text-blue-600" />
+          </div>
+          <div class="flex-1 text-center md:text-left">
+            <h2 class="text-lg font-semibold text-gray-600">Total Employees</h2>
+            <p class="text-2xl font-bold text-blue-600">{{ totalEmployees }}</p>
+          </div>
+        </div>
+
+        <div class="flex items-center rounded-xl bg-white p-4 shadow">
+          <div class="flex-1 text-center md:text-left">
+            <font-awesome-icon :icon="['fas', 'users-slash']" class="text-3xl text-red-600" />
+          </div>
+          <div class="flex-1 text-center md:text-left">
+            <h2 class="text-lg font-semibold text-gray-600">Employees on leave</h2>
+            <p class="text-2xl font-bold text-red-600">{{ totalUnfilled }}</p>
+          </div>
+        </div>
+
+        <div class="flex items-center rounded-xl bg-white p-4 shadow">
+          <div class="flex-1 text-center md:text-left">
+            <font-awesome-icon :icon="['fas', 'peso-sign']" class="text-3xl text-yellow-600" />
+          </div>
+          <div class="flex-1 text-center md:text-left">
+            <h2 class="text-lg font-semibold text-gray-600">Total Payroll</h2>
+            <p class="text-2xl font-bold text-yellow-600">{{ totalUnfilled }}</p>
+          </div>
         </div>
       </div>
 
