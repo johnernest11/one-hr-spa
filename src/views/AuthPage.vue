@@ -34,6 +34,11 @@ const authStore = useAuthStore()
 const showLoginExpiredAlert = computed(() => {
   return authStore.authExpired
 })
+
+// Handle Refresh Token Expiration
+const showRefreshTokenExpiredAlert = computed(() => {
+  return authStore.refreshTokenExpired
+})
 </script>
 
 <template>
@@ -42,16 +47,20 @@ const showLoginExpiredAlert = computed(() => {
     <div class="flex min-w-0 flex-auto flex-col items-center lg:flex-row">
       <div
         :class="`relative hidden h-full flex-auto items-center justify-center overflow-hidden bg-primary-900 p-10 text-surface-0 transition-colors duration-500 md:hidden lg:flex ${
-          formHasWarning || showLoginExpiredAlert ? '!bg-warn-500' : ''
+          formHasWarning || showLoginExpiredAlert || showRefreshTokenExpiredAlert ? '!bg-warn-500' : ''
         } ${formHasError ? '!bg-error-500' : ''}`"
       >
         <div
           :class="`absolute inset-0 z-0 bg-gradient-to-b from-primary-500 to-primary-900 transition-colors duration-500 dark:from-primary-900 dark:to-primary-950 ${
-            formHasWarning || showLoginExpiredAlert ? '!from-warn-500 !to-warn-900 dark:!from-warn-800 ' : ''
+            formHasWarning || showLoginExpiredAlert || showRefreshTokenExpiredAlert
+              ? '!from-warn-500 !to-warn-900 dark:!from-warn-800 '
+              : ''
           } ${formHasError ? '!from-error-500 !to-error-900 dark:!from-error-800 ' : ''}`"
         ></div>
         <!-- Start Webkit Text -->
-        <div :class="`z-10 w-full max-w-md ${formHasError || formHasWarning || showLoginExpiredAlert ? 'animate-shake' : ''}`">
+        <div
+          :class="`z-10 w-full max-w-md ${formHasError || formHasWarning || showLoginExpiredAlert || showRefreshTokenExpiredAlert ? 'animate-shake' : ''}`"
+        >
           <div class="mb-6 font-menu font-bold leading-tight dark:text-surface-0 sm:text-4xl xl:text-5xl">Webkit (Prime)</div>
           <div class="xl:text-md font-normal text-surface-200 dark:text-surface-0 sm:text-sm">
             Nipper holystone six pounders barkadeer rutters Privateer hail-shot warp black spot fore. Knave six pounders
@@ -83,6 +92,7 @@ const showLoginExpiredAlert = computed(() => {
               class="mt-6 w-full lg:mt-0"
               @on-credentials-error="formHasError = true"
               :show-login-expired-alert="showLoginExpiredAlert"
+              :show-refresh-token-expired-alert="showRefreshTokenExpiredAlert"
             />
           </template>
           <template v-else>

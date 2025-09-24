@@ -324,7 +324,18 @@ export const usePdsStore = defineStore('pds', () => {
         license_date_of_validity: elgi.license_date_of_validity ?? null,
         _delete: elgi._delete ?? null,
       }))
-      : [],
+      : [
+        {
+          id: null,
+          eligibility: '',
+          rating: '',
+          date_of_examination_conferment: '',
+          place_of_examination: '',
+          license_number: '',
+          license_date_of_validity: '',
+          _delete: null,
+        },
+      ],
 
     individual_work_experience: Array.isArray(individual?.individual_work_experience)
       ? individual.individual_work_experience.map((exp) => ({
