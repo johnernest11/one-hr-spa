@@ -97,8 +97,8 @@ const toggleAccordion = (index: number) => {
   }
 }
 
-const normalizeTimeKey = (dtrTimeLogs: string, date: Date | string) =>
-  `${dtrTimeLogs}-${new Date(date).toISOString().slice(0, 10)}`
+const normalizeTimeKey = (dtrTimeLogs: string, date: Date | string | null) =>
+  `${dtrTimeLogs}-${date ? new Date(date).toISOString().slice(0, 10) : 'no-date'}`
 
 const handleViewDtr = async () => {
   try {
@@ -206,26 +206,21 @@ watch(
     dates.forEach((dtr) => {
       if (dtr.row?.time_log) {
         const slots = resolveDTRSlots(dtr.row.time_log)
-        remarksMap[`in1-${dtr.date.toISOString()}`] = slots.in1
-          ? formatDTRTime(toTimestamp(slots.in1.date, slots.in1.scanned_time))
-          : ''
 
-        remarksMap[`out1-${dtr.date.toISOString()}`] = slots.out1
-          ? formatDTRTime(toTimestamp(slots.out1.date, slots.out1.scanned_time))
-          : ''
+        const dateKey = dtr.date.toISOString()
 
-        remarksMap[`in2-${dtr.date.toISOString()}`] = slots.in2
-          ? formatDTRTime(toTimestamp(slots.in2.date, slots.in2.scanned_time))
-          : ''
+        remarksMap[`in1-${dateKey}`] = slots.in1 ? formatDTRTime(toTimestamp(slots.in1.date, slots.in1.scanned_time)) : ''
 
-        remarksMap[`out2-${dtr.date.toISOString()}`] = slots.out2
-          ? formatDTRTime(toTimestamp(slots.out2.date, slots.out2.scanned_time))
-          : ''
+        remarksMap[`out1-${dateKey}`] = slots.out1 ? formatDTRTime(toTimestamp(slots.out1.date, slots.out1.scanned_time)) : ''
 
-        const utKey = `ut-${dtr.date.toISOString()}`
-        const otKey = `ot-${dtr.date.toISOString()}`
-        const remarksKey = `employee_remarks-${dtr.date.toISOString()}`
-        const remarksHrKey = `hr_remarks-${dtr.date.toISOString()}`
+        remarksMap[`in2-${dateKey}`] = slots.in2 ? formatDTRTime(toTimestamp(slots.in2.date, slots.in2.scanned_time)) : ''
+
+        remarksMap[`out2-${dateKey}`] = slots.out2 ? formatDTRTime(toTimestamp(slots.out2.date, slots.out2.scanned_time)) : ''
+
+        const utKey = `ut-${dateKey}`
+        const otKey = `ot-${dateKey}`
+        const remarksKey = `employee_remarks-${dateKey}`
+        const remarksHrKey = `hr_remarks-${dateKey}`
 
         const dbUT = dtr.row?.ut ?? 0
         const dbOT = dtr.row?.ot ?? 0
@@ -260,10 +255,11 @@ const updateDTRTimeLogs = async () => {
   const dtrPayloads: UpdateDTRPayload['dtr'] = monthDates.value
     .map((item) => {
       const existingDTR = item.row
-      const remarksKey = `employee_remarks-${item.date.toISOString()}`
-      const remarksHrKey = `hr_remarks-${item.date.toISOString()}`
-      const utKey = `ut-${item.date.toISOString()}`
-      const otKey = `ot-${item.date.toISOString()}`
+      const dateKey = item.date.toISOString()
+      const remarksKey = `employee_remarks-${dateKey}`
+      const remarksHrKey = `hr_remarks-${dateKey}`
+      const utKey = `ut-${dateKey}`
+      const otKey = `ot-${dateKey}`
       const enteredRemarks = remarksMap[remarksKey] ?? ''
       const enteredHRRemarks = remarksMap[remarksHrKey] ?? ''
       const enteredUT = Number(remarksMap[utKey] ?? 0)
@@ -275,7 +271,7 @@ const updateDTRTimeLogs = async () => {
       const existingLogs = existingDTR?.time_log ?? []
 
       slots.forEach((slot) => {
-        const key = `${slot}-${item.date.toISOString()}`
+        const key = `${slot}-${dateKey}`
         const value = enteredTime[key]
 
         if (!value) return
@@ -416,6 +412,25 @@ const updateDTRTimeLogs = async () => {
   IsBeingUpdated.value = false
   formIsSubmitting.value = false
 }
+
+const getRemarksKey = (prefix: string, date?: Date | null): string => {
+  return `${prefix}-${date ? date.toISOString() : 'no-date'}`
+}
+
+const isEditedTimeLog = computed(() => {
+  return (slot: 'in1' | 'out1' | 'in2' | 'out2', logs: TimeLogResponse[] = []) => {
+    const slotLog = resolveDTRSlots(logs)[slot]
+    if (!slotLog) return false
+
+    return logs.some(
+      (log) =>
+        log.id === slotLog.id &&
+        log.is_in === slotLog.is_in &&
+        log.created_at &&
+        formatDateYMD(new Date(log.date)) !== formatDateYMD(new Date(log.created_at))
+    )
+  }
+})
 </script>
 
 <template>
@@ -434,7 +449,8 @@ const updateDTRTimeLogs = async () => {
           />
           <h2 class="mb-2 ml-4 text-3xl text-surface-600 dark:text-primary-100 md:ml-4">
             <font-awesome-icon :icon="['fas', 'calendar']" class="h-5 text-surface-600 sm:h-6 md:h-7" />
-            {{ route.params.id ? '' : 'My ' }}Daily Time Record (DTR) for {{ getMonthAndYear(monthDate.toISOString()) }}
+            {{ route.params.id ? '' : 'My ' }}Daily Time Record (DTR) for
+            {{ getMonthAndYear((monthDate?.toISOString() ?? new Date().toISOString()) || '') }}
             <br />
             <span v-if="currentEmployee" class="ml-4 text-lg text-surface-600 md:text-xl lg:text-2xl">
               {{ currentEmployee.last_name }} , {{ currentEmployee.first_name }} {{ currentEmployee.middle_name }}
@@ -537,7 +553,7 @@ const updateDTRTimeLogs = async () => {
                     }
                   "
                 >
-                  {{ getFormattedDTRDate(dtr.date.toISOString()) }}
+                  {{ getFormattedDTRDate((dtr.date?.toISOString() ?? new Date().toISOString()) || '') }}
                 </p>
 
                 <!-- Show details if active -->
@@ -563,24 +579,16 @@ const updateDTRTimeLogs = async () => {
               </div>
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">Day</p>
-                <p class="text-base text-surface-600">{{ getDTRDayOfWeek(dtr.date.toISOString()) }}</p>
+                <p class="text-base text-surface-600">
+                  {{ getDTRDayOfWeek((dtr.date?.toISOString() ?? new Date().toISOString()) || '') }}
+                </p>
               </div>
 
               <!-- IN 1 -->
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">IN 1</p>
                 <p
-                  v-if="
-                    dtr.row &&
-                    resolveDTRSlots(dtr.row.time_log ?? []).in1 &&
-                    dtr.row.time_log?.find(
-                      (log) =>
-                        log.id === resolveDTRSlots(dtr.row?.time_log ?? []).in1?.id &&
-                        log.is_in === true &&
-                        log.created_at &&
-                        formatDateYMD(new Date(log.date)) === formatDateYMD(new Date(log.created_at))
-                    )
-                  "
+                  v-if="dtr.row && resolveDTRSlots(dtr.row.time_log ?? []).in1 && !isEditedTimeLog('in1', dtr.row.time_log ?? [])"
                   class="text-base text-surface-600"
                 >
                   {{
@@ -599,26 +607,11 @@ const updateDTRTimeLogs = async () => {
                   v-else-if="
                     dtr.row &&
                     dtr.row.time_log?.length &&
-                    (!resolveDTRSlots(dtr.row.time_log).in1 ||
-                      dtr.row.time_log.find(
-                        (log) =>
-                          log.id === resolveDTRSlots(dtr.row?.time_log ?? []).in1?.id &&
-                          log.is_in === true &&
-                          log.created_at &&
-                          formatDateYMD(new Date(log.date)) !== formatDateYMD(new Date(log.created_at))
-                      ))
+                    (!resolveDTRSlots(dtr.row.time_log).in1 || isEditedTimeLog('in1', dtr.row.time_log))
                   "
-                  v-model="remarksMap[`in1-${dtr.date.toISOString()}`]"
+                  v-model="remarksMap[getRemarksKey('in1', dtr.date)]"
                   label=""
-                  :warning="
-                    !!dtr.row?.time_log?.find(
-                      (log) =>
-                        log.id &&
-                        log.is_in === false &&
-                        log.created_at &&
-                        formatDateYMD(new Date(log.date)) !== formatDateYMD(new Date(log.created_at))
-                    )
-                  "
+                  :warning="isEditedTimeLog('in1', dtr.row?.time_log ?? [])"
                   :showIcon="false"
                   placeholder="HH:mm"
                   v-tooltip.bottom="'This time logs is edited'"
@@ -631,15 +624,7 @@ const updateDTRTimeLogs = async () => {
                 <p class="text-xs font-semibold text-surface-500 md:hidden">OUT 1</p>
                 <p
                   v-if="
-                    dtr.row &&
-                    resolveDTRSlots(dtr.row.time_log ?? []).out1 &&
-                    dtr.row.time_log?.find(
-                      (log) =>
-                        log.id === resolveDTRSlots(dtr.row?.time_log ?? []).out1?.id &&
-                        log.is_in === false &&
-                        log.created_at &&
-                        formatDateYMD(new Date(log.date)) === formatDateYMD(new Date(log.created_at))
-                    )
+                    dtr.row && resolveDTRSlots(dtr.row.time_log ?? []).out1 && !isEditedTimeLog('out1', dtr.row.time_log ?? [])
                   "
                   class="text-base text-surface-600"
                 >
@@ -658,26 +643,11 @@ const updateDTRTimeLogs = async () => {
                   v-else-if="
                     dtr.row &&
                     dtr.row.time_log?.length &&
-                    (!resolveDTRSlots(dtr.row.time_log).out1 ||
-                      dtr.row.time_log.find(
-                        (log) =>
-                          log.id === resolveDTRSlots(dtr.row?.time_log ?? []).out1?.id &&
-                          log.is_in === false &&
-                          log.created_at &&
-                          formatDateYMD(new Date(log.date)) !== formatDateYMD(new Date(log.created_at))
-                      ))
+                    (!resolveDTRSlots(dtr.row.time_log).out1 || isEditedTimeLog('out1', dtr.row.time_log))
                   "
-                  v-model="remarksMap[`out1-${dtr.date.toISOString()}`]"
+                  v-model="remarksMap[getRemarksKey('out1', dtr.date)]"
                   label=""
-                  :warning="
-                    !!dtr.row?.time_log?.find(
-                      (log) =>
-                        log.id &&
-                        log.is_in === false &&
-                        log.created_at &&
-                        formatDateYMD(new Date(log.date)) !== formatDateYMD(new Date(log.created_at))
-                    )
-                  "
+                  :warning="isEditedTimeLog('out1', dtr.row?.time_log ?? [])"
                   :showIcon="false"
                   placeholder="HH:mm"
                   v-tooltip.bottom="'This time logs is edited'"
@@ -689,17 +659,7 @@ const updateDTRTimeLogs = async () => {
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">IN 2</p>
                 <p
-                  v-if="
-                    dtr.row &&
-                    resolveDTRSlots(dtr.row.time_log ?? []).in2 &&
-                    dtr.row.time_log?.find(
-                      (log) =>
-                        log.id === resolveDTRSlots(dtr.row?.time_log ?? []).in2?.id &&
-                        log.is_in === true &&
-                        log.created_at &&
-                        formatDateYMD(new Date(log.date)) === formatDateYMD(new Date(log.created_at))
-                    )
-                  "
+                  v-if="dtr.row && resolveDTRSlots(dtr.row.time_log ?? []).in2 && !isEditedTimeLog('in2', dtr.row.time_log ?? [])"
                   class="text-base text-surface-600"
                 >
                   {{
@@ -717,26 +677,11 @@ const updateDTRTimeLogs = async () => {
                   v-else-if="
                     dtr.row &&
                     dtr.row.time_log?.length &&
-                    (!resolveDTRSlots(dtr.row.time_log).in2 ||
-                      dtr.row.time_log.find(
-                        (log) =>
-                          log.id === resolveDTRSlots(dtr.row?.time_log ?? []).in2?.id &&
-                          log.is_in === true &&
-                          log.created_at &&
-                          formatDateYMD(new Date(log.date)) !== formatDateYMD(new Date(log.created_at))
-                      ))
+                    (!resolveDTRSlots(dtr.row.time_log).in2 || isEditedTimeLog('in2', dtr.row.time_log))
                   "
-                  v-model="remarksMap[`in2-${dtr.date.toISOString()}`]"
+                  v-model="remarksMap[getRemarksKey('in2', dtr.date)]"
                   label=""
-                  :warning="
-                    !!dtr.row?.time_log?.find(
-                      (log) =>
-                        log.id &&
-                        log.is_in === false &&
-                        log.created_at &&
-                        formatDateYMD(new Date(log.date)) !== formatDateYMD(new Date(log.created_at))
-                    )
-                  "
+                  :warning="isEditedTimeLog('in2', dtr.row?.time_log ?? [])"
                   :showIcon="false"
                   placeholder="HH:mm"
                   v-tooltip.bottom="'This time logs is edited'"
@@ -749,15 +694,7 @@ const updateDTRTimeLogs = async () => {
                 <p class="text-xs font-semibold text-surface-500 md:hidden">OUT 2</p>
                 <p
                   v-if="
-                    dtr.row &&
-                    resolveDTRSlots(dtr.row.time_log ?? []).out2 &&
-                    dtr.row.time_log?.find(
-                      (log) =>
-                        log.id &&
-                        log.is_in === false &&
-                        log.created_at &&
-                        formatDateYMD(new Date(log.date)) === formatDateYMD(new Date(log.created_at))
-                    )
+                    dtr.row && resolveDTRSlots(dtr.row.time_log ?? []).out2 && !isEditedTimeLog('out2', dtr.row.time_log ?? [])
                   "
                   class="text-base text-surface-600"
                 >
@@ -776,26 +713,11 @@ const updateDTRTimeLogs = async () => {
                   v-else-if="
                     dtr.row &&
                     dtr.row.time_log?.length &&
-                    (!resolveDTRSlots(dtr.row.time_log).out2 ||
-                      dtr.row.time_log.find(
-                        (log) =>
-                          log.id &&
-                          log.is_in === false &&
-                          log.created_at &&
-                          formatDateYMD(new Date(log.date)) !== formatDateYMD(new Date(log.created_at))
-                      ))
+                    (!resolveDTRSlots(dtr.row.time_log).out2 || isEditedTimeLog('out2', dtr.row.time_log))
                   "
-                  v-model="remarksMap[`out2-${dtr.date.toISOString()}`]"
+                  v-model="remarksMap[getRemarksKey('out2', dtr.date)]"
                   label=""
-                  :warning="
-                    !!dtr.row?.time_log?.find(
-                      (log) =>
-                        log.id &&
-                        log.is_in === false &&
-                        log.created_at &&
-                        formatDateYMD(new Date(log.date)) !== formatDateYMD(new Date(log.created_at))
-                    )
-                  "
+                  :warning="isEditedTimeLog('out2', dtr.row?.time_log ?? [])"
                   :showIcon="false"
                   placeholder="HH:mm"
                   v-tooltip.top="resolveDTRSlots(dtr.row?.time_log ?? []).out2 ? 'This time log is Edited' : ''"
@@ -808,14 +730,14 @@ const updateDTRTimeLogs = async () => {
                 <p class="text-xs font-semibold text-surface-500 md:hidden">UT</p>
                 <template v-if="!route.params.id">
                   <p class="h-12 text-surface-600 md:h-8 md:w-24">
-                    {{ remarksMap[`ut-${dtr.date.toISOString()}`] ?? 0 }}
+                    {{ remarksMap[`ut-${dtr.date?.toISOString() ?? ''}`] ?? 0 }}
                   </p>
                 </template>
                 <template v-else>
                   <WbInputText
                     label=""
                     type="number"
-                    v-model.number="remarksMap[`ut-${dtr.date.toISOString()}`]"
+                    v-model="remarksMap[getRemarksKey('ut', dtr.date)]"
                     step="0.01"
                     min="0"
                     placeholder="UT"
@@ -828,14 +750,14 @@ const updateDTRTimeLogs = async () => {
                 <p class="text-xs font-semibold text-surface-500 md:hidden">OT</p>
                 <template v-if="!route.params.id">
                   <p class="h-12 text-surface-600 md:h-8 md:w-24">
-                    {{ remarksMap[`ot-${dtr.date.toISOString()}`] ?? 0 }}
+                    {{ remarksMap[`ot-${dtr.date?.toISOString() ?? ''}`] ?? 0 }}
                   </p>
                 </template>
                 <template v-else>
                   <WbInputText
                     label=""
                     type="number"
-                    v-model.number="remarksMap[`ot-${dtr.date.toISOString()}`]"
+                    v-model="remarksMap[getRemarksKey('ot', dtr.date)]"
                     step="0.01"
                     min="0"
                     placeholder="OT"
@@ -847,7 +769,7 @@ const updateDTRTimeLogs = async () => {
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">Remarks</p>
                 <WbTextArea
-                  v-model="remarksMap[`employee_remarks-${dtr.date.toISOString()}`] as string"
+                  v-model="remarksMap[getRemarksKey('employee_remarks', dtr.date)] as string"
                   label=""
                   class="md:w-30 h-8 md:h-8"
                   placeholder="Enter remarks"
@@ -857,12 +779,12 @@ const updateDTRTimeLogs = async () => {
                 <p class="text-xs font-semibold text-surface-500 md:hidden">HR Remarks</p>
                 <template v-if="!route.params.id">
                   <p class="h-12 text-surface-600 md:h-8 md:w-24">
-                    {{ remarksMap[`hr_remarks-${dtr.date.toISOString()}`] ?? '' }}
+                    {{ remarksMap[`hr_remarks-${dtr.date?.toISOString() ?? ''}`] ?? '' }}
                   </p>
                 </template>
                 <template v-else>
                   <WbTextArea
-                    v-model="remarksMap[`hr_remarks-${dtr.date.toISOString()}`] as string"
+                    v-model="remarksMap[getRemarksKey('hr_remarks', dtr.date)] as string"
                     label=""
                     class="h-8 md:h-8 md:w-48"
                     placeholder="Enter remarks"
