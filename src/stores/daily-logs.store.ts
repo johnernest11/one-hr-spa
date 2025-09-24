@@ -64,6 +64,7 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
   const logEmployeeTime = async (rawQrText: string, capturedImage: string | null) => {
     currentScannedEmployee.value = null
     lastLogMessage.value = null
+    console.log('capturedImage: ', capturedImage) //@todo for implementing later.
 
     const payload = {
       scanned_qr: rawQrText,
