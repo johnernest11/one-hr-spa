@@ -329,7 +329,7 @@ const handleSaveSubmissionif = async () => {
                   </div>
                   <div class="mt-6 flex flex-row items-center justify-center gap-4">
                     <WbTextarea
-                      v-model="workexperiencesheet.list_accomplishment"
+                      v-model="workexperiencesheet.list_accomplishment as string | undefined"
                       label="List of Accomplishments and Contributions (if any)"
                       label-class="text-md text-surface-600 dark:lg:text-surface-200"
                       class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
@@ -339,7 +339,7 @@ const handleSaveSubmissionif = async () => {
                   </div>
                   <div class="mt-6 flex flex-row items-center justify-center gap-4">
                     <WbTextarea
-                      v-model="workexperiencesheet.summary_duties"
+                      v-model="workexperiencesheet.summary_duties as string | undefined"
                       label="Summary of Actual Duties"
                       label-class="text-md text-surface-600 dark:lg:text-surface-200"
                       class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"

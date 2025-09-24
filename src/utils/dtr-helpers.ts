@@ -55,8 +55,17 @@ export const toTimestamp = (date: string, time: string) => `${date}T${time}`
  *
  * @param entries - Array of TimeLogResponse objects
  * @returns An object containing the resolved time slots
+ *
  */
-export const resolveDTRSlots = (entries: TimeLogResponse[] = []) => {
+
+export type DTRSlots = {
+  in1: TimeLogResponse | null
+  out1: TimeLogResponse | null
+  in2: TimeLogResponse | null
+  out2: TimeLogResponse | null
+}
+
+export const resolveDTRSlots = (entries: TimeLogResponse[] = []): DTRSlots => {
   const inLogs = entries
     .filter((e) => e.is_in)
     .sort(
@@ -69,34 +78,34 @@ export const resolveDTRSlots = (entries: TimeLogResponse[] = []) => {
       (a, b) => new Date(toTimestamp(a.date, a.scanned_time)).getTime() - new Date(toTimestamp(b.date, b.scanned_time)).getTime()
     )
 
-  const slots = { in1: '', out1: '', in2: '', out2: '' }
+  const slots: DTRSlots = { in1: null, out1: null, in2: null, out2: null }
 
   const isBetween = (timestamp: string, startHour: number, endHour: number) => {
     const hours = new Date(timestamp).getHours()
     return hours >= startHour && hours < endHour
   }
 
-  const in1Candidate = inLogs.find((e) => isBetween(toTimestamp(e.date, e.scanned_time), 6, 12))
-  if (in1Candidate) slots.in1 = toTimestamp(in1Candidate.date, in1Candidate.scanned_time)
+  // IN 1
+  slots.in1 = inLogs.find((e) => isBetween(toTimestamp(e.date, e.scanned_time), 6, 12)) ?? null
 
-  const out1Candidate = outLogs.find((e) => isBetween(toTimestamp(e.date, e.scanned_time), 12, 13))
-  if (out1Candidate) slots.out1 = toTimestamp(out1Candidate.date, out1Candidate.scanned_time)
+  // OUT 1
+  slots.out1 = outLogs.find((e) => isBetween(toTimestamp(e.date, e.scanned_time), 12, 13)) ?? null
 
+  // IN 2
   if (slots.out1) {
-    const out1Time = new Date(slots.out1).getTime()
+    const out1Time = new Date(toTimestamp(slots.out1.date, slots.out1.scanned_time)).getTime()
     const in2Candidates = inLogs.filter((e) => {
       const timestamp = toTimestamp(e.date, e.scanned_time)
       const time = new Date(timestamp).getTime()
       return isBetween(timestamp, 12, 14) && time >= out1Time + 15 * 60 * 1000
     })
-    if (in2Candidates.length) slots.in2 = toTimestamp(in2Candidates[0].date, in2Candidates[0].scanned_time)
+    slots.in2 = in2Candidates[0] ?? null
   } else {
-    const in2Candidate = inLogs.find((e) => isBetween(toTimestamp(e.date, e.scanned_time), 12, 14))
-    if (in2Candidate) slots.in2 = toTimestamp(in2Candidate.date, in2Candidate.scanned_time)
+    slots.in2 = inLogs.find((e) => isBetween(toTimestamp(e.date, e.scanned_time), 12, 14)) ?? null
   }
 
-  const out2Candidate = outLogs.find((e) => new Date(toTimestamp(e.date, e.scanned_time)).getHours() >= 14)
-  if (out2Candidate) slots.out2 = toTimestamp(out2Candidate.date, out2Candidate.scanned_time)
+  // OUT 2
+  slots.out2 = outLogs.find((e) => new Date(toTimestamp(e.date, e.scanned_time)).getHours() >= 14) ?? null
 
   return slots
 }
@@ -113,7 +122,8 @@ export const computeWorkedHours = (timeLog: TimeLogResponse[]): number => {
   const { in1, out1, in2, out2 } = resolveDTRSlots(timeLog ?? [])
   if (!in1 || !out1) return 0
 
-  const toDate = (t: string) => new Date(t)
+  // Convert log -> timestamp string
+  const toDate = (log: TimeLogResponse) => new Date(toTimestamp(log.date, log.scanned_time))
 
   let amStart = toDate(in1)
   let amEnd = toDate(out1)
@@ -194,6 +204,16 @@ export const computeOT = (worked: number, weekend = false): number => {
 }
 
 // dtr-helpers.ts
+
+/**
+ * Collapse a list of daily time records (DTRs) into groups by month.
+ * Example:
+ * Input: [{ date: "2025-09-16" }, { date: "2025-09-05" }, { date: "2025-08-31" }]
+ * Output: [
+ *   { month: "September 2025", records: [...] },
+ *   { month: "August 2025", records: [...] }
+ * ]
+ */
 export const collapseDtrByMonth = (dtrs: { date: string }[]) => {
   if (!dtrs.length) return []
 
@@ -215,4 +235,79 @@ export const collapseDtrByMonth = (dtrs: { date: string }[]) => {
   })
 
   return Object.values(grouped)
+}
+
+/**
+ * Convert a Date object into a compact year-month string (`YYYY-MM`).
+ * Example:
+ * formatDateToYearMonth(new Date("2025-09-16")) // "2025-09"
+ */
+export const formatDateToYearMonth = (date: Date): string => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0') // pad single digit months
+  return `${year}-${month}`
+}
+
+/**
+ * Normalize a date to a timestamp representing midnight (00:00:00) local time.
+ * Example:
+ * normalizeDateTimestamp("2025-09-16T10:30:00Z") // timestamp for "2025-09-16T00:00:00"
+ */
+export const normalizeDateTimestamp = (d: string | Date | null): number | null => {
+  if (!d) return null
+  const dt = new Date(d)
+  dt.setHours(0, 0, 0, 0)
+  return dt.getTime()
+}
+
+/**
+ * Formats a given date into a string with the format "YYYY-MM-DD".
+ */
+export const formatDateYMD = (date: Date | string) => {
+  const d = new Date(date)
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+/**
+ * Normalizes a time value into a 24-hour `HH:mm:ss` format string.
+ *
+ * Supported inputs:
+ *  - String in `HH:mm` or `HH:mm:ss` 24-hour format
+ *  - String in `HH:mm AM/PM` 12-hour format
+ *
+ * Examples:
+ *  normalizeTimeOnly(new Date("2025-09-18T08:05:00")) → "08:05:00"
+ */
+export const normalizeTimeOnly = (val?: string | Date | null) => {
+  if (!val) return null
+
+  let str: string
+  if (val instanceof Date) {
+    str = `${val.getHours().toString().padStart(2, '0')}:${val.getMinutes().toString().padStart(2, '0')}`
+  } else {
+    str = val.toString().trim()
+  }
+
+  const match24 = str.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/)
+  if (match24) {
+    const h = match24[1].padStart(2, '0')
+    const m = match24[2].padStart(2, '0')
+    const s = match24[3]?.padStart(2, '0') ?? '00'
+    return `${h}:${m}:${s}`
+  }
+
+  const matchAMPM = str.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i)
+  if (matchAMPM) {
+    let h = Number(matchAMPM[1])
+    const m = matchAMPM[2].padStart(2, '0')
+    const period = matchAMPM[3].toUpperCase()
+    if (period === 'PM' && h < 12) h += 12
+    if (period === 'AM' && h === 12) h = 0
+    return `${h.toString().padStart(2, '0')}:${m}:00`
+  }
+
+  return null
 }

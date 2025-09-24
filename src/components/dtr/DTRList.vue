@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeMount, ref, watch, computed } from 'vue'
+import { onBeforeMount, ref, watch, computed, onMounted } from 'vue'
 import Button from 'primevue/button'
 import Chip from 'primevue/chip'
 import Card from 'primevue/card'
@@ -9,7 +9,7 @@ import InputText from 'primevue/inputtext'
 import InputGroup from 'primevue/inputgroup'
 import Paginator, { PageState } from 'primevue/paginator'
 import { ApiResponsePagination } from '@/typings/http-resources.types.ts'
-import { DailyTimeRecordResponse } from '@/typings/models.types.ts'
+import { DailyTimeRecordResponse, ViewDailyTimeRecordResponse } from '@/typings/models.types.ts'
 import { useDailyTimeRecordsStore } from '@/stores/daily-time-record.store.ts'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 
@@ -17,8 +17,37 @@ import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useRoute } from 'vue-router'
 import { collapseDtrByMonth } from '@/utils/dtr-helpers'
+import { usePersonnelStore } from '@/stores/personnel.store'
 const route = useRoute()
 const router = useRouter()
+const dailyTimeRecordsStore = useDailyTimeRecordsStore()
+const isLoading = ref(true)
+const personnelStore = usePersonnelStore()
+const selectedEmployeeId = ref<string | null>(null)
+
+onMounted(async () => {
+  const id = (route.params.id as string) || null
+  selectedEmployeeId.value = id
+
+  isLoading.value = true
+
+  if (id) {
+    // Fetch another user's DTR by their employee ID
+    await dailyTimeRecordsStore.fetchDailyTimeRecordsByEmployee(id, new Date())
+  } else {
+    // Fetch current user's DTR
+    await dailyTimeRecordsStore.fetchDailyTimeRecords()
+  }
+
+  isLoading.value = false
+})
+
+const currentEmployee = computed(() => {
+  const employeeId = Number(route.params.id) || null
+  if (!employeeId) return null
+
+  return personnelStore.employees.find((emp) => emp.id === employeeId) ?? null
+})
 
 const navigateToDetails = (monthlyGroup: { month: string; records: DailyTimeRecordResponse[] }) => {
   if (!monthlyGroup || !monthlyGroup.month) {
@@ -40,11 +69,15 @@ const navigateToDetails = (monthlyGroup: { month: string; records: DailyTimeReco
     targetRouteName = 'my-monthly-dtrs'
   }
 
+  // Get employee ID from route params if present
+  const employeeId = route.params.id ? Number(route.params.id) : null
+
   router.push({
     name: targetRouteName,
-    query: {
+    params: {
+      id: employeeId, // employee ID
       year: year.toString(),
-      month: (monthIndex + 1).toString().padStart(2, '0'), // "09"
+      month: (monthIndex + 1).toString().padStart(2, '0'),
     },
   })
 }
@@ -52,7 +85,14 @@ const navigateToDetails = (monthlyGroup: { month: string; records: DailyTimeReco
 const dailyTimeRecordStore = useDailyTimeRecordsStore()
 
 const monthlyRecords = computed(() => {
-  return collapseDtrByMonth(dailyTimeRecordStore.dailyTimeRecords)
+  let records = dailyTimeRecordStore.dailyTimeRecords as unknown as ViewDailyTimeRecordResponse[]
+
+  if (route.params.id) {
+    const employeeId = Number(route.params.id)
+    records = records.filter((dtr) => dtr.employee_id === employeeId)
+  }
+
+  return collapseDtrByMonth(records)
 })
 const dailyTimeRecordIsLoading = ref(false)
 
@@ -60,7 +100,6 @@ onBeforeMount(async () => {
   dailyTimeRecordIsLoading.value = true
   const response = await dailyTimeRecordStore.fetchDailyTimeRecords()
 
-  console.log('REsult', response)
   if (response.success && response.pagination) {
     pagination.value = response.pagination
   }
@@ -169,6 +208,12 @@ const exportPdf = async (dailyTimeRecord: DailyTimeRecordResponse) => {
   }
 }
 const isHumanResourceActive = computed(() => route.name === 'daily-time-records')
+
+const getMonthlyStatus = (records: ViewDailyTimeRecordResponse[]): string => {
+  if (records.every((r) => r.status === 'Approved')) return 'Approved'
+  if (records.some((r) => r.status === 'For Review')) return 'For Review'
+  return 'Draft'
+}
 </script>
 <template>
   <div class="flex h-full w-full flex-col shadow-md">
@@ -187,8 +232,13 @@ const isHumanResourceActive = computed(() => route.name === 'daily-time-records'
         />
         <h1 class="mb-2 mr-4 whitespace-nowrap text-xl text-surface-600 dark:text-primary-100 md:text-xl lg:text-4xl">
           <font-awesome-icon :icon="['fas', 'calendar']" class="h-5 text-surface-600 sm:h-6 md:h-7" />
-          My Daily Time Record (DTR)
+          {{ route.params.id ? '' : 'My ' }}Daily Time Record (DTR)
+          <br />
+          <span v-if="currentEmployee" class="ml-4 text-lg text-surface-600 md:text-xl lg:text-2xl">
+            {{ currentEmployee.last_name }} , {{ currentEmployee.first_name }} {{ currentEmployee.middle_name }}
+          </span>
         </h1>
+
         <div class="flex w-full items-center justify-end gap-4">
           <div class="flex w-full md:w-auto lg:w-1/2">
             <InputGroup v-model="searchQuery" class="w-full">
@@ -228,20 +278,20 @@ const isHumanResourceActive = computed(() => route.name === 'daily-time-records'
                 headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
               >
                 <template #body="props">
-                  <template v-if="props.data.status === 'draft'">
+                  <template v-if="getMonthlyStatus(props.data.records) === 'Draft'">
                     <Chip
                       label="Draft"
                       class="flex items-center justify-center !bg-surface-600 px-4 py-1 font-semibold !text-surface-0"
                     >
                     </Chip>
                   </template>
-                  <template v-else-if="props.data.status === 'for review'">
+                  <template v-else-if="getMonthlyStatus(props.data.records) === 'For Review'">
                     <Chip
                       label="For Review"
                       class="flex items-center justify-center !bg-success-800 px-4 py-1 font-semibold !text-surface-0"
                     />
                   </template>
-                  <template v-else-if="props.data.status === 'approved'">
+                  <template v-else-if="getMonthlyStatus(props.data.records) === 'Approved'">
                     <Chip
                       label="Approved"
                       class="flex items-center justify-center !bg-info-800 px-4 py-1 font-semibold !text-surface-0"

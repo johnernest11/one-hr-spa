@@ -25,7 +25,24 @@ export type DailyTimeRecordPayload = {
     employee_id?: string | number | null
     timestamp: string
     daily_time_record_id: number
-    is_in: boolean // true = IN, false = OUT
+    is_in: boolean
+  }[]
+}
+
+export type UpdateDTRPayload = {
+  id?: number | null
+  month: string
+  dtr: {
+    id?: number | null
+    employee_remarks?: string
+    ut?: number | null
+    time_logs?: {
+      id?: number | null
+      date: string
+      scanned_time: string
+      is_selected: boolean
+    }[]
+    date?: string
   }[]
 }
 
@@ -40,7 +57,6 @@ export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => 
   const viewTimeLogs = ref<ViewTimeLogsResponse[]>([])
   const viewDailyTimeRecords = ref<ViewDailyTimeRecordResponse[]>([])
   const countTimeLogs = ref<CountWarmBodiesResponse[]>([])
-  const selectedDailyTimeRecords = ref<DailyTimeRecordResponse | null>(null)
 
   const dailyTimeRecordInfo = reactive<DailyTimeRecordPayload>({
     id: 0,
@@ -55,6 +71,15 @@ export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => 
     warm_bodies: [],
   })
 
+  const updateDailyTimeRecordInfo = reactive<UpdateDTRPayload>({
+    id: 0,
+    month: '',
+    dtr: [],
+  })
+
+  /** _____________________________________________________________
+                    Daily Time Records
+_________________________________________________________________ */
   const fetchDailyTimeRecordsByMonth = async (date: Date, limit = 31) => {
     const individual = auth.authenticatedUser.user_profile?.individual_basic_detail as PersonnelResponse
     if (!individual) {
@@ -83,6 +108,29 @@ export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => 
     return responseBody
   }
 
+  // Fetch DTR for a specific employee by ID
+  const fetchDailyTimeRecordsByEmployee = async (employeeId: string | number, date: Date, limit = 31) => {
+    if (!employeeId) throw new Error('Employee ID is required.')
+
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const formattedMonthYear = `${year}-${month}`
+
+    let uri = `/employees/${employeeId}/daily-time-records/view-dtr?limit=${limit}&`
+    if (formattedMonthYear) uri += `month=${formattedMonthYear}&`
+
+    const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
+    const responseBody: ApiResponseBody = data.value
+
+    if (responseBody.success && Array.isArray(responseBody.data)) {
+      viewDailyTimeRecords.value = responseBody.data as ViewDailyTimeRecordResponse[]
+    } else {
+      viewDailyTimeRecords.value = []
+    }
+
+    return responseBody
+  }
+
   const fetchDailyTimeRecords = async () => {
     const individual = auth.authenticatedUser.user_profile?.individual_basic_detail as PersonnelResponse
     if (!individual?.employee) {
@@ -97,20 +145,6 @@ export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => 
     if (responseBody.success) {
       const dailyTimeRecordList = Array.isArray(responseBody.data) ? (responseBody.data as DailyTimeRecordResponse[]) : []
       dailyTimeRecords.value = [...dailyTimeRecordList]
-    }
-    return responseBody
-  }
-
-  const fetchDailyTimeRecordsById = async (id: string) => {
-    const individual = auth.authenticatedUser.user_profile?.individual_basic_detail as PersonnelResponse
-    if (!individual?.employee) {
-      throw new Error('No employee data linked to current user')
-    }
-    const url = `/employees/${individual.employee.id}/daily-time-records/${id}`
-    const { data } = await useApiCall(url, auth.authenticationToken).get().json()
-    const responseBody: ApiResponseBody = data.value
-    if (responseBody.success) {
-      selectedDailyTimeRecords.value = responseBody.data as DailyTimeRecordResponse
     }
     return responseBody
   }
@@ -136,15 +170,14 @@ export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => 
     return responseBody
   }
 
-  const updateDailyTimeRecords = async (dtr: Partial<DailyTimeRecordPayload>, id: string | number) => {
-    const { data } = await useApiCall(`/daily-time-records/${id}`, auth.authenticationToken).put(dtr).json()
-    const responseBody: ApiResponseBody = data.value
-    if (responseBody.success) {
-      const index = dailyTimeRecords.value.findIndex((dailyTimeRecords) => dailyTimeRecords?.id === id)
-      if (index === -1) return responseBody
-      dailyTimeRecords.value[index] = responseBody.data as DailyTimeRecordResponse
-    }
-    return responseBody
+  const updateDailyTimeRecords = async (payload: UpdateDTRPayload) => {
+    const individual = auth.authenticatedUser.user_profile?.individual_basic_detail as PersonnelResponse
+    if (!individual?.employee) throw new Error('No employee linked')
+
+    const uri = `/employees/${individual.employee.id}/daily-time-records`
+    const { data } = await useApiCall(uri, auth.authenticationToken).put(payload).json()
+
+    return data.value as ApiResponseBody
   }
 
   const generateDailyTimeRecords = async (id: string) => {
@@ -157,6 +190,10 @@ export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => 
       fileNameHeader: ref(fileNameHeader),
     }
   }
+
+  /** _____________________________________________________________
+                     Time Logs
+_________________________________________________________________ */
 
   const fetchTimeLogsForToday = async (
     limit: number = 5,
@@ -208,17 +245,18 @@ export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => 
   return {
     dailyTimeRecords,
     dailyTimeRecordInfo,
+    viewDailyTimeRecords,
+    updateDailyTimeRecordInfo,
     createDailyTimeRecords,
     fetchDailyTimeRecords,
     fetchDailyTimeRecordsByMonth,
-    viewDailyTimeRecords,
-    fetchDailyTimeRecordsById,
+    fetchDailyTimeRecordsByEmployee,
     searchDailyTimeRecords,
     updateDailyTimeRecords,
     generateDailyTimeRecords,
     viewTimeLogs,
-    fetchTimeLogsForToday,
     countTimeLogs,
+    fetchTimeLogsForToday,
     fetchCountWarmBodies,
     searchTimeLogs,
   }

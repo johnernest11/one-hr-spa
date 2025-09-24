@@ -2,7 +2,6 @@ import { CountryCode, isValidPhoneNumber, parsePhoneNumber } from 'libphonenumbe
 import { Ref } from 'vue'
 import { useDateFormat } from '@vueuse/core'
 import { helpers } from '@vuelidate/validators'
-// import { TimeLogResponse } from '@/typings/models.types'
 /**
  * @description Halt code execution for x seconds
  * @example
