@@ -8,8 +8,9 @@ import Button from 'primevue/button'
 import RadioButton from 'primevue/radiobutton'
 import Card from 'primevue/card'
 import { useLocatorSlipStore, LocatorSlipPayload } from '@/stores/locator-slip.store'
-import { formatDate } from '@/utils/helpers.ts'
+import { formatDateSafe, isSameOrAfterDate } from '@/utils/helpers.ts'
 import WbInputText from '@/components/webkit/WbInputText.vue'
+import WbCalendar from '../webkit/WbCalendar.vue'
 
 const locatorSlipStore = useLocatorSlipStore()
 const route = useRoute()
@@ -17,6 +18,24 @@ const route = useRoute()
 const addLoggerBtn = ref(true)
 const isLoading = ref(true)
 const formIsSubmitting = ref(false)
+const isFormTypeA = ref(false)
+
+const validateDateNow = (value: string) => {
+  if (!value) return false
+  return isSameOrAfterDate(value, new Date().toString())
+}
+
+const validateMonth = (value: string) => {
+  if (!value) return false
+  const now = new Date()
+  const compareDate = new Date(value)
+  return now.getFullYear() === compareDate.getFullYear() && now.getMonth() === compareDate.getMonth()
+}
+
+const today = new Date()
+const currentMonth = today.getMonth()
+const currentYear = today.getFullYear()
+const lastDayOfCurrentMonth = new Date(currentYear, currentMonth + 1, 0)
 
 onMounted(async () => {
   const id = route.params.id as string
@@ -33,12 +52,13 @@ onMounted(async () => {
 
 const payload = reactive<LocatorSlipPayload>({
   form_type: '',
-  month: null,
+  month: '',
   period: null,
+  locator_slip_no: null,
   ls_logger: [
     {
       locator_slip_id: null,
-      date: null,
+      date: '',
       time_in: null,
       time_out: null,
       destination: '',
@@ -52,9 +72,12 @@ const payload = reactive<LocatorSlipPayload>({
 
 const updatePayloadFromResponse = (locatorSlip: LocatorSlipPayload | null) => {
   ;(payload.form_type = locatorSlip?.form_type ?? ''),
-  (payload.month = locatorSlip?.month ?? null),
+  (payload.month = locatorSlip?.month ?? ''),
   (payload.period = locatorSlip?.period ?? null),
+  (payload.locator_slip_no = locatorSlip?.locator_slip_no ?? null),
   (payload.ls_logger = locatorSlip?.ls_logger ?? [])
+
+  isFormTypeA.value = payload.form_type === 'a' ? true : false
 }
 
 /** Validation */
@@ -67,6 +90,9 @@ const formRules = {
   $lazy: true,
   ls_logger: {
     $each: helpers.forEach({
+      date: {
+        maxLength: globalStringMaxLengthRule,
+      },
       destination: {
         required: helpers.withMessage('Destination is required', required),
         maxLength: helpers.withMessage('', globalStringMaxLengthRule),
@@ -113,7 +139,7 @@ const addLogger = () => {
 
   const defaultLog = {
     locator_slip_id: id ?? null,
-    date: dateNow.toString(),
+    date: formatDateSafe(dateNow),
     time_in: null,
     time_out: null,
     destination: '',
@@ -125,6 +151,7 @@ const addLogger = () => {
 
   const newLSLog = { ...defaultLog }
   payload.ls_logger.push(newLSLog)
+  console.log(validateDateNow(dateNow.toString()))
 }
 
 /** Function to remove ls loggers */
@@ -168,6 +195,9 @@ const updateButtonSubmission = async () => {
         <div class="p-4">
           <h2 class="mb-4 ml-4 text-2xl italic text-primary-700 dark:text-primary-700 md:ml-4">
             Locator Slip Form {{ payload.form_type.toUpperCase() }}
+            <div v-if="payload.locator_slip_no" class="text-xl font-semibold uppercase text-success-600">
+              LS No: {{ payload.locator_slip_no }}
+            </div>
             <br />
           </h2>
           <!-- Header: visible only on md and up -->
@@ -192,8 +222,13 @@ const updateButtonSubmission = async () => {
             </div>
             <div class="hidden grid-cols-10 gap-2 border-b-2 bg-surface-100 px-4 py-1 text-center md:grid md:px-10">
               <div class="col-span-5"></div>
-              <div class="text-sm font-semibold text-surface-500">Official Time</div>
-              <div class="text-sm font-semibold text-surface-500">Personal Time</div>
+              <template v-if="!isFormTypeA">
+                <div class="text-sm font-semibold text-surface-500">Official Time</div>
+                <div class="text-sm font-semibold text-surface-500">Personal Time</div>
+              </template>
+              <template v-else>
+                <div class="col-span-2 text-sm font-semibold text-surface-500">Official Business</div>
+              </template>
               <div class="col-span-3"></div>
             </div>
           </div>
@@ -206,7 +241,18 @@ const updateButtonSubmission = async () => {
           >
             <div>
               <p class="text-xs font-semibold text-surface-500 md:hidden">Date</p>
-              <p class="text-base text-surface-600">{{ formatDate(row.date) }}</p>
+              <WbCalendar
+                v-model="row.date"
+                label=""
+                dateFormat="yy-mm-dd"
+                :minDate="today"
+                :maxDate="lastDayOfCurrentMonth"
+                :invalid="validator.ls_logger?.[index]?.date?.$invalid"
+                :invalid-text="validator.ls_logger?.[index]?.date?.$errors[0]?.$message"
+                @blur="validator.ls_logger?.[index]?.date?.$touch"
+                :disabled="!validateDateNow(row.date)"
+              >
+              </WbCalendar>
             </div>
             <div>
               <p class="text-xs font-semibold text-surface-500 md:hidden">Time Out</p>
@@ -229,6 +275,7 @@ const updateButtonSubmission = async () => {
                   label-class="text-sm text-surface-600"
                   placeholder="e.g. Robinsons, San Fernando, La Union"
                   class="w-full"
+                  :disabled="!validateDateNow(row.date)"
                   :invalidText="validator.ls_logger?.[index]?.destination?.$errors[0]?.$message"
                   :invalid="validator.ls_logger?.[index]?.destination?.$error"
                   @blur="validator.ls_logger?.[index]?.destination?.$touch()"
@@ -243,32 +290,51 @@ const updateButtonSubmission = async () => {
                 label-class="text-sm text-surface-600"
                 placeholder="e.g. Wellness Activity"
                 class="w-full"
+                :disabled="!validateDateNow(row.date)"
                 :invalidText="validator.ls_logger?.[index]?.purpose?.$errors[0]?.$message"
                 :invalid="validator.ls_logger?.[index]?.purpose?.$error"
                 @blur="validator.ls_logger?.[index]?.purpose?.$touch()"
               />
               <p class="text-base text-surface-600"></p>
             </div>
-            <div class="flex items-center">
-              <p class="text-xs font-semibold text-surface-500 md:hidden">Official Time</p>
-              <RadioButton
-                v-model="row.approve_for"
-                name="official"
-                inputId="official"
-                value="official"
-                class="scale-150 transform"
-              />
-            </div>
-            <div class="flex items-center">
-              <p class="text-xs font-semibold text-surface-500 md:hidden">Personal Time</p>
-              <RadioButton
-                v-model="row.approve_for"
-                name="personal"
-                inputId="personal"
-                value="personal"
-                class="scale-150 transform"
-              />
-            </div>
+            <template v-if="isFormTypeA">
+              <div class="col-span-2 flex items-center">
+                <p class="text-xs font-semibold text-surface-500 md:hidden">Official Business</p>
+                <RadioButton
+                  v-model="row.approve_for"
+                  name="official_business"
+                  inputId="official_business"
+                  value="official_business"
+                  class="scale-150 transform"
+                  :disabled="!validateDateNow(row.date)"
+                />
+              </div>
+            </template>
+
+            <template v-else>
+              <div class="flex items-center">
+                <p class="text-xs font-semibold text-surface-500 md:hidden">Official Time</p>
+                <RadioButton
+                  v-model="row.approve_for"
+                  name="official_time"
+                  inputId="official_time"
+                  value="official_time"
+                  class="scale-150 transform"
+                  :disabled="!validateDateNow(row.date)"
+                />
+              </div>
+              <div class="flex items-center">
+                <p class="text-xs font-semibold text-surface-500 md:hidden">Personal Time</p>
+                <RadioButton
+                  v-model="row.approve_for"
+                  name="personal"
+                  inputId="personal"
+                  value="personal"
+                  class="scale-150 transform"
+                  :disabled="!validateDateNow(row.date)"
+                />
+              </div>
+            </template>
             <div>
               <p class="text-xs font-semibold text-surface-500 md:hidden">No. of Hours</p>
               <p class="text-base text-surface-600">
@@ -283,6 +349,7 @@ const updateButtonSubmission = async () => {
                   <WbInputText
                     v-model="row.remarks"
                     label=""
+                    :disabled="!validateDateNow(row.date)"
                     label-class="text-sm text-surface-600"
                     placeholder="e.g. Wellness Activity"
                     :invalidText="validator.ls_logger?.[index]?.remarks?.$errors[0]?.$message"
@@ -302,6 +369,7 @@ const updateButtonSubmission = async () => {
           <Button
             v-if="addLoggerBtn"
             label="+ Request New Logger"
+            :disabled="!validateMonth(payload.month)"
             @click="addLogger"
             class="dark:text-secondary-100 border border-primary-500 text-sm text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
             text

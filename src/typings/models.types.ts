@@ -642,10 +642,10 @@ export type DocumentRequestResponse = {
 export type LocatorSlipResponse = {
   id: number | null
   locator_slip_no: string | null
-  employee_id: PersonnelResponse | null
-  status: string | null //@todo enum
-  form_type: string //@todo enum
-  month: string | null
+  employee_id: PersonnelResponse
+  status: string | null
+  form_type: string
+  month: string
   period: string | null
   ls_logger: LSLoggerResponse[] | null
 } & ApiResponseData
@@ -654,12 +654,12 @@ export type LocatorSlipResponse = {
 export type LSLoggerResponse = {
   id?: number | null
   locator_slip_id: number | null
-  date: string | null
+  date: string
   time_in: string | null
   time_out: string | null
   destination: string | null
   purpose: string | null
-  approve_for: string | null //@todo either: official or personal time
+  approve_for: string | null
   duration: number | null
   remarks: string | null
 } & ApiResponseData

@@ -21,9 +21,8 @@ import { useWbAutoCompleteHandleTrueValue } from '@/composables/wb-ui-components
 import useVuelidate from '@vuelidate/core'
 import { ApiResponsePagination } from '@/typings/http-resources.types.ts'
 import { helpers, required } from '@vuelidate/validators'
-import { snakeCaseToTitleCase } from '@/utils/helpers.ts'
+import { getLongMonthAndYear, snakeCaseToTitleCase, usePrependOrAppendOnce } from '@/utils/helpers.ts'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-import { usePrependOrAppendOnce } from '@/utils/helpers'
 
 const locatorSlipsStore = useLocatorSlipStore()
 const libraryStore = useLibrariesStore()
@@ -39,6 +38,8 @@ const locatorSlipsIsLoading = ref(false)
 const formIsSubmitting = ref(false)
 const showModal = ref(false)
 const paginationLimit = 5
+const employeeGroups = ref()
+const expandedRows = ref()
 
 const searchQuery = ref<string | null>(null)
 const selectedStatus = ref<string | null>(null)
@@ -56,7 +57,6 @@ const openLocatorSlip = (slip: LocatorSlipResponse | null = null) => {
     console.error('Cannot navigate to details: Locator Slip or ID is undefined', slip)
     return
   } else {
-    //updatePayloadFromReport(slip)
     router.push({
       name: 'my-locator-slips/editor',
       params: {
@@ -64,7 +64,6 @@ const openLocatorSlip = (slip: LocatorSlipResponse | null = null) => {
       },
     })
   }
-  //RequestLocatorSlip.value = true
 }
 
 const openNewLocatorSlipForm = () => {
@@ -79,12 +78,13 @@ const formTypeOptions = ref([
 
 const payload = reactive<LocatorSlipPayload>({
   form_type: '',
-  month: null,
+  month: '',
   period: null,
+  locator_slip_no: null,
   ls_logger: [
     {
       locator_slip_id: null,
-      date: null,
+      date: '',
       time_in: null,
       time_out: null,
       destination: '',
@@ -107,21 +107,41 @@ const formRules = () => ({
   },
 })
 
-onBeforeMount(async () => {
+const fetchData = async () => {
   locatorSlipsIsLoading.value = true
-  const response = await locatorSlipsStore.fetchLocatorSlip(paginationLimit)
-  if (response.success && response.pagination) {
-    pagination.value = response.pagination
+
+  if (isHumanResourceActive.value) {
+    const response = await locatorSlipsStore.fetchGroupedLocatorSlip(paginationLimit)
+    if (response.success && response.pagination) {
+      employeeGroups.value = response.data
+      pagination.value = response.pagination
+    }
+  } else {
+    const response = await locatorSlipsStore.fetchLocatorSlip(paginationLimit)
+    if (response.success && response.pagination) {
+      pagination.value = response.pagination
+    }
   }
+
   locatorSlipsIsLoading.value = false
+}
+
+onBeforeMount(async () => {
+  fetchData()
 })
 
 const handlePaginationPageChange = async (event: PageState) => {
-  const pageSelected = event.page + 1
   locatorSlipsIsLoading.value = true
-  const response = await locatorSlipsStore.fetchLocatorSlip(paginationLimit, pageSelected)
-  if (response.success && response.pagination) {
-    pagination.value = response.pagination
+  if (isHumanResourceActive.value) {
+    const { data, pagination: paginatorInfo } = await locatorSlipsStore.fetchGroupedLocatorSlip(event.page + 1, event.rows)
+    employeeGroups.value = data
+    pagination.value = paginatorInfo
+  } else {
+    const pageSelected = event.page + 1
+    const response = await locatorSlipsStore.fetchLocatorSlip(paginationLimit, pageSelected)
+    if (response.success && response.pagination) {
+      pagination.value = response.pagination
+    }
   }
   locatorSlipsIsLoading.value = false
 }
@@ -131,11 +151,7 @@ const handleSearchLocatorSlip = async () => {
   searchSubmitted.value = true
 
   if (!searchQuery.value) {
-    const response = await locatorSlipsStore.fetchLocatorSlip(paginationLimit)
-    if (response.success && response.pagination) {
-      pagination.value = response.pagination
-    }
-    locatorSlipsIsLoading.value = false
+    fetchData()
     return
   }
 
@@ -268,7 +284,7 @@ const handleSaveSubmissionif = async () => {
           class="mb-2 mr-4 whitespace-nowrap text-xl font-semibold text-primary-800 dark:text-primary-100 md:text-xl lg:text-4xl"
         >
           <font-awesome-icon :icon="['fas', 'location-dot']" />
-          {{ !isHumanResourceActive ? '  My Locator Slip ' : 'Locator Slip' }}
+          {{ !isHumanResourceActive ? ' My Locator Slip ' : 'Locator Slip' }}
         </h1>
 
         <div class="flex w-full items-center justify-end gap-4">
@@ -326,6 +342,14 @@ const handleSaveSubmissionif = async () => {
                     :disabled="isHumanResourceActive"
                   />
                 </div>
+                <hr />
+                <p class="my-2">
+                  <strong>Form A - Official Business -</strong> anything related to the performance of official duties /
+                  functions.
+                  <br />
+                  <strong>Form C - Personal Transactions -</strong> anything <strong>NOT</strong> related to the performance of
+                  one's official duties / functions. (to be allowed either on Official Time or Personal Time)
+                </p>
                 <div class="flex justify-end">
                   <Button
                     @click="handleSaveSubmissionif"
@@ -347,7 +371,7 @@ const handleSaveSubmissionif = async () => {
             <InputGroup v-model="searchQuery" class="w-full">
               <InputText
                 v-model="searchQuery"
-                placeholder="Search via Period/Date/Month"
+                placeholder="Search via Employee Name/LS No."
                 class="w-full"
                 :disabled="locatorSlipsIsLoading"
                 @keyup.enter="handleSearchLocatorSlip"
@@ -369,33 +393,25 @@ const handleSaveSubmissionif = async () => {
             v-if="locatorSlipsStore.locatorSlip && locatorSlipsStore.locatorSlip.length > 0"
             class="mx-auto flex h-full w-full flex-col"
           >
-            <DataTable :value="locatorSlipsStore.locatorSlip" :loading="locatorSlipsIsLoading" class="mt-6" dataKey="id">
+            <DataTable
+              v-if="!isHumanResourceActive"
+              :value="locatorSlipsStore.locatorSlip"
+              :loading="locatorSlipsIsLoading"
+              class="mt-6"
+              dataKey="id"
+            >
               <Column
                 field="form_type"
                 header="Locator Slip"
-                headerClass="w-1/4 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
+                headerClass="w-1/3 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
               >
                 <template #body="props">
                   <p class="font-semibold uppercase text-surface-600">
                     Locator Slip Form
                     {{ props.data.form_type }}
                   </p>
-
-                  <p v-if="isHumanResourceActive" class="uppercase text-surface-600">
-                    {{ snakeCaseToTitleCase(props.data.employee_id.first_name) }}
-                    {{ snakeCaseToTitleCase(props.data.employee_id.middle_name ?? '') }}
-                    {{ snakeCaseToTitleCase(props.data.employee_id.last_name) }}
-                  </p>
-                </template>
-              </Column>
-              <Column
-                field="locator_slip_no"
-                header="LS No."
-                headerClass="w-1/4 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
-              >
-                <template #body="props">
-                  <p class="font-semibold uppercase text-surface-600">
-                    {{ props.data.locator_slip_no }}
+                  <p v-if="props.data.form_type === 'c'" class="font-semibold uppercase text-success-600">
+                    LS No: {{ props.data.locator_slip_no }}
                   </p>
                 </template>
               </Column>
@@ -407,7 +423,7 @@ const handleSaveSubmissionif = async () => {
                 <template #body="props">
                   <p class="uppercase text-surface-600">
                     {{ props.data.period }}
-                    {{ props.data.month }}
+                    {{ getLongMonthAndYear(props.data.month) }}
                   </p>
                 </template>
               </Column>
@@ -435,6 +451,84 @@ const handleSaveSubmissionif = async () => {
                   </div>
                 </template>
               </Column>
+            </DataTable>
+
+            <DataTable
+              v-else
+              v-model:expanded-rows="expandedRows"
+              :value="employeeGroups"
+              :loading="locatorSlipsIsLoading"
+              class="mt-6"
+              dataKey="employee.id"
+            >
+              <Column expander style="width: 5rem" />
+              <Column
+                field="employee.first_name"
+                header="Employee"
+                headerClass="w-full bg-surface-100 border-surface-300 opacity-70 font-bold"
+              >
+                <template #body="props">
+                  {{ snakeCaseToTitleCase(props.data.employee.first_name) }}
+                  {{ snakeCaseToTitleCase(props.data.employee.middle_name ?? '') }}
+                  {{ snakeCaseToTitleCase(props.data.employee.last_name) }}
+                </template>
+              </Column>
+              <template #expansion="slotProps">
+                <DataTable scrollable scroll-height="400px" :value="slotProps.data.locatorSlips" dataKey="id">
+                  <Column
+                    field="form_type"
+                    header="Locator Slip"
+                    headerClass="w-1/3 bg-surface-100 border-surface-300 opacity-100 font-bold"
+                  >
+                    <template #body="props">
+                      <p class="font-semibold uppercase text-surface-600">
+                        Locator Slip Form
+                        {{ props.data.form_type }}
+                      </p>
+                      <p v-if="props.data.form_type === 'c'" class="font-semibold uppercase text-success-600">
+                        LS No: {{ props.data.locator_slip_no }}
+                      </p>
+                    </template>
+                  </Column>
+                  <Column
+                    field="month"
+                    header="Period"
+                    sortable
+                    headerClass="w-80 bg-surface-100 border-surface-300 opacity-100 font-bold"
+                  >
+                    <template #body="props">
+                      <p class="uppercase text-surface-600">
+                        {{ props.data.period }}
+                        {{ getLongMonthAndYear(props.data.month) }}
+                      </p>
+                    </template>
+                  </Column>
+                  <Column field="action" header="Actions" headerClass="w-64 bg-surface-100 opacity-100 font-bold">
+                    <template #body="props">
+                      <div class="flex gap-4 whitespace-nowrap md:w-auto">
+                        <Button
+                          icon="pi pi-eye"
+                          v-tooltip.top="'View Locator Slip'"
+                          severity="info"
+                          size="large"
+                          class="border-none text-lg font-semibold text-primary-600 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
+                          text
+                          :disabled="props.data.status === 'released'"
+                          @click="openLocatorSlip(props.data)"
+                        />
+                        <Button
+                          icon="pi pi-download"
+                          v-tooltip.top="'Download Locator Slip'"
+                          severity="info"
+                          class="border-none text-lg font-semibold text-primary-600 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
+                          text
+                          @click="exportPdf(props.data)"
+                        />
+                      </div>
+                    </template>
+                  </Column>
+                </DataTable>
+              </template>
             </DataTable>
           </div>
           <div class="mt-6 flex w-full justify-center md:mt-10">

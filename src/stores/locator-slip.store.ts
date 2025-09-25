@@ -8,15 +8,16 @@ import { locatorslipmockData } from '@/utils/mock-data'
 
 export type LocatorSlipPayload = {
   form_type: string
-  month: string | null
+  month: string
   period: string | null
+  locator_slip_no: string | null
   ls_logger: LSLoggerPayload[]
 }
 
 export type LSLoggerPayload = {
   id?: number | null
   locator_slip_id: number | null
-  date: string | null
+  date: string
   time_in: string | null
   time_out: string | null
   destination: string | null
@@ -45,6 +46,44 @@ export const useLocatorSlipStore = defineStore('locator-slip', () => {
         total: locatorslipmockData.length,
         from: start + 1,
         to: start + paginated.length,
+        first_page_url: '',
+        last_page_url: '',
+        next_page_url: null,
+        previous_page_url: null,
+        path: '',
+      },
+    }
+  }
+
+  const fetchGroupedLocatorSlip = async (limit = 10, page = 1) => {
+    const groups = new Map()
+    locatorslipmockData.forEach((slip) => {
+      const employeeId = slip.employee_id.id
+      if (!groups.has(employeeId)) {
+        groups.set(employeeId, {
+          employee: slip.employee_id,
+          locatorSlips: [],
+        })
+      }
+      groups.get(employeeId).locatorSlips.push(slip)
+    })
+
+    const groupedData = Array.from(groups.values())
+    const totalGroups = groupedData.length
+    const start = (page - 1) * limit
+    const paginatedGroups = groupedData.slice(start, start + limit)
+    locatorSlip.value = [...paginatedGroups]
+
+    return {
+      success: true,
+      data: paginatedGroups,
+      pagination: {
+        current_page: page,
+        last_page: Math.ceil(totalGroups / limit),
+        per_page: limit,
+        total: totalGroups,
+        from: start + 1,
+        to: start + paginatedGroups.length,
         first_page_url: '',
         last_page_url: '',
         next_page_url: null,
@@ -99,9 +138,7 @@ export const useLocatorSlipStore = defineStore('locator-slip', () => {
       if (!query) return true
       const q = query.toLowerCase()
 
-      const monthName = item.month.toLowerCase()
       return (
-        monthName.includes(q) ||
         item.locator_slip_no?.toLowerCase().includes(q) ||
         item.status.toLowerCase().includes(q) ||
         item.employee_id.first_name.toLowerCase().includes(q) ||
@@ -172,6 +209,7 @@ export const useLocatorSlipStore = defineStore('locator-slip', () => {
     locatorSlip,
     createLocatorSlip,
     fetchLocatorSlip,
+    fetchGroupedLocatorSlip,
     fetchLocatorSlipById,
     selectedlocatorSlip,
     updateLocatorSlip,
