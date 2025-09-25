@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed, Ref } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, type Ref } from 'vue'
 import { QrcodeStream, DetectedBarcode } from 'vue-qrcode-reader'
 import { useDailyLogsStore } from '@/stores/daily-logs.store'
 import { useLibrariesStore } from '@/stores/libraries.store'
+import { useAuthStore } from '@/stores/auth.store'
+import { useRoute } from 'vue-router'
 import Dialog from 'primevue/dialog'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { getManilaTodayISO, formatTime } from '@/utils/helpers.ts'
@@ -10,13 +12,25 @@ import dswdLogoMark from '@/assets/image/DSWD logo_Mark.png'
 import WbAutoComplete from '@/components/webkit/WbAutoComplete.vue'
 import { WbAutoCompleteOption } from '@/components/webkit/WbAutoComplete.vue'
 
+interface Log {
+  id: string | number
+  name: string
+  position: string
+  timestamp: string
+  is_in: boolean
+  captured_image?: string
+  photo_url?: string
+}
+
 const currentDate: Ref<string> = ref('')
 const currentTime: Ref<string> = ref('')
 const meridiem: Ref<string> = ref('')
 const seconds: Ref<string> = ref('')
-const showModal: Ref<boolean> = ref(false)
-const showOfficeSelectionModal: Ref<boolean> = ref(true)
+const showModal = ref(false)
+const showOfficeSelectionModal = ref(true)
 const dailyLogsStore = useDailyLogsStore()
+const authStore = useAuthStore()
+const route = useRoute()
 const librariesStore = useLibrariesStore()
 const todayISO = ref('')
 const errorMessage = ref<string | null>(null)
@@ -31,20 +45,42 @@ const intervalId = ref<number | undefined>(undefined)
 
 const qrStreamRef = ref<InstanceType<typeof QrcodeStream> | null>(null)
 
-const selectedOffice = ref<WbAutoCompleteOption | null>(null)
+const selectedOffice = ref<WbAutoCompleteOption | null | undefined>(null)
 
-const recentLogs = ref<string[]>([])
+const recentLogs = ref<Log[]>([])
 
 const startTimeLogs = () => {
   if (selectedOffice.value) {
-    dailyLogsStore.timelogOfficeId = selectedOffice.value.value as string
+    localStorage.setItem('timelogOfficeId', selectedOffice.value.value as string)
     showOfficeSelectionModal.value = false
   }
 }
 
 const updateDailyLogsState = async (date: string) => {
   await dailyLogsStore.fetchDailyLogs(date)
-  recentLogs.value = dailyLogsStore.getTodayWarmBodies(date).slice(0, 10)
+  const rawLogs = dailyLogsStore.getTodayWarmBodies(date)
+
+  recentLogs.value = rawLogs
+    .map((entry) => {
+      const basic = entry.daily_time_record?.employee?.individual_basic_detail
+      const position = entry.daily_time_record?.employee?.item?.position?.title ?? 'Unknown'
+
+      const name = basic
+        ? `${basic.first_name} ${basic.middle_name ? basic.middle_name + ' ' : ''}${basic.last_name}${basic.ext_name ? ' ' + basic.ext_name : ''}`
+        : 'Unknown'
+
+      const photoUrl = basic?.user_profile?.profile_picture_url ?? undefined
+
+      return {
+        id: entry.id,
+        name,
+        position,
+        timestamp: entry.timestamp,
+        is_in: entry.is_in,
+        photo_url: photoUrl,
+      }
+    })
+    .slice(0, 10)
 }
 
 const updateDateTime = () => {
@@ -70,11 +106,10 @@ const updateDateTime = () => {
 }
 
 onMounted(async () => {
-  await librariesStore.fetchOffices()
-
-  if (dailyLogsStore.timelogOfficeId) {
+  const storedOfficeId = localStorage.getItem('timelogOfficeId')
+  if (storedOfficeId) {
     showOfficeSelectionModal.value = false
-    selectedOffice.value = librariesStore.officeOptions.find((office) => office.value === dailyLogsStore.timelogOfficeId)
+    selectedOffice.value = librariesStore.officeOptions.find((office) => office.value === storedOfficeId)
   } else {
     showOfficeSelectionModal.value = true
   }
@@ -91,7 +126,7 @@ onMounted(async () => {
 
 watch(
   () => route.name,
-  (newName) => {
+  (newName: string | symbol | null | undefined) => {
     const expiration = sessionStorage.getItem('auth-token-expiration')
     const userRoles = authStore.authRoles
 
@@ -136,57 +171,46 @@ const capturePhoto = () => {
   return null
 }
 
-const modalTimeoutId = ref<number | null>(null)
-
-const handleCloseDialog = () => {
-  showModal.value = false
-  errorMessage.value = null
-  dailyLogsStore.clearScannedEmployee()
-  if (modalTimeoutId.value) {
-    clearTimeout(modalTimeoutId.value)
-    modalTimeoutId.value = null
+const onDecode = async (result: string) => {
+  if (scanTimeoutId.value) {
+    clearTimeout(scanTimeoutId.value)
+    scanTimeoutId.value = undefined
   }
-}
+  if (showModal.value) handleCloseDialog()
 
-const onDecode = async (rawQrText: string) => {
-  if (isProcessingScan.value) return
-  isProcessingScan.value = true
+  dailyLogsStore.clearScannedEmployee()
+  errorMessage.value = null
+
+  const capturedImage = capturePhoto()
+
+  if (!result || result.trim() === '') {
+    dailyLogsStore.lastLogMessage = 'Empty QR code scanned. Please try again.'
+    showModal.value = true
+    isProcessingScan.value = false
+    scanTimeoutId.value = setTimeout(() => handleCloseDialog(), MODAL_DISPLAY_DURATION_MS) as unknown as number
+    return
+  }
 
   try {
-    handleCloseDialog()
-
-    const capturedImage = capturePhoto()
     const response = await dailyLogsStore.logEmployeeTime({
-      scanned_qr: rawQrText,
+      scanned_qr: result,
       captured_image: capturedImage,
     })
-
-    if (!response.success) {
-      errorMessage.value = response.error_message || response.message || 'Failed to log time.'
+    if (response?.data) {
+      const newLog = response.data as Log
+      if (!newLog.captured_image && capturedImage) {
+        newLog.captured_image = capturedImage
+      }
+      recentLogs.value.unshift(newLog)
+      recentLogs.value = recentLogs.value.slice(0, 10)
       showModal.value = true
-      return
+    } else {
+      dailyLogsStore.lastLogMessage = 'QR Code not recognized. Please try again.'
+      showModal.value = true
     }
-
-    showModal.value = true
-
-    recentLogs.value.unshift({
-      ...(response.data as string),
-      captured_image: capturedImage,
-      created_at: new Date().toISOString(),
-    })
-
-    void dailyLogsStore.fetchWarmBodySummary(getManilaTodayISO())
-    void dailyLogsStore.fetchDailyLogs(getManilaTodayISO())
-
-    modalTimeoutId.value = window.setTimeout(() => {
-      handleCloseDialog()
-    }, MODAL_DISPLAY_DURATION_MS)
   } catch (err) {
-    console.error('Error logging employee time:', err)
-    errorMessage.value = 'An error occurred while logging the time.'
+    dailyLogsStore.lastLogMessage = 'An error occurred while logging. Please try again.'
     showModal.value = true
-  } finally {
-    isProcessingScan.value = false
   }
 }
 
@@ -227,6 +251,12 @@ const dynamicSuccessMessage = computed(() => {
   return 'Processing...'
 })
 
+const handleCloseDialog = () => {
+  showModal.value = false
+  errorMessage.value = null
+  dailyLogsStore.clearScannedEmployee()
+}
+
 const latestWarmBodyLogs = computed(() => recentLogs.value)
 </script>
 
@@ -256,6 +286,7 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
             :loading="librariesStore.officeOptionsLoading"
             placeholder="Type to select from the list of official stations to proceed"
             v-model="selectedOffice"
+            label=""
             optionLabel="label"
             optionValue="value"
             forceSelection
@@ -313,7 +344,7 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
                   </td>
 
                   <td class="p-2">
-                    <p class="text-xs">{{ entry.employee_id }} - {{ formatTime(entry.timestamp) }}</p>
+                    <p class="text-xs">{{ entry.id }} - {{ formatTime(entry.timestamp) }}</p>
                   </td>
 
                   <td class="p-2">
