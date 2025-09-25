@@ -164,7 +164,7 @@ const formRules = computed(() => ({
     name: {
       required: helpers.withMessage('Name is required.', required),
       maxLength: globalStringMaxLengthRule,
-      unique: uniqueField(payload.individual_reference, 'name', 'Provide another  Name as this is already existed.'),
+      unique: uniqueField(payload.individual_reference, 'name', 'Character references name already exists.'),
     },
     address: {
       required: helpers.withMessage('Address is required.', required),
@@ -173,7 +173,7 @@ const formRules = computed(() => ({
     tel_no: {
       required: helpers.withMessage('Tel No. Sponsor is required.', required),
       tel_no: helpers.withMessage('Must be a valid PH mobile number', mobilePhoneRule()),
-      unique: uniqueField(payload.individual_reference, 'tel_no', 'Provide another Tel. No as this is already existed.'),
+      unique: uniqueField(payload.individual_reference, 'tel_no', 'Character references tel no already provided/exists.'),
     },
   })),
   individual_government_id: {
@@ -315,13 +315,18 @@ const updateC4Form = async () => {
       (entry) => (entry as { $error: boolean })?.$error
     )
 
-    const hasIndividualReferenceError = Object.values(
-      validator.value.individual_reference && validator.value.individual_government_id
-    ).some((entry) => (entry as { $error: boolean })?.$error)
+    const hasIndividualReferenceError = Object.values(validator.value.individual_reference).some(
+      (entry) => (entry as { $error: boolean })?.$error
+    )
+
+    const hasIndividualGovermentIdError = Object.values(validator.value.individual_government_id).some(
+      (entry) => (entry as { $error: boolean })?.$error
+    )
 
     let errorTabs = []
     if (hasIndividualQuestionError) errorTabs.push('C4 - Other Information Continued')
-    if (hasIndividualReferenceError) errorTabs.push('C4 -References & Gov` Issued ID')
+    if (hasIndividualReferenceError) errorTabs.push('C4 - References')
+    if (hasIndividualGovermentIdError) errorTabs.push('C4 - Gov` Issued ID')
 
     const tabList = errorTabs.join(', ')
     showToast('error', 'Validation Error', `Please check the following tab(s): ${tabList}`)
