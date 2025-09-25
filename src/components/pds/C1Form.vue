@@ -28,7 +28,7 @@ import { WbAutoCompleteOption, WbAutoCompleteOptionTrueValue } from '@/component
 import { useWbAutoCompleteHandleTrueValue } from '@/composables/wb-ui-components.ts'
 import { bloodTypeOptions, SexTypeOptions, ExtensionTypeOptions } from '@/typings/employee-entry.types'
 import { TabGroup, TabList, Tab, TabPanels, TabPanel } from '@headlessui/vue'
-import { usePrependOrAppendOnce, isNotMoreThanYearsAgo } from '@/utils/helpers.js'
+import { usePrependOrAppendOnce, isNotMoreThanYearsAgo, isAfterOrEqualFromDate, notInFuture } from '@/utils/helpers.js'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { TransitionRoot } from '@headlessui/vue'
 import { IndividualEducBg, ItemNumberResponse, PersonnelResponse, IndividualFamily } from '@/typings/models.types'
@@ -194,8 +194,9 @@ const formRules = computed(() => ({
     },
     birthday: {
       required: helpers.withMessage(() => generateMessage('birthday').required, required),
-      date: helpers.withMessage('Invalid date format, please use YYYY-MM-DD', required),
+      maxLength: helpers.withMessage(() => generateMessage('birthday').maxLength, globalStringMaxLengthRule),
       isNotTooOld: helpers.withMessage('Birthdate cannot be more than 130 years ago', isNotMoreThanYearsAgo(130)),
+      notInFuture: helpers.withMessage('Birthdate must not be in the future.', notInFuture),
     },
     sex: {
       in: helpers.withMessage('Select a valid sex option: male or female', required),
@@ -209,8 +210,14 @@ const formRules = computed(() => ({
       in: helpers.withMessage('Select a valid civil status from the list', required),
     },
     height: {
-      maxLength: helpers.withMessage(() => generateMessage('height').maxLength, globalStringMaxLengthRule),
-      regex: helpers.withMessage('Invalid height format. Please enter a valid height.', required),
+      required: helpers.withMessage(() => generateMessage('height').required, required),
+      heightFormat: helpers.withMessage(
+        'Invalid height format. Please enter a valid height in meters, e.g., 1.56m',
+        (value: string | null) => {
+          if (!value) return true
+          return /^\d{1}(\.\d{1,2})/.test(value)
+        }
+      ),
     },
     weight: {
       maxLength: helpers.withMessage(() => generateMessage('weight').maxLength, globalStringMaxLengthRule),
@@ -350,6 +357,10 @@ const formRules = computed(() => ({
     },
     telephone_no: {
       maxLength: helpers.withMessage(() => generateMessage('spouse_telephone_no').maxLength, globalStringMaxLengthRule),
+      numericDash: helpers.withMessage('Telephone number can only contain numbers and dashes (-).', (value: string | null) => {
+        if (!value) return true // allow empty, if you want it required add a separate required rule
+        return /^[0-9-]*$/.test(value)
+      }),
     },
   },
   individual_family_father: {
@@ -400,152 +411,234 @@ const formRules = computed(() => ({
     date_of_birth: {
       maxLength: helpers.withMessage(() => generateMessage('child_date_of_birth').maxLength, globalStringMaxLengthRule),
       isNotTooOld: helpers.withMessage('Birthdate cannot be more than 130 years ago', isNotMoreThanYearsAgo(130)),
+      notInFuture: helpers.withMessage('Birthdate must not be in the future.', notInFuture),
     },
   })),
   educations: {
     elementary: {
       schools_name: {
         required: helpers.withMessage(() => generateMessage('elementary_school_name').required, required),
-        maxLength: helpers.withMessage(() => generateMessage('elementary_school_name').maxLength, globalStringMaxLengthRule),
+        maxLength: globalStringMaxLengthRule,
       },
       education_description: {
         required: helpers.withMessage(() => generateMessage('elementary_basic_education_degree_course').required, required),
-        maxLength: helpers.withMessage(
-          () => generateMessage('elementary_basic_education_degree_course').maxLength,
-          globalStringMaxLengthRule
-        ),
+        maxLength: globalStringMaxLengthRule,
       },
       period_of_attendance_from: {
         required: helpers.withMessage(() => generateMessage('elementary_from').required, required),
-        maxLength: helpers.withMessage(() => generateMessage('elementary_from').maxLength, globalStringMaxLengthRule),
+        isAfterOrEqualTo: helpers.withMessage(
+          'Inclusive "From" date must not be after "To" date.',
+          (
+            val: string | number | Date | null,
+            vm: {
+              period_of_attendance_to: string | number | Date | null
+            }
+          ) => {
+            if (!helpers.req(vm.period_of_attendance_to)) return true
+
+            const from = val ? new Date(val) : null
+            const to = vm.period_of_attendance_to ? new Date(vm.period_of_attendance_to) : null
+
+            if (!from || !to || isNaN(from.getTime()) || isNaN(to.getTime())) return true
+
+            return from <= to
+          }
+        ),
+        notInFuture: helpers.withMessage('Date must not be in the future.', notInFuture),
       },
       period_of_attendance_to: {
         required: helpers.withMessage(() => generateMessage('elementary_to').required, required),
-        maxLength: helpers.withMessage(() => generateMessage('elementary_to').maxLength, globalStringMaxLengthRule),
+        isAfterOrEqualFromDate,
+        notInFuture: helpers.withMessage('Date must not be in the future.', notInFuture),
       },
       highest_level_units_earned: {
-        maxLength: helpers.withMessage(() => generateMessage('highest_level_units_earned').maxLength, globalStringMaxLengthRule),
+        maxLength: globalStringMaxLengthRule,
       },
       year_graduated: {
         required: helpers.withMessage(() => generateMessage('year_graduated').required, required),
-        maxLength: helpers.withMessage(() => generateMessage('year_graduated').maxLength, globalStringMaxLengthRule),
       },
       scholarship_academic_honors_received: {
-        maxLength: helpers.withMessage(() => generateMessage('year_graduated').maxLength, globalStringMaxLengthRule),
+        maxLength: globalStringMaxLengthRule,
       },
     },
     high_school: {
       schools_name: {
         required: helpers.withMessage(() => generateMessage('high_school_name').required, required),
-        maxLength: helpers.withMessage(() => generateMessage('high_school_name').maxLength, globalStringMaxLengthRule),
+        maxLength: globalStringMaxLengthRule,
       },
       education_description: {
         required: helpers.withMessage(() => generateMessage('high_school_basic_education_degree_course').required, required),
-        maxLength: helpers.withMessage(
-          () => generateMessage('high_school_basic_education_degree_course').maxLength,
-          globalStringMaxLengthRule
-        ),
+        maxLength: globalStringMaxLengthRule,
       },
       period_of_attendance_from: {
         required: helpers.withMessage(() => generateMessage('high_school_from').required, required),
-        maxLength: helpers.withMessage(() => generateMessage('high_school_from').maxLength, globalStringMaxLengthRule),
+        isAfterOrEqualTo: helpers.withMessage(
+          'Inclusive "From" date must not be after "To" date.',
+          (
+            val: string | number | Date | null,
+            vm: {
+              period_of_attendance_to: string | number | Date | null
+            }
+          ) => {
+            if (!helpers.req(vm.period_of_attendance_to)) return true
+
+            const from = val ? new Date(val) : null
+            const to = vm.period_of_attendance_to ? new Date(vm.period_of_attendance_to) : null
+
+            if (!from || !to || isNaN(from.getTime()) || isNaN(to.getTime())) return true
+
+            return from <= to
+          }
+        ),
+        notInFuture: helpers.withMessage('Date must not be in the future.', notInFuture),
       },
       period_of_attendance_to: {
         required: helpers.withMessage(() => generateMessage('high_school_to').required, required),
-        maxLength: helpers.withMessage(() => generateMessage('schools_name_to').maxLength, globalStringMaxLengthRule),
+        isAfterOrEqualFromDate,
+        notInFuture: helpers.withMessage('Date must not be in the future.', notInFuture),
       },
       highest_level_units_earned: {
-        maxLength: helpers.withMessage(() => generateMessage('highest_level_units_earned').maxLength, globalStringMaxLengthRule),
+        maxLength: globalStringMaxLengthRule,
       },
       year_graduated: {
         required: helpers.withMessage(() => generateMessage('year_graduated').required, required),
-        maxLength: helpers.withMessage(() => generateMessage('year_graduated').maxLength, globalStringMaxLengthRule),
       },
       scholarship_academic_honors_received: {
-        maxLength: helpers.withMessage(() => generateMessage('year_graduated').maxLength, globalStringMaxLengthRule),
+        maxLength: globalStringMaxLengthRule,
       },
     },
     vocational: {
       schools_name: {
-        maxLength: helpers.withMessage(() => generateMessage('elementary_school_name').maxLength, globalStringMaxLengthRule),
+        maxLength: globalStringMaxLengthRule,
       },
       education_description: {
-        maxLength: helpers.withMessage(
-          () => generateMessage('elementary_basic_education_degree_course').maxLength,
-          globalStringMaxLengthRule
-        ),
+        maxLength: globalStringMaxLengthRule,
       },
       period_of_attendance_from: {
         maxLength: helpers.withMessage(() => generateMessage('elementary_from').maxLength, globalStringMaxLengthRule),
+        isAfterOrEqualTo: helpers.withMessage(
+          'Inclusive "From" date must not be after "To" date.',
+          (
+            val: string | number | Date | null,
+            vm: {
+              period_of_attendance_to: string | number | Date | null
+            }
+          ) => {
+            if (!helpers.req(vm.period_of_attendance_to)) return true
+
+            const from = val ? new Date(val) : null
+            const to = vm.period_of_attendance_to ? new Date(vm.period_of_attendance_to) : null
+
+            if (!from || !to || isNaN(from.getTime()) || isNaN(to.getTime())) return true
+
+            return from <= to
+          }
+        ),
+        notInFuture: helpers.withMessage('Date must not be in the future.', notInFuture),
       },
       period_of_attendance_to: {
         maxLength: helpers.withMessage(() => generateMessage('elementary_to').maxLength, globalStringMaxLengthRule),
+        isAfterOrEqualFromDate,
+        notInFuture: helpers.withMessage('Date must not be in the future.', notInFuture),
       },
       highest_level_units_earned: {
-        maxLength: helpers.withMessage(() => generateMessage('highest_level_units_earned').maxLength, globalStringMaxLengthRule),
+        maxLength: globalStringMaxLengthRule,
       },
       year_graduated: {
         maxLength: helpers.withMessage(() => generateMessage('year_graduated').maxLength, globalStringMaxLengthRule),
       },
       scholarship_academic_honors_received: {
-        maxLength: helpers.withMessage(() => generateMessage('year_graduated').maxLength, globalStringMaxLengthRule),
+        maxLength: globalStringMaxLengthRule,
       },
     },
     college: {
       schools_name: {
         required: helpers.withMessage(() => generateMessage('college_name').required, required),
-        maxLength: helpers.withMessage(() => generateMessage('college_name').maxLength, globalStringMaxLengthRule),
+        maxLength: globalStringMaxLengthRule,
       },
       education_description: {
         required: helpers.withMessage(() => generateMessage('college_basic_education_degree_course').required, required),
-        maxLength: helpers.withMessage(
-          () => generateMessage('college_basic_education_degree_course').maxLength,
-          globalStringMaxLengthRule
-        ),
+        maxLength: globalStringMaxLengthRule,
       },
       period_of_attendance_from: {
         required: helpers.withMessage(() => generateMessage('college_from').required, required),
-        maxLength: helpers.withMessage(() => generateMessage('college_from').maxLength, globalStringMaxLengthRule),
+        isAfterOrEqualTo: helpers.withMessage(
+          'Inclusive "From" date must not be after "To" date.',
+          (
+            val: string | number | Date | null,
+            vm: {
+              period_of_attendance_to: string | number | Date | null
+            }
+          ) => {
+            if (!helpers.req(vm.period_of_attendance_to)) return true
+
+            const from = val ? new Date(val) : null
+            const to = vm.period_of_attendance_to ? new Date(vm.period_of_attendance_to) : null
+
+            if (!from || !to || isNaN(from.getTime()) || isNaN(to.getTime())) return true
+
+            return from <= to
+          }
+        ),
+        notInFuture: helpers.withMessage('Date must not be in the future.', notInFuture),
       },
       period_of_attendance_to: {
         required: helpers.withMessage(() => generateMessage('college_to').required, required),
-        maxLength: helpers.withMessage(() => generateMessage('college_to').maxLength, globalStringMaxLengthRule),
+        isAfterOrEqualFromDate,
+        notInFuture: helpers.withMessage('Date must not be in the future.', notInFuture),
       },
       highest_level_units_earned: {
-        maxLength: helpers.withMessage(() => generateMessage('highest_level_units_earned').maxLength, globalStringMaxLengthRule),
+        maxLength: globalStringMaxLengthRule,
       },
       year_graduated: {
         required: helpers.withMessage(() => generateMessage('year_graduated').required, required),
-        maxLength: helpers.withMessage(() => generateMessage('year_graduated').maxLength, globalStringMaxLengthRule),
       },
       scholarship_academic_honors_received: {
-        maxLength: helpers.withMessage(() => generateMessage('year_graduated').maxLength, globalStringMaxLengthRule),
+        maxLength: globalStringMaxLengthRule,
       },
     },
     graduate: {
       schools_name: {
-        maxLength: helpers.withMessage(() => generateMessage('graduate_school_name').maxLength, globalStringMaxLengthRule),
+        maxLength: globalStringMaxLengthRule,
       },
       education_description: {
-        maxLength: helpers.withMessage(
-          () => generateMessage('graduate_basic_education_degree_course').maxLength,
-          globalStringMaxLengthRule
-        ),
+        maxLength: globalStringMaxLengthRule,
       },
       period_of_attendance_from: {
         maxLength: helpers.withMessage(() => generateMessage('graduate_from').maxLength, globalStringMaxLengthRule),
+        isAfterOrEqualTo: helpers.withMessage(
+          'Inclusive "From" date must not be after "To" date.',
+          (
+            val: string | number | Date | null,
+            vm: {
+              period_of_attendance_to: string | number | Date | null
+            }
+          ) => {
+            if (!helpers.req(vm.period_of_attendance_to)) return true
+
+            const from = val ? new Date(val) : null
+            const to = vm.period_of_attendance_to ? new Date(vm.period_of_attendance_to) : null
+
+            if (!from || !to || isNaN(from.getTime()) || isNaN(to.getTime())) return true
+
+            return from <= to
+          }
+        ),
+        notInFuture: helpers.withMessage('Date must not be in the future.', notInFuture),
       },
       period_of_attendance_to: {
         maxLength: helpers.withMessage(() => generateMessage('graduate_to').maxLength, globalStringMaxLengthRule),
+        isAfterOrEqualFromDate,
+        notInFuture: helpers.withMessage('Date must not be in the future.', notInFuture),
       },
       highest_level_units_earned: {
-        maxLength: helpers.withMessage(() => generateMessage('highest_level_units_earned').maxLength, globalStringMaxLengthRule),
+        maxLength: globalStringMaxLengthRule,
       },
       year_graduated: {
         maxLength: helpers.withMessage(() => generateMessage('year_graduated').maxLength, globalStringMaxLengthRule),
       },
       scholarship_academic_honors_received: {
-        maxLength: helpers.withMessage(() => generateMessage('year_graduated').maxLength, globalStringMaxLengthRule),
+        maxLength: globalStringMaxLengthRule,
       },
     },
   },
@@ -554,19 +647,33 @@ const formRules = computed(() => ({
 const validator = useVuelidate<PersonalDataSheetPayload>(formRules, payload)
 
 watch(isSameResidential, (newVal) => {
+  const v = validator.value
   if (newVal === true) {
     const residential = payload.individual_address_init
-    if (
-      !residential.residential_house_block_lot_no &&
-      !residential.residential_street &&
-      !residential.residential_subdivision_village &&
-      !residential.residential_zip_code &&
-      !selectedResidentialRegion.value &&
-      !selectedResidentialProvince.value &&
-      !selectedResidentialCity.value &&
-      !selectedResidentialBarangay.value
-    ) {
-      showToast('error', 'Validation Error', 'Please enter your residential address first.')
+
+    // Trigger validation for all residential fields
+    v.individual_address_init.residential_house_block_lot_no.$touch()
+    v.individual_address_init.residential_street.$touch()
+    v.individual_address_init.residential_subdivision_village.$touch()
+    v.individual_address_init.residential_zip_code.$touch()
+    v.individual_address_init.residential_brgy_id.$touch()
+    v.individual_address_init.residential_citymun_id.$touch()
+    v.individual_address_init.residential_province_id.$touch()
+    v.individual_address_init.residential_region_id.$touch()
+
+    // Check if any field is invalid
+    const anyInvalid =
+      v.individual_address_init.residential_house_block_lot_no.$invalid ||
+      v.individual_address_init.residential_street.$invalid ||
+      v.individual_address_init.residential_subdivision_village.$invalid ||
+      v.individual_address_init.residential_zip_code.$invalid ||
+      v.individual_address_init.residential_brgy_id.$invalid ||
+      v.individual_address_init.residential_citymun_id.$invalid ||
+      v.individual_address_init.residential_province_id.$invalid ||
+      v.individual_address_init.residential_region_id.$invalid
+
+    if (anyInvalid) {
+      showToast('error', 'Validation Error', 'Please complete your residential address first.')
       isSameResidential.value = false
       return
     }
@@ -590,6 +697,15 @@ watch(isSameResidential, (newVal) => {
     payload.individual_address_init.permanent_zip_code = null
   }
 })
+
+watch(
+  () => payload.individual.sex,
+  (newSex) => {
+    if (newSex === 'female') {
+      payload.individual.ext_name = null
+    }
+  }
+)
 
 watch(
   () => payload.individual_address_init.residential_region_id,
@@ -684,16 +800,13 @@ watch(
 watch(
   () => payload.individual.birthday,
   (newBday) => {
-    if (newBday !== null) {
-      const dateBday = new Date(newBday).toLocaleDateString('default', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        timeZone: 'Asia/Manila',
-      })
+    if (newBday) {
+      const date = new Date(newBday)
+      const mm = String(date.getMonth() + 1).padStart(2, '0')
+      const dd = String(date.getDate()).padStart(2, '0')
+      const yyyy = date.getFullYear()
 
-      const formatBday = dateBday.split('/')
-      payload.individual.birthday = `${formatBday[2]}-${formatBday[0]}-${formatBday[1]}`
+      payload.individual.birthday = `${mm}/${dd}/${yyyy}`
     }
   }
 )
@@ -1070,7 +1183,7 @@ const handleAdditionalChild = () => {
     telephone_no: null,
     class: 'Children',
     date_of_birth: null,
-    _delete: null,
+    _delete: false,
   })
 }
 
@@ -1190,6 +1303,36 @@ const updateC1Form = async () => {
     : (route.params.id as string)
 
   formIsSubmitting.value = true
+
+  const valid = await validator.value.$validate()
+  if (!valid) {
+    const hasEmployeeError = validator.value.employee?.$error
+    const hasIndividualError = validator.value.individual?.$error
+    const hasContactInfoError = validator.value.contact_info?.$error
+    const hasAddressError = validator.value.individual_address_init?.$error
+    const hasSpouseError = validator.value.individual_family_spouse?.$error
+    const hasFatherError = validator.value.individual_family_father?.$error
+    const hasMotherError = validator.value.individual_family_mothers_maiden?.$error
+    const hasChildError = validator.value.individual_family_child?.$error
+    const hasEducationError = validator.value.educations?.$error
+
+    const errorFields: string[] = []
+    if (hasEmployeeError) errorFields.push('Employee')
+    if (hasIndividualError) errorFields.push('Individual')
+    if (hasContactInfoError) errorFields.push('Contact Info')
+    if (hasAddressError) errorFields.push('Address')
+    if (hasSpouseError) errorFields.push('Spouse')
+    if (hasFatherError) errorFields.push('Father')
+    if (hasMotherError) errorFields.push('Mother')
+    if (hasChildError) errorFields.push('Child')
+    if (hasEducationError) errorFields.push('Education')
+
+    const tabList = errorFields.join(', ')
+    showToast('error', 'Validation Error', `Please check the following section(s): ${tabList}`)
+
+    isC1Loading.value = false
+    return { valid: false, errorTabs: ['C1'] }
+  }
 
   const familyArray = [
     payload.individual_family_spouse,
@@ -1605,7 +1748,11 @@ defineExpose({
                         :disabled="pdsStore.isMyPds || payload.individual.sex === 'female'"
                         label="Extension Name"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                        class="lg:text-md lg:placeholder:text-md cursor-not-allowed bg-surface-200 text-sm placeholder:text-sm read-only:cursor-not-allowed disabled:cursor-not-allowed"
+                        :class="[
+                          'lg:text-md lg:placeholder:text-md text-sm placeholder:text-sm',
+                          payload.individual.sex === 'female' ? 'cursor-not-allowed bg-surface-200' : 'bg-surface-0',
+                          pdsStore.isMyPds ? 'cursor-not-allowed bg-surface-200' : '',
+                        ]"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         :invalid="validator.individual.ext_name.$invalid"
                         :invalid-text="validator.individual.ext_name.$errors[0]?.$message"
@@ -1615,7 +1762,7 @@ defineExpose({
 
                       <WbCalendar
                         v-model="payload.individual.birthday"
-                        dateFormat="yy-mm-dd"
+                        dateFormat="mm/dd/yy"
                         :maxDate="new Date()"
                         required
                         :disabled="pdsStore.isMyPds"
@@ -1726,11 +1873,11 @@ defineExpose({
                           <FontAwesomeIcon icon="fa-solid fa-house-flag" />
                         </template>
                       </WbDropdown>
-                      <WbInputNumber
+                      <WbInputText
                         v-model="payload.individual.height"
                         label="Height (m)"
                         placeholder="Height in meters"
-                        suffix=" m"
+                        suffix="m"
                         required
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
@@ -1742,7 +1889,7 @@ defineExpose({
                         <template #prepend-icon>
                           <FontAwesomeIcon icon="fa-solid fa-ruler-vertical" />
                         </template>
-                      </WbInputNumber>
+                      </WbInputText>
 
                       <WbDropdown
                         v-model="payload.individual.blood_type"
@@ -2534,6 +2681,10 @@ defineExpose({
                               :maxDate="new Date()"
                               label="Date of Birth"
                               label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                              :class="[
+                                'text-lg font-semibold dark:text-primary-100',
+                                validator.individual_family_children[childIdx - 1].date_of_birth.$error ? 'mb-0' : 'mb-2',
+                              ]"
                               :invalid="validator.individual_family_children?.[childIdx - 1]?.date_of_birth?.$error"
                               :invalid-text="
                                 validator.individual_family_children?.[childIdx - 1]?.date_of_birth?.$errors[0]?.$message
@@ -2553,6 +2704,10 @@ defineExpose({
                               v-tooltip.top="'Remove Child'"
                               severity="danger"
                               class="mt-8 text-lg font-semibold dark:text-primary-100"
+                              :class="[
+                                'text-lg font-semibold dark:text-primary-100',
+                                validator.individual_family_children[childIdx - 1].date_of_birth.$error ? 'mb-6' : 'mb-2',
+                              ]"
                               text
                             />
                           </div>
@@ -2853,6 +3008,7 @@ defineExpose({
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                             :view="'year'"
                             :dateFormat="'yy'"
+                            placeholder="1970"
                             :invalid="validator.educations.vocational.period_of_attendance_from.$invalid"
                             :invalid-text="validator.educations.vocational.period_of_attendance_from.$errors[0]?.$message"
                             @blur="validator.educations.vocational.period_of_attendance_from.$touch"
@@ -2867,6 +3023,7 @@ defineExpose({
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                             :view="'year'"
                             :dateFormat="'yy'"
+                            placeholder="1970"
                             :invalid="validator.educations.vocational.period_of_attendance_to.$invalid"
                             :invalid-text="validator.educations.vocational.period_of_attendance_to.$errors[0]?.$message"
                             @blur="validator.educations.vocational.period_of_attendance_to.$touch"
@@ -2903,6 +3060,7 @@ defineExpose({
                             :view="'year'"
                             :dateFormat="'yy'"
                             :disabled="currentlyEnrolledVocational"
+                            placeholder="1970"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                             :invalid="validator.educations.vocational.year_graduated.$invalid"
@@ -3083,6 +3241,7 @@ defineExpose({
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                             :view="'year'"
                             :dateFormat="'yy'"
+                            placeholder="1970"
                             :invalid="validator.educations.graduate.period_of_attendance_from.$invalid"
                             :invalid-text="validator.educations.graduate.period_of_attendance_from.$errors[0]?.$message"
                             @blur="validator.educations.graduate.period_of_attendance_from.$touch"
@@ -3097,6 +3256,7 @@ defineExpose({
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                             :view="'year'"
                             :dateFormat="'yy'"
+                            placeholder="1970"
                             :invalid="validator.educations.graduate.period_of_attendance_to.$invalid"
                             :invalid-text="validator.educations.graduate.period_of_attendance_to.$errors[0]?.$message"
                             @blur="validator.educations.graduate.period_of_attendance_to.$touch"
@@ -3131,6 +3291,7 @@ defineExpose({
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
                             :view="'year'"
                             :dateFormat="'yy'"
+                            placeholder="1970"
                             :disabled="currentlyEnrolledGraduate"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"

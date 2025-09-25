@@ -1,4 +1,4 @@
-import { Ref, ref, reactive } from 'vue'
+import { Ref, ref, reactive, computed } from 'vue'
 import { defineStore } from 'pinia'
 import {
   IndividualAddress,
@@ -109,14 +109,13 @@ export type PersonalDataSheetPayload = {
 export const usePdsStore = defineStore('pds', () => {
   /** States */
   const authStore = useAuthStore()
-  const pdsMode = ref('')
+  const pdsMode = ref<string | null>(null)
   const importResult: Ref<ApiResponseBody | null> = ref(null)
   const selectedPDS = ref<PersonnelResponse | null>(null)
   const personnelPds = ref<PersonnelResponse[]>([])
-
   const route = useRoute()
-  const isMyPds = route.name === 'my-pds'
-  const individual = isMyPds ? authStore.authenticatedUser?.user_profile?.individual_basic_detail : null
+  const isMyPds = computed(() => route.name === 'my-pds')
+  const individual = isMyPds.value ? authStore.authenticatedUser?.user_profile?.individual_basic_detail : null
   const employee = individual?.employee
   const contactInfo = individual?.individual_contact_info
   const individual_address = individual?.individual_address

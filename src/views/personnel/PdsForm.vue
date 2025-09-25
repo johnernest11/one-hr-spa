@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onBeforeMount, ref, computed } from 'vue'
-import { useProfileStore } from '@/stores/profile.store.ts'
+// import { useProfileStore } from '@/stores/profile.store.ts'
 import { useRoute } from 'vue-router'
 import { usePdsStore } from '@/stores/pds.store'
 
@@ -19,7 +19,7 @@ const route = useRoute()
 const isMyPds = route.name === 'my-pds'
 const isEditMode = computed(() => !!route.params.id)
 const pdsStore = usePdsStore()
-const profileStore = useProfileStore()
+// const profileStore = useProfileStore()
 const isSubmitting = ref(false)
 
 const c1FormRef = ref()
@@ -28,7 +28,6 @@ const c3FormRef = ref()
 const c4FormRef = ref()
 
 onBeforeMount(async () => {
-  await profileStore.fetchProfile()
   if (route.query.mode === 'via-manual-input') {
     pdsStore.pdsMode = route.query.mode.replace(/-/g, ' ').replace(/(?:^|\s)\S/g, (a: string) => a.toUpperCase())
   }
@@ -89,7 +88,7 @@ const handleUpdate = async () => {
           <FontAwesomeIcon :icon="['fas', 'users']" class="text-2xl md:text-4xl" />
           <span class="flex flex-col justify-center">
             <p class="text-xl md:text-3xl">Personal Data Sheet</p>
-            <p class="text-surface-500">{{ lcFirst(pdsStore.pdsMode) }}</p>
+            <p class="text-surface-500">{{ lcFirst(pdsStore.pdsMode ?? '') }}</p>
           </span>
         </div>
 
@@ -199,7 +198,7 @@ const handleUpdate = async () => {
                   leaveFrom="opacity-100"
                   leaveTo="opacity-0"
                 >
-                  <C1Form ref="c1FormRef" :activeSubTab="0" />
+                  <C1Form ref="c1FormRef" :activeSubTab="0" :key="route.fullPath" />
                 </TransitionRoot>
               </TabPanel>
               <TabPanel>
@@ -213,7 +212,7 @@ const handleUpdate = async () => {
                   leaveFrom="opacity-100"
                   leaveTo="opacity-0"
                 >
-                  <C2Form ref="c2FormRef" :activeSubTab="0" />
+                  <C2Form ref="c2FormRef" :activeSubTab="0" :key="route.fullPath" />
                 </TransitionRoot>
               </TabPanel>
               <TabPanel>
@@ -227,7 +226,7 @@ const handleUpdate = async () => {
                   leaveFrom="opacity-100"
                   leaveTo="opacity-0"
                 >
-                  <C3Form ref="c3FormRef" :activeSubTab="0" />
+                  <C3Form ref="c3FormRef" :activeSubTab="0" :key="route.fullPath" />
                 </TransitionRoot>
               </TabPanel>
               <TabPanel>
@@ -241,7 +240,7 @@ const handleUpdate = async () => {
                   leaveFrom="opacity-100"
                   leaveTo="opacity-0"
                 >
-                  <C4Form ref="c4FormRef" :activeSubTab="0" />
+                  <C4Form ref="c4FormRef" :activeSubTab="0" :key="route.fullPath" />
                 </TransitionRoot>
               </TabPanel>
             </TabPanels>
