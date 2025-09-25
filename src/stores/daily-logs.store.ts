@@ -5,6 +5,7 @@ import { useApiCall } from '@/composables/network.ts'
 import { useAuthStore } from '@/stores/auth.store'
 import type { ApiResponseBody, WarmBodyLogEntry, DailyLogEntry } from '@/typings/http-resources.types.ts'
 import type { ScannedEmployeeResponse } from '@/typings/models.types'
+import type { WbAutoCompleteOption } from '@/components/webkit/WbAutoComplete.vue'
 
 /** Interfaces */
 interface DivisionSectionSummary {
@@ -45,7 +46,6 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
   const currentScannedEmployee = ref<ScannedEmployeeResponse | null>(null)
   const lastLogMessage = ref<string | null>(null)
   const warmBodySummary = ref<WarmBodySummary | null>(null)
-
   const countIn = computed(
     () => (date: string) => dailyLogs.value.find((l) => l.date === date)?.warm_bodies.filter((wb) => wb.is_in).length ?? 0
   )
@@ -53,6 +53,14 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
   const countOut = computed(
     () => (date: string) => dailyLogs.value.find((l) => l.date === date)?.warm_bodies.filter((wb) => !wb.is_in).length ?? 0
   )
+
+  const setOffice = (office: WbAutoCompleteOption) => {
+    timelogOfficeId.value = office.value as string
+  }
+
+  const clearOffice = () => {
+    timelogOfficeId.value = null
+  }
 
   const getTodayWarmBodies = computed(
     () => (date: string) =>
@@ -160,5 +168,7 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     clearScannedEmployee,
     fetchDailyLogs,
     fetchWarmBodySummary,
+    setOffice,
+    clearOffice,
   }
 })

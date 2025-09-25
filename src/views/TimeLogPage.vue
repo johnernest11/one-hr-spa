@@ -51,7 +51,7 @@ const recentLogs = ref<Log[]>([])
 
 const startTimeLogs = () => {
   if (selectedOffice.value) {
-    localStorage.setItem('timelogOfficeId', selectedOffice.value.value as string)
+    dailyLogsStore.setOffice(selectedOffice.value)
     showOfficeSelectionModal.value = false
   }
 }
@@ -106,10 +106,9 @@ const updateDateTime = () => {
 }
 
 onMounted(async () => {
-  const storedOfficeId = localStorage.getItem('timelogOfficeId')
-  if (storedOfficeId) {
+  if (dailyLogsStore.timelogOfficeId) {
     showOfficeSelectionModal.value = false
-    selectedOffice.value = librariesStore.officeOptions.find((office) => office.value === storedOfficeId)
+    selectedOffice.value = librariesStore.officeOptions.find((office) => office.value === dailyLogsStore.timelogOfficeId)
   } else {
     showOfficeSelectionModal.value = true
   }
@@ -192,7 +191,10 @@ const onDecode = async (result: string) => {
   }
 
   try {
-    const response = await dailyLogsStore.logEmployeeTime(result, capturedImage)
+    const response = await dailyLogsStore.logEmployeeTime({
+      scanned_qr: result,
+      captured_image: capturedImage,
+    })
     if (response?.data) {
       const newLog = response.data as Log
       if (!newLog.captured_image && capturedImage) {

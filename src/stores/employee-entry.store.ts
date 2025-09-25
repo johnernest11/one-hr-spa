@@ -84,25 +84,19 @@ export const useEmployeeEntryStore = defineStore('personnel', () => {
   const isEmployeesLoading = ref(true)
   const pdsMode = ref('')
 
-  const fetchEmployees = async () => {
+  const fetchEmployees = async (): Promise<ApiResponseBody> => {
     isEmployeesLoading.value = true
     employees.value = []
 
-    try {
-      const { data } = await useApiCall('/employees', auth.authenticationToken.value).get().json()
-      const responseBody: ApiResponseBody = data.value
+    const { data } = await useApiCall('/employees', auth.authenticationToken.value).get().json()
 
-      if (responseBody.success) {
-        employees.value = responseBody.data as PersonnelResponse[]
-      }
-
-      return responseBody
-    } catch (error) {
-      console.error('Error fetching employees:', error)
-      return { success: false, message: String(error) } as ApiResponseBody
-    } finally {
-      isEmployeesLoading.value = false
+    const responseBody: ApiResponseBody = data.value
+    if (responseBody.success) {
+      employees.value = responseBody.data as PersonnelResponse[]
     }
+
+    isEmployeesLoading.value = false
+    return responseBody
   }
 
   const fetchPersonalDataSheet = async () => {
