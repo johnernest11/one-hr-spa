@@ -6,13 +6,19 @@ import WbAutoComplete, { WbAutoCompleteOptionTrueValue } from '@/components/webk
 import { useWbAutoCompleteHandleTrueValue } from '@/composables/wb-ui-components.ts'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { useLibrariesStore } from '@/stores/libraries.store'
+import { Option, monthOptions, getYearOptions } from '@/typings/dashboard.types'
 
 const libraryStore = useLibrariesStore()
 
 const showSidebar = ref(false)
-const payload = reactive({ division: null, section: null })
-const selectedDivision = ref<string | null>(null)
-const selectedSectionUnit = ref<string | null>(null)
+const payload = reactive<{
+  division: Option<string> | null
+  section: Option<string> | null
+}>
+
+const selectedDivision = ref<Option<string> | null>(null)
+const selectedSectionUnit = ref<Option<string> | null>(null)
+
 const selectedDivisionLabel = ref<string | null>(null)
 const selectedSectionLabel = ref<string | null>(null)
 
@@ -43,62 +49,21 @@ const employees = ref([
     onLeave: 0,
     payroll: 45000,
   },
-  {
-    id: 3,
-    name: 'Pedro Reyes',
-    division: 'HR',
-    section: 'Recruitment',
-    year: 2024,
-    month: 12,
-    disbursedTotal: 150,
-    unfilled: 15,
-    totalPositions: 165,
-    onLeave: 5,
-    payroll: 60000,
-  },
-  {
-    id: 4,
-    name: 'Ana Cruz',
-    division: 'HR',
-    section: 'Training',
-    year: 2023,
-    month: 5,
-    disbursedTotal: 100,
-    unfilled: 0,
-    totalPositions: 100,
-    onLeave: 0,
-    payroll: 40000,
-  },
 ])
 
 const totalDisbursed = computed(() => filteredEmployees.value.reduce((sum, e) => sum + (e.disbursedTotal || 0), 0))
 
 const currentYear = new Date().getFullYear()
 const currentMonth = new Date().getMonth() + 1
+
 const totalEmployees = computed(() => filteredEmployees.value.length)
 const totalOnleave = computed(() => filteredEmployees.value.reduce((sum, e) => sum + (e.onLeave || 0), 0))
 const totalPayroll = computed(() => filteredEmployees.value.reduce((sum, e) => sum + (e.payroll || 0), 0))
+
 const selectedYear = ref<number | null>(currentYear)
 const selectedMonth = ref<number | null>(currentMonth)
 
-const yearOptions = computed(() => {
-  return Array.from({ length: 6 }, (_, i) => currentYear - i)
-})
-
-const monthOptions = [
-  { value: 1, label: 'January' },
-  { value: 2, label: 'February' },
-  { value: 3, label: 'March' },
-  { value: 4, label: 'April' },
-  { value: 5, label: 'May' },
-  { value: 6, label: 'June' },
-  { value: 7, label: 'July' },
-  { value: 8, label: 'August' },
-  { value: 9, label: 'September' },
-  { value: 10, label: 'October' },
-  { value: 11, label: 'November' },
-  { value: 12, label: 'December' },
-]
+const yearOptions = computed(() => getYearOptions(currentYear, 6))
 
 const filteredEmployees = computed(() => {
   let data = employees.value
@@ -158,48 +123,61 @@ function getId(id: string) {
         </div>
       </div>
 
-      <div class="mb-12 grid grid-cols-1 gap-6 md:grid-cols-2">
-        <div class="flex items-center rounded-xl bg-white p-4 shadow">
-          <div class="flex-1 text-center md:text-left">
-            <font-awesome-icon :icon="['fas', 'users-slash']" class="text-3xl text-red-600" />
+      <div class="mb-12 grid grid-cols-1 gap-6 md:grid-cols-4">
+        <div class="flex items-center rounded-xl bg-white p-4 shadow-md">
+          <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-100">
+            <font-awesome-icon :icon="['fas', 'users']" class="text-xl text-blue-600" />
           </div>
-          <div class="flex-1 text-center md:text-left">
-            <h2 class="text-lg font-semibold text-gray-600">Employees on leave</h2>
-            <p class="text-2xl font-bold text-red-600">{{ totalOnleave }}</p>
+          <div class="ml-4">
+            <div class="flex items-baseline space-x-2">
+              <p class="text-2xl font-bold text-gray-900">{{ totalEmployees }}</p>
+            </div>
+            <p class="text-sm text-gray-500">Total Employees</p>
           </div>
         </div>
 
-        <div class="flex items-center rounded-xl bg-white p-4 shadow">
-          <div class="flex-1 text-center md:text-left">
-            <font-awesome-icon :icon="['fas', 'peso-sign']" class="text-3xl text-yellow-600" />
+        <div class="flex items-center rounded-xl bg-white p-4 shadow-md">
+          <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-red-100">
+            <font-awesome-icon :icon="['fas', 'users-slash']" class="text-xl text-red-600" />
           </div>
-          <div class="flex-1 text-center md:text-left">
-            <h2 class="text-lg font-semibold text-gray-600">Total Payroll</h2>
-            <p class="text-2xl font-bold text-yellow-600">{{ totalPayroll }}</p>
+
+          <div class="ml-4">
+            <div class="flex items-baseline space-x-2">
+              <p class="text-2xl font-bold text-gray-900">{{ totalOnleave }}</p>
+            </div>
+            <p class="text-sm text-gray-500">Employees on Leave</p>
+          </div>
+        </div>
+
+        <div class="flex items-center rounded-xl bg-white p-4 shadow-md">
+          <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-yellow-100">
+            <font-awesome-icon :icon="['fas', 'peso-sign']" class="text-xl text-yellow-600" />
+          </div>
+          <div class="ml-4">
+            <div class="flex items-baseline space-x-2">
+              <p class="text-2xl font-bold text-gray-900">{{ totalPayroll }}</p>
+            </div>
+            <p class="text-sm text-gray-500">Total Payroll</p>
+          </div>
+        </div>
+
+        <div class="flex items-center rounded-xl bg-white p-4 shadow-md">
+          <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-green-100">
+            <font-awesome-icon :icon="['fas', 'map-location-dot']" class="text-xl text-green-600" />
+          </div>
+          <div class="ml-4">
+            <div class="flex items-baseline space-x-2">
+              <p class="text-2xl font-bold text-gray-900">{{ totalDisbursed }}</p>
+            </div>
+            <p class="text-sm text-gray-500">Total Disbursed Locator Slips</p>
           </div>
         </div>
       </div>
 
       <div class="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
-        <div class="flex items-center rounded-xl bg-white p-4 shadow">
-          <div class="flex-1 text-center md:text-left">
-            <font-awesome-icon :icon="['fas', 'map-location-dot']" class="text-3xl text-green-600" />
-          </div>
-          <div class="flex-1 text-center md:text-left">
-            <h2 class="text-lg font-semibold text-gray-600">Total Disbursed Locator Slips</h2>
-            <p class="text-2xl font-bold text-green-600">{{ totalDisbursed }}</p>
-          </div>
-        </div>
+        <!-- Total Disbursed -->
 
-        <div class="flex items-center rounded-xl bg-white p-4 shadow">
-          <div class="flex-1 text-center md:text-left">
-            <font-awesome-icon :icon="['fas', 'users']" class="text-3xl text-blue-600" />
-          </div>
-          <div class="flex-1 text-center md:text-left">
-            <h2 class="text-lg font-semibold text-gray-600">Total Employees</h2>
-            <p class="text-2xl font-bold text-blue-600">{{ totalEmployees }}</p>
-          </div>
-        </div>
+        <!-- Total Employees -->
       </div>
 
       <Dialog
