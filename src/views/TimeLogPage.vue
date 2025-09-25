@@ -85,9 +85,26 @@ onMounted(async () => {
   intervalId.value = window.setInterval(updateDateTime, 1000)
   checkScreenSize()
   window.addEventListener('resize', checkScreenSize)
-
-  await updateDailyLogsState(todayISO.value)
+  await dailyLogsStore.fetchWarmBodySummary(today)
+  await updateDailyLogsState(today)
 })
+
+watch(
+  () => route.name,
+  (newName) => {
+    const expiration = sessionStorage.getItem('auth-token-expiration')
+    const userRoles = authStore.authRoles
+
+    if (newName === 'time-logs' && expiration && userRoles.includes('time_logger')) {
+      authStore.clearScheduledRefresh()
+      authStore.scheduleTokenRefresh(new Date(expiration))
+      console.log('Token refresh scheduler is now active...')
+    } else {
+      authStore.clearScheduledRefresh()
+    }
+  },
+  { immediate: true }
+)
 
 onUnmounted(() => {
   if (intervalId.value) clearInterval(intervalId.value)
