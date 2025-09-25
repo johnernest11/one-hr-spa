@@ -3,7 +3,7 @@ import { ref, reactive, toRef, computed } from 'vue'
 import Dialog from 'primevue/dialog'
 import VueApexCharts from 'vue3-apexcharts'
 import Button from 'primevue/button'
-import WbAutoComplete, { WbAutoCompleteOptionTrueValue } from '@/components/webkit/WbAutoComplete.vue'
+import WbAutoComplete, { WbAutoCompleteOption, WbAutoCompleteOptionTrueValue } from '@/components/webkit/WbAutoComplete.vue'
 import { useWbAutoCompleteHandleTrueValue } from '@/composables/wb-ui-components.ts'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { useLibrariesStore } from '@/stores/libraries.store'
@@ -33,14 +33,8 @@ const isSubmitting = ref(false)
 const getId = usePrependOrAppendOnce('dashboard')
 const libraryStore = useLibrariesStore()
 const showSidebar = ref(false)
-
-export interface AutocompleteOption {
-  value: string
-  label: string
-}
-
-const selectedDivision = ref<AutocompleteOption | null>(null)
-const selectedSectionUnit = ref<AutocompleteOption | null>(null)
+const selectedDivision = ref<WbAutoCompleteOption | null>(null)
+const selectedSectionUnit = ref<WbAutoCompleteOption | null>(null)
 const selectedDivisionLabel = ref<string | null>(null)
 const selectedSectionLabel = ref<string | null>(null)
 
@@ -51,8 +45,6 @@ const employees = ref<Employee[]>([])
 const selectedYear = ref<number | null>(currentYear)
 const selectedMonth = ref<number | null>(currentMonth)
 const yearList = computed(() => getYearOptions(currentYear, 6))
-
-// ✅ Add payload for WbAutoComplete handling
 const payload = reactive({
   division: null as string | null,
   section: null as string | null,
@@ -68,14 +60,12 @@ const filteredEmployees = computed(() => {
   })
 })
 
-// Totals
 const totalMale = computed(() => filteredEmployees.value.reduce((sum, e) => sum + e.male, 0))
 const totalFemale = computed(() => filteredEmployees.value.reduce((sum, e) => sum + e.female, 0))
 const totalFilled = computed(() => filteredEmployees.value.reduce((sum, e) => sum + (e.filledTotal || 0), 0))
 const totalUnfilled = computed(() => filteredEmployees.value.reduce((sum, e) => sum + (e.unfilled || 0), 0))
 const totalPositions = computed(() => filteredEmployees.value.reduce((sum, e) => sum + (e.totalPositions || 0), 0))
 
-// Charts
 const employmentChartSeries = computed(() => [
   { name: 'Male', data: filteredEmployees.value.map((d) => d.male) },
   { name: 'Female', data: filteredEmployees.value.map((d) => d.female) },
@@ -137,21 +127,21 @@ const handleFilterEmployees = () => {
       <div class="mb-6 grid grid-cols-1 gap-6 md:grid-cols-3">
         <div class="flex items-center rounded-xl bg-white p-4 shadow">
           <div class="flex-1 text-center md:text-left">
-            <font-awesome-icon :icon="['fas', 'users']" class="text-3xl text-blue-600" />
+            <font-awesome-icon :icon="['fas', 'users']" class="text-3xl text-primary-600" />
           </div>
           <div class="flex-1 text-center md:text-left">
             <h2 class="text-lg font-semibold text-gray-600">Total Positions</h2>
-            <p class="text-2xl font-bold text-blue-600">{{ totalPositions }}</p>
+            <p class="text-xl font-bold text-primary-600">{{ totalPositions }}</p>
           </div>
         </div>
 
         <div class="flex items-center rounded-xl bg-white p-4 shadow">
           <div class="flex-1 text-center md:text-left">
-            <font-awesome-icon :icon="['fas', 'sitemap']" class="text-3xl text-green-600" />
+            <font-awesome-icon :icon="['fas', 'sitemap']" class="text-3xl text-success-600" />
           </div>
           <div class="flex-1 text-center md:text-left">
             <h2 class="text-lg font-semibold text-gray-600">Filled Positions</h2>
-            <p class="text-2xl font-bold text-green-600">{{ totalFilled }}</p>
+            <p class="text-2xl font-bold text-success-600">{{ totalFilled }}</p>
           </div>
         </div>
 

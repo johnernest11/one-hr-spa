@@ -51,25 +51,14 @@ const recentLogs = ref<Log[]>([])
 
 const startTimeLogs = () => {
   if (selectedOffice.value) {
-    localStorage.setItem('timelogOfficeId', selectedOffice.value.value as string)
+    dailyLogsStore.setOffice(selectedOffice.value)
     showOfficeSelectionModal.value = false
   }
 }
 
 const updateDailyLogsState = async (date: string) => {
   await dailyLogsStore.fetchDailyLogs(date)
-  const rawLogs: RawLog[] = dailyLogsStore.getTodayWarmBodies(date)
-
-  recentLogs.value = rawLogs
-    .map((entry) => ({
-      id: entry.id,
-      name: entry.daily_time_record?.employee?.name ?? 'N/A',
-      position: entry.daily_time_record?.employee?.position ?? 'N/A',
-      timestamp: entry.timestamp,
-      is_in: entry.is_in,
-      photo_url: entry.daily_time_record?.employee?.photo_url ?? undefined,
-    }))
-    .slice(0, 10)
+  recentLogs.value = dailyLogsStore.getTodayWarmBodies(date).slice(0, 10)
 }
 
 const updateDateTime = () => {
@@ -95,10 +84,9 @@ const updateDateTime = () => {
 }
 
 onMounted(async () => {
-  const storedOfficeId = localStorage.getItem('timelogOfficeId')
-  if (storedOfficeId) {
+  if (dailyLogsStore.timelogOfficeId) {
     showOfficeSelectionModal.value = false
-    selectedOffice.value = librariesStore.officeOptions.find((office) => office.value === storedOfficeId)
+    selectedOffice.value = librariesStore.officeOptions.find((office) => office.value === dailyLogsStore.timelogOfficeId)
   } else {
     showOfficeSelectionModal.value = true
   }
@@ -182,8 +170,10 @@ const onDecode = async (result: string) => {
 
   try {
     const response = await dailyLogsStore.logEmployeeTime(result, capturedImage)
-    if (response?.data) {
-      const newLog = response.data as Log
+
+    if (response?.data?.log) {
+      const newLog = response.data.log
+
       if (!newLog.captured_image && capturedImage) {
         newLog.captured_image = capturedImage
       }
