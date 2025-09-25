@@ -192,10 +192,7 @@ const onDecode = async (result: string) => {
   }
 
   try {
-    const response = await dailyLogsStore.logEmployeeTime({
-      scanned_qr: result,
-      captured_image: capturedImage,
-    })
+    const response = await dailyLogsStore.logEmployeeTime(result, capturedImage)
     if (response?.data) {
       const newLog = response.data as Log
       if (!newLog.captured_image && capturedImage) {
