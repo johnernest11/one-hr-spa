@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed, Ref } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, type Ref } from 'vue'
 import { QrcodeStream, DetectedBarcode } from 'vue-qrcode-reader'
 import { useDailyLogsStore } from '@/stores/daily-logs.store'
 import { useLibrariesStore } from '@/stores/libraries.store'
@@ -12,12 +12,22 @@ import dswdLogoMark from '@/assets/image/DSWD logo_Mark.png'
 import WbAutoComplete from '@/components/webkit/WbAutoComplete.vue'
 import { WbAutoCompleteOption } from '@/components/webkit/WbAutoComplete.vue'
 
+interface Log {
+  id: string | number
+  name: string
+  position: string
+  timestamp: string
+  is_in: boolean
+  captured_image?: string
+  photo_url?: string
+}
+
 const currentDate: Ref<string> = ref('')
 const currentTime: Ref<string> = ref('')
 const meridiem: Ref<string> = ref('')
 const seconds: Ref<string> = ref('')
-const showModal: Ref<boolean> = ref(false)
-const showOfficeSelectionModal: Ref<boolean> = ref(true)
+const showModal = ref(false)
+const showOfficeSelectionModal = ref(true)
 const dailyLogsStore = useDailyLogsStore()
 const authStore = useAuthStore()
 const route = useRoute()
@@ -37,7 +47,7 @@ const qrStreamRef = ref<InstanceType<typeof QrcodeStream> | null>(null)
 
 const selectedOffice = ref<WbAutoCompleteOption | null | undefined>(null)
 
-const recentLogs = ref<string[]>([])
+const recentLogs = ref<Log[]>([])
 
 const startTimeLogs = () => {
   if (selectedOffice.value) {
@@ -48,7 +58,29 @@ const startTimeLogs = () => {
 
 const updateDailyLogsState = async (date: string) => {
   await dailyLogsStore.fetchDailyLogs(date)
-  recentLogs.value = dailyLogsStore.getTodayWarmBodies(date).slice(0, 10)
+  const rawLogs = dailyLogsStore.getTodayWarmBodies(date)
+
+  recentLogs.value = rawLogs
+    .map((entry) => {
+      const basic = entry.daily_time_record?.employee?.individual_basic_detail
+      const position = entry.daily_time_record?.employee?.item?.position?.title ?? 'Unknown'
+
+      const name = basic
+        ? `${basic.first_name} ${basic.middle_name ? basic.middle_name + ' ' : ''}${basic.last_name}${basic.ext_name ? ' ' + basic.ext_name : ''}`
+        : 'Unknown'
+
+      const photoUrl = basic?.user_profile?.profile_picture_url ?? undefined
+
+      return {
+        id: entry.id,
+        name,
+        position,
+        timestamp: entry.timestamp,
+        is_in: entry.is_in,
+        photo_url: photoUrl,
+      }
+    })
+    .slice(0, 10)
 }
 
 const updateDateTime = () => {
@@ -94,7 +126,7 @@ onMounted(async () => {
 
 watch(
   () => route.name,
-  (newName) => {
+  (newName: string | symbol | null | undefined) => {
     const expiration = sessionStorage.getItem('auth-token-expiration')
     const userRoles = authStore.authRoles
 
@@ -161,17 +193,13 @@ const onDecode = async (result: string) => {
 
   try {
     const response = await dailyLogsStore.logEmployeeTime(result, capturedImage)
-
-    if (response?.data?.log) {
-      const newLog = response.data.log
-
+    if (response?.data) {
+      const newLog = response.data as Log
       if (!newLog.captured_image && capturedImage) {
         newLog.captured_image = capturedImage
       }
-
       recentLogs.value.unshift(newLog)
       recentLogs.value = recentLogs.value.slice(0, 10)
-
       showModal.value = true
     } else {
       dailyLogsStore.lastLogMessage = 'QR Code not recognized. Please try again.'
@@ -313,7 +341,7 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
                   </td>
 
                   <td class="p-2">
-                    <p class="text-xs">{{ entry.employee_id }} - {{ formatTime(entry.timestamp) }}</p>
+                    <p class="text-xs">{{ entry.id }} - {{ formatTime(entry.timestamp) }}</p>
                   </td>
 
                   <td class="p-2">
