@@ -3,11 +3,11 @@ import { ref, reactive, toRef, computed } from 'vue'
 import Dialog from 'primevue/dialog'
 import VueApexCharts from 'vue3-apexcharts'
 import Button from 'primevue/button'
-import WbAutoComplete, { WbAutoCompleteOptionTrueValue } from '@/components/webkit/WbAutoComplete.vue'
+import WbAutoComplete, { WbAutoCompleteOption, WbAutoCompleteOptionTrueValue } from '@/components/webkit/WbAutoComplete.vue'
 import { useWbAutoCompleteHandleTrueValue } from '@/composables/wb-ui-components.ts'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { useLibrariesStore } from '@/stores/libraries.store'
-import { SexType, EmploymentStatusType } from '@/employee-entry.types'
+import { SexType, EmploymentStatusType } from '@/typings/employee-entry.types'
 import { monthOptions, getYearOptions } from '@/typings/dashboard.types'
 import { usePrependOrAppendOnce } from '@/utils/helpers'
 
@@ -29,41 +29,37 @@ export interface Employee {
   totalPositions: number
 }
 
+const isSubmitting = ref(false)
 const getId = usePrependOrAppendOnce('dashboard')
 const libraryStore = useLibrariesStore()
 const showSidebar = ref(false)
-const payload = reactive({ division: null, section: null })
-const selectedDivision = ref<string | null>(null)
-const selectedSectionUnit = ref<string | null>(null)
+
+const selectedDivision = ref<WbAutoCompleteOption | null>(null)
+const selectedSectionUnit = ref<WbAutoCompleteOption | null>(null)
 const selectedDivisionLabel = ref<string | null>(null)
 const selectedSectionLabel = ref<string | null>(null)
+
 const currentYear = new Date().getFullYear()
 const currentMonth = new Date().getMonth() + 1
+
 const employees = ref<Employee[]>([])
 const selectedYear = ref<number | null>(currentYear)
 const selectedMonth = ref<number | null>(currentMonth)
 const yearList = computed(() => getYearOptions(currentYear, 6))
 
+const payload = reactive({
+  division: null,
+  section: null,
+})
+
 const filteredEmployees = computed(() => {
-  let data = employees.value
-
-  if (selectedDivisionLabel.value) {
-    data = data.filter((e) => e.division === selectedDivisionLabel.value)
-  }
-
-  if (selectedSectionLabel.value) {
-    data = data.filter((e) => e.section === selectedSectionLabel.value)
-  }
-
-  if (selectedYear.value) {
-    data = data.filter((e) => e.year === selectedYear.value)
-  }
-
-  if (selectedMonth.value) {
-    data = data.filter((e) => e.month === selectedMonth.value)
-  }
-
-  return data
+  return employees.value.filter((e) => {
+    const divisionMatch = !selectedDivisionLabel.value || e.division === selectedDivisionLabel.value
+    const sectionMatch = !selectedSectionLabel.value || e.section === selectedSectionLabel.value
+    const yearMatch = !selectedYear.value || e.year === selectedYear.value
+    const monthMatch = !selectedMonth.value || e.month === selectedMonth.value
+    return divisionMatch && sectionMatch && yearMatch && monthMatch
+  })
 })
 
 const totalMale = computed(() => filteredEmployees.value.reduce((sum, e) => sum + e.male, 0))

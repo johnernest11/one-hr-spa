@@ -11,16 +11,16 @@ import { Option, monthOptions, getYearOptions } from '@/typings/dashboard.types'
 const libraryStore = useLibrariesStore()
 
 const showSidebar = ref(false)
-const payload = reactive<{
-  division: Option<string> | null
-  section: Option<string> | null
-}>
+const payload = reactive({
+  division: null as Option<string> | null,
+  section: null as Option<string> | null,
+})
 
 const selectedDivision = ref<Option<string> | null>(null)
 const selectedSectionUnit = ref<Option<string> | null>(null)
-
 const selectedDivisionLabel = ref<string | null>(null)
 const selectedSectionLabel = ref<string | null>(null)
+const isSubmitting = ref(false)
 
 const employees = ref([
   {
