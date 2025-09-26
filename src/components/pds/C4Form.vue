@@ -326,7 +326,7 @@ const updateC4Form = async () => {
     let errorTabs = []
     if (hasIndividualQuestionError) errorTabs.push('C4 - Other Information Continued')
     if (hasIndividualReferenceError) errorTabs.push('C4 - References')
-    if (hasIndividualGovermentIdError) errorTabs.push('C4 - Gov` Issued ID')
+    if (hasIndividualGovermentIdError) errorTabs.push('C4 - Gov`t Issued ID')
 
     const tabList = errorTabs.join(', ')
     showToast('error', 'Validation Error', `Please check the following tab(s): ${tabList}`)
