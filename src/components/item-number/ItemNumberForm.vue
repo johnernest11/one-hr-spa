@@ -18,8 +18,15 @@ import { ItemNumberResponse } from '@/typings/models.types'
 import { useRoute } from 'vue-router'
 import { useRouter } from 'vue-router'
 import { useWbAutoCompleteHandleTrueValue } from '@/composables/wb-ui-components.ts'
-import { isAfterOrEqualFromDate, usePrependOrAppendOnce } from '@/utils/helpers.ts'
+import { getPositionCode, isAfterOrEqualFromDate, usePrependOrAppendOnce } from '@/utils/helpers.ts'
 import { uniqueItemNumberRuleLocal } from '@/utils/custom-validations.ts'
+
+const route = useRoute()
+const router = useRouter()
+const publicPositionStore = usePositionStore()
+const publicFundSourceStore = useFundSourceStore()
+const itemNumberStore = useItemNumberStore()
+
 const payload = reactive<ItemNumberPayload>({
   number: null,
   date_of_creation: '',
@@ -45,7 +52,13 @@ const formRules = {
     required: helpers.withMessage('Item Number is Required', required),
     maxLength: globalStringMaxLengthRule,
     unique: helpers.withAsync(
-      helpers.withMessage('This Item Number is already taken', uniqueItemNumberRuleLocal(['item-number']))
+      helpers.withMessage(
+        'This Item Number is already taken',
+        uniqueItemNumberRuleLocal(
+          itemNumberStore.itemNumbers.map((el) => el.number ?? ''), // get numbers from store
+          payload.number ?? '' // ignore current record on update
+        )
+      )
     ),
   },
   date_of_creation: {
@@ -64,17 +77,20 @@ const formRules = {
   },
   fund_source_id: {
     required: helpers.withMessage('Fund Source Status is Required', required),
+    validChoice: helpers.withMessage('Selected position is not valid', (selectedFundSource: WbAutoCompleteOption | null) => {
+      if (!selectedFundSource?.value) return false
+      return publicFundSourceStore.fundSourceOptions.some((p) => p.value === selectedFundSource.value)
+    }),
   },
   position_id: {
     required: helpers.withMessage('Position Status is Required', required),
+    validChoice: helpers.withMessage('Selected position is not valid', (selectedPosition: WbAutoCompleteOption | null) => {
+      if (!selectedPosition?.value) return false
+      return publicPositionStore.positionOptions.some((p) => p.value === selectedPosition.value)
+    }),
   },
 }
 
-const route = useRoute()
-const router = useRouter()
-const publicPositionStore = usePositionStore()
-const publicFundSourceStore = useFundSourceStore()
-const itemNumberStore = useItemNumberStore()
 const validator = useVuelidate<Partial<ItemNumberPayload>>(formRules, payload)
 const manualInvalidFields = ref<Record<string, boolean>>({})
 const errorMessage = ref<string | null>(null)
@@ -82,6 +98,7 @@ const errorDetails = ref<string[]>([])
 const formIsSubmitting = ref(false)
 const showErrorAlert = ref(false)
 const isLoading = ref(true)
+const isItemNumberManual = ref(false)
 const IsBeingUpdated = ref(false)
 const toast = useToast()
 
@@ -139,6 +156,41 @@ watch(
     }
   }
 )
+
+const lastNumber = ref(0)
+const positionCode = computed(() => getPositionCode(selectedPosition.value?.label))
+
+const generateItemNumber = (status: string, position: string | number | null | undefined, lastNumber: number): string => {
+  const paddedNumber = String(lastNumber + 1).padStart(4, '0')
+  const pos = position ? String(position).toUpperCase() : 'UNKNOWN'
+
+  switch (status) {
+    case 'Contract of Service':
+      return `FO1-COS-${pos}-${paddedNumber}`
+    case 'Contractual':
+      return `FO1-CONTRACTUAL-${pos}-${paddedNumber}`
+    case 'Casual':
+      return `FO1-CASUAL-${pos}-${paddedNumber}`
+    default:
+      return ''
+  }
+}
+
+watch([() => payload.employment_status, () => selectedPosition.value], ([newStatus, newPosition]) => {
+  if (newStatus === 'Permanent' || newStatus === 'Job Order') {
+    payload.number = null
+    isItemNumberManual.value = true
+    return
+  }
+
+  if (newStatus && newPosition?.value) {
+    isItemNumberManual.value = false
+    payload.number = generateItemNumber(newStatus, positionCode.value, lastNumber.value)
+  } else {
+    payload.number = null
+    isItemNumberManual.value = true
+  }
+})
 
 const isButtonVisible = computed(() => true)
 const handleButtonClick = async () => {
@@ -335,6 +387,7 @@ const updateButtonSubmission = async () => {
                 v-model="payload.number"
                 label="Item Number"
                 label-class="text-sm text-surface-600"
+                :disabled="!isItemNumberManual"
                 :invalid="validator.number.$invalid || manualInvalidFields.number"
                 :invalid-text="validator.number.$errors[0]?.$message"
                 @blur="validator.number.$touch"

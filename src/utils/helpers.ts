@@ -574,3 +574,34 @@ export function isNotMoreThanYearsAgo(maxYearsAgo: number) {
     return inputDate >= oldestAllowed
   })
 }
+
+/**
+ * Convert a full position label into an abbreviation code.
+ *
+ * Rules:
+ * - Take the first letter of each word
+ * - Skip filler words like "OFFICER" and "AND"
+ * - Keep the Roman numeral (I, II, III, IV, etc.) intact at the end
+ */
+export function getPositionCode(label: string | null | undefined): string | null {
+  if (!label) return null
+
+  const words = label.trim().split(/\s+/)
+
+  const lastWord = words[words.length - 1]
+  const isRoman = /^[IVXLCDM]+$/i.test(lastWord)
+
+  const skipWords = ['AND']
+
+  let initials = words
+    .slice(0, isRoman ? -1 : words.length)
+    .filter((w) => !skipWords.includes(w.toUpperCase()))
+    .map((w) => w[0].toUpperCase())
+    .join('')
+
+  if (isRoman) {
+    initials += lastWord.toUpperCase()
+  }
+
+  return initials
+}
