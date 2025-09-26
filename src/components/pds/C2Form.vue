@@ -2,6 +2,7 @@
 import { reactive, ref, computed, onMounted, watch, toRef } from 'vue'
 import { usePdsStore, PersonalDataSheetPayload } from '@/stores/pds.store.ts'
 import { useSalaryGradesStore } from '@/stores/salary-grades.store.ts'
+import { useAuthStore } from '@/stores/auth.store.ts'
 import { isGovServiceYesNoOptions, EmploymentStatusOptions } from '@/typings/employee-entry.types'
 import { useRouter } from 'vue-router'
 import { useRoute } from 'vue-router'
@@ -27,6 +28,7 @@ import { PersonnelResponse } from '@/typings/models.types'
 const getId = usePrependOrAppendOnce('pds-c2-section-form')
 const sgStore = useSalaryGradesStore()
 const pdsStore = usePdsStore()
+const authStore = useAuthStore()
 const toast = useToast()
 const router = useRouter()
 const route = useRoute()
@@ -82,14 +84,37 @@ const globalStringMaxLengthRule = helpers.withMessage(
   `Must not exceed ${globalStringMaxLength} characters`,
   maxLength(globalStringMaxLength)
 )
+
+const hasAnyValue = (vm: Record<string, unknown>) => Object.values(vm).some((v) => helpers.req(v))
+
 const formRules = computed(() => ({
   individual_eligibility: payload.individual_eligibility.map(() => ({
+    eligibility: {
+      required: helpers.withMessage('Eligibility is required.', (val, vm) => (hasAnyValue(vm) ? helpers.req(val) : true)),
+      maxLength: globalStringMaxLengthRule,
+    },
     date_of_examination_conferment: {
       isAfterOrEqualFromDate: helpers.withMessage('Date must be today or earlier.', (val: string | Date | null) => {
         if (!val) return true
         const selectedDate = new Date(val)
         return selectedDate <= today
       }),
+      required: helpers.withMessage('Fill Up Date of Examination/Conferment since other information is provided.', (val, vm) =>
+        hasAnyValue(vm) ? helpers.req(val) : true
+      ),
+      maxLength: globalStringMaxLengthRule,
+    },
+    place_of_examination: {
+      required: helpers.withMessage('Fill Up Place of Examination since other information is provided.', (val, vm) =>
+        hasAnyValue(vm) ? helpers.req(val) : true
+      ),
+      maxLength: globalStringMaxLengthRule,
+    },
+    license_number: {
+      required: helpers.withMessage('Fill Up License Number since other information is provided.', (val, vm) =>
+        hasAnyValue(vm) ? helpers.req(val) : true
+      ),
+      maxLength: globalStringMaxLengthRule,
     },
     license_date_of_validity: {
       isAfterOrEqualFromDate: helpers.withMessage(
@@ -104,6 +129,9 @@ const formRules = computed(() => ({
           return isNaN(licenseDate.getTime()) || isNaN(examDate.getTime()) || licenseDate >= examDate
         }
       ),
+      required: helpers.withMessage('Fill Up License Validity since other information is provided.', (val, vm) =>
+        hasAnyValue(vm) ? helpers.req(val) : true
+      ),
       maxLength: globalStringMaxLengthRule,
     },
     rating: {
@@ -111,6 +139,10 @@ const formRules = computed(() => ({
         if (val === null || val === '') return true // allow empty
         return !isNaN(Number(val))
       }),
+      required: helpers.withMessage('Fill Up Rating since other information is provided.', (val, vm) =>
+        hasAnyValue(vm) ? helpers.req(val) : true
+      ),
+      maxLength: globalStringMaxLengthRule,
     },
   })),
   individual_work_experience: payload.individual_work_experience.map(() => ({
@@ -185,12 +217,8 @@ const formRules = computed(() => ({
 watch(isCurrentlyEmployed, (newVal) => {
   payload.individual_work_experience.forEach((entry, index) => {
     if (index === 0) {
-      // Only first work experience is current if employed
-      entry.is_current_work = newVal ? true : false
-      // If currently employed, clear the inclusive_date_to field
-      if (newVal) {
-        entry.inclusive_date_to = null
-      }
+      entry.is_current_work = !!newVal
+      entry.inclusive_date_to = newVal ? null : entry.inclusive_date_to
     } else {
       entry.is_current_work = false
     }
@@ -233,14 +261,13 @@ watch(
     if (existing) {
       selectedWorkExperienceSG.value[idx] = existing
     } else {
-      // Watch for async-loaded options if not yet available
       const unwatch = watch(
         () => sgStore.salaryGradesOptions,
         (options) => {
           const found = options.find((opt) => opt.value === selectedId)
           if (found) {
             selectedWorkExperienceSG.value[idx] = found
-            unwatch() // stop watching after found
+            unwatch()
           }
         },
         { immediate: true }
@@ -292,14 +319,25 @@ const handleRemoveEligibility = (eligibilityIndex: number) => {
   const eligibility = payload.individual_eligibility?.[idx]
 
   if (eligibility?.id) {
-    // mark for backend soft-delete
     payload.individual_eligibility[idx] = {
       ...eligibility,
       _delete: true,
     }
   } else {
-    // not saved yet → remove completely
-    payload.individual_eligibility.splice(idx, 1)
+    if (payload.individual_eligibility.length === 1) {
+      payload.individual_eligibility[idx] = {
+        id: null,
+        eligibility: null,
+        rating: null,
+        date_of_examination_conferment: null,
+        place_of_examination: null,
+        license_number: null,
+        license_date_of_validity: null,
+        _delete: null,
+      }
+    } else {
+      payload.individual_eligibility.splice(idx, 1)
+    }
   }
 }
 
@@ -342,13 +380,11 @@ const handleRemoveWorkExperience = (workExperienceIndex: number) => {
   const workExperience = payload.individual_work_experience?.[idx]
 
   if (workExperience?.id) {
-    // mark for backend soft-delete
     payload.individual_work_experience[idx] = {
       ...workExperience,
       _delete: true,
     }
   } else {
-    // not saved yet → remove completely
     payload.individual_work_experience.splice(idx, 1)
   }
 }
@@ -390,12 +426,18 @@ watch(
   { immediate: true }
 )
 
+// ──────────────────────────────────────────────────────────
+//          PDS Details Form - Update Handler
+// ──────────────────────────────────────────────────────────
 const updateC2Form = async () => {
   IsBeingUpdated.value = true
   isC2Loading.value = true
   formIsSubmitting.value = true
 
-  const id = route.params.id as string
+  const id = pdsStore.isMyPds
+    ? authStore.authenticatedUser?.user_profile?.individual_basic_detail?.id?.toString()
+    : (route.params.id as string)
+
   if (!id) {
     showToast('error', 'PDS Error', 'No ID found for updating.')
     IsBeingUpdated.value = false
@@ -438,7 +480,7 @@ const updateC2Form = async () => {
     pdsErrors.value = result?.errors
     showToast('error', 'PDS C2 Error', 'Please see the validation messages')
   } else {
-    showToast('success', 'PDS', 'PDS has been saved')
+    showToast('success', 'Personal Data Sheet (PDS)', 'PDS has been successfully updated.')
   }
 
   IsBeingUpdated.value = false
@@ -464,8 +506,8 @@ const handleSaveC2Form = async () => {
     )
 
     let errorTabs = []
-    if (hasEligibilityError) errorTabs.push('Civil Service Eligibility')
-    if (hasWorkExperienceError) errorTabs.push('Work Experience')
+    if (hasEligibilityError) errorTabs.push('C2 - Civil Service Eligibility')
+    if (hasWorkExperienceError) errorTabs.push('C2 - Work Experience')
 
     const tabList = errorTabs.join(', ')
     showToast('error', 'Validation Error', `Please check the following tab(s): ${tabList}`)
@@ -567,6 +609,11 @@ defineExpose({
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                                :invalid="validator.individual_eligibility[eligibilityIndex - 1].eligibility.$error"
+                                :invalidText="
+                                  validator.individual_eligibility[eligibilityIndex - 1].eligibility.$errors[0]?.$message
+                                "
+                                @blur="validator.individual_eligibility[eligibilityIndex - 1].eligibility.$touch()"
                               />
                             </div>
 
@@ -612,6 +659,11 @@ defineExpose({
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                                :invalid="validator.individual_eligibility[eligibilityIndex - 1].place_of_examination.$error"
+                                :invalidText="
+                                  validator.individual_eligibility[eligibilityIndex - 1].place_of_examination.$errors[0]?.$message
+                                "
+                                @blur="validator.individual_eligibility[eligibilityIndex - 1].place_of_examination.$touch()"
                               />
                             </div>
 
@@ -622,6 +674,11 @@ defineExpose({
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                                :invalid="validator.individual_eligibility[eligibilityIndex - 1].license_number.$error"
+                                :invalidText="
+                                  validator.individual_eligibility[eligibilityIndex - 1].license_number.$errors[0]?.$message
+                                "
+                                @blur="validator.individual_eligibility[eligibilityIndex - 1].license_number.$touch()"
                               />
                             </div>
 
@@ -643,13 +700,18 @@ defineExpose({
                               />
                               <!-- Delete button aligned right, below label -->
                               <Button
-                                v-show="eligibilityIndex > 0"
+                                v-show="eligibilityIndex > 1"
                                 :id="getId(`button-remove-eligibility-${eligibilityIndex}`)"
                                 icon="pi pi-trash"
                                 @click="handleRemoveEligibility(eligibilityIndex)"
                                 v-tooltip.top="'Remove Eligibility'"
                                 severity="danger"
-                                class="mb-2 text-lg font-semibold dark:text-primary-100"
+                                :class="[
+                                  'text-lg font-semibold dark:text-primary-100',
+                                  validator.individual_eligibility[eligibilityIndex - 1].license_date_of_validity.$error
+                                    ? 'mb-8'
+                                    : 'mb-2',
+                                ]"
                                 text
                               />
                             </div>
@@ -751,7 +813,7 @@ defineExpose({
                               />
                             </div>
                             <!-- For the first entry -->
-                            <div v-if="workExperienceIndex === 0">
+                            <div v-if="workExperienceIndex === 1">
                               <!-- If NOT currently employed, show calendar -->
                               <WbCalendar
                                 v-if="!isCurrentlyEmployed"
@@ -837,7 +899,7 @@ defineExpose({
                                 "
                                 @blur="
                                   validator.individual_work_experience[
-                                    workExperienceIndex
+                                    workExperienceIndex - 1
                                   ].department_agency_office_company.$touch()
                                 "
                                 required
@@ -981,7 +1043,12 @@ defineExpose({
                                 @click="handleRemoveWorkExperience(workExperienceIndex)"
                                 v-tooltip.top="'Remove Work Experience'"
                                 severity="danger"
-                                class="mb-2 text-lg font-semibold dark:text-primary-100 md:mb-2"
+                                :class="[
+                                  'text-lg font-semibold dark:text-primary-100',
+                                  validator.individual_work_experience[workExperienceIndex - 1].is_gov_service.$error
+                                    ? 'mb-8'
+                                    : 'mb-2',
+                                ]"
                                 text
                               />
                             </div>

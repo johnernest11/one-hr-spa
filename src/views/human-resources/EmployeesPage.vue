@@ -312,11 +312,12 @@ const handleImportSubmission = async () => {
     })
     formIsSubmitting.value = false
 
-    setTimeout(async () => {
-      await router.push({
-        name: 'create-personnel',
-      }) // redirect to create-personnel
-    }, 1000)
+    await router.push({
+      name: 'create-personnel',
+      query: {
+        mode: 'via-pds-importation',
+      },
+    })
   }
 }
 

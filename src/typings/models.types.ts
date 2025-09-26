@@ -75,6 +75,10 @@ export type SectionorUnitResponse = {
   last_modified_by_user_id: string | null
 } & ApiResponseData
 
+export type ProgramResponse = {
+  name: string
+} & ApiResponseData
+
 export type ItemNumberResponse = {
   id: number
   number: string
@@ -127,6 +131,16 @@ export type UserResponse = {
   email_verified_at: string
   roles: Array<{ id: string | number; name: string }>
   user_profile?: UserProfileResponse
+} & ApiResponseData
+
+/** Active Directory (HTTP Responses) */
+export type ActiveDiretoryResponse = {
+  guid: string
+  name: string
+  username: string
+  email: string
+  active: boolean
+  email_verified_at: string
 } & ApiResponseData
 
 /** User Profile (HTTP Responses) */
@@ -327,6 +341,7 @@ export type IndividualAddress = {
 }
 
 export type IndividualFamily = {
+  id: number | null
   first_name: string | null
   last_name: string | null
   middle_name?: string | null
@@ -335,11 +350,13 @@ export type IndividualFamily = {
   employers_business_name: string | null
   business_address: string | null
   telephone_no?: string | null
-  class: string
+  class: 'Spouse' | 'Father' | 'Mother' | 'Children' | null
   date_of_birth?: string | null
-}
+  _delete: boolean | null
+} & Omit<ApiResponseData, 'id'>
 
 export type IndividualEducBg = {
+  id: number | null
   schools_name: string | null
   education_description: string | null
   level: 'Elementary' | 'Secondary' | 'College' | 'Vocational' | 'Graduate' | null
@@ -423,7 +440,7 @@ export type IndividualMembership = {
 
 /**Personnel Data Sheet (C4 FORM) (HTTP Responses) */
 export type IndividualQuestion = {
-  id: number
+  id: number | null
   q34_a: boolean
   q34_b: boolean
   q34_details: string | null
@@ -448,13 +465,15 @@ export type IndividualQuestion = {
   q40_b_details: string | null
   q40_c_solo_parent: boolean
   q40_c_details: string | null
-}
+} & Omit<ApiResponseData, 'id'>
 
 export type IndividualReference = {
+  id: number | null
   name: string | null
   address: string | null
   tel_no: string | null
-}
+  _delete: boolean | null
+} & Omit<ApiResponseData, 'id'>
 
 export type IndividualGovernmentIssue = {
   gov_id_name: string | null
@@ -488,7 +507,7 @@ export type ViewDailyTimeRecordResponse = {
   hr_remarks: string | null
   status: string | null
   time_log: Array<TimeLogResponse> | null | undefined
-}
+} & Omit<ApiResponseData, 'id'>
 
 export type ViewTimeLogsResponse = {
   dtr_date: string
@@ -543,7 +562,7 @@ export type TimeLogResponse = {
   scanned_time: string
   is_in: boolean // true = IN, false = OUT
   is_selected: boolean // true = SELECTED, false = NOT SELECTED
-}
+} & Omit<ApiResponseData, 'id'>
 
 export type QrCodeResponse = {
   id: number
@@ -552,6 +571,7 @@ export type QrCodeResponse = {
   last_generated_at: string | null
   is_active: boolean
 } & ApiResponseData
+
 /** Leave Application (HTTP Responses) */
 export type LeaveApplicationResponse = {
   id: number | null

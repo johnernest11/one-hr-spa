@@ -120,13 +120,19 @@ export const usePdsStore = defineStore('pds', () => {
   const employee = individual?.employee
   const contactInfo = individual?.individual_contact_info
   const individual_address = individual?.individual_address
-  const individual_family_list = individual?.individual_family as IndividualFamily[] | null
+
+  const individual_family_list = (individual?.individual_family ?? []) as IndividualFamily[]
   const individual_family_spouse = individual_family_list?.find((f) => f.class === 'Spouse')
   const individual_family_father = individual_family_list?.find((f) => f.class === 'Father')
   const individual_family_mothers_maiden = individual_family_list?.find((f) => f.class === 'Mother')
   const individual_family_children = individual_family_list?.filter((f) => f.class === 'Children') ?? []
-  const educations = (individual?.individual_educational_background ?? []) as IndividualEducBg[]
 
+  const educations = (individual?.individual_educational_background ?? []) as IndividualEducBg[]
+  const elementary = educations.find((e) => e.level === 'Elementary')
+  const highSchool = educations.find((e) => e.level === 'Secondary')
+  const college = educations.find((e) => e.level === 'College')
+  const vocational = educations.find((e) => e.level === 'Vocational')
+  const graduate = educations.find((e) => e.level === 'Graduate')
   const getEducationByLevel = (level: string) => educations.find((e) => e.level === level) ?? null
 
   const pdsInfo = reactive<PersonalDataSheetPayload>({
@@ -179,9 +185,10 @@ export const usePdsStore = defineStore('pds', () => {
       permanent_region_id: individual_address?.permanent_region_id ?? null,
       permanent_zip_code: individual_address?.permanent_zip_code ?? null,
     },
-    individual_family: null,
 
+    individual_family: null,
     individual_family_spouse: {
+      id: individual_family_spouse?.id ?? null,
       first_name: individual_family_spouse?.first_name ?? null,
       last_name: individual_family_spouse?.last_name ?? null,
       middle_name: individual_family_spouse?.middle_name ?? null,
@@ -192,9 +199,11 @@ export const usePdsStore = defineStore('pds', () => {
       telephone_no: individual_family_spouse?.telephone_no ?? null,
       class: 'Spouse',
       date_of_birth: individual_family_spouse?.date_of_birth ?? null,
+      _delete: individual_family_spouse?._delete ?? null,
     },
 
     individual_family_father: {
+      id: individual_family_father?.id ?? null,
       first_name: individual_family_father?.first_name ?? null,
       last_name: individual_family_father?.last_name ?? null,
       middle_name: individual_family_father?.middle_name ?? null,
@@ -205,9 +214,11 @@ export const usePdsStore = defineStore('pds', () => {
       telephone_no: individual_family_father?.telephone_no ?? null,
       class: 'Father',
       date_of_birth: individual_family_father?.date_of_birth ?? null,
+      _delete: individual_family_father?._delete ?? null,
     },
 
     individual_family_mothers_maiden: {
+      id: individual_family_mothers_maiden?.id ?? null,
       first_name: individual_family_mothers_maiden?.first_name ?? null,
       last_name: individual_family_mothers_maiden?.last_name ?? null,
       middle_name: individual_family_mothers_maiden?.middle_name ?? null,
@@ -218,8 +229,11 @@ export const usePdsStore = defineStore('pds', () => {
       telephone_no: individual_family_mothers_maiden?.telephone_no ?? null,
       class: 'Mother',
       date_of_birth: individual_family_mothers_maiden?.date_of_birth ?? null,
+      _delete: individual_family_mothers_maiden?._delete ?? null,
     },
+
     individual_family_children: individual_family_children.map((child) => ({
+      id: child?.id ?? null,
       first_name: child.first_name ?? null,
       last_name: child.last_name ?? null,
       middle_name: child.middle_name ?? null,
@@ -230,10 +244,12 @@ export const usePdsStore = defineStore('pds', () => {
       telephone_no: child.telephone_no ?? null,
       class: 'Children',
       date_of_birth: child.date_of_birth ?? null,
+      _delete: child._delete ?? null,
     })),
 
     educations: {
       elementary: {
+        id: getEducationByLevel('Elementary')?.id ?? null,
         level: 'Elementary',
         schools_name: getEducationByLevel('Elementary')?.schools_name ?? null,
         education_description: getEducationByLevel('Elementary')?.education_description ?? null,
@@ -245,6 +261,7 @@ export const usePdsStore = defineStore('pds', () => {
         scholarship_academic_honors_received: getEducationByLevel('Elementary')?.scholarship_academic_honors_received ?? null,
       },
       high_school: {
+        id: getEducationByLevel('Secondary')?.id ?? null,
         level: 'Secondary',
         schools_name: getEducationByLevel('Secondary')?.schools_name ?? null,
         education_description: getEducationByLevel('Secondary')?.education_description ?? null,
@@ -256,6 +273,7 @@ export const usePdsStore = defineStore('pds', () => {
         scholarship_academic_honors_received: getEducationByLevel('Secondary')?.scholarship_academic_honors_received ?? null,
       },
       vocational: {
+        id: getEducationByLevel('Vocational')?.id ?? null,
         level: 'Vocational',
         schools_name: getEducationByLevel('Vocational')?.schools_name ?? null,
         education_description: getEducationByLevel('Vocational')?.education_description ?? null,
@@ -267,6 +285,7 @@ export const usePdsStore = defineStore('pds', () => {
         scholarship_academic_honors_received: getEducationByLevel('Vocational')?.scholarship_academic_honors_received ?? null,
       },
       college: {
+        id: getEducationByLevel('College')?.id ?? null,
         level: 'College',
         schools_name: getEducationByLevel('College')?.schools_name ?? null,
         education_description: getEducationByLevel('College')?.education_description ?? null,
@@ -278,6 +297,7 @@ export const usePdsStore = defineStore('pds', () => {
         scholarship_academic_honors_received: getEducationByLevel('College')?.scholarship_academic_honors_received ?? null,
       },
       graduate: {
+        id: getEducationByLevel('Graduate')?.id ?? null,
         level: 'Graduate',
         schools_name: getEducationByLevel('Graduate')?.schools_name ?? null,
         education_description: getEducationByLevel('Graduate')?.education_description ?? null,
@@ -290,127 +310,153 @@ export const usePdsStore = defineStore('pds', () => {
       },
     },
     individual_educational_background: [],
+
     /** PDS C2 */
-    individual_eligibility: [
-      {
-        id: null,
-        eligibility: '',
-        rating: '',
-        date_of_examination_conferment: '',
-        place_of_examination: '',
-        license_number: null,
-        license_date_of_validity: null,
-        _delete: null,
-      },
-    ],
-    individual_work_experience: [
-      {
-        id: 0,
-        is_current_work: false,
-        inclusive_date_from: '',
-        inclusive_date_to: '',
-        position_title: '',
-        department_agency_office_company: '',
-        monthly_salary: '',
-        salary_grade_id: null,
-        salary_grade: null,
-        custom_salary_grade: '',
-        status_of_appointment: null,
-        is_gov_service: false,
-        _delete: null,
-      },
-    ],
+    individual_eligibility: Array.isArray(individual?.individual_eligibility)
+      ? individual.individual_eligibility.map((elgi) => ({
+        ...elgi,
+        id: elgi.id ?? null,
+        eligibility: elgi.eligibility ?? '',
+        rating: elgi.rating ?? '',
+        date_of_examination_conferment: elgi.date_of_examination_conferment ?? '',
+        place_of_examination: elgi.place_of_examination ?? '',
+        license_number: elgi.license_number ?? null,
+        license_date_of_validity: elgi.license_date_of_validity ?? null,
+        _delete: elgi._delete ?? null,
+      }))
+      : [
+        {
+          id: null,
+          eligibility: '',
+          rating: '',
+          date_of_examination_conferment: '',
+          place_of_examination: '',
+          license_number: '',
+          license_date_of_validity: '',
+          _delete: null,
+        },
+      ],
+
+    individual_work_experience: Array.isArray(individual?.individual_work_experience)
+      ? individual.individual_work_experience.map((exp) => ({
+        ...exp,
+        id: exp.id ?? null,
+        is_current_work: exp.is_current_work ?? false,
+        inclusive_date_from: exp.inclusive_date_from ?? '',
+        inclusive_date_to: exp.inclusive_date_to ?? '',
+        position_title: exp.position_title ?? '',
+        department_agency_office_company: exp.department_agency_office_company ?? '',
+        monthly_salary: exp.monthly_salary ?? '',
+        salary_grade_id: exp.salary_grade_id ?? null,
+        salary_grade: exp.salary_grade ?? null,
+        custom_salary_grade: exp.custom_salary_grade ?? '',
+        status_of_appointment: exp.status_of_appointment ?? null,
+        is_gov_service: exp.is_gov_service ?? false,
+        _delete: exp._delete ?? null,
+      }))
+      : [],
+
     /** PDS C3 */
-    individual_voluntary_work: [
-      {
-        id: null,
-        is_current_org: false,
-        org_name: '',
-        org_address: '',
-        from: null,
-        to: null,
-        number_of_hours: null,
-        position_nature_of_work: null,
-        _delete: null,
-      },
-    ],
-    individual_lnd: [
-      {
-        id: null,
-        title: '',
-        from: '',
-        to: null,
-        number_of_hours: null,
-        type: null,
-        conducted_sponsor: null,
-        _delete: null,
-      },
-    ],
-    individual_skills_hobby: [
-      {
-        id: null,
-        skill_hobby: '',
-        _delete: null,
-      },
-    ],
-    individual_recognition: [
-      {
-        id: null,
-        recognition: '',
-        _delete: null,
-      },
-    ],
-    individual_membership: [
-      {
-        id: null,
-        association_organization: '',
-        _delete: null,
-      },
-    ],
+    individual_voluntary_work: Array.isArray(individual?.individual_voluntary_work)
+      ? individual.individual_voluntary_work.map((work) => ({
+        ...work,
+        id: work.id ?? null,
+        is_current_org: work.is_current_org ?? false,
+        org_name: work.org_name ?? '',
+        org_address: work.org_address ?? '',
+        from: work.from ?? null,
+        to: work.to ?? null,
+        number_of_hours: work.number_of_hours ?? null,
+        position_nature_of_work: work.position_nature_of_work ?? null,
+        _delete: work._delete ?? null,
+      }))
+      : [],
+    individual_lnd: Array.isArray(individual?.individual_lnd)
+      ? individual.individual_lnd.map((lnd) => ({
+        ...lnd,
+        id: lnd.id ?? null,
+        title: lnd.title ?? '',
+        from: lnd.from ?? '',
+        to: lnd.to ?? null,
+        number_of_hours: lnd.number_of_hours ?? null,
+        type: lnd.type ?? null,
+        conducted_sponsor: lnd.conducted_sponsor ?? null,
+        _delete: lnd._delete ?? null,
+      }))
+      : [],
+    individual_skills_hobby: Array.isArray(individual?.individual_skills_hobby)
+      ? individual.individual_skills_hobby.map((skill) => ({
+        ...skill,
+        id: skill.id ?? null,
+        skill_hobby: skill.skill_hobby ?? '',
+        _delete: skill._delete ?? null,
+      }))
+      : [],
+    individual_recognition: Array.isArray(individual?.individual_recognition)
+      ? individual.individual_recognition.map((rec) => ({
+        ...rec,
+        id: rec.id ?? null,
+        recognition: rec.recognition ?? '',
+        _delete: rec._delete ?? null,
+      }))
+      : [],
+    individual_membership: Array.isArray(individual?.individual_membership)
+      ? individual.individual_membership.map((mem) => ({
+        ...mem,
+        id: mem.id ?? null,
+        association_organization: mem.association_organization ?? '',
+        _delete: mem._delete ?? null,
+      }))
+      : [],
     /** PDS C4 */
-    individual_question: [
-      {
-        id: 0,
-        q34_a: false,
-        q34_b: false,
-        q34_details: null,
-        q35_a: false,
-        q35_a_details: null,
-        q35_b: false,
-        q35_b_date_filed: null,
-        q35_b_status: null,
-        q36: false,
-        q36_details: null,
-        q37: false,
-        q37_details: null,
-        q38_a: false,
-        q38_a_details: null,
-        q38_b: false,
-        q38_b_details: null,
-        q39: false,
-        country_id: null,
-        q40_a_indigenous_group: false,
-        q40_a_details: null,
-        q40_b_pwd: false,
-        q40_b_details: null,
-        q40_c_solo_parent: false,
-        q40_c_details: null,
-      },
-    ],
-    individual_reference: [
-      {
-        name: '',
-        address: '',
-        tel_no: '',
-      },
-    ],
+    individual_question: individual?.individual_question
+      ? [
+        {
+          id: individual.individual_question.id ?? null,
+          q34_a: individual.individual_question.q34_a ?? false,
+          q34_b: individual.individual_question.q34_b ?? false,
+          q34_details: individual.individual_question.q34_details ?? null,
+          q35_a: individual.individual_question.q35_a ?? false,
+          q35_a_details: individual.individual_question.q35_a_details ?? null,
+          q35_b: individual.individual_question.q35_b ?? false,
+          q35_b_date_filed: individual.individual_question.q35_b_date_filed ?? null,
+          q35_b_status: individual.individual_question.q35_b_status ?? null,
+          q36: individual.individual_question.q36 ?? false,
+          q36_details: individual.individual_question.q36_details ?? null,
+          q37: individual.individual_question.q37 ?? false,
+          q37_details: individual.individual_question.q37_details ?? null,
+          q38_a: individual.individual_question.q38_a ?? false,
+          q38_a_details: individual.individual_question.q38_a_details ?? null,
+          q38_b: individual.individual_question.q38_b ?? false,
+          q38_b_details: individual.individual_question.q38_b_details ?? null,
+          q39: individual.individual_question.q39 ?? false,
+          country_id: individual.individual_question.country_id ?? null,
+          q40_a_indigenous_group: individual.individual_question.q40_a_indigenous_group ?? false,
+          q40_a_details: individual.individual_question.q40_a_details ?? null,
+          q40_b_pwd: individual.individual_question.q40_b_pwd ?? false,
+          q40_b_details: individual.individual_question.q40_b_details ?? null,
+          q40_c_solo_parent: individual.individual_question.q40_c_solo_parent ?? false,
+          q40_c_details: individual.individual_question.q40_c_details ?? null,
+        },
+      ]
+      : [],
+
+    individual_reference: Array.isArray(individual?.individual_reference)
+      ? individual.individual_reference.map((ref) => ({
+        ...ref,
+        name: ref.name ?? '',
+        address: ref.address ?? '',
+        tel_no: ref.tel_no ?? '',
+        _delete: ref._delete ?? null,
+      }))
+      : [],
     individual_government_id: {
       gov_id_name: '',
       gov_id_no: '',
       gov_id_issuance: '',
     },
     employee: {
-      id: 0,
+      id: employee?.id ?? 0,
       individual_basic_detail_id: null,
       id_number: null,
       item_id: employee?.item_id ?? null,
@@ -503,6 +549,131 @@ export const usePdsStore = defineStore('pds', () => {
     pdsInfo.individual_address_init.permanent_province_id = address?.permanent_province_id ?? null
     pdsInfo.individual_address_init.permanent_region_id = address?.permanent_region_id ?? null
     pdsInfo.individual_address_init.permanent_zip_code = address?.permanent_zip_code ?? null
+
+    // === C1 - Individual Family ===
+    pdsInfo.individual_family = [
+      {
+        id: individual_family_spouse?.id ?? null,
+        first_name: individual_family_spouse?.first_name ?? null,
+        last_name: individual_family_spouse?.last_name ?? null,
+        middle_name: individual_family_spouse?.middle_name ?? null,
+        ext_name: individual_family_spouse?.ext_name ?? null,
+        occupation: individual_family_spouse?.occupation ?? null,
+        employers_business_name: individual_family_spouse?.employers_business_name ?? null,
+        business_address: individual_family_spouse?.business_address ?? null,
+        telephone_no: individual_family_spouse?.telephone_no ?? null,
+        class: 'Spouse' as const,
+        date_of_birth: individual_family_spouse?.date_of_birth ?? null,
+        _delete: individual_family_spouse?._delete ?? null,
+      },
+      {
+        id: individual_family_father?.id ?? null,
+        first_name: individual_family_father?.first_name ?? null,
+        last_name: individual_family_father?.last_name ?? null,
+        middle_name: individual_family_father?.middle_name ?? null,
+        ext_name: individual_family_father?.ext_name ?? null,
+        occupation: individual_family_father?.occupation ?? null,
+        employers_business_name: individual_family_father?.employers_business_name ?? null,
+        business_address: individual_family_father?.business_address ?? null,
+        telephone_no: individual_family_father?.telephone_no ?? null,
+        class: 'Father' as const,
+        date_of_birth: individual_family_father?.date_of_birth ?? null,
+        _delete: individual_family_father?._delete ?? null,
+      },
+      {
+        id: individual_family_mothers_maiden?.id ?? null,
+        first_name: individual_family_mothers_maiden?.first_name ?? null,
+        last_name: individual_family_mothers_maiden?.last_name ?? null,
+        middle_name: individual_family_mothers_maiden?.middle_name ?? null,
+        ext_name: individual_family_mothers_maiden?.ext_name ?? null,
+        occupation: individual_family_mothers_maiden?.occupation ?? null,
+        employers_business_name: individual_family_mothers_maiden?.employers_business_name ?? null,
+        business_address: individual_family_mothers_maiden?.business_address ?? null,
+        telephone_no: individual_family_mothers_maiden?.telephone_no ?? null,
+        class: 'Mother' as const,
+        date_of_birth: individual_family_mothers_maiden?.date_of_birth ?? null,
+        _delete: individual_family_mothers_maiden?._delete ?? null,
+      },
+      // Spread children directly into the main array
+      ...(individual_family_children ?? []).map((children) => ({
+        id: children?.id ?? null,
+        first_name: children?.first_name ?? null,
+        last_name: children?.last_name ?? null,
+        middle_name: children?.middle_name ?? null,
+        ext_name: children?.ext_name ?? null,
+        occupation: children?.occupation ?? null,
+        employers_business_name: children?.employers_business_name ?? null,
+        business_address: children?.business_address ?? null,
+        telephone_no: children?.telephone_no ?? null,
+        class: 'Children' as const,
+        date_of_birth: children?.date_of_birth ?? null,
+        _delete: children?._delete ?? null,
+      })),
+    ]
+
+    // === C1 - Individual Education Background ===
+    pdsInfo.educations = {
+      elementary: {
+        id: elementary?.id ?? null,
+        level: 'Elementary',
+        schools_name: elementary?.schools_name ?? null,
+        education_description: elementary?.education_description ?? null,
+        period_of_attendance_from: elementary?.period_of_attendance_from ?? null,
+        period_of_attendance_to: elementary?.period_of_attendance_to ?? null,
+        highest_level_units_earned: elementary?.highest_level_units_earned ?? null,
+        year_graduated: elementary?.year_graduated ?? null,
+        is_current_enrolled: elementary?.is_current_enrolled ?? false,
+        scholarship_academic_honors_received: elementary?.scholarship_academic_honors_received ?? null,
+      },
+      high_school: {
+        id: highSchool?.id ?? null,
+        level: 'Secondary',
+        schools_name: highSchool?.schools_name ?? null,
+        education_description: highSchool?.education_description ?? null,
+        period_of_attendance_from: highSchool?.period_of_attendance_from ?? null,
+        period_of_attendance_to: highSchool?.period_of_attendance_to ?? null,
+        highest_level_units_earned: highSchool?.highest_level_units_earned ?? null,
+        year_graduated: highSchool?.year_graduated ?? null,
+        is_current_enrolled: highSchool?.is_current_enrolled ?? false,
+        scholarship_academic_honors_received: highSchool?.scholarship_academic_honors_received ?? null,
+      },
+      college: {
+        id: college?.id ?? null,
+        level: 'College',
+        schools_name: college?.schools_name ?? null,
+        education_description: college?.education_description ?? null,
+        period_of_attendance_from: college?.period_of_attendance_from ?? null,
+        period_of_attendance_to: college?.period_of_attendance_to ?? null,
+        highest_level_units_earned: college?.highest_level_units_earned ?? null,
+        year_graduated: college?.year_graduated ?? null,
+        is_current_enrolled: college?.is_current_enrolled ?? false,
+        scholarship_academic_honors_received: college?.scholarship_academic_honors_received ?? null,
+      },
+      vocational: {
+        id: vocational?.id ?? null,
+        level: 'Vocational',
+        schools_name: vocational?.schools_name ?? null,
+        education_description: vocational?.education_description ?? null,
+        period_of_attendance_from: vocational?.period_of_attendance_from ?? null,
+        period_of_attendance_to: vocational?.period_of_attendance_to ?? null,
+        highest_level_units_earned: vocational?.highest_level_units_earned ?? null,
+        year_graduated: vocational?.year_graduated ?? null,
+        is_current_enrolled: vocational?.is_current_enrolled ?? false,
+        scholarship_academic_honors_received: vocational?.scholarship_academic_honors_received ?? null,
+      },
+      graduate: {
+        id: graduate?.id ?? null,
+        level: 'Graduate',
+        schools_name: graduate?.schools_name ?? null,
+        education_description: graduate?.education_description ?? null,
+        period_of_attendance_from: graduate?.period_of_attendance_from ?? null,
+        period_of_attendance_to: graduate?.period_of_attendance_to ?? null,
+        highest_level_units_earned: graduate?.highest_level_units_earned ?? null,
+        year_graduated: graduate?.year_graduated ?? null,
+        is_current_enrolled: graduate?.is_current_enrolled ?? false,
+        scholarship_academic_honors_received: graduate?.scholarship_academic_honors_received ?? null,
+      },
+    }
 
     // === C2 -  Individual Eligibility ===
     pdsInfo.individual_eligibility = Array.isArray(personnel.individual_eligibility)
@@ -597,64 +768,65 @@ export const usePdsStore = defineStore('pds', () => {
     //  C4 - Individual Questions & Individual References
     // ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
     // === Individual Questions ===
-    pdsInfo.individual_question =
-      Array.isArray(personnel.individual_question) && personnel.individual_question.length
-        ? personnel.individual_question.map((q) => ({
-          id: q.id ?? null,
-          q34_a: q.q34_a ?? false,
-          q34_b: q.q34_b ?? false,
-          q34_details: q.q34_details ?? null,
-          q35_a: q.q35_a ?? false,
-          q35_a_details: q.q35_a_details ?? null,
-          q35_b: q.q35_b ?? false,
-          q35_b_date_filed: q.q35_b_date_filed ?? null,
-          q35_b_status: q.q35_b_status ?? null,
-          q36: q.q36 ?? false,
-          q36_details: q.q36_details ?? null,
-          q37: q.q37 ?? false,
-          q37_details: q.q37_details ?? null,
-          q38_a: q.q38_a ?? false,
-          q38_a_details: q.q38_a_details ?? null,
-          q38_b: q.q38_b ?? false,
-          q38_b_details: q.q38_b_details ?? null,
-          q39: q.q39 ?? false,
-          country_id: q.country_id ?? null,
-          q40_a_indigenous_group: q.q40_a_indigenous_group ?? false,
-          q40_a_details: q.q40_a_details ?? null,
-          q40_b_pwd: q.q40_b_pwd ?? false,
-          q40_b_details: q.q40_b_details ?? null,
-          q40_c_solo_parent: q.q40_c_solo_parent ?? false,
-          q40_c_details: q.q40_c_details ?? null,
-        }))
-        : [
-          {
-            id: null,
-            q34_a: false,
-            q34_b: false,
-            q34_details: null,
-            q35_a: false,
-            q35_a_details: null,
-            q35_b: false,
-            q35_b_date_filed: null,
-            q35_b_status: null,
-            q36: false,
-            q36_details: null,
-            q37: false,
-            q37_details: null,
-            q38_a: false,
-            q38_a_details: null,
-            q38_b: false,
-            q38_b_details: null,
-            q39: false,
-            country_id: null,
-            q40_a_indigenous_group: false,
-            q40_a_details: null,
-            q40_b_pwd: false,
-            q40_b_details: null,
-            q40_c_solo_parent: false,
-            q40_c_details: null,
-          },
-        ]
+    pdsInfo.individual_question = personnel.individual_question
+      ? [
+        {
+          id: personnel.individual_question.id ?? null,
+          q34_a: personnel.individual_question.q34_a ?? false,
+          q34_b: personnel.individual_question.q34_b ?? false,
+          q34_details: personnel.individual_question.q34_details ?? null,
+          q35_a: personnel.individual_question.q35_a ?? false,
+          q35_a_details: personnel.individual_question.q35_a_details ?? null,
+          q35_b: personnel.individual_question.q35_b ?? false,
+          q35_b_date_filed: personnel.individual_question.q35_b_date_filed ?? null,
+          q35_b_status: personnel.individual_question.q35_b_status ?? null,
+          q36: personnel.individual_question.q36 ?? false,
+          q36_details: personnel.individual_question.q36_details ?? null,
+          q37: personnel.individual_question.q37 ?? false,
+          q37_details: personnel.individual_question.q37_details ?? null,
+          q38_a: personnel.individual_question.q38_a ?? false,
+          q38_a_details: personnel.individual_question.q38_a_details ?? null,
+          q38_b: personnel.individual_question.q38_b ?? false,
+          q38_b_details: personnel.individual_question.q38_b_details ?? null,
+          q39: personnel.individual_question.q39 ?? false,
+          country_id: personnel.individual_question.country_id ?? null,
+          q40_a_indigenous_group: personnel.individual_question.q40_a_indigenous_group ?? false,
+          q40_a_details: personnel.individual_question.q40_a_details ?? null,
+          q40_b_pwd: personnel.individual_question.q40_b_pwd ?? false,
+          q40_b_details: personnel.individual_question.q40_b_details ?? null,
+          q40_c_solo_parent: personnel.individual_question.q40_c_solo_parent ?? false,
+          q40_c_details: personnel.individual_question.q40_c_details ?? null,
+        },
+      ]
+      : [
+        {
+          id: null,
+          q34_a: false,
+          q34_b: false,
+          q34_details: null,
+          q35_a: false,
+          q35_a_details: null,
+          q35_b: false,
+          q35_b_date_filed: null,
+          q35_b_status: null,
+          q36: false,
+          q36_details: null,
+          q37: false,
+          q37_details: null,
+          q38_a: false,
+          q38_a_details: null,
+          q38_b: false,
+          q38_b_details: null,
+          q39: false,
+          country_id: null,
+          q40_a_indigenous_group: false,
+          q40_a_details: null,
+          q40_b_pwd: false,
+          q40_b_details: null,
+          q40_c_solo_parent: false,
+          q40_c_details: null,
+        },
+      ]
 
     // === Individual References ===
     pdsInfo.individual_reference = Array.isArray(personnel.individual_reference)
@@ -663,6 +835,7 @@ export const usePdsStore = defineStore('pds', () => {
         name: r.name ?? '',
         address: r.address ?? '',
         tel_no: r.tel_no ?? '',
+        _delete: r._delete ?? '',
       }))
       : []
   }
@@ -779,6 +952,13 @@ export const usePdsStore = defineStore('pds', () => {
     }
 
     // Format eligibility dates to 'YYYY-MM-DD'
+    if (payload.individual_family) {
+      payload.individual_family.forEach((fam) => {
+        fam.date_of_birth = formatValidationDate(fam.date_of_birth)
+      })
+    }
+
+    // Format eligibility dates to 'YYYY-MM-DD'
     if (payload.individual_eligibility) {
       payload.individual_eligibility.forEach((elig) => {
         elig.date_of_examination_conferment = formatValidationDate(elig.date_of_examination_conferment)
@@ -790,6 +970,12 @@ export const usePdsStore = defineStore('pds', () => {
       payload.individual_work_experience.forEach((work) => {
         work.inclusive_date_from = formatValidationDate(work.inclusive_date_from) // Y-m-d
         work.inclusive_date_to = formatValidationDate(work.inclusive_date_to) // Y-m-d
+      })
+    }
+
+    if (payload.individual_question) {
+      payload.individual_question.forEach((question) => {
+        question.q35_b_date_filed = formatValidationDate(question.q35_b_date_filed)
       })
     }
 
@@ -811,6 +997,7 @@ export const usePdsStore = defineStore('pds', () => {
   return {
     pdsInfo,
     savePds,
+    isMyPds,
     importPds,
     generatePDSFormTemplate,
     pdsMode,

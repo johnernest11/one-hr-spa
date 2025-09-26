@@ -1,6 +1,5 @@
 import { CountryCode, isValidPhoneNumber, parsePhoneNumber } from 'libphonenumber-js'
 import { Ref } from 'vue'
-import { TimeLogResponse } from '@/typings/models.types.ts'
 import { useDateFormat } from '@vueuse/core'
 import { helpers } from '@vuelidate/validators'
 /**
@@ -404,6 +403,18 @@ export const isAfterOrEqualFromDate = (getFromDate: () => string | null) => (val
 }
 
 /**
+ * Validator: ensures a given date is not in the future.
+ */
+export const notInFuture = (val: string | number | Date | null) => {
+  if (!helpers.req(val)) return true // skip if empty
+  const date = new Date(val as string | number | Date)
+  if (isNaN(date.getTime())) return true
+  const today = new Date()
+  today.setHours(0, 0, 0, 0) // normalize to midnight
+  return date <= today
+}
+
+/**
  * Summarizes leave date ranges by grouping consecutive dates into ranges.
  * Formats multiple ranges (or single dates) into a compact string.
  *
@@ -451,16 +462,6 @@ export const summarizeLeaveDates = (dates: { start_date: string; end_date: strin
   return `${dayStrings.join(', ')} ${monthYear}`
 }
 
-export const formatDTRTime = (dateString: string | undefined): string => {
-  if (!dateString) return ''
-  const date = new Date(dateString)
-  return date.toLocaleString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  })
-}
-
 export const formatTimeTo12Hour = (timeString: string | undefined): string => {
   if (!timeString) return '—'
 
@@ -472,103 +473,6 @@ export const formatTimeTo12Hour = (timeString: string | undefined): string => {
   hour = hour % 12 || 12
 
   return `${hour}:${minute} ${period}`
-}
-
-/** Helper to get formatted date like "1-Feb" */
-export const getFormattedDTRDate = (dateString: string): string => {
-  if (!dateString) return ''
-
-  const date = new Date(dateString)
-  // Format with short month and numeric day
-  const formatted = new Intl.DateTimeFormat('en-GB', {
-    day: 'numeric',
-    month: 'short',
-  }).format(date)
-  // Intl yields "5 Jun" → convert to "5-Jun"
-  return formatted.replace(' ', '-')
-}
-
-// Helper to get the day of the week like "Sat"
-export const getDTRDayOfWeek = (dateString: string): string => {
-  if (!dateString) return ''
-
-  const date = new Date(dateString)
-  const options: Intl.DateTimeFormatOptions = {
-    weekday: 'short',
-  }
-
-  return date.toLocaleDateString('en-US', options)
-}
-
-export const toTimestamp = (date: string, time: string) => `${date}T${time}`
-
-export const resolveDTRSlots = (entries: TimeLogResponse[] = []) => {
-  const inLogs = entries
-    .filter((e) => e.is_in)
-    .sort(
-      (a, b) => new Date(toTimestamp(a.date, a.scanned_time)).getTime() - new Date(toTimestamp(b.date, b.scanned_time)).getTime()
-    )
-
-  const outLogs = entries
-    .filter((e) => !e.is_in)
-    .sort(
-      (a, b) => new Date(toTimestamp(a.date, a.scanned_time)).getTime() - new Date(toTimestamp(b.date, b.scanned_time)).getTime()
-    )
-
-  const slots = {
-    in1: '',
-    out1: '',
-    in2: '',
-    out2: '',
-  }
-
-  const isBetween = (timestamp: string, startHour: number, endHour: number) => {
-    const date = new Date(timestamp)
-    const hours = date.getHours()
-    return hours >= startHour && hours < endHour
-  }
-
-  // 1. Assign in1: between 6:00 - 9:00
-  const in1Candidate = inLogs.find((e) => isBetween(toTimestamp(e.date, e.scanned_time), 6, 9))
-  if (in1Candidate) {
-    slots.in1 = toTimestamp(in1Candidate.date, in1Candidate.scanned_time)
-  }
-
-  // 2. Assign out1: between 12:00 - 13:00
-  const out1Candidate = outLogs.find((e) => isBetween(toTimestamp(e.date, e.scanned_time), 12, 13))
-  if (out1Candidate) {
-    slots.out1 = toTimestamp(out1Candidate.date, out1Candidate.scanned_time)
-  }
-
-  // 3. Assign in2: between 12:00 - 14:00, but not within 15 mins after out1
-  if (slots.out1) {
-    const out1Time = new Date(slots.out1).getTime()
-    const in2Candidates = inLogs.filter((e) => {
-      const timestamp = toTimestamp(e.date, e.scanned_time)
-      const time = new Date(timestamp).getTime()
-      return isBetween(timestamp, 12, 14) && time >= out1Time + 15 * 60 * 1000
-    })
-
-    if (in2Candidates.length) {
-      slots.in2 = toTimestamp(in2Candidates[0].date, in2Candidates[0].scanned_time)
-    }
-  } else {
-    const in2Candidate = inLogs.find((e) => isBetween(toTimestamp(e.date, e.scanned_time), 12, 14))
-    if (in2Candidate) {
-      slots.in2 = toTimestamp(in2Candidate.date, in2Candidate.scanned_time)
-    }
-  }
-
-  // 4. Assign out2: from 14:00 onwards
-  const out2Candidate = outLogs.find((e) => {
-    const date = new Date(toTimestamp(e.date, e.scanned_time))
-    return date.getHours() >= 14
-  })
-  if (out2Candidate) {
-    slots.out2 = toTimestamp(out2Candidate.date, out2Candidate.scanned_time)
-  }
-
-  return slots
 }
 
 /**
