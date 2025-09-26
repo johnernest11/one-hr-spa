@@ -110,7 +110,7 @@ export const usePdsStore = defineStore('pds', () => {
   /** States */
   const authStore = useAuthStore()
   const pdsMode = ref('')
-  const importResult: Ref<ApiResponseBody | null> = ref(null)
+  const importResult: Ref<PersonalDataSheetPayload | null> = ref(null)
   const selectedPDS = ref<PersonnelResponse | null>(null)
   const personnelPds = ref<PersonnelResponse[]>([])
 
@@ -885,7 +885,8 @@ export const usePdsStore = defineStore('pds', () => {
 
     const { data } = await useApiCall('/individual-basic-details/import', authStore.authenticationToken).post(formData).json()
 
-    importResult.value = data.value
+    importResult.value = data.value.data as PersonalDataSheetPayload
+
     return data.value
   }
 
