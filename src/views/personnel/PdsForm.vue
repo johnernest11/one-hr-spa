@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { onBeforeMount, ref, computed } from 'vue'
-// import { useProfileStore } from '@/stores/profile.store.ts'
 import { useRoute } from 'vue-router'
 import { usePdsStore } from '@/stores/pds.store'
 
@@ -19,7 +18,6 @@ const route = useRoute()
 const isMyPds = route.name === 'my-pds'
 const isEditMode = computed(() => !!route.params.id)
 const pdsStore = usePdsStore()
-// const profileStore = useProfileStore()
 const isSubmitting = ref(false)
 
 const c1FormRef = ref()
