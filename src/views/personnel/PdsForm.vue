@@ -21,6 +21,7 @@ const isEditMode = computed(() => !!route.params.id)
 const pdsStore = usePdsStore()
 // const profileStore = useProfileStore()
 const isSubmitting = ref(false)
+const isImporting = ref(false)
 
 const c1FormRef = ref()
 const c2FormRef = ref()
@@ -28,9 +29,16 @@ const c3FormRef = ref()
 const c4FormRef = ref()
 
 onBeforeMount(async () => {
+  isImporting.value = false
   if (route.query.mode === 'via-manual-input') {
     pdsStore.pdsMode = route.query.mode.replace(/-/g, ' ').replace(/(?:^|\s)\S/g, (a: string) => a.toUpperCase())
   }
+  if (route.query.mode === 'via-pds-importation') {
+    isImporting.value = true
+    pdsStore.pdsMode = route.query.mode.replace(/-/g, ' ').replace(/(?:^|\s)\S/g, (a: string) => a.toUpperCase())
+  }
+
+  await profileStore.fetchProfile()
 })
 
 const handleSubmit = async () => {
@@ -49,7 +57,9 @@ const handleSubmit = async () => {
     const resultC4 = await c4FormRef.value?.handleSaveC4Form?.()
     if (resultC4?.valid === false) return
 
-    window.location.reload()
+    if (route.query.mode !== 'via-pds-importation') {
+      window.location.reload()
+    }
   } finally {
     isSubmitting.value = false
   }
@@ -88,7 +98,8 @@ const handleUpdate = async () => {
           <FontAwesomeIcon :icon="['fas', 'users']" class="text-2xl md:text-4xl" />
           <span class="flex flex-col justify-center">
             <p class="text-xl md:text-3xl">Personal Data Sheet</p>
-            <p class="text-surface-500">{{ lcFirst(pdsStore.pdsMode ?? '') }}</p>
+            <p v-if="isImporting" class="text-lg md:text-xl lg:text-2xl">Reviewing Imported Information</p>
+            <p v-if="!isEditMode" class="text-surface-500">{{ lcFirst(pdsStore.pdsMode) }}</p>
           </span>
         </div>
 

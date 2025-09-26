@@ -2,7 +2,18 @@
 import Message from 'primevue/message'
 import { helpers, maxLength, required, email } from '@vuelidate/validators'
 import { digitCountRule, mobilePhoneRule, uniqueUserIdentifierRule } from '@/utils/custom-validations'
-import { reactive, ref, onBeforeMount, toRef, watch, computed, onMounted } from 'vue'
+import {
+  reactive,
+  ref,
+  onBeforeMount,
+  toRef,
+  watch,
+  computed,
+  onMounted,
+  onBeforeUnmount,
+  nextTick,
+  type WatchStopHandle,
+} from 'vue'
 import { storeToRefs } from 'pinia'
 import { useFilterByParentId } from '@/composables/address.options.ts'
 import { useAddressStore } from '@/stores/address.store.ts'
@@ -49,6 +60,8 @@ const route = useRoute()
 const currentlyEnrolledGraduate = ref(false)
 const currentlyEnrolledVocational = ref(false)
 const isPositionLoading = ref(false)
+const isItemsLoading = ref(false)
+const isSalaryGradeLoading = ref(false)
 const isSameResidential = ref(false)
 const isLoading = ref(true)
 const activeToasts = ref<number>(0)
@@ -91,6 +104,8 @@ const isPdsError = ref(false)
 const errorMessage = ref()
 onBeforeMount(async () => {
   addressesAreLoading.value = true
+  isItemsLoading.value = true
+  isSalaryGradeLoading.value = true
   await Promise.allSettled([
     publicStore.fetchRegions(),
     publicStore.fetchProvinces(),
@@ -103,6 +118,9 @@ onBeforeMount(async () => {
     sgStore.fetchSalaryGrade(),
   ])
 
+  isItemsLoading.value = false
+  isSalaryGradeLoading.value = false
+  addressesAreLoading.value = false
   const individual = authStore.authenticatedUser?.user_profile?.individual_basic_detail
 
   if (individual) {
@@ -127,6 +145,51 @@ onBeforeMount(async () => {
     payload.individual.citizenship_acquisition = payload.individual.citizenship_acquisition ?? individual.citizenship_acquisition
   }
 })
+
+onMounted(async () => {
+  const hasImport = !!pdsStore.importResult
+
+  if (hasImport) {
+    // perform import with NO watcher present
+    // (do NOT call setupSpouseWatch yet)
+    // this is to prevent the bug wherein the spouse data is being overwritten by the watcher
+    Object.assign(payload.individual, pdsStore.importResult?.individual ?? {})
+    Object.assign(payload.employee, pdsStore.importResult?.employee ?? {})
+    Object.assign(payload.individual_address_init, pdsStore.importResult?.individual_address?.[0] ?? {})
+    Object.assign(payload.contact_info, pdsStore.importResult?.individual_contact_info?.[0] ?? {})
+    Object.assign(payload.educations, pdsStore.importResult?.educations ?? {})
+
+    if (pdsStore.importResult?.individual_family) {
+      payload.individual_family_children.length = 0
+      pdsStore.importResult?.individual_family.forEach((family) => {
+        switch (family.class) {
+          case 'Spouse':
+            Object.assign(payload.individual_family_spouse, family ?? {})
+            break
+
+          case 'Father':
+            Object.assign(payload.individual_family_father, family ?? {})
+            break
+
+          case 'Mother':
+            Object.assign(payload.individual_family_mothers_maiden, family ?? {})
+            break
+
+          case 'Children':
+            payload.individual_family_children.push(family)
+            break
+        }
+      })
+    }
+
+    await nextTick()
+    setupSpouseWatch(false)
+  } else {
+    setupSpouseWatch(true)
+  }
+})
+
+onBeforeUnmount(() => stopSpouseWatch?.())
 
 const { provinceOptions, cityOptions, barangayOptions } = storeToRefs(publicStore)
 const filteredProvinceOptionsByRegion = useFilterByParentId(
@@ -844,24 +907,33 @@ watch(
   { immediate: true }
 )
 
-watch(
-  () => payload.individual.civil_status,
-  (newStatus) => {
-    const spouse = payload.individual_family_spouse
+let stopSpouseWatch: WatchStopHandle | null = null
 
-    if (newStatus === 'Single') {
-      spouse.first_name = 'N/A'
-      spouse.middle_name = 'N/A'
-      spouse.last_name = 'N/A'
-      spouse.ext_name = null
-      spouse.occupation = 'N/A'
-      spouse.employers_business_name = 'N/A'
-      spouse.business_address = 'N/A'
-      spouse.telephone_no = null
-    }
-  },
-  { immediate: true }
-)
+function setupSpouseWatch(immediate: boolean) {
+  stopSpouseWatch?.()
+
+  stopSpouseWatch = watch(
+    () => payload.individual.civil_status,
+    (newStatus) => {
+      const spouse = payload.individual_family_spouse
+
+      const fill = (v: string) => {
+        spouse.first_name = v
+        spouse.middle_name = v
+        spouse.last_name = v
+        spouse.ext_name = v
+        spouse.occupation = v
+        spouse.employers_business_name = v
+        spouse.business_address = v
+        spouse.telephone_no = v
+      }
+
+      if (newStatus === 'Single') fill('N/A')
+      else fill('')
+    },
+    { immediate }
+  )
+}
 
 watch(
   () => selectedPermanentRegion.value,
@@ -965,31 +1037,46 @@ watch(
 
 watch(
   () => payload.employee.item_id,
-  (newId) => {
+  async (newId) => {
+    isItemsLoading.value = true
+    // 1. Check for a null/undefined ID immediately
     if (!newId) {
       selectedItemNo.value = null
       return
     }
 
-    const existing = libraryStore.itemsOptions.find((opt) => opt.value === newId)
+    // 2. Check the local cache of fetched items first
+    const existing = libraryStore.itemsOptions.find((opt) => Number(opt.value) === Number(newId))
 
     if (existing) {
+      // If found in local cache, set the value and call propPosition
       selectedItemNo.value = existing
       propPosition()
     } else {
-      const unwatch = watch(
-        () => libraryStore.itemsOptions,
-        (options) => {
-          const found = options.find((opt) => opt.value === newId)
-          if (found) {
-            selectedItemNo.value = found
-            propPosition()
-            unwatch()
-          }
-        },
-        { immediate: true }
-      )
+      // 3. If not found, fetch the item directly from the API by its ID
+      const response = await itemStore.fetchItemNumberById(Number(newId))
+
+      // 4. Check if the API call was successful
+      if (response && response.success) {
+        const itemResponse = response.data as ItemNumberResponse
+        // 5. If successful, use the data to set the selected item
+        const foundItem = {
+          value: itemResponse.id,
+          label: itemResponse.number,
+        }
+
+        // 6. Push the new item to the local cache so it's available next time
+        libraryStore.itemsOptions.push(foundItem)
+
+        selectedItemNo.value = foundItem
+        propPosition()
+      } else {
+        // Handle case where item is not found or API call fails
+        selectedItemNo.value = null
+      }
     }
+
+    isItemsLoading.value = false
   },
   { immediate: true }
 )
@@ -997,6 +1084,7 @@ watch(
 watch(
   () => payload.employee.salary_grade_id,
   (newSelected) => {
+    isSalaryGradeLoading.value = true
     if (!newSelected) {
       selectedSalaryGrade.value = null
       return
@@ -1004,7 +1092,7 @@ watch(
 
     const selectedId = typeof newSelected === 'object' && newSelected !== null ? newSelected.id : newSelected
 
-    const existing = sgStore.salaryGradesOptions.find((opt) => opt.value === selectedId)
+    const existing = sgStore.salaryGradesOptions.find((opt) => Number(opt.value) === Number(selectedId))
 
     if (existing) {
       selectedSalaryGrade.value = existing
@@ -1012,7 +1100,7 @@ watch(
       const unwatch = watch(
         () => sgStore.salaryGradesOptions,
         (options) => {
-          const found = options.find((opt) => opt.value === selectedId)
+          const found = options.find((opt) => Number(opt.value) === Number(selectedId))
           if (found) {
             selectedSalaryGrade.value = found
             unwatch()
@@ -1021,6 +1109,8 @@ watch(
         { immediate: true }
       )
     }
+
+    isSalaryGradeLoading.value = false
   },
   { immediate: true }
 )
@@ -1062,14 +1152,14 @@ watch(
       return
     }
 
-    const existing = libraryStore.divisionOptions.find((opt) => opt.value === newSelectedId)
+    const existing = libraryStore.divisionOptions.find((opt) => Number(opt.value) === Number(newSelectedId))
     if (existing) {
       selectedDivision.value = existing
     } else {
       const unwatch = watch(
         () => libraryStore.divisionOptions,
         (options) => {
-          const found = options.find((opt) => opt.value === newSelectedId)
+          const found = options.find((opt) => Number(opt.value) === Number(newSelectedId))
           if (found) {
             selectedDivision.value = found
             unwatch()
@@ -1129,6 +1219,15 @@ watch(
   }
 )
 
+watch(
+  () => payload.educations.graduate.is_current_enrolled,
+  (newVal) => {
+    if (newVal) {
+      currentlyEnrolledGraduate.value = newVal
+    }
+  }
+)
+
 watch(currentlyEnrolledGraduate, (newVal) => {
   if (newVal) {
     currentlyEnrolledVocational.value = false
@@ -1138,6 +1237,15 @@ watch(currentlyEnrolledGraduate, (newVal) => {
   payload.educations.graduate.is_current_enrolled = newVal
   if (newVal) payload.educations.graduate.period_of_attendance_to = null
 })
+
+watch(
+  () => payload.educations.vocational.is_current_enrolled,
+  (newVal) => {
+    if (newVal) {
+      currentlyEnrolledVocational.value = newVal
+    }
+  }
+)
 
 watch(currentlyEnrolledVocational, (newVal) => {
   if (newVal) {
@@ -1416,7 +1524,7 @@ const handleSaveC1Form = async () => {
   }
 
   /** Propagate indiividual family to required payload */
-  const families = [{ ...payload.individual_family_father }, { ...payload.individual_family_mothers_maiden }]
+  let families = [{ ...payload.individual_family_father }, { ...payload.individual_family_mothers_maiden }]
 
   if (
     typeof payload.individual_family_spouse.last_name?.trim() !== 'undefined' ||
@@ -1426,10 +1534,10 @@ const handleSaveC1Form = async () => {
   }
 
   if (
-    typeof payload.individual_family_children[0].last_name?.trim() !== 'undefined' ||
-    payload.individual_family_children[0].last_name !== null
+    typeof payload.individual_family_children[0]?.last_name?.trim() !== 'undefined' ||
+    payload.individual_family_children[0]?.last_name !== null
   ) {
-    payload.individual_family = families.concat(payload.individual_family_children)
+    families.push(...payload.individual_family_children)
   }
   payload.individual_family = families
 
@@ -1539,7 +1647,9 @@ defineExpose({
                         <WbAutoComplete
                           :useApiFilter="true"
                           :apiEndpoint="'/items/search'"
+                          :apiFilters="{ status: 'Unfilled' }"
                           :suggestions="itemStore.itemNumbersSuggestions"
+                          :loading="isItemsLoading"
                           @item-select="propPosition"
                           apiOptionLabel="number"
                           label="Item Number"
@@ -1589,6 +1699,7 @@ defineExpose({
                         :useApiFilter="true"
                         :apiEndpoint="'libraries/salary-grades/search'"
                         :suggestions="sgStore.salaryGradesOptions"
+                        :loading="isSalaryGradeLoading"
                         apiOptionLabel="salary_grade"
                         label="Salary Grade"
                         placeholder="Type Salary Grade with its tranche here"
