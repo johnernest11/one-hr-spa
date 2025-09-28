@@ -307,13 +307,17 @@ const handleImportSubmission = async () => {
     toast.add({
       severity: 'success',
       summary: 'Import Successful',
-      detail: 'Personnel Data Sheet has been imported successfully.',
+      detail: 'Personnel Data Sheet has been imported successfully. Please check all imported data before saving.',
       life: 5000,
     })
     formIsSubmitting.value = false
-    setTimeout(() => {
-      window.location.reload()
-    }, 1000)
+
+    await router.push({
+      name: 'create-personnel',
+      query: {
+        mode: 'via-pds-importation',
+      },
+    })
   }
 }
 
@@ -771,6 +775,7 @@ const downloadQrCode = async () => {
           <WbAutoComplete
             :useApiFilter="true"
             :apiEndpoint="'/items/search'"
+            :apiFilters="{ status: 'Unfilled' }"
             :suggestions="employment.itemNumbersSuggestions"
             @item-select="propPosition"
             apiOptionLabel="number"
