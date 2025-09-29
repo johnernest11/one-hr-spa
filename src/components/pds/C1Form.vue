@@ -908,7 +908,7 @@ watch(
 
 let stopSpouseWatch: WatchStopHandle | null = null
 
-function setupSpouseWatch(immediate: boolean) {
+const setupSpouseWatch = (immediate: boolean) => {
   stopSpouseWatch?.()
 
   stopSpouseWatch = watch(
