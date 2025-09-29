@@ -10,7 +10,7 @@ import { WbAutoCompleteOption } from '@/components/webkit/WbAutoComplete.vue'
 export type ItemNumberPayload = {
   number: string | null
   date_of_creation: string
-  status: 'Unfilled'
+  status: 'Unfilled' | 'Filled'
   date_filled_up: string
   fund_source: number
   fund_source_id?: string | number | null
@@ -25,6 +25,7 @@ export const useItemNumberStore = defineStore('item-number', () => {
   const itemNumbers = ref<ItemNumberResponse[]>([])
   const itemNumbersSuggestions = ref<WbAutoCompleteOption[]>([])
   const selectedItemNumber = ref<ItemNumberResponse | null>(null)
+  const previousItemNumber = ref<string | null>(null)
   const lastNumbers = ref<Record<string, number>>({
     'Contract of Service': 0,
     Contractual: 0,
@@ -39,12 +40,6 @@ export const useItemNumberStore = defineStore('item-number', () => {
     if (responseBody.success) {
       const ItemNumbersList = Array.isArray(responseBody.data) ? (responseBody.data as ItemNumberResponse[]) : []
       itemNumbers.value = [...ItemNumbersList]
-      ItemNumbersList.map((el) => {
-        itemNumbersSuggestions.value.push({
-          value: el.id,
-          label: el.number ?? 'null',
-        })
-      })
     }
     return responseBody
   }
@@ -136,9 +131,26 @@ export const useItemNumberStore = defineStore('item-number', () => {
     return responseBody
   }
 
+  const updateItemStatus = async (itemNumber: string) => {
+    if (previousItemNumber.value && previousItemNumber.value !== itemNumber) {
+      const previousItem = itemNumbers.value.find((i) => i.number === previousItemNumber.value)
+      if (previousItem) {
+        await updateItemNumber({ status: 'Unfilled' }, previousItem.id!)
+      }
+    }
+    const item = itemNumbers.value.find((i) => i.number === itemNumber)
+    if (!item) return null
+
+    const result = await updateItemNumber({ status: 'Filled' }, item.id!)
+    previousItemNumber.value = itemNumber
+
+    return result
+  }
+
   return {
     itemNumbers,
     itemNumbersSuggestions,
+    lastNumbers,
     createItemNumber,
     fetchItemNumber,
     fetchItemNumberById,
@@ -146,6 +158,6 @@ export const useItemNumberStore = defineStore('item-number', () => {
     searchItemNumber,
     filterItemNumber,
     fetchLastNumber,
-    lastNumbers,
+    updateItemStatus,
   }
 })
