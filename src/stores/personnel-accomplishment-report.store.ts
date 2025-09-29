@@ -15,6 +15,7 @@ export type PersonnelAccomplishmentReportPayload = {
     dates_in_week: string
     specific_activity: string | null
     highlights: string | null
+    _delete: boolean | null
   }[]
 }
 

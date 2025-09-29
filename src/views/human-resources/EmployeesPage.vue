@@ -597,7 +597,7 @@ const downloadQrCode = async () => {
                   <InputGroup v-model="searchQuery" class="w-full">
                     <InputText
                       v-model="searchQuery"
-                      placeholder="Search Item Number"
+                      placeholder="Search Employee"
                       class="w-full"
                       :disabled="itemNumberIsLoading"
                       @keyup.enter="handleSearchEmployee"
@@ -623,7 +623,7 @@ const downloadQrCode = async () => {
                       {{ props.data.ext_name ?? null }}
                     </p>
                     <p class="font-semibold uppercase text-surface-500">
-                      {{ props.data.employee.item.number }}
+                      {{ props.data.employee?.item?.number ?? 'N/A' }}
                     </p>
                   </template>
                 </Column>
