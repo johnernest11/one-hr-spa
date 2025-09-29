@@ -1,209 +1,284 @@
 <script setup lang="ts">
-import GeneralReportCard from '@/components/dashboard/GeneralReportCard.vue'
-import TreeMap from '@/components/dashboard/TreeMap.vue'
-import { computed, ref, watch } from 'vue'
-import TimelineChart from '@/components/dashboard/TimelineChart.vue'
-import DonutChart from '@/components/dashboard/DonutChart.vue'
-import { useGlobalUiStore } from '@/stores/ui.store.ts'
-import { sleep } from '@/utils/helpers.ts'
-import { useThemeConfig } from '@/composables/theme.ts'
+import { ref, reactive, toRef, computed } from 'vue'
+import Dialog from 'primevue/dialog'
+import VueApexCharts from 'vue3-apexcharts'
+import Button from 'primevue/button'
+import WbAutoComplete, { WbAutoCompleteOption, WbAutoCompleteOptionTrueValue } from '@/components/webkit/WbAutoComplete.vue'
+import { useWbAutoCompleteHandleTrueValue } from '@/composables/wb-ui-components.ts'
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
+import { useLibrariesStore } from '@/stores/libraries.store'
+import { SexType, EmploymentStatusType } from '@/typings/employee-entry.types'
+import { monthOptions, getYearOptions } from '@/typings/dashboard.types'
+import { usePrependOrAppendOnce } from '@/utils/helpers'
 
-/** General Report Cards */
-const formatNumber = (number: number) => {
-  return new Intl.NumberFormat().format(number)
+export interface Employee {
+  id: string
+  firstName: string
+  lastName: string
+  sex: SexType
+  employmentStatus: EmploymentStatusType
+  division: string
+  section: string
+  year: number
+  month: number
+  status: 'Filled' | 'Unfilled'
+  male: number
+  female: number
+  filledTotal: number
+  unfilled: number
+  totalPositions: number
 }
 
-const peopleReachedCategories = ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6', 'Week 7', 'Week 8']
-const peopleReachedSeriesData = ref([78, 250, 400, 215, 199, 380, 750, 222])
-const peopleReachedTotal = computed(() => {
-  return formatNumber(peopleReachedSeriesData.value.reduce((partialSum, n) => partialSum + n, 0))
-})
-const expensesCategories = ['Month 1', 'Month 2', 'Month 3', 'Month 4', 'Month 5']
-const expensesSeriesData = ref([13_234, 10_324, 11_999, 27_000, 5_000])
-const expensesTotal = computed(() => {
-  return formatNumber(expensesSeriesData.value.reduce((partialSum, n) => partialSum + n, 0))
-})
-const onboardedCategories = ['January', 'February', 'March', 'April', 'May']
-const onboardedSeriesData = ref([200, 90, 70, 90, 39])
-const onboardedTotal = computed(() => {
-  return formatNumber(onboardedSeriesData.value.reduce((partialSum, n) => partialSum + n, 0))
+const isSubmitting = ref(false)
+const getId = usePrependOrAppendOnce('dashboard')
+const libraryStore = useLibrariesStore()
+const showSidebar = ref(false)
+
+const selectedDivision = ref<WbAutoCompleteOption | null>(null)
+const selectedSectionUnit = ref<WbAutoCompleteOption | null>(null)
+const selectedDivisionLabel = ref<string | null>(null)
+const selectedSectionLabel = ref<string | null>(null)
+
+const currentYear = new Date().getFullYear()
+const currentMonth = new Date().getMonth() + 1
+
+const employees = ref<Employee[]>([])
+const selectedYear = ref<number | null>(currentYear)
+const selectedMonth = ref<number | null>(currentMonth)
+const yearList = computed(() => getYearOptions(currentYear, 6))
+
+const payload = reactive({
+  division: null,
+  section: null,
 })
 
-/** National Breakdown (Treemap) */
-const nationalBreakdownSeries = ref([
-  {
-    name: 'Luzon',
-    data: [
-      { x: 'Pampanga', y: 10 },
-      { x: 'Central Luzon', y: 60 },
-      { x: 'Aurora', y: 41 },
-      { x: 'Cagayan Valley', y: 41 },
-      { x: 'Ilocos', y: 41 },
-    ],
-  },
-  {
-    name: 'Visayas',
-    data: [
-      { x: 'Western Visayas', y: 10 },
-      { x: 'Central Visayas', y: 20 },
-      { x: 'Eastern Visayas', y: 51 },
-    ],
-  },
-  {
-    name: 'Mindanao',
-    data: [
-      { x: 'Davao Occidental', y: 10 },
-      { x: 'Basilan', y: 9 },
-      { x: 'Lanao Del Sur', y: 31 },
-      { x: 'Sulu', y: 27 },
-      { x: 'CARAGA', y: 15 },
-    ],
-  },
+const filteredEmployees = computed(() => {
+  return employees.value.filter((e) => {
+    const divisionMatch = !selectedDivisionLabel.value || e.division === selectedDivisionLabel.value
+    const sectionMatch = !selectedSectionLabel.value || e.section === selectedSectionLabel.value
+    const yearMatch = !selectedYear.value || e.year === selectedYear.value
+    const monthMatch = !selectedMonth.value || e.month === selectedMonth.value
+    return divisionMatch && sectionMatch && yearMatch && monthMatch
+  })
+})
+
+const totalMale = computed(() => filteredEmployees.value.reduce((sum, e) => sum + e.male, 0))
+const totalFemale = computed(() => filteredEmployees.value.reduce((sum, e) => sum + e.female, 0))
+const totalFilled = computed(() => filteredEmployees.value.reduce((sum, e) => sum + (e.filledTotal || 0), 0))
+const totalUnfilled = computed(() => filteredEmployees.value.reduce((sum, e) => sum + (e.unfilled || 0), 0))
+const totalPositions = computed(() => filteredEmployees.value.reduce((sum, e) => sum + (e.totalPositions || 0), 0))
+
+const employmentChartSeries = computed(() => [
+  { name: 'Male', data: filteredEmployees.value.map((d) => d.male) },
+  { name: 'Female', data: filteredEmployees.value.map((d) => d.female) },
 ])
 
-/** Deployment Timeline */
-const deploymentTimelineSeries = ref([
-  {
-    data: [
-      {
-        x: 'Training',
-        y: [new Date('2023-02-27').getTime(), new Date('2023-03-04').getTime()],
-        fillColor: '#008FFB',
-      },
-      {
-        x: 'Pilot',
-        y: [new Date('2023-03-02').getTime(), new Date('2023-03-15').getTime()],
-        fillColor: '#00E396',
-      },
-      {
-        x: 'Regional',
-        y: [new Date('2023-03-15').getTime(), new Date('2023-03-30').getTime()],
-        fillColor: '#775DD0',
-      },
-      {
-        x: 'National',
-        y: [new Date('2023-04-01').getTime(), new Date('2023-04-20').getTime()],
-        fillColor: '#FEB019',
-      },
-    ],
-  },
-])
+const employmentChartOptions = computed(() => ({
+  chart: { type: 'bar', stacked: true },
+  plotOptions: { bar: { horizontal: false, columnWidth: '55%', endingShape: 'rounded' } },
+  dataLabels: { enabled: true },
+  stroke: { show: true, width: 2, colors: ['transparent'] },
+  xaxis: { categories: filteredEmployees.value.map((d) => d.status) },
+  yaxis: { title: { text: 'Number of Employees' } },
+  fill: { opacity: 1 },
+  legend: { position: 'top' },
+  colors: ['#155dfc', '#f0b100'],
+}))
 
-/** Programs Donut Chart */
-const programsDonutChartSeries = ref([44, 55, 41, 17, 15])
-const programsDonutChartLabels = ref([
-  'Community Care Initiative',
-  'Health Equity Initiative',
-  'Food Security Program',
-  'Youth Empowerment Program',
-  'Senior Citizen Support Scheme',
-])
-const programsDonutChartColors = ref(['#524ebb', '#2d724f', '#046ac5', '#af510a', '#07b1c0'])
+const genderChartSeries = computed(() => [totalMale.value, totalFemale.value])
+const genderChartOptions = {
+  chart: { type: 'donut' },
+  labels: ['Male', 'Female'],
+  colors: ['#155dfc', '#f0b100'],
+  legend: { position: 'bottom' },
+}
 
-/** We Force Update the page to eliminate the delay when hiding the sidebar in desktop view*/
-const uiStore = useGlobalUiStore()
-const mountCharts = ref(true)
-watch(
-  () => uiStore.sidebarMinimized,
-  async (isMinimized) => {
-    if (!isMinimized) {
-      mountCharts.value = false
-      await sleep(0.2)
-      mountCharts.value = true
-    }
-  }
-)
-
-/** Handle Dark Mode */
-const { selectedTheme } = useThemeConfig()
-const chartsInDarkMode = ref(selectedTheme.value?.value === 'dark')
-watch(
-  () => selectedTheme.value,
-  (theme) => {
-    if (theme?.value === 'dark') {
-      return (chartsInDarkMode.value = true)
-    }
-
-    chartsInDarkMode.value = false
-  }
-)
-
-/**
- * Simulate Live Data Changes.
- * This is just for demo purposes. Use Websockets for real work.
- */
-setInterval(() => {
-  peopleReachedSeriesData.value[peopleReachedSeriesData.value.length - 1] += Math.floor(Math.random() * 20 + 1)
-  expensesSeriesData.value[expensesSeriesData.value.length - 1] += Math.floor(Math.random() * 1000 + 100)
-  onboardedSeriesData.value[onboardedSeriesData.value.length - 1] += Math.floor(Math.random() * 10 + 1)
-
-  nationalBreakdownSeries.value[0].data[Math.floor(Math.random() * 5)].y += 1
-  nationalBreakdownSeries.value[1].data[Math.floor(Math.random() * 3)].y += 1
-  nationalBreakdownSeries.value[2].data[Math.floor(Math.random() * 5)].y += 1
-
-  programsDonutChartSeries.value[Math.floor(Math.random() * programsDonutChartSeries.value.length)] += 5
-}, 5000)
+const handleFilterEmployees = () => {
+  selectedDivisionLabel.value = selectedDivision.value ? selectedDivision.value.label : null
+  selectedSectionLabel.value = selectedSectionUnit.value ? selectedSectionUnit.value.label : null
+  showSidebar.value = false
+}
 </script>
 
 <template>
-  <div v-if="mountCharts" class="mx-auto h-[100%] w-[100%] px-2 md:px-0">
-    <!-- Start General Report Cards -->
-    <p class="mb-4 mt-2 text-xs font-semibold uppercase text-surface-600 dark:text-surface-400 md:mt-1">General Reports</p>
-    <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-      <GeneralReportCard
-        :id="$.uid + '-people-reached'"
-        :categories="peopleReachedCategories"
-        :series-data="peopleReachedSeriesData"
-        color="#1976d2"
-        series-name="People Reached"
-        title="Total Beneficiaries Reached"
-        :total="peopleReachedTotal"
-        :dark-mode="chartsInDarkMode"
-      />
-      <GeneralReportCard
-        :id="$.uid + '-expenses'"
-        :categories="expensesCategories"
-        :series-data="expensesSeriesData"
-        color="#CD5C5C"
-        series-name="Expenses (PHP)"
-        title="Total Expenses"
-        :total="'₱' + expensesTotal"
-        :dark-mode="chartsInDarkMode"
-      />
-      <GeneralReportCard
-        :id="$.uid + '-onboarded'"
-        :categories="onboardedCategories"
-        :series-data="onboardedSeriesData"
-        color="#088F8F"
-        series-name="Onboarded Beneficiaries"
-        title="Total On-Boarded"
-        :total="onboardedTotal"
-        :dark-mode="chartsInDarkMode"
-      />
-    </div>
-    <!-- End General Report Cards -->
-    <!-- Start Heatmap -->
-    <p class="mb-4 mt-8 text-xs font-semibold uppercase text-surface-600 dark:text-surface-400">Regional Breakdown</p>
-    <div class="flex max-h-96 w-full">
-      <TreeMap :series="nationalBreakdownSeries" :colors="['#524ebb', '#2d724f', '#0a4177']" :dark-mode="chartsInDarkMode" />
-    </div>
-    <!-- End Heatmap -->
-    <!-- Start Programs & Timeline -->
-    <div class="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2">
-      <div class="flex h-full w-full flex-col">
-        <p class="mb-4 mt-8 text-xs font-semibold uppercase text-surface-600 dark:text-surface-400">Beneficiaries Per Program</p>
-        <DonutChart
-          :dark-mode="chartsInDarkMode"
-          :series="programsDonutChartSeries"
-          :labels="programsDonutChartLabels"
-          :colors="programsDonutChartColors"
-        />
+  <div class="h-full w-full rounded-md bg-surface-0 p-6">
+    <div class="p-6">
+      <div class="mb-6 flex items-center justify-between">
+        <h1 class="mb-2 mr-4 whitespace-nowrap text-xl text-surface-600 dark:text-primary-100 md:text-xl lg:text-4xl">
+          PPMS Dashboard
+        </h1>
+        <div class="flex items-center gap-2 p-2">
+          <Button
+            label="Filter"
+            @click="showSidebar = true"
+            :loading="isSubmitting"
+            :disabled="isSubmitting"
+            type="button"
+            size="large"
+            class="dark:text-secondary-100 mt-4 w-full border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+            text
+          >
+            <template #icon>
+              <font-awesome-icon :icon="['fas', 'filter']" class="mr-2" />
+            </template>
+          </Button>
+        </div>
       </div>
-      <div class="flex w-full flex-col">
-        <p class="mb-4 mt-8 text-xs font-semibold uppercase text-surface-600 dark:text-surface-400">Deployment Timeline</p>
-        <TimelineChart :dark-mode="chartsInDarkMode" :series="deploymentTimelineSeries" />
+
+      <!-- Counters -->
+      <div class="mb-6 grid grid-cols-1 gap-6 md:grid-cols-3">
+        <div class="flex items-center rounded-xl bg-white p-4 shadow">
+          <div class="flex-1 text-center md:text-left">
+            <font-awesome-icon :icon="['fas', 'users']" class="text-3xl text-primary-600" />
+          </div>
+          <div class="flex-1 text-center md:text-left">
+            <h2 class="text-lg font-semibold text-gray-600">Total Positions</h2>
+            <p class="text-xl font-bold text-primary-600">{{ totalPositions }}</p>
+          </div>
+        </div>
+
+        <div class="flex items-center rounded-xl bg-white p-4 shadow">
+          <div class="flex-1 text-center md:text-left">
+            <font-awesome-icon :icon="['fas', 'sitemap']" class="text-3xl text-success-600" />
+          </div>
+          <div class="flex-1 text-center md:text-left">
+            <h2 class="text-lg font-semibold text-gray-600">Filled Positions</h2>
+            <p class="text-2xl font-bold text-success-600">{{ totalFilled }}</p>
+          </div>
+        </div>
+
+        <div class="flex items-center rounded-xl bg-white p-4 shadow">
+          <div class="flex-1 text-center md:text-left">
+            <font-awesome-icon :icon="['fas', 'users-slash']" class="text-3xl text-red-600" />
+          </div>
+          <div class="flex-1 text-center md:text-left">
+            <h2 class="text-lg font-semibold text-gray-600">Unfilled Positions</h2>
+            <p class="text-2xl font-bold text-red-600">{{ totalUnfilled }}</p>
+          </div>
+        </div>
       </div>
+
+      <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div class="rounded-xl bg-white p-4 shadow">
+          <h2 class="mb-4 text-lg font-semibold">Number of Employees</h2>
+          <VueApexCharts type="donut" height="300" :options="genderChartOptions" :series="genderChartSeries" />
+        </div>
+
+        <div class="rounded-xl bg-white p-4 shadow">
+          <h2 class="mb-4 text-lg font-semibold">Distribution of Staff Per Position Level</h2>
+          <VueApexCharts type="bar" height="350" :options="employmentChartOptions" :series="employmentChartSeries" />
+        </div>
+      </div>
+
+      <Dialog
+        v-model:visible="showSidebar"
+        :modal="false"
+        closable
+        :dismissableMask="false"
+        :position="'right'"
+        :style="{ width: '25vw', maxWidth: '450px', minWidth: '320px' }"
+        :breakpoints="{ '1199px': '50vw', '575px': '90vw' }"
+        :pt="{
+          root: {
+            class: 'relative w-full h-full flex flex-col bg-white shadow-lg',
+          },
+        }"
+      >
+        <template #header>
+          <div class="flex w-full items-center justify-between p-4 pb-0">
+            <h1 class="text-xl font-semibold text-surface-600">
+              <font-awesome-icon :icon="['fas', 'bars-staggered']" class="mr-2" />
+              Filter and Field Options
+            </h1>
+          </div>
+        </template>
+
+        <div class="flex-1 px-4 pb-24">
+          <h2 class="mb-2 mt-4 text-lg font-semibold text-surface-500">Filters</h2>
+
+          <div class="mt-4">
+            <label class="text-md mb-2 block text-surface-600">Year</label>
+            <select v-model="selectedYear" class="w-full rounded border p-2">
+              <option :value="null">All Years</option>
+              <option v-for="y in yearList" :key="y" :value="y">{{ y }}</option>
+            </select>
+          </div>
+
+          <div class="mt-4">
+            <label class="text-md mb-2 block text-surface-600">Month</label>
+            <select v-model="selectedMonth" class="w-full rounded border p-2">
+              <option :value="null">All Months</option>
+              <option v-for="m in monthOptions" :key="m.value" :value="m.value">
+                {{ m.label }}
+              </option>
+            </select>
+          </div>
+
+          <div class="mt-4">
+            <WbAutoComplete
+              :useApiFilter="true"
+              :apiEndpoint="'/libraries/divisions/search'"
+              :suggestions="libraryStore.divisionOptions"
+              :loading="libraryStore.divisionOptionsLoading"
+              apiOptionLabel="name"
+              label="Division"
+              placeholder="Type the Division"
+              v-model="selectedDivision"
+              :id="getId('input-division')"
+              optionLabel="label"
+              optionValue="value"
+              required
+              @on-true-value-computed="
+                (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) => {
+                  useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'division'))
+                }
+              "
+              class="w-full text-sm"
+            />
+          </div>
+          <div class="mt-4">
+            <WbAutoComplete
+              :useApiFilter="true"
+              :apiEndpoint="'/libraries/section-or-units/search'"
+              :suggestions="libraryStore.sectionUnitOptions"
+              :loading="libraryStore.sectionUnitOptionsLoading"
+              apiOptionLabel="name"
+              label="Section/Unit"
+              placeholder="Type the Section / Unit"
+              v-model="selectedSectionUnit"
+              :id="getId('input-section-unit')"
+              optionLabel="label"
+              optionValue="value"
+              required
+              @on-true-value-computed="
+                (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
+                  useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'section'))
+              "
+              class="w-full text-sm"
+            />
+          </div>
+        </div>
+
+        <div class="absolute bottom-0 left-0 right-0 border-t border-surface-300 bg-surface-0 px-4 py-3">
+          <div class="flex flex-col items-center justify-center gap-2 sm:flex-row">
+            <Button
+              label="Cancel"
+              class="w-full border border-surface-400 px-4 py-2 text-surface-500"
+              @click="showSidebar = false"
+              text
+            />
+            <Button
+              label="Apply"
+              class="w-full border border-primary-500 px-4 py-3 text-primary-600"
+              @click="handleFilterEmployees"
+            >
+              <template #icon>
+                <font-awesome-icon :icon="['fas', 'check']" class="mr-2 text-lg" />
+              </template>
+            </Button>
+          </div>
+        </div>
+      </Dialog>
     </div>
-    <!-- End Programs & Timeline -->
   </div>
 </template>
