@@ -7,16 +7,6 @@ import type { ApiResponseBody, WarmBodyLogEntry, DailyLogEntry } from '@/typings
 import type { ScannedEmployeeResponse } from '@/typings/models.types'
 import type { WbAutoCompleteOption } from '@/components/webkit/WbAutoComplete.vue'
 
-interface ApiError {
-  field: string
-  messages: string[]
-}
-
-interface ApiResponseBodyWithErrors extends ApiResponseBody {
-  error_code?: string
-  errors?: ApiError[]
-}
-
 interface DivisionSectionSummary {
   name: string
   count: number
@@ -99,8 +89,11 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
   }
 
   const logEmployeeTime = async (payload: { scanned_qr: string; captured_image: string | null }) => {
+    const officeId = timelogOfficeId.value
+    const newPayload = { ...payload, office_id: officeId }
+
     try {
-      const { data } = await useApiCall('employees/log-time', authStore.authenticationToken).post(payload).json()
+      const { data } = await useApiCall('employees/log-time', authStore.authenticationToken).post(newPayload).json()
 
       if (data.value && data.value.success) {
         const response = data.value as ApiResponseBodyWithErrors
@@ -185,10 +178,22 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     if (modalTimer) clearTimeout(modalTimer)
   }
 
+  // Inside useDailyLogsStore
   const fetchDailyLogs = async (date: string) => {
+    // 1. Get the office ID from local storage
+    const officeId = timelogOfficeId.value
+
+    if (!officeId) {
+      console.warn('timelogOfficeId is not set. Cannot fetch daily logs.')
+      updateDailyLogs(date, [])
+      return { success: false, message: 'Office not selected.' }
+    }
+
     try {
+      // 2. Append office_id to the query string
       const { data, error } = await useApiCall(
-        `employees/daily-time-records/time-logs?date=${date}`,
+        // === MODIFIED LINE BELOW ===
+        `/employees/daily-time-records/time-logs?date=${date}&office_id=${officeId}`,
         authStore.authenticationToken
       )
         .get()
@@ -208,6 +213,8 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
         is_in: log.is_in,
         id: log.time_log_id,
         daily_time_record_id: undefined,
+        // You may need to ensure your TimeLogEntry interface and backend API return 'photo_url'
+        // to display it in the list on the frontend.
       }))
 
       updateDailyLogs(date, mappedLogs)
@@ -218,10 +225,21 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     }
   }
 
+  // Inside useDailyLogsStore
   const fetchWarmBodySummary = async (date: string) => {
+    // 1. Get the office ID from local storage
+    const officeId = timelogOfficeId.value
+
+    if (!officeId) {
+      warmBodySummary.value = null
+      return { success: false, message: 'Office not selected.' }
+    }
+
     try {
+      // 2. Append office_id to the query string
       const { data, error } = await useApiCall(
-        `/employees/daily-time-records/warm-bodies/count?date=${date}`,
+        // === MODIFIED LINE BELOW ===
+        `/employees/daily-time-records/warm-bodies/count?date=${date}&office_id=${officeId}`,
         authStore.authenticationToken
       )
         .get()

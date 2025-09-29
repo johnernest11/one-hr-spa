@@ -14,6 +14,8 @@ import { WbAutoCompleteOption } from '@/components/webkit/WbAutoComplete.vue'
 
 interface Log {
   id: string | number
+  name: string
+  position: string
   timestamp: string
   is_in: boolean
   captured_image?: string
@@ -44,6 +46,7 @@ const qrStreamRef = ref<InstanceType<typeof QrcodeStream> | null>(null)
 const selectedOffice = ref<WbAutoCompleteOption | null | undefined>(null)
 
 const recentLogs = ref<Log[]>([])
+const currentScanContent = ref<string | null>(null)
 
 const startTimeLogs = () => {
   if (selectedOffice.value) {
@@ -54,14 +57,7 @@ const startTimeLogs = () => {
 
 const updateDailyLogsState = async (date: string) => {
   await dailyLogsStore.fetchDailyLogs(date)
-  recentLogs.value = dailyLogsStore
-    .getTodayWarmBodies(date)
-    .slice(0, 10)
-    .map((log) => ({
-      id: log.employee_id,
-      timestamp: log.timestamp,
-      is_in: log.is_in,
-    }))
+  recentLogs.value = dailyLogsStore.getTodayWarmBodies(date).slice(0, 10)
 }
 
 const updateDateTime = () => {
@@ -133,6 +129,11 @@ const onDetect = (detectedCodes: DetectedBarcode[]) => {
 
   const firstCode = detectedCodes[0]
   const decodedString = firstCode.rawValue
+
+  if (currentScanContent.value === decodedString) return
+
+  currentScanContent.value = decodedString
+
   onDecode(decodedString)
 }
 
@@ -151,13 +152,15 @@ const capturePhoto = () => {
   return null
 }
 
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
 const onDecode = async (result: string) => {
   handleCloseDialog()
 
   const imageData = capturePhoto()
   const today = getManilaTodayISO()
   let success = false
-  let message: string = 'Processing...'
+  let message = 'Processing...'
 
   try {
     const response = await dailyLogsStore.logEmployeeTime({
@@ -171,8 +174,9 @@ const onDecode = async (result: string) => {
     if (success) {
       await dailyLogsStore.fetchWarmBodySummary(today)
       await updateDailyLogsState(today)
+
       if (dailyLogsStore.currentScannedEmployee) {
-        dailyLogsStore.currentScannedEmployee.captured_image = imageData as string
+        dailyLogsStore.currentScannedEmployee.captured_image = imageData
       }
     }
   } catch (error) {
@@ -183,10 +187,11 @@ const onDecode = async (result: string) => {
     dailyLogsStore.lastLogMessage = message
 
     showModal.value = true
+    await delay(MODAL_DISPLAY_DURATION_MS)
 
-    setTimeout(() => {
-      handleCloseDialog()
-    }, MODAL_DISPLAY_DURATION_MS)
+    handleCloseDialog()
+
+    currentScanContent.value = null
   }
 }
 
@@ -243,8 +248,8 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
       v-model:visible="showOfficeSelectionModal"
       :modal="true"
       :closable="false"
-      :breakpoints="{ '1199px': '75vw', '575px': '95vw' }"
-      style="width: 40vw"
+      :style="{ width: '30vw' }"
+      :breakpoints="{ '1199px': '75vw', '575px': '90vw' }"
     >
       <template #header>
         <div class="flex items-center space-x-3 pt-4 sm:px-6 md:px-8">
@@ -252,12 +257,10 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
           <h1 class="text-2xl font-semibold text-surface-600 sm:text-xl md:text-2xl">Select official station</h1>
         </div>
       </template>
-
       <hr />
 
-      <div class="flex flex-col space-y-6 p-6 text-center sm:p-8">
+      <div class="flex flex-col space-y-6 p-8 text-center">
         <p class="text-lg text-surface-600">Select the official station of this Time Log to proceed</p>
-
         <div class="w-full items-center">
           <WbAutoComplete
             :suggestions="librariesStore.officeOptions"
@@ -268,7 +271,6 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
             optionLabel="label"
             optionValue="value"
             forceSelection
-            class="w-full"
           />
         </div>
 
@@ -276,7 +278,7 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
           <button
             @click="startTimeLogs"
             :disabled="!selectedOffice || librariesStore.officeOptionsLoading"
-            class="w-full transform rounded-lg px-4 py-2 text-sm font-semibold text-primary-600 shadow-md duration-300 hover:scale-105 sm:w-auto sm:px-8 sm:py-3 sm:text-base"
+            class="transform rounded-lg px-8 py-3 font-semibold text-primary-600 shadow-md duration-300 hover:scale-105"
             :class="{
               'border border-primary-500 bg-white hover:bg-primary-700 hover:text-white': selectedOffice,
               'cursor-not-allowed bg-gray-400 text-white': !selectedOffice,
@@ -317,8 +319,7 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
                     <img
                       :src="dailyLogsStore.currentScannedEmployee?.captured_image"
                       alt="Employee Profile Photo"
-                      class="h-auto max-w-full rounded-lg shadow"
-                      style="aspect-ratio: 2270 / 2479"
+                      class="aspect-[2270/2479] h-auto max-w-full rounded-lg shadow"
                     />
                   </td>
 
@@ -361,10 +362,8 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
               :constraints="{ facingMode: 'environment' }"
               @init="onInit"
               @camera-error="onCameraError"
-              :paused="false"
               class="h-full w-full object-cover"
             />
-
             <img
               src="@/assets/image/scanning.gif"
               alt="Scanning Animation"
@@ -411,8 +410,7 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
               <img
                 :src="dswdLogoMark || dailyLogsStore.currentScannedEmployee?.photo_url"
                 alt="Employee Profile Photo"
-                class="h-auto max-w-full rounded-lg shadow"
-                style="aspect-ratio: 2270 / 2479"
+                class="aspect-[2270/2479] h-auto max-w-full rounded-lg shadow"
               />
             </div>
 
