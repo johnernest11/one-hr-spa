@@ -596,6 +596,7 @@ defineExpose({
                               <WbInputText
                                 v-model="payload.individual_eligibility[eligibilityIndex - 1].eligibility"
                                 label="Eligibility"
+                                :disabled="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -611,6 +612,7 @@ defineExpose({
                               <WbInputText
                                 v-model="payload.individual_eligibility[eligibilityIndex - 1].rating"
                                 label="Rating"
+                                :disabled="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -624,6 +626,7 @@ defineExpose({
                               <WbCalendar
                                 v-model="payload.individual_eligibility[eligibilityIndex - 1].date_of_examination_conferment"
                                 label="Date of Exam / Conferment"
+                                :disabled="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 :dateFormat="'yy-mm-dd'"
@@ -646,6 +649,7 @@ defineExpose({
                               <WbInputText
                                 v-model="payload.individual_eligibility[eligibilityIndex - 1].place_of_examination"
                                 label="Place of Examination"
+                                :disabled="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -661,6 +665,7 @@ defineExpose({
                               <WbInputText
                                 v-model="payload.individual_eligibility[eligibilityIndex - 1].license_number"
                                 label="License Number"
+                                :disabled="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -677,6 +682,7 @@ defineExpose({
                               <WbCalendar
                                 v-model="payload.individual_eligibility[eligibilityIndex - 1].license_date_of_validity"
                                 label="License Validity"
+                                :disabled="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 :dateFormat="'yy-mm-dd'"
                                 class="lg:text-md lg:placeholder:text-md flex-1 text-sm placeholder:text-sm"
@@ -690,11 +696,13 @@ defineExpose({
                               />
                               <!-- Delete button aligned right, below label -->
                               <Button
+                                v-if="!pdsStore.isMyPds"
                                 v-show="eligibilityIndex > 1"
                                 :id="getId(`button-remove-eligibility-${eligibilityIndex}`)"
                                 icon="pi pi-trash"
                                 @click="handleRemoveEligibility(eligibilityIndex)"
                                 v-tooltip.top="'Remove Eligibility'"
+                                :disabled="pdsStore.isMyPds"
                                 severity="danger"
                                 :class="[
                                   'text-lg font-semibold dark:text-primary-100',
@@ -712,7 +720,8 @@ defineExpose({
                     </template>
 
                     <Button
-                      v-if="payload.individual_eligibility.length < 7"
+                      v-if="payload.individual_eligibility.length < 7 && !pdsStore.isMyPds"
+                      :disabled="pdsStore.isMyPds"
                       label="Add additional Eligibility field"
                       @click="handleAdditionalEligibility"
                       size="large"
@@ -761,6 +770,7 @@ defineExpose({
                           v-model="isCurrentlyEmployed"
                           :id="getId('input-currently-working')"
                           :inputId="getId('input-currently-working')"
+                          :disabled="pdsStore.isMyPds"
                           name="currentlyEmployed"
                           :binary="true"
                         />
@@ -787,6 +797,7 @@ defineExpose({
                               <WbCalendar
                                 v-model="payload.individual_work_experience[workExperienceIndex - 1].inclusive_date_from"
                                 label="From"
+                                :disabled="pdsStore.isMyPds"
                                 required
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
@@ -809,6 +820,7 @@ defineExpose({
                                 v-if="!isCurrentlyEmployed"
                                 v-model="payload.individual_work_experience[workExperienceIndex - 1].inclusive_date_to"
                                 label="To"
+                                :disabled="pdsStore.isMyPds"
                                 :dateFormat="'yy-mm-dd'"
                                 class="w-full text-sm"
                                 label-class="text-md text-surface-600 md:text-sm"
@@ -840,6 +852,7 @@ defineExpose({
                               <WbCalendar
                                 v-model="payload.individual_work_experience[workExperienceIndex - 1].inclusive_date_to"
                                 label="To"
+                                :disabled="pdsStore.isMyPds"
                                 :dateFormat="'yy-mm-dd'"
                                 class="w-full text-sm"
                                 label-class="text-md text-surface-600 md:text-sm"
@@ -858,6 +871,7 @@ defineExpose({
                               <WbInputText
                                 v-model="payload.individual_work_experience[workExperienceIndex - 1].position_title"
                                 label="Position Title"
+                                :disabled="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -876,6 +890,7 @@ defineExpose({
                                   payload.individual_work_experience[workExperienceIndex - 1].department_agency_office_company
                                 "
                                 label="Department/Agency/Company"
+                                :disabled="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -901,6 +916,7 @@ defineExpose({
                               <WbInputText
                                 v-model="payload.individual_work_experience[workExperienceIndex - 1].monthly_salary"
                                 label="Monthly Salary"
+                                :disabled="pdsStore.isMyPds"
                                 required
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
@@ -918,6 +934,7 @@ defineExpose({
                               <WbAutoComplete
                                 v-if="!useCustomSalaryGrade[workExperienceIndex - 1]"
                                 :useApiFilter="true"
+                                :disabled="pdsStore.isMyPds"
                                 :apiEndpoint="'libraries/salary-grades/search'"
                                 :suggestions="sgStore.salaryGradesOptions"
                                 apiOptionLabel="work_experience_salary_grade"
@@ -951,6 +968,7 @@ defineExpose({
                                 v-else
                                 v-model="payload.individual_work_experience[workExperienceIndex - 1].custom_salary_grade"
                                 label="Salary Grade"
+                                :disabled="pdsStore.isMyPds"
                                 required
                                 placeholder="e.g 01-0 ,01-1 ,02-0"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
@@ -968,6 +986,7 @@ defineExpose({
                               <!-- Toggle Link -->
                               <p
                                 class="mb-2 ml-2 cursor-pointer text-sm text-primary-500 hover:underline md:text-xs"
+                                v-if="!pdsStore.isMyPds"
                                 @click="
                                   useCustomSalaryGrade[workExperienceIndex - 1] = !useCustomSalaryGrade[workExperienceIndex - 1]
                                 "
@@ -984,6 +1003,7 @@ defineExpose({
                               <WbDropdown
                                 v-model="payload.individual_work_experience[workExperienceIndex - 1].status_of_appointment"
                                 optionLabel="label"
+                                :disabled="pdsStore.isMyPds"
                                 optionValue="value"
                                 :options="EmploymentStatusOptions"
                                 required
@@ -1009,6 +1029,7 @@ defineExpose({
                               <WbDropdown
                                 v-model="payload.individual_work_experience[workExperienceIndex - 1].is_gov_service"
                                 optionLabel="label"
+                                :disabled="pdsStore.isMyPds"
                                 optionValue="value"
                                 :options="isGovServiceYesNoOptions"
                                 required
@@ -1027,9 +1048,11 @@ defineExpose({
 
                               <!-- Delete button aligned right, below label -->
                               <Button
+                                v-if="!pdsStore.isMyPds"
                                 v-show="workExperienceIndex > 0"
                                 :id="getId(`button-remove-work-experience-${workExperienceIndex}`)"
                                 icon="pi pi-trash"
+                                :disabled="pdsStore.isMyPds"
                                 @click="handleRemoveWorkExperience(workExperienceIndex)"
                                 v-tooltip.top="'Remove Work Experience'"
                                 severity="danger"
@@ -1048,10 +1071,11 @@ defineExpose({
                       </TransitionRoot>
                     </template>
                     <Button
-                      v-if="!extraWorkExperienceTabVisible"
+                      v-if="!extraWorkExperienceTabVisible && !pdsStore.isMyPds"
                       label="Add additional Work Experience field"
                       @click="handleAdditionalWorkExperience"
                       size="large"
+                      :disabled="pdsStore.isMyPds"
                       class="dark:text-secondary-100 mt-4 !w-72 border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
                       text
                     >
