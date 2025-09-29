@@ -321,7 +321,7 @@ export const usePdsStore = defineStore('pds', () => {
         date_of_examination_conferment: elgi.date_of_examination_conferment ?? '',
         place_of_examination: elgi.place_of_examination ?? '',
         license_number: elgi.license_number ?? null,
-        license_date_of_validity: elgi.license_date_of_validity ?? null,
+        license_date_of_validity: elgi.license_date_of_validity ?? '',
         _delete: elgi._delete ?? null,
       }))
       : [
@@ -684,7 +684,7 @@ export const usePdsStore = defineStore('pds', () => {
         date_of_examination_conferment: e.date_of_examination_conferment ?? '',
         place_of_examination: e.place_of_examination ?? '',
         license_number: e.license_number ?? null,
-        license_date_of_validity: e.license_date_of_validity ?? null,
+        license_date_of_validity: e.license_date_of_validity ?? '',
         _delete: e._delete ?? null,
       }))
       : []
@@ -851,7 +851,10 @@ export const usePdsStore = defineStore('pds', () => {
     })
 
     //  Format all other date-based fields to 'YYYY-MM-DD'
-    formatDateFields(payload.individual_eligibility, ['date_of_examination_conferment', 'license_date_of_validity'])
+    formatDateFields(payload.individual_eligibility, [
+      'date_of_examination_conferment',
+      { field: 'license_date_of_validity', canBeFuture: true },
+    ])
     formatDateFields(payload.individual_work_experience, ['inclusive_date_from', 'inclusive_date_to'])
     formatDateFields(payload.individual_voluntary_work, ['from', 'to'])
     formatDateFields(payload.individual_lnd, ['from', 'to'])
