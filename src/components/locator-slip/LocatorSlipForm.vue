@@ -186,7 +186,7 @@ const updateButtonSubmission = async () => {
             class="mb-2 ml-4 md:mb-0 md:ml-0"
           />
           <h2 class="mb-2 ml-4 pb-6 text-3xl font-semibold text-primary-800 dark:text-primary-100 md:ml-4">
-            <font-awesome-icon :icon="['fas', 'location-dot']" class="h-5 text-primary-700 sm:h-6 md:h-7" />
+            <FontAwesomeIcon icon="fa-solid fa-location-dot" class="h-5 text-primary-700 sm:h-6 md:h-7" />
             Locator Slip Logger
           </h2>
         </div>

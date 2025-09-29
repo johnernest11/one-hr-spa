@@ -283,7 +283,7 @@ const handleSaveSubmissionif = async () => {
         <h1
           class="mb-2 mr-4 whitespace-nowrap text-xl font-semibold text-primary-800 dark:text-primary-100 md:text-xl lg:text-4xl"
         >
-          <font-awesome-icon :icon="['fas', 'location-dot']" />
+          <FontAwesomeIcon icon="fa-solid fa-location-dot" />
           {{ !isHumanResourceActive ? ' My Locator Slip ' : 'Locator Slip' }}
         </h1>
 
@@ -313,8 +313,8 @@ const handleSaveSubmissionif = async () => {
             <Dialog v-model:visible="RequestLocatorSlip" modal header="Request Locator Slip" :style="{ width: '90vw' }">
               <template #header>
                 <div class="flex items-center space-x-3 pt-4 sm:px-6 md:px-8">
-                  <font-awesome-icon
-                    :icon="['fas', 'location-dot']"
+                  <FontAwesomeIcon
+                    icon="fa-solid fa-location-dot"
                     class="h-6 text-primary-800 dark:text-primary-100 sm:h-7 md:h-8"
                   />
                   <h1 class="font-base text-2xl text-primary-800 dark:text-primary-100 sm:text-xl md:text-2xl">
@@ -360,7 +360,7 @@ const handleSaveSubmissionif = async () => {
                     text
                   >
                     <template #icon>
-                      <font-awesome-icon :icon="['fas', 'save']" class="mr-2" />
+                      <FontAwesomeIcon icon="fa-solid fa-save" class="mr-2" />
                     </template>
                   </Button>
                 </div>
@@ -461,7 +461,7 @@ const handleSaveSubmissionif = async () => {
               class="mt-6"
               dataKey="employee.id"
             >
-              <Column expander style="width: 5rem" />
+              <Column expander style="width: 5rem" headerClass="bg-surface-100 border-surface-300 opacity-70" />
               <Column
                 field="employee.first_name"
                 header="Employee"
