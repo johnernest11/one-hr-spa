@@ -55,8 +55,8 @@ const formRules = {
       helpers.withMessage(
         'This Item Number is already taken',
         uniqueItemNumberRuleLocal(
-          itemNumberStore.itemNumbers.map((el) => el.number ?? ''), // get numbers from store
-          payload.number ?? '' // ignore current record on update
+          itemNumberStore.itemNumbers.map((el) => el.number ?? ''),
+          payload.number ?? ''
         )
       )
     ),
@@ -77,17 +77,9 @@ const formRules = {
   },
   fund_source_id: {
     required: helpers.withMessage('Fund Source Status is Required', required),
-    validChoice: helpers.withMessage('Selected position is not valid', (selectedFundSource: WbAutoCompleteOption | null) => {
-      if (!selectedFundSource?.value) return false
-      return publicFundSourceStore.fundSourceOptions.some((p) => p.value === selectedFundSource.value)
-    }),
   },
   position_id: {
     required: helpers.withMessage('Position Status is Required', required),
-    validChoice: helpers.withMessage('Selected position is not valid', (selectedPosition: WbAutoCompleteOption | null) => {
-      if (!selectedPosition?.value) return false
-      return publicPositionStore.positionOptions.some((p) => p.value === selectedPosition.value)
-    }),
   },
 }
 
@@ -157,39 +149,37 @@ watch(
   }
 )
 
-const lastNumber = ref(0)
 const positionCode = computed(() => getPositionCode(selectedPosition.value?.label))
 
-const generateItemNumber = (status: string, position: string | number | null | undefined, lastNumber: number): string => {
-  const paddedNumber = String(lastNumber + 1).padStart(4, '0')
+const generateItemNumber = (employment_status: string, position: string | number | null | undefined): string => {
+  const current = itemNumberStore.lastNumbers[employment_status] ?? 0
+  const paddedNumber = String(current + 1).padStart(4, '0')
   const pos = position ? String(position).toUpperCase() : 'UNKNOWN'
 
-  switch (status) {
-    case 'Contract of Service':
-      return `FO1-COS-${pos}-${paddedNumber}`
-    case 'Contractual':
-      return `FO1-CONTRACTUAL-${pos}-${paddedNumber}`
-    case 'Casual':
-      return `FO1-CASUAL-${pos}-${paddedNumber}`
-    default:
-      return ''
-  }
+  return employment_status === 'Contract of Service'
+    ? `FO1-COS-${pos}-${paddedNumber}`
+    : employment_status === 'Contractual'
+      ? `FO1-CONTRACTUAL-${pos}-${paddedNumber}`
+      : employment_status === 'Casual'
+        ? `FO1-CASUAL-${pos}-${paddedNumber}`
+        : ''
 }
 
-watch([() => payload.employment_status, () => selectedPosition.value], ([newStatus, newPosition]) => {
+watch([() => payload.employment_status, () => selectedPosition.value], async ([newStatus, newPosition]) => {
   if (newStatus === 'Permanent' || newStatus === 'Job Order') {
     payload.number = null
     isItemNumberManual.value = true
     return
   }
-
-  if (newStatus && newPosition?.value) {
-    isItemNumberManual.value = false
-    payload.number = generateItemNumber(newStatus, positionCode.value, lastNumber.value)
-  } else {
+  if (!newStatus || !newPosition?.value) {
     payload.number = null
-    isItemNumberManual.value = true
+    isItemNumberManual.value = false
+    return
   }
+
+  await itemNumberStore.fetchLastNumber(newStatus)
+  isItemNumberManual.value = false
+  payload.number = generateItemNumber(newStatus, positionCode.value)
 })
 
 const isButtonVisible = computed(() => true)
@@ -391,6 +381,7 @@ const updateButtonSubmission = async () => {
                 :invalid="validator.number.$invalid || manualInvalidFields.number"
                 :invalid-text="validator.number.$errors[0]?.$message"
                 @blur="validator.number.$touch"
+                v-tooltip.bottom="!payload.employment_status ? 'Please select Employment Status and Position first' : ''"
                 required
               />
             </div>
@@ -436,6 +427,7 @@ const updateButtonSubmission = async () => {
                 :id="getId('input-funding-sources')"
                 optionLabel="label"
                 optionValue="value"
+                :forceSelection="true"
                 required
                 @on-true-value-computed="
                   (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
@@ -481,6 +473,7 @@ const updateButtonSubmission = async () => {
                 :id="getId('input-positions')"
                 optionLabel="label"
                 optionValue="value"
+                :forceSelection="true"
                 required
                 @on-true-value-computed="
                   (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
