@@ -243,8 +243,8 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
       v-model:visible="showOfficeSelectionModal"
       :modal="true"
       :closable="false"
-      :style="{ width: '30vw' }"
-      :breakpoints="{ '1199px': '75vw', '575px': '90vw' }"
+      :breakpoints="{ '1199px': '75vw', '575px': '95vw' }"
+      style="width: 40vw"
     >
       <template #header>
         <div class="flex items-center space-x-3 pt-4 sm:px-6 md:px-8">
@@ -252,10 +252,12 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
           <h1 class="text-2xl font-semibold text-surface-600 sm:text-xl md:text-2xl">Select official station</h1>
         </div>
       </template>
+
       <hr />
 
-      <div class="flex flex-col space-y-6 p-8 text-center">
+      <div class="flex flex-col space-y-6 p-6 text-center sm:p-8">
         <p class="text-lg text-surface-600">Select the official station of this Time Log to proceed</p>
+
         <div class="w-full items-center">
           <WbAutoComplete
             :suggestions="librariesStore.officeOptions"
@@ -266,6 +268,7 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
             optionLabel="label"
             optionValue="value"
             forceSelection
+            class="w-full"
           />
         </div>
 
@@ -273,7 +276,7 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
           <button
             @click="startTimeLogs"
             :disabled="!selectedOffice || librariesStore.officeOptionsLoading"
-            class="transform rounded-lg px-8 py-3 font-semibold text-primary-600 shadow-md duration-300 hover:scale-105"
+            class="w-full transform rounded-lg px-4 py-2 text-sm font-semibold text-primary-600 shadow-md duration-300 hover:scale-105 sm:w-auto sm:px-8 sm:py-3 sm:text-base"
             :class="{
               'border border-primary-500 bg-white hover:bg-primary-700 hover:text-white': selectedOffice,
               'cursor-not-allowed bg-gray-400 text-white': !selectedOffice,
