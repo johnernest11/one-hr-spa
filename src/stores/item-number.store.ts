@@ -25,6 +25,11 @@ export const useItemNumberStore = defineStore('item-number', () => {
   const itemNumbers = ref<ItemNumberResponse[]>([])
   const itemNumbersSuggestions = ref<WbAutoCompleteOption[]>([])
   const selectedItemNumber = ref<ItemNumberResponse | null>(null)
+  const lastNumbers = ref<Record<string, number>>({
+    'Contract of Service': 0,
+    Contractual: 0,
+    Casual: 0,
+  })
 
   const fetchItemNumber = async (limit: number = 10, page: number | null = null) => {
     let uri = `/items?limit=${limit}&sort=asc&`
@@ -111,6 +116,26 @@ export const useItemNumberStore = defineStore('item-number', () => {
     return responseBody
   }
 
+  const fetchLastNumber = async (employment_status: string) => {
+    const { data } = await useApiCall(
+      `/items?employment_status=${encodeURIComponent(employment_status)}`,
+      auth.authenticationToken
+    )
+      .get()
+      .json()
+
+    const responseBody: ApiResponseBody = data.value
+    if (responseBody.success && Array.isArray(responseBody.data)) {
+      const items = responseBody.data as ItemNumberResponse[]
+      const count = items.filter((item) => item.employment_status === employment_status).length
+
+      lastNumbers.value[employment_status] = count
+    } else {
+      lastNumbers.value[employment_status] = 0
+    }
+    return responseBody
+  }
+
   return {
     itemNumbers,
     itemNumbersSuggestions,
@@ -120,5 +145,7 @@ export const useItemNumberStore = defineStore('item-number', () => {
     updateItemNumber,
     searchItemNumber,
     filterItemNumber,
+    fetchLastNumber,
+    lastNumbers,
   }
 })
