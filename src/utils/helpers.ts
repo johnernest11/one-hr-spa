@@ -518,12 +518,18 @@ export const formatTimeTo12Hour = (timeString: string | undefined): string => {
 
 /**
  * Formats a date input (string, number, or Date) to 'YYYY-MM-DD'.
- * Returns an empty string if the input is invalid or is a future date.
+ *
+ * The `canBeFuture` parameter controls the cutoff logic:
+ * - If `canBeFuture` is **false** (default), it returns an empty string if the date is in the **future** (today or earlier is allowed).
+ * - If `canBeFuture` is **true**, it will proceed with the date formatting.
+ *
+ * It always returns an empty string if the input is an invalid date.
  *
  * @param input - A date in string, number, or Date format.
- * @returns Formatted date string or empty string if invalid/future.
+ * @param canBeFuture - If true, dates in the future are valid for formatting. Defaults to false.
+ * @returns Formatted date string or empty string if invalid or outside the acceptable date range.
  */
-export const formatDateSafe = (input: unknown): string => {
+export const formatDateSafe = (input: unknown, canBeFuture: boolean = false): string => {
   const date = new Date(input as string | number | Date)
 
   // Invalid date check
@@ -531,7 +537,9 @@ export const formatDateSafe = (input: unknown): string => {
 
   // Today cutoff
   const today = new Date()
-  if (date > today) return ''
+  if (!canBeFuture) {
+    if (date > today) return ''
+  }
 
   return useDateFormat(date, 'YYYY-MM-DD').value
 }
@@ -560,13 +568,31 @@ export const formatValidationDate = (val: unknown): string => {
 /**
  * Applies `formatDateSafe` to specific fields of each object in an array.
  *
+ * It defaults to ensuring the date cannot be in the future (canBeFuture: false),
+ * but allows overriding this behavior for specific fields.
+ *
  * @param entries - Array of objects with potentially date fields.
- * @param fields - List of keys to be formatted using `formatDateSafe`.
+ * @param fields - A list of keys to be formatted. This can be:
+ * 1. A string array of field names (e.g., ['field1', 'field2']).
+ * These default to `canBeFuture: false`.
+ * 2. An array of objects to configure specific fields (e.g., [{ field: 'field3', canBeFuture: true }]).
+ * 3. A mixed array of both strings and objects.
  */
-export const formatDateFields = <T extends Record<string, unknown>>(entries: T[], fields: (keyof T)[]) => {
+export const formatDateFields = <T extends Record<string, unknown>>(
+  entries: T[],
+  fields: (keyof T | { field: keyof T; canBeFuture: boolean })[]
+) => {
+  const fieldConfigs: { field: keyof T; canBeFuture: boolean }[] = (fields as any).map((item: any) => {
+    if (typeof item === 'string') {
+      return { field: item, canBeFuture: false }
+    }
+    return item
+  })
+
   entries.forEach((entry) => {
-    fields.forEach((field) => {
-      entry[field] = formatDateSafe(entry[field]) as T[keyof T]
+    fieldConfigs.forEach((config) => {
+      const { field, canBeFuture } = config
+      entry[field] = formatDateSafe(entry[field], canBeFuture) as T[keyof T]
     })
   })
 }
@@ -588,4 +614,35 @@ export function isNotMoreThanYearsAgo(maxYearsAgo: number) {
     const oldestAllowed = new Date(today.getFullYear() - maxYearsAgo, today.getMonth(), today.getDate())
     return inputDate >= oldestAllowed
   })
+}
+
+/**
+ * Convert a full position label into an abbreviation code.
+ *
+ * Rules:
+ * - Take the first letter of each word
+ * - Skip filler words like "OFFICER" and "AND"
+ * - Keep the Roman numeral (I, II, III, IV, etc.) intact at the end
+ */
+export function getPositionCode(label: string | null | undefined): string | null {
+  if (!label) return null
+
+  const words = label.trim().split(/\s+/)
+
+  const lastWord = words[words.length - 1]
+  const isRoman = /^[IVXLCDM]+$/i.test(lastWord)
+
+  const skipWords = ['AND']
+
+  let initials = words
+    .slice(0, isRoman ? -1 : words.length)
+    .filter((w) => !skipWords.includes(w.toUpperCase()))
+    .map((w) => w[0].toUpperCase())
+    .join('')
+
+  if (isRoman) {
+    initials += lastWord.toUpperCase()
+  }
+
+  return initials
 }

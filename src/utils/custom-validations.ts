@@ -85,13 +85,22 @@ export const uniqueUserIdentifierRule =
  * @description Client-side rule to check for duplicate item numbers (no backend)
  */
 export const uniqueItemNumberRuleLocal = (
-  existingItemNumbers: string[] // e.g., from store or props
+  existingItemNumbers: string[], // all item numbers from store or API
+  currentNumber?: string // the number of the record being updated (optional)
 ): ((value: string) => boolean | Promise<boolean>) => {
   return (value: string) => {
     if (!value || typeof value !== 'string') return true
 
-    // Check against existing item numbers
-    return !existingItemNumbers.includes(value)
+    // Normalize for comparison
+    const normalizedValue = value.toUpperCase().trim()
+
+    // Filter out current number (if updating)
+    const numbersToCheck = existingItemNumbers
+      .map((n) => n.toUpperCase().trim())
+      .filter((n) => n !== (currentNumber ?? '').toUpperCase().trim())
+
+    // Return false if value exists in other numbers
+    return !numbersToCheck.includes(normalizedValue)
   }
 }
 

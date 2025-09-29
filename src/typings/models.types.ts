@@ -174,7 +174,8 @@ export type PersonnelAccomplishmentReportDetialsResponse = {
   dates_in_week: string
   specific_activity: string | null
   highlights: string | null
-} & ApiResponseData
+  _delete: boolean | null
+} & Omit<ApiResponseData, 'id'>
 
 /** Compensatory Time Day Off (HTTP Responses) */
 export type PersonnelCompensatoryDayTimeOffResponse = {

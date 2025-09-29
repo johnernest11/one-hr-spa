@@ -70,6 +70,7 @@ const payload = reactive<PersonnelAccomplishmentReportPayload>({
       dates_in_week: '',
       specific_activity: null,
       highlights: null,
+      _delete: null,
     },
   ],
 })
@@ -90,6 +91,7 @@ const addAccomplishment = (newFields = {}) => {
     dates_in_week: '',
     specific_activity: null,
     highlights: null,
+    _delete: null,
   }
 
   const newAccomplishment = { ...defaultAccomplishment, ...newFields }
@@ -152,6 +154,7 @@ watch(
           dates_in_week: '',
           specific_activity: null,
           highlights: null,
+          _delete: null,
         },
       ]
     }
@@ -184,11 +187,9 @@ const formRules = computed(() => ({
     },
     specific_activity: {
       required: helpers.withMessage('Specific Activity of Accomplishment is required', required),
-      maxLength: helpers.withMessage(`Must not exceed ${globalStringMaxLength} characters`, maxLength(globalStringMaxLength)),
     },
     highlights: {
       required: helpers.withMessage('Highlights of Accomplishment is required', required),
-      maxLength: helpers.withMessage(`Must not exceed ${globalStringMaxLength} characters`, maxLength(globalStringMaxLength)),
     },
   })),
 }))
@@ -561,15 +562,16 @@ const handleMarkDone = async () => {
           <p class="create-ar-creds-section text-xs font-medium uppercase"></p>
 
           <div
-            v-for="accomplishmentReportIndex in payload.rows.length"
+            v-for="(row, accomplishmentReportIndex) in payload.rows"
             :key="accomplishmentReportIndex"
             class="mb-4 flex flex-col md:flex-row"
           >
+            <!-- Week Dropdown and Dates Input -->
             <div class="mb-4 ml-0 flex w-full flex-col items-start justify-center gap-2 py-2 pt-8 md:ml-12 md:w-2/12">
               <div class="flex w-full flex-col">
                 <WbDropdown
                   :id="'week-' + accomplishmentReportIndex"
-                  v-model="payload.rows[accomplishmentReportIndex - 1].week_num"
+                  v-model="row.week_num"
                   v-tooltip.top="'Choose a Week'"
                   :options="weekOptions"
                   optionLabel="label"
@@ -579,55 +581,58 @@ const handleMarkDone = async () => {
                   label-class="text-sm text-surface-600"
                   label="Week"
                   placeholder="Choose a week"
-                  :invalidText="validator.rows[accomplishmentReportIndex - 1].week_num.$errors[0]?.$message"
-                  :invalid="validator.rows[accomplishmentReportIndex - 1].week_num.$error"
-                  @blur="validator.rows[accomplishmentReportIndex - 1].week_num.$touch()"
+                  :invalidText="validator.rows[accomplishmentReportIndex].week_num.$errors[0]?.$message"
+                  :invalid="validator.rows[accomplishmentReportIndex].week_num.$error"
+                  @blur="validator.rows[accomplishmentReportIndex].week_num.$touch()"
                 />
                 <WbInputText
-                  v-model="payload.rows[accomplishmentReportIndex - 1].dates_in_week"
-                  label="Date/s or Converage"
+                  v-model="row.dates_in_week"
+                  label="Date/s or Coverage"
                   label-class="text-sm text-surface-600"
                   placeholder="e.g. 16-17 January 2025 or 1, 3, 4 & 5 January 2025"
                   class="w-full"
-                  :invalidText="validator.rows[accomplishmentReportIndex - 1].dates_in_week.$errors[0]?.$message"
-                  :invalid="validator.rows[accomplishmentReportIndex - 1].dates_in_week.$error"
-                  @blur="validator.rows[accomplishmentReportIndex - 1].dates_in_week.$touch()"
+                  :invalidText="validator.rows[accomplishmentReportIndex].dates_in_week.$errors[0]?.$message"
+                  :invalid="validator.rows[accomplishmentReportIndex].dates_in_week.$error"
+                  @blur="validator.rows[accomplishmentReportIndex].dates_in_week.$touch()"
                 />
-              </div>
-            </div>
-            <Divider layout="vertical" class="hidden md:block"></Divider>
-            <div v-if="showTextAreaActivity" class="flex w-full flex-col items-start justify-center gap-3 py-2 md:w-5/12">
-              <div class="flex w-full flex-col gap-2">
-                <textarea
-                  v-model="payload.rows[accomplishmentReportIndex - 1].specific_activity"
-                  class="w-full border-b-2 border-surface-300 outline-none focus:outline-none focus:ring-primary-500"
-                  placeholder="Enter your Specific Activity..."
-                  rows="10"
-                  @blur="validator.rows[accomplishmentReportIndex - 1].specific_activity.$touch()"
-                  required
-                />
-                <p v-if="validator.rows[accomplishmentReportIndex - 1].specific_activity.$error" class="text-sm text-red-500">
-                  {{ validator.rows[accomplishmentReportIndex - 1].specific_activity.$errors[0]?.$message }}
-                </p>
-              </div>
-            </div>
-            <Divider layout="vertical" class="hidden md:block"></Divider>
-            <div v-if="showTextAreaHighlights" class="flex w-full flex-col items-start justify-center gap-3 py-2 md:w-5/12">
-              <div class="flex w-full flex-col gap-2">
-                <textarea
-                  v-model="payload.rows[accomplishmentReportIndex - 1].highlights"
-                  class="w-full border-b-2 border-surface-300 outline-none focus:outline-none focus:ring-primary-500"
-                  placeholder="Enter your Highlights of Accomplishment..."
-                  rows="10"
-                  @blur="validator.rows[accomplishmentReportIndex - 1].highlights.$touch()"
-                  required
-                />
-                <p v-if="validator.rows[accomplishmentReportIndex - 1].highlights.$error" class="text-sm text-red-500">
-                  {{ validator.rows[accomplishmentReportIndex - 1].highlights.$errors[0]?.$message }}
-                </p>
               </div>
             </div>
 
+            <Divider layout="vertical" class="hidden md:block"></Divider>
+
+            <!-- Specific Activity -->
+            <div v-if="showTextAreaActivity" class="flex w-full flex-col items-start justify-center gap-3 py-2 md:w-5/12">
+              <textarea
+                v-model="row.specific_activity"
+                class="w-full border-b-2 border-surface-300 outline-none focus:outline-none focus:ring-primary-500"
+                placeholder="Enter your Specific Activity..."
+                rows="10"
+                @blur="validator.rows[accomplishmentReportIndex].specific_activity.$touch()"
+                required
+              />
+              <p v-if="validator.rows[accomplishmentReportIndex].specific_activity.$error" class="text-sm text-red-500">
+                {{ validator.rows[accomplishmentReportIndex].specific_activity.$errors[0]?.$message }}
+              </p>
+            </div>
+
+            <Divider layout="vertical" class="hidden md:block"></Divider>
+
+            <!-- Highlights -->
+            <div v-if="showTextAreaHighlights" class="flex w-full flex-col items-start justify-center gap-3 py-2 md:w-5/12">
+              <textarea
+                v-model="row.highlights"
+                class="w-full border-b-2 border-surface-300 outline-none focus:outline-none focus:ring-primary-500"
+                placeholder="Enter your Highlights of Accomplishment..."
+                rows="10"
+                @blur="validator.rows[accomplishmentReportIndex].highlights.$touch()"
+                required
+              />
+              <p v-if="validator.rows[accomplishmentReportIndex].highlights.$error" class="text-sm text-red-500">
+                {{ validator.rows[accomplishmentReportIndex].highlights.$errors[0]?.$message }}
+              </p>
+            </div>
+
+            <!-- Delete Button -->
             <div class="mt-2 flex justify-center pt-16 md:ml-8 md:mt-0 md:block">
               <Button
                 icon="pi pi-trash"
@@ -638,6 +643,8 @@ const handleMarkDone = async () => {
                 class="mt-2"
               />
             </div>
+
+            <!-- Divider for mobile view -->
             <Divider layout="horizontal" class="mt-4 md:hidden" v-if="accomplishmentReportIndex < payload.rows.length - 1" />
           </div>
 

@@ -1224,6 +1224,17 @@ router.beforeEach(async (to, from) => {
     return { name: 'dashboard' }
   }
 
+  // Attempt to refresh tokens if ever the auth token is expired.
+  if (authStore.authExpired && authStore.refreshToken && !authStore.refreshTokenExpired) {
+    try {
+      await authStore.refreshCurrentTokens()
+      return { name: 'time-logs' }
+    } catch (err) {
+      console.error('Failed to refresh tokens:', err)
+      return { name: 'login' }
+    }
+  }
+
   // Protect routes that need authentication
   if (to.meta.authType === AuthType.AUTHENTICATED && !authStore.isAuthenticated) {
     if (authStore.refreshToken) {
