@@ -3,9 +3,17 @@ import { ref, computed } from 'vue'
 import { useStorage } from '@vueuse/core'
 import { useApiCall } from '@/composables/network.ts'
 import { useAuthStore } from '@/stores/auth.store'
-import type { ApiResponseBody, WarmBodyLogEntry, DailyLogEntry } from '@/typings/http-resources.types.ts'
+import type {
+  ApiResponseBody,
+  WarmBodyLogEntry,
+  DailyLogEntry,
+  ApiValidationErrorResponse,
+  ObservedErrorDetails,
+} from '@/typings/http-resources.types.ts'
 import type { ScannedEmployeeResponse } from '@/typings/models.types'
 import type { WbAutoCompleteOption } from '@/components/webkit/WbAutoComplete.vue'
+
+type LogTimeApiResult = ApiResponseBody | ApiValidationErrorResponse
 
 interface DivisionSectionSummary {
   name: string
@@ -36,6 +44,13 @@ interface TimeLogEntry {
   ext_name: string | null
   division_name: string
   section_name: string
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message
+  }
+  return 'An unknown error occurred.'
 }
 
 export const useDailyLogsStore = defineStore('dailyLogs', () => {
@@ -74,7 +89,7 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
         : []
   )
 
-  function showScannedEmployeeModal(employee: ScannedEmployeeResponse | null, message: string) {
+  const openScannedEmployeeModal = (employee: ScannedEmployeeResponse | null, message: string) => {
     currentScannedEmployee.value = employee
     lastLogMessage.value = message
     showModal.value = true
@@ -93,20 +108,32 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     const newPayload = { ...payload, office_id: officeId }
 
     try {
-      const { data } = await useApiCall('employees/log-time', authStore.authenticationToken).post(newPayload).json()
+      const { data, error } = await useApiCall('employees/log-time', authStore.authenticationToken).post(newPayload).json()
 
-      if (data.value && data.value.success) {
-        const response = data.value as ApiResponseBodyWithErrors
-        const messageToDisplay = response.message || 'Time log successful!'
+      if (error.value) {
+        const response = error.value.response?.data as ApiResponseBody | undefined
+        const messageToDisplay = response?.error_message ?? error.value.message
+        openScannedEmployeeModal(null, messageToDisplay)
+        return { success: false, message: messageToDisplay } as ApiResponseBody
+      }
 
-        const warmBodyLog = response.data as WarmBodyLogEntry
-        const employeeDetails = warmBodyLog?.daily_time_record?.employee?.individual_basic_detail
-        const employeeItem = warmBodyLog?.daily_time_record?.employee?.item
+      const response = data.value as LogTimeApiResult
 
-        const photoUrl =
-          employeeDetails?.user_profile?.profile_picture_url && employeeDetails.user_profile.profile_picture_url.trim() !== ''
-            ? employeeDetails.user_profile.profile_picture_url
+      if (response?.success) {
+        const successResponse = response as ApiResponseBody
+        const warmBodyLog = successResponse.data as WarmBodyLogEntry
+        const messageToDisplay = successResponse.message || 'Time log successful!'
+
+        if (!warmBodyLog) throw new Error('Time log successful but response data is missing.')
+
+        const employeeDetails = warmBodyLog.daily_time_record?.employee?.individual_basic_detail
+        const employeeItem = warmBodyLog.daily_time_record?.employee?.item
+
+        const photoUrl = (
+          employeeDetails?.user_profile?.profile_picture_url?.trim() !== ''
+            ? employeeDetails?.user_profile?.profile_picture_url
             : '@/assets/image/DSWD logo_Mark.png'
+        ) as string
 
         const scannedEmployee: ScannedEmployeeResponse = {
           id: warmBodyLog.daily_time_record?.employee?.id_number || 'N/A',
@@ -120,54 +147,24 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
         const dtrDate = warmBodyLog.daily_time_record?.date || new Date().toISOString().substring(0, 10)
         updateDailyLogs(dtrDate, [warmBodyLog])
 
-        showScannedEmployeeModal(scannedEmployee, messageToDisplay)
+        openScannedEmployeeModal(scannedEmployee, messageToDisplay)
+        return { ...successResponse, message: messageToDisplay } as ApiResponseBody
+      } else {
+        const errorResponse = response as ApiValidationErrorResponse
 
-        return { ...response, message: messageToDisplay } as ApiResponseBody
-      } else if (data.value) {
-        const response = data.value as ApiResponseBodyWithErrors
-        let messageToDisplay = response.message || 'API request failed.'
+        const isValidationError = errorResponse.error_code === 'VALIDATION_ERROR' && errorResponse.errors?.[0]?.messages?.length
 
-        if (response.error_code === 'VALIDATION_ERROR' && response.errors?.[0]?.messages?.length) {
-          messageToDisplay = response.errors[0].messages[0]
-        }
+        const messageToDisplay = isValidationError
+          ? (errorResponse.errors as ObservedErrorDetails[])[0].messages[0]
+          : errorResponse?.message || 'API request failed.'
 
-        showScannedEmployeeModal(null, messageToDisplay)
-
-        return { ...response, message: messageToDisplay } as ApiResponseBody
+        openScannedEmployeeModal(null, messageToDisplay)
+        return { ...errorResponse, message: messageToDisplay, success: false } as ApiResponseBody
       }
-
-      throw new Error('API call returned neither success data nor an error object.')
-    } catch (e: unknown) {
-      let messageToDisplay = 'Network or server error occurred.'
-      let responseBody: ApiResponseBodyWithErrors | undefined
-
-      if (typeof e === 'object' && e !== null) {
-        const maybeError = e as { response?: { data?: unknown }; data?: unknown; message?: string }
-
-        if (maybeError.response?.data) {
-          responseBody = maybeError.response.data as ApiResponseBodyWithErrors
-        } else if (maybeError.data) {
-          responseBody = maybeError.data as ApiResponseBodyWithErrors
-        }
-
-        if (responseBody?.error_code === 'VALIDATION_ERROR') {
-          if (responseBody.errors?.[0]?.messages?.length) {
-            messageToDisplay = responseBody.errors[0].messages[0]
-          } else if (maybeError.message) {
-            messageToDisplay = maybeError.message
-          }
-        } else if (maybeError.message) {
-          messageToDisplay = maybeError.message
-        }
-      }
-
-      showScannedEmployeeModal(null, messageToDisplay)
-
-      return {
-        success: false,
-        message: messageToDisplay,
-        data: responseBody?.data || null,
-      } as ApiResponseBody
+    } catch (e) {
+      const messageToDisplay = getErrorMessage(e) || 'Network or server error occurred.'
+      openScannedEmployeeModal(null, messageToDisplay)
+      return { success: false, message: messageToDisplay } as ApiResponseBody
     }
   }
 
@@ -178,9 +175,7 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     if (modalTimer) clearTimeout(modalTimer)
   }
 
-  // Inside useDailyLogsStore
   const fetchDailyLogs = async (date: string) => {
-    // 1. Get the office ID from local storage
     const officeId = timelogOfficeId.value
 
     if (!officeId) {
@@ -190,9 +185,7 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     }
 
     try {
-      // 2. Append office_id to the query string
       const { data, error } = await useApiCall(
-        // === MODIFIED LINE BELOW ===
         `/employees/daily-time-records/time-logs?date=${date}&office_id=${officeId}`,
         authStore.authenticationToken
       )
@@ -201,7 +194,7 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
 
       if (error.value) return { success: false, message: error.value.message }
 
-      const responseBody: ApiResponseBody = data.value
+      const responseBody = data.value as ApiResponseBody
       if (!responseBody.success || !Array.isArray(responseBody.data)) {
         updateDailyLogs(date, [])
         return responseBody
@@ -213,8 +206,6 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
         is_in: log.is_in,
         id: log.time_log_id,
         daily_time_record_id: undefined,
-        // You may need to ensure your TimeLogEntry interface and backend API return 'photo_url'
-        // to display it in the list on the frontend.
       }))
 
       updateDailyLogs(date, mappedLogs)
@@ -225,9 +216,7 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     }
   }
 
-  // Inside useDailyLogsStore
   const fetchWarmBodySummary = async (date: string) => {
-    // 1. Get the office ID from local storage
     const officeId = timelogOfficeId.value
 
     if (!officeId) {
@@ -236,9 +225,7 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     }
 
     try {
-      // 2. Append office_id to the query string
       const { data, error } = await useApiCall(
-        // === MODIFIED LINE BELOW ===
         `/employees/daily-time-records/warm-bodies/count?date=${date}&office_id=${officeId}`,
         authStore.authenticationToken
       )
@@ -250,7 +237,7 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
         return { success: false, message: error.value.message }
       }
 
-      const responseBody: ApiResponseBody = data.value
+      const responseBody = data.value as ApiResponseBody
       warmBodySummary.value = responseBody.success ? (responseBody.data as WarmBodySummary) : null
       return responseBody
     } catch {
@@ -284,5 +271,6 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     fetchWarmBodySummary,
     setOffice,
     clearOffice,
+    openScannedEmployeeModal,
   }
 })

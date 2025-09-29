@@ -11,6 +11,7 @@ import { getManilaTodayISO, formatTime } from '@/utils/helpers.ts'
 import dswdLogoMark from '@/assets/image/DSWD logo_Mark.png'
 import WbAutoComplete from '@/components/webkit/WbAutoComplete.vue'
 import { WbAutoCompleteOption } from '@/components/webkit/WbAutoComplete.vue'
+import type { WarmBodyLogEntry } from '@/typings/http-resources.types.ts'
 
 interface Log {
   id: string | number
@@ -57,7 +58,22 @@ const startTimeLogs = () => {
 
 const updateDailyLogsState = async (date: string) => {
   await dailyLogsStore.fetchDailyLogs(date)
-  recentLogs.value = dailyLogsStore.getTodayWarmBodies(date).slice(0, 10)
+
+  recentLogs.value = dailyLogsStore
+    .getTodayWarmBodies(date)
+    .slice(0, 10)
+    .map((logEntry: WarmBodyLogEntry) => {
+      const employee = logEntry.daily_time_record?.employee
+      const basicDetails = employee?.individual_basic_detail
+      return {
+        id: employee?.id_number || logEntry.employee_id,
+        name: `${basicDetails?.first_name || ''} ${basicDetails?.last_name || ''}`.trim() || 'N/A',
+        position: employee?.item?.position?.title || 'N/A',
+        timestamp: logEntry.timestamp,
+        is_in: logEntry.is_in,
+        photo_url: basicDetails?.user_profile?.profile_picture_url,
+      } as Log
+    })
 }
 
 const updateDateTime = () => {
@@ -137,7 +153,7 @@ const onDetect = (detectedCodes: DetectedBarcode[]) => {
   onDecode(decodedString)
 }
 
-const capturePhoto = () => {
+const capturePhoto = (): string | null => {
   if (!qrStreamRef.value) return null
   const videoElement = qrStreamRef.value.$el.querySelector('video')
   if (!videoElement) return null
@@ -175,7 +191,7 @@ const onDecode = async (result: string) => {
       await dailyLogsStore.fetchWarmBodySummary(today)
       await updateDailyLogsState(today)
 
-      if (dailyLogsStore.currentScannedEmployee) {
+      if (dailyLogsStore.currentScannedEmployee && imageData !== null) {
         dailyLogsStore.currentScannedEmployee.captured_image = imageData
       }
     }
