@@ -18,8 +18,15 @@ import { ItemNumberResponse } from '@/typings/models.types'
 import { useRoute } from 'vue-router'
 import { useRouter } from 'vue-router'
 import { useWbAutoCompleteHandleTrueValue } from '@/composables/wb-ui-components.ts'
-import { isAfterOrEqualFromDate, usePrependOrAppendOnce } from '@/utils/helpers.ts'
+import { getPositionCode, isAfterOrEqualFromDate, usePrependOrAppendOnce } from '@/utils/helpers.ts'
 import { uniqueItemNumberRuleLocal } from '@/utils/custom-validations.ts'
+
+const route = useRoute()
+const router = useRouter()
+const publicPositionStore = usePositionStore()
+const publicFundSourceStore = useFundSourceStore()
+const itemNumberStore = useItemNumberStore()
+
 const payload = reactive<ItemNumberPayload>({
   number: null,
   date_of_creation: '',
@@ -45,7 +52,13 @@ const formRules = {
     required: helpers.withMessage('Item Number is Required', required),
     maxLength: globalStringMaxLengthRule,
     unique: helpers.withAsync(
-      helpers.withMessage('This Item Number is already taken', uniqueItemNumberRuleLocal(['item-number']))
+      helpers.withMessage(
+        'This Item Number is already taken',
+        uniqueItemNumberRuleLocal(
+          itemNumberStore.itemNumbers.map((el) => el.number ?? ''),
+          payload.number ?? ''
+        )
+      )
     ),
   },
   date_of_creation: {
@@ -70,11 +83,6 @@ const formRules = {
   },
 }
 
-const route = useRoute()
-const router = useRouter()
-const publicPositionStore = usePositionStore()
-const publicFundSourceStore = useFundSourceStore()
-const itemNumberStore = useItemNumberStore()
 const validator = useVuelidate<Partial<ItemNumberPayload>>(formRules, payload)
 const manualInvalidFields = ref<Record<string, boolean>>({})
 const errorMessage = ref<string | null>(null)
@@ -82,6 +90,7 @@ const errorDetails = ref<string[]>([])
 const formIsSubmitting = ref(false)
 const showErrorAlert = ref(false)
 const isLoading = ref(true)
+const isItemNumberManual = ref(false)
 const IsBeingUpdated = ref(false)
 const toast = useToast()
 
@@ -139,6 +148,39 @@ watch(
     }
   }
 )
+
+const positionCode = computed(() => getPositionCode(selectedPosition.value?.label))
+
+const generateItemNumber = (employment_status: string, position: string | number | null | undefined): string => {
+  const current = itemNumberStore.lastNumbers[employment_status] ?? 0
+  const paddedNumber = String(current + 1).padStart(4, '0')
+  const pos = position ? String(position).toUpperCase() : 'UNKNOWN'
+
+  return employment_status === 'Contract of Service'
+    ? `FO1-COS-${pos}-${paddedNumber}`
+    : employment_status === 'Contractual'
+      ? `FO1-CONTRACTUAL-${pos}-${paddedNumber}`
+      : employment_status === 'Casual'
+        ? `FO1-CASUAL-${pos}-${paddedNumber}`
+        : ''
+}
+
+watch([() => payload.employment_status, () => selectedPosition.value], async ([newStatus, newPosition]) => {
+  if (newStatus === 'Permanent' || newStatus === 'Job Order') {
+    payload.number = null
+    isItemNumberManual.value = true
+    return
+  }
+  if (!newStatus || !newPosition?.value) {
+    payload.number = null
+    isItemNumberManual.value = false
+    return
+  }
+
+  await itemNumberStore.fetchLastNumber(newStatus)
+  isItemNumberManual.value = false
+  payload.number = generateItemNumber(newStatus, positionCode.value)
+})
 
 const isButtonVisible = computed(() => true)
 const handleButtonClick = async () => {
@@ -335,9 +377,11 @@ const updateButtonSubmission = async () => {
                 v-model="payload.number"
                 label="Item Number"
                 label-class="text-sm text-surface-600"
+                :disabled="!isItemNumberManual"
                 :invalid="validator.number.$invalid || manualInvalidFields.number"
                 :invalid-text="validator.number.$errors[0]?.$message"
                 @blur="validator.number.$touch"
+                v-tooltip.bottom="!payload.employment_status ? 'Please select Employment Status and Position first' : ''"
                 required
               />
             </div>
@@ -383,6 +427,7 @@ const updateButtonSubmission = async () => {
                 :id="getId('input-funding-sources')"
                 optionLabel="label"
                 optionValue="value"
+                :forceSelection="true"
                 required
                 @on-true-value-computed="
                   (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
@@ -428,6 +473,7 @@ const updateButtonSubmission = async () => {
                 :id="getId('input-positions')"
                 optionLabel="label"
                 optionValue="value"
+                :forceSelection="true"
                 required
                 @on-true-value-computed="
                   (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
