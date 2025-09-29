@@ -698,4 +698,5 @@ export interface ScannedEmployeeResponse {
   is_in: boolean
   timestamp: string
   photo_url: string
+  captured_image?: string
 }
