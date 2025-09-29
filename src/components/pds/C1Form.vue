@@ -55,7 +55,6 @@ const authStore = useAuthStore()
 const toast = useToast()
 const router = useRouter()
 const route = useRoute()
-// const pdsStore.isMyPds = route.name === 'my-pds'
 
 const currentlyEnrolledGraduate = ref(false)
 const currentlyEnrolledVocational = ref(false)
@@ -1404,6 +1403,18 @@ watch(
   { immediate: true }
 )
 
+const previousItemNumber = ref<string | null>(null)
+
+watch(selectedItemNo, async (newValueFilled, oldValueUnfilled) => {
+  if (oldValueUnfilled && oldValueUnfilled !== newValueFilled) {
+    await itemStore.updateItemStatus(oldValueUnfilled.value.toString())
+  }
+  if (newValueFilled) {
+    await itemStore.updateItemStatus(newValueFilled.value.toString())
+  }
+  previousItemNumber.value = newValueFilled?.value?.toString() ?? null
+})
+
 const updateC1Form = async () => {
   IsBeingUpdated.value = true
   const id = pdsStore.isMyPds
@@ -1573,6 +1584,9 @@ const handleSaveC1Form = async () => {
     pdsErrors.value = result?.errors
     showToast('error', 'PDS Error', 'Pease see the validation messages')
   } else {
+    if (payload.employee.item?.number) {
+      await itemStore.updateItemStatus(payload.employee.item?.number)
+    }
     showToast('success', 'Personal Data Sheet (PDS)', 'PDS has been successfully updated.')
     router.push({ name: 'employment' })
   }
