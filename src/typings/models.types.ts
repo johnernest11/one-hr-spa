@@ -642,12 +642,27 @@ export type DocumentRequestResponse = {
 /** Locator Slip (HTTP Responses) */
 export type LocatorSlipResponse = {
   id: number | null
-  period_covered_from: string | null
-  period_covered_to: string | null
-  period_request: string | null
   locator_slip_no: string | null
+  employee_id: PersonnelResponse
   status: string | null
-  employee_id: PersonnelResponse | null
+  form_type: string
+  month: string
+  period: string | null
+  ls_logger: LSLoggerResponse[] | null
+} & ApiResponseData
+
+/** Locator Slip Logger (HTTP Responses) */
+export type LSLoggerResponse = {
+  id?: number | null
+  locator_slip_id: number | null
+  date: string
+  time_in: string | null
+  time_out: string | null
+  destination: string | null
+  purpose: string | null
+  approve_for: string | null
+  duration: number | null
+  remarks: string | null
 } & ApiResponseData
 
 /** PayRoll (HTTP Responses) */

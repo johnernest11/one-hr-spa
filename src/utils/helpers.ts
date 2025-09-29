@@ -327,6 +327,31 @@ export const getMonthAndYear = (dateString: string | null | undefined): string =
   }
 }
 
+/**
+ * @description Gets long "Month Year" from a date string.
+ * @example getMonthAndYear('2025-07-14') // "July 2025"
+ */
+export const getLongMonthAndYear = (dateString: string | null | undefined): string => {
+  if (!dateString) return ''
+  try {
+    const date = new Date(dateString)
+    if (isNaN(date.getTime())) {
+      console.error('Invalid date string:', dateString)
+      return 'Invalid Date'
+    }
+
+    const options: Intl.DateTimeFormatOptions = {
+      month: 'long',
+      year: 'numeric',
+    }
+
+    return date.toLocaleDateString(undefined, options)
+  } catch (error) {
+    console.error('Error formatting date:', error)
+    return 'Invalid Date'
+  }
+}
+
 export const formatTime = (dateString: string | null | undefined): string => {
   if (!dateString) return ''
   try {
@@ -412,6 +437,22 @@ export const notInFuture = (val: string | number | Date | null) => {
   const today = new Date()
   today.setHours(0, 0, 0, 0) // normalize to midnight
   return date <= today
+}
+
+/**
+ * Checks if the first date is on or after the second date, ignoring time.
+ * @param {string | Date} date1 The date to check.
+ * @param {string | Date} date2 The date to compare against.
+ * @returns {boolean} True if date1 is on or after date2, otherwise false.
+ */
+export const isSameOrAfterDate = (date1: string, date2: string) => {
+  const d1 = new Date(date1)
+  d1.setHours(0, 0, 0, 0)
+
+  const d2 = new Date(date2)
+  d2.setHours(0, 0, 0, 0)
+
+  return d1 >= d2
 }
 
 /**
