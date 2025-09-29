@@ -209,7 +209,7 @@ const handleUpdate = async () => {
                   leaveFrom="opacity-100"
                   leaveTo="opacity-0"
                 >
-                  <C1Form ref="c1FormRef" :activeSubTab="0" />
+                  <C1Form ref="c1FormRef" :activeSubTab="0" :key="route.fullPath" />
                 </TransitionRoot>
               </TabPanel>
               <TabPanel>
@@ -223,7 +223,7 @@ const handleUpdate = async () => {
                   leaveFrom="opacity-100"
                   leaveTo="opacity-0"
                 >
-                  <C2Form ref="c2FormRef" :activeSubTab="0" />
+                  <C2Form ref="c2FormRef" :activeSubTab="0" :key="route.fullPath" />
                 </TransitionRoot>
               </TabPanel>
               <TabPanel>
@@ -237,7 +237,7 @@ const handleUpdate = async () => {
                   leaveFrom="opacity-100"
                   leaveTo="opacity-0"
                 >
-                  <C3Form ref="c3FormRef" :activeSubTab="0" />
+                  <C3Form ref="c3FormRef" :activeSubTab="0" :key="route.fullPath" />
                 </TransitionRoot>
               </TabPanel>
               <TabPanel>
@@ -251,7 +251,7 @@ const handleUpdate = async () => {
                   leaveFrom="opacity-100"
                   leaveTo="opacity-0"
                 >
-                  <C4Form ref="c4FormRef" :activeSubTab="0" />
+                  <C4Form ref="c4FormRef" :activeSubTab="0" :key="route.fullPath" />
                 </TransitionRoot>
               </TabPanel>
             </TabPanels>
