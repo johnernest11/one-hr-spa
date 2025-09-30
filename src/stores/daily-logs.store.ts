@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { useStorage } from '@vueuse/core'
 import { useApiCall } from '@/composables/network.ts'
 import { useAuthStore } from '@/stores/auth.store'
-import type { ApiResponseBody, WarmBodyLogEntry, DailyLogEntry } from '@/typings/http-resources.types.ts'
+import type { ApiResponseBody, WarmBodyLogEntry, DailyLogEntry, ApiErrorCode } from '@/typings/http-resources.types.ts'
 import type { ScannedEmployeeResponse } from '@/typings/models.types'
 import type { WbAutoCompleteOption } from '@/components/webkit/WbAutoComplete.vue'
 
@@ -107,7 +107,40 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
   const logEmployeeTime = async (payload: { scanned_qr: string; captured_image: string | null }) => {
     const { data } = await useApiCall('employees/log-time', authStore.authenticationToken).post(payload).json()
     const responseBody: ApiResponseBody = data.value
-    return responseBody
+    if (responseBody?.success) {
+      const warmBodyLog = responseBody.data as WarmBodyLogEntry
+      const employeeDetails = warmBodyLog?.daily_time_record?.employee?.individual_basic_detail
+      const employeeItem = warmBodyLog?.daily_time_record?.employee?.item
+      const messageToDisplay = responseBody.message || 'Time log successful!'
+
+      const photoUrl =
+        employeeDetails?.user_profile?.profile_picture_url && employeeDetails.user_profile.profile_picture_url.trim() !== ''
+          ? employeeDetails.user_profile.profile_picture_url
+          : '@/assets/image/DSWD logo_Mark.png'
+
+      const scannedEmployee: ScannedEmployeeResponse = {
+        id: warmBodyLog.daily_time_record?.employee?.id_number || 'N/A',
+        name: `${employeeDetails?.first_name || ''} ${employeeDetails?.last_name || ''}`.trim() || 'N/A',
+        position: employeeItem?.position?.title || 'N/A',
+        is_in: warmBodyLog.is_in,
+        timestamp: warmBodyLog.created_at || new Date().toISOString(),
+        photo_url: photoUrl,
+      }
+
+      const dtrDate = warmBodyLog.daily_time_record?.date || new Date().toISOString().substring(0, 10)
+      updateDailyLogs(dtrDate, [warmBodyLog])
+      showScannedEmployeeModal(scannedEmployee, messageToDisplay)
+    } else if (responseBody) {
+      let messageToDisplay = responseBody.message?.trim() || 'Time log failed.'
+      if (responseBody.error_code === ApiErrorCode.VALIDATION_ERROR) {
+        const apiErrors = responseBody.errors
+        if (apiErrors && apiErrors.length > 0 && apiErrors[0].messages && apiErrors[0].messages.length > 0) {
+          messageToDisplay = apiErrors[0].messages[0]
+        }
+      }
+      showScannedEmployeeModal(null, messageToDisplay)
+      return responseBody
+    }
   }
 
   const fetchDailyLogs = async (date: string) => {
