@@ -4,8 +4,6 @@ import { ViewDailyTimeRecordResponse } from '@/typings/models.types.ts'
 import { useDailyTimeRecordsStore } from '@/stores/daily-time-record.store'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import WbCalendar from '@/components/webkit/WbCalendar.vue'
-import WbInputText from '@/components/webkit/WbInputText.vue'
-import WbTextArea from '@/components/webkit/WbTextArea.vue'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
 import { useToast } from 'primevue/usetoast'
@@ -20,6 +18,16 @@ import {
   isWeekend,
   resolveDTRSlots,
 } from '@/utils/dtr-helpers'
+
+import { useRoute } from 'vue-router'
+
+const route = useRoute()
+
+// Use query params (from navigateToDetails) to build initial monthDate
+const initialYear = route.query.year ? Number(route.query.year) : new Date().getFullYear()
+const initialMonth = route.query.month ? Number(route.query.month) - 1 : new Date().getMonth()
+
+const monthDate = ref<Date>(new Date(initialYear, initialMonth))
 const dailyTimeRecordsStore = useDailyTimeRecordsStore()
 const toast = useToast()
 const isLoading = ref(true)
@@ -27,8 +35,6 @@ const selectedTimeLogId = ref<number[]>([])
 const allDailyTimeRecordsData = ref<ViewDailyTimeRecordResponse[]>([])
 const fromDate = ref<Date | null>(null)
 const toDate = ref<Date | null>(null)
-const monthDate = ref<Date>(new Date())
-const remarksMap = ref<Record<string, string>>({})
 const activeIndices = ref<number[]>([])
 const toggleAccordion = (index: number) => {
   if (activeIndices.value.includes(index)) {
@@ -40,7 +46,7 @@ const toggleAccordion = (index: number) => {
 
 const onAccordionClick = (item: { is_missing: string; date: Date; row: ViewDailyTimeRecordResponse | null }, index: number) => {
   const slots = resolveDTRSlots(item.row?.time_log ?? [])
-  const hasMissing = Object.values(slots).some((value) => value === '')
+  const hasMissing = Object.values(slots).some((value) => value === null)
   const hasEnoughEntries = (item.row?.time_log?.length ?? 0) >= 4
 
   if (!hasMissing && hasEnoughEntries) {
@@ -127,6 +133,28 @@ watch(
   }
 )
 
+watch(
+  () => route.query,
+  (newQuery) => {
+    if (newQuery.year && newQuery.month) {
+      const y = Number(newQuery.year)
+      const m = Number(newQuery.month) - 1
+      monthDate.value = new Date(y, m)
+    }
+  }
+)
+
+watch(
+  () => route.query,
+  (newQuery) => {
+    if (newQuery.year && newQuery.month) {
+      const y = Number(newQuery.year)
+      const m = Number(newQuery.month) - 1
+      monthDate.value = new Date(y, m)
+    }
+  }
+)
+
 const minMaxTs = computed<{ min: number; max: number } | null>(() => {
   const tsList = filteredDTRs.value.map((r) => normalizeDateTimestamp(r.date)!).sort((a, b) => a - b)
   return tsList.length ? { min: tsList[0], max: tsList[tsList.length - 1] } : null
@@ -171,6 +199,20 @@ const monthDates = computed(() => {
   }
 
   return arr
+})
+
+const computeUTValue = computed(() => {
+  return (item: { is_missing: string; date: Date; row: ViewDailyTimeRecordResponse | null }) => {
+    if (!item.row) return ''
+    return computeUT(computeWorkedHours(item.row.time_log ?? []), isWeekend(item.row.date))
+  }
+})
+
+const computeOTValue = computed(() => {
+  return (item: { is_missing: string; date: Date; row: ViewDailyTimeRecordResponse | null }) => {
+    if (!item.row) return ''
+    return computeOT(computeWorkedHours(item.row.time_log ?? []), isWeekend(item.row.date))
+  }
 })
 </script>
 
@@ -263,7 +305,7 @@ const monthDates = computed(() => {
                 <p class="text-xs font-semibold text-surface-500 md:hidden">Date</p>
                 <!-- Show badge if there's missing entries -->
                 <span
-                  v-if="item.row && Object.values(resolveDTRSlots(item.row?.time_log ?? [])).some((value) => value === '')"
+                  v-if="item.row && Object.values(resolveDTRSlots(item.row?.time_log ?? [])).some((value) => value === null)"
                   class="text-warm-900 rounded bg-yellow-200 px-2 py-1 text-xs"
                 >
                   Missing entries
@@ -274,7 +316,7 @@ const monthDates = computed(() => {
                   class="text-base text-surface-600"
                   :class="{
                     'cursor-pointer text-error-900':
-                      item.row && Object.values(resolveDTRSlots(item.row?.time_log ?? [])).some((value) => value === ''),
+                      item.row && Object.values(resolveDTRSlots(item.row?.time_log ?? [])).some((value) => value === null),
                   }"
                   @click="onAccordionClick(item, index)"
                 >
@@ -319,86 +361,90 @@ const monthDates = computed(() => {
               <!-- IN 1 -->
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">IN 1</p>
-                <p v-if="item.row && resolveDTRSlots(item.row.time_log ?? []).in1" class="text-base text-surface-600">
-                  {{ item.row ? formatDTRTime(resolveDTRSlots(item.row.time_log ?? []).in1) : '' }}
+                <p class="text-base text-surface-600">
+                  {{
+                    item.row && resolveDTRSlots(item.row.time_log ?? []).in1
+                      ? formatDTRTime(
+                          toTimestamp(
+                            resolveDTRSlots(item.row.time_log ?? []).in1!.date,
+                            resolveDTRSlots(item.row.time_log ?? []).in1!.scanned_time
+                          )
+                        )
+                      : ''
+                  }}
                 </p>
-                <WbInputText
-                  v-else-if="item.row && item.row.time_log?.length && !resolveDTRSlots(item.row.time_log).in1"
-                  label=""
-                  v-model="remarksMap[`out2-${item.date.toISOString()}`]"
-                  placeholder="Missing"
-                  class="h-8 md:h-8 md:w-24"
-                />
               </div>
 
               <!-- OUT 1 -->
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">OUT 1</p>
-                <p v-if="item.row && resolveDTRSlots(item.row.time_log ?? []).out1" class="text-base text-surface-600">
-                  {{ item.row ? formatDTRTime(resolveDTRSlots(item.row.time_log ?? []).out1) : '' }}
+                <p class="text-base text-surface-600">
+                  {{
+                    item.row && resolveDTRSlots(item.row.time_log ?? []).out1
+                      ? formatDTRTime(
+                          toTimestamp(
+                            resolveDTRSlots(item.row.time_log ?? []).out1!.date,
+                            resolveDTRSlots(item.row.time_log ?? []).out1!.scanned_time
+                          )
+                        )
+                      : ''
+                  }}
                 </p>
-                <WbInputText
-                  v-else-if="item.row && item.row.time_log?.length && !resolveDTRSlots(item.row.time_log).out1"
-                  label=""
-                  v-model="remarksMap[`out2-${item.date.toISOString()}`]"
-                  placeholder="Missing"
-                  class="h-8 md:h-8 md:w-24"
-                />
               </div>
 
               <!-- IN 2 -->
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">IN 2</p>
-                <p v-if="item.row && resolveDTRSlots(item.row.time_log ?? []).in2" class="text-base text-surface-600">
-                  {{ item.row ? formatDTRTime(resolveDTRSlots(item.row.time_log ?? []).in2) : '' }}
+                <p class="text-base text-surface-600">
+                  {{
+                    item.row && resolveDTRSlots(item.row.time_log ?? []).in2
+                      ? formatDTRTime(
+                          toTimestamp(
+                            resolveDTRSlots(item.row.time_log ?? []).in2!.date,
+                            resolveDTRSlots(item.row.time_log ?? []).in2!.scanned_time
+                          )
+                        )
+                      : ''
+                  }}
                 </p>
-                <WbInputText
-                  v-else-if="item.row && item.row.time_log?.length && !resolveDTRSlots(item.row.time_log).in2"
-                  label=""
-                  v-model="remarksMap[`out2-${item.date.toISOString()}`]"
-                  placeholder="Missing"
-                  class="h-8 md:h-8 md:w-24"
-                />
               </div>
 
               <!-- OUT 2 -->
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">OUT 2</p>
-                <p v-if="item.row && resolveDTRSlots(item.row.time_log ?? []).out2" class="text-base text-surface-600">
-                  {{ formatDTRTime(resolveDTRSlots(item.row.time_log ?? []).out2) }}
+                <p class="text-base text-surface-600">
+                  {{
+                    item.row && resolveDTRSlots(item.row.time_log ?? []).out2
+                      ? formatDTRTime(
+                          toTimestamp(
+                            resolveDTRSlots(item.row.time_log ?? []).out2!.date,
+                            resolveDTRSlots(item.row.time_log ?? []).out2!.scanned_time
+                          )
+                        )
+                      : ''
+                  }}
                 </p>
-                <WbInputText
-                  v-else-if="item.row && item.row.time_log?.length && !resolveDTRSlots(item.row.time_log).out2"
-                  label=""
-                  v-model="remarksMap[`out2-${item.date.toISOString()}`]"
-                  placeholder="Missing"
-                  class="h-8 md:h-8 md:w-24"
-                />
               </div>
 
               <!-- UT, OT, Remarks -->
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">UT</p>
                 <p class="text-base text-surface-600">
-                  {{ item.row ? computeUT(computeWorkedHours(item.row.time_log ?? []), isWeekend(item.row.date)) : '' }}
+                  {{ computeUTValue(item) }}
                 </p>
               </div>
 
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">OT</p>
                 <p class="text-base text-surface-600">
-                  {{ item.row ? computeOT(computeWorkedHours(item.row.time_log ?? []), isWeekend(item.row.date)) : '' }}
+                  {{ computeOTValue(item) }}
                 </p>
               </div>
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">Remarks</p>
-                <WbTextArea
-                  v-model="item.is_missing"
-                  v-if="item.row && (item.row.time_log?.length ?? 0) <= 4 && resolveDTRSlots(item.row.time_log ?? [])"
-                  label=""
-                  class="h-8 md:h-8 md:w-48"
-                  placeholder="Enter remarks"
-                />
+                <p class="text-base text-surface-600">
+                  {{ item.row?.employee_remarks }}
+                </p>
               </div>
             </div>
           </div>

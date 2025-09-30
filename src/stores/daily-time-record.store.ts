@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { reactive, ref } from 'vue'
 import { useAuthStore } from '@/stores/auth.store.ts'
 import { useApiCall } from '@/composables/network'
 import { ApiResponseBody } from '@/typings/http-resources.types.ts'
@@ -10,7 +10,6 @@ import {
   ViewDailyTimeRecordResponse,
   ViewTimeLogsResponse,
 } from '@/typings/models.types'
-import { dailyTimeRecordsmockData } from '@/utils/mock-data'
 
 export type DailyTimeRecordPayload = {
   id: number
@@ -26,7 +25,24 @@ export type DailyTimeRecordPayload = {
     employee_id?: string | number | null
     timestamp: string
     daily_time_record_id: number
-    is_in: boolean // true = IN, false = OUT
+    is_in: boolean
+  }[]
+}
+
+export type UpdateDTRPayload = {
+  id?: number | null
+  month: string
+  dtr: {
+    id?: number | null
+    employee_remarks?: string
+    ut?: number | null
+    time_logs?: {
+      id?: number | null
+      date: string
+      scanned_time: string
+      is_selected: boolean
+    }[]
+    date?: string
   }[]
 }
 
@@ -41,8 +57,29 @@ export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => 
   const viewTimeLogs = ref<ViewTimeLogsResponse[]>([])
   const viewDailyTimeRecords = ref<ViewDailyTimeRecordResponse[]>([])
   const countTimeLogs = ref<CountWarmBodiesResponse[]>([])
-  const selectedDailyTimeRecords = ref<DailyTimeRecordResponse | null>(null)
 
+  const dailyTimeRecordInfo = reactive<DailyTimeRecordPayload>({
+    id: 0,
+    date: '',
+    ut: null,
+    is_edit_ut: null,
+    ot: null,
+    is_missing: null,
+    employee_remarks: null,
+    hr_remarks: null,
+    status: null,
+    warm_bodies: [],
+  })
+
+  const updateDailyTimeRecordInfo = reactive<UpdateDTRPayload>({
+    id: 0,
+    month: '',
+    dtr: [],
+  })
+
+  /** _____________________________________________________________
+                    Daily Time Records
+_________________________________________________________________ */
   const fetchDailyTimeRecordsByMonth = async (date: Date, limit = 31) => {
     const individual = auth.authenticatedUser.user_profile?.individual_basic_detail as PersonnelResponse
     if (!individual) {
@@ -71,55 +108,44 @@ export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => 
     return responseBody
   }
 
-  const fetchDailyTimeRecords = async (limit = 10, page = 1, status?: string | string[]) => {
-    let filteredData = [...dailyTimeRecordsmockData]
+  // Fetch DTR for a specific employee by ID
+  const fetchDailyTimeRecordsByEmployee = async (employeeId: string | number, date: Date, limit = 31) => {
+    if (!employeeId) throw new Error('Employee ID is required.')
 
-    // Normalize status filter
-    if (status) {
-      const statuses = Array.isArray(status) ? status.map((s) => s.toLowerCase()) : [status.toLowerCase()]
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const formattedMonthYear = `${year}-${month}`
 
-      filteredData = filteredData.filter((item) => statuses.includes(item.status.toLowerCase()))
+    let uri = `/employees/${employeeId}/daily-time-records/view-dtr?limit=${limit}&`
+    if (formattedMonthYear) uri += `month=${formattedMonthYear}&`
+
+    const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
+    const responseBody: ApiResponseBody = data.value
+
+    if (responseBody.success && Array.isArray(responseBody.data)) {
+      viewDailyTimeRecords.value = responseBody.data as ViewDailyTimeRecordResponse[]
+    } else {
+      viewDailyTimeRecords.value = []
     }
 
-    const total = filteredData.length
-    const start = (page - 1) * limit
-    const paginated = filteredData.slice(start, start + limit)
-
-    dailyTimeRecords.value = [...paginated]
-
-    return {
-      success: true,
-      data: paginated,
-      pagination: {
-        current_page: page,
-        last_page: Math.ceil(total / limit),
-        per_page: limit,
-        total,
-        from: start + 1,
-        to: start + paginated.length,
-        first_page_url: '',
-        last_page_url: '',
-        next_page_url: null,
-        previous_page_url: null,
-        path: '',
-      },
-    }
+    return responseBody
   }
-  const fetchDailyTimeRecordsById = async (id: string) => {
-    await new Promise((resolve) => setTimeout(resolve, 300))
 
-    const foundData = dailyTimeRecordsmockData.find((dtr) => dtr.id === parseInt(id))
-
-    const responseBody = {
-      success: !!foundData,
-      data: foundData || null,
-      message: foundData ? 'Data fetched successfully.' : 'Record not found.',
+  const fetchDailyTimeRecords = async () => {
+    const individual = auth.authenticatedUser.user_profile?.individual_basic_detail as PersonnelResponse
+    if (!individual?.employee) {
+      throw new Error('No employee data linked to current user')
     }
+
+    const uri = `/employees/${individual.employee.id}/daily-time-records/view-dtr?start_date=1900-01-01&end_date=2100-12-31&sort=asc`
+
+    const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
+    const responseBody: ApiResponseBody = data.value
 
     if (responseBody.success) {
-      selectedDailyTimeRecords.value = responseBody.data
+      const dailyTimeRecordList = Array.isArray(responseBody.data) ? (responseBody.data as DailyTimeRecordResponse[]) : []
+      dailyTimeRecords.value = [...dailyTimeRecordList]
     }
-
     return responseBody
   }
 
@@ -144,15 +170,14 @@ export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => 
     return responseBody
   }
 
-  const updateDailyTimeRecords = async (dtr: Partial<DailyTimeRecordPayload>, id: string | number) => {
-    const { data } = await useApiCall(`/daily-time-records/${id}`, auth.authenticationToken).put(dtr).json()
-    const responseBody: ApiResponseBody = data.value
-    if (responseBody.success) {
-      const index = dailyTimeRecords.value.findIndex((dailyTimeRecords) => dailyTimeRecords?.id === id)
-      if (index === -1) return responseBody
-      dailyTimeRecords.value[index] = responseBody.data as DailyTimeRecordResponse
-    }
-    return responseBody
+  const updateDailyTimeRecords = async (payload: UpdateDTRPayload) => {
+    const individual = auth.authenticatedUser.user_profile?.individual_basic_detail as PersonnelResponse
+    if (!individual?.employee) throw new Error('No employee linked')
+
+    const uri = `/employees/${individual.employee.id}/daily-time-records`
+    const { data } = await useApiCall(uri, auth.authenticationToken).put(payload).json()
+
+    return data.value as ApiResponseBody
   }
 
   const generateDailyTimeRecords = async (id: string) => {
@@ -165,6 +190,10 @@ export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => 
       fileNameHeader: ref(fileNameHeader),
     }
   }
+
+  /** _____________________________________________________________
+                     Time Logs
+_________________________________________________________________ */
 
   const fetchTimeLogsForToday = async (
     limit: number = 5,
@@ -215,17 +244,19 @@ export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => 
 
   return {
     dailyTimeRecords,
+    dailyTimeRecordInfo,
+    viewDailyTimeRecords,
+    updateDailyTimeRecordInfo,
     createDailyTimeRecords,
     fetchDailyTimeRecords,
     fetchDailyTimeRecordsByMonth,
-    viewDailyTimeRecords,
-    fetchDailyTimeRecordsById,
+    fetchDailyTimeRecordsByEmployee,
     searchDailyTimeRecords,
     updateDailyTimeRecords,
     generateDailyTimeRecords,
     viewTimeLogs,
-    fetchTimeLogsForToday,
     countTimeLogs,
+    fetchTimeLogsForToday,
     fetchCountWarmBodies,
     searchTimeLogs,
   }

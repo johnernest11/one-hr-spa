@@ -58,6 +58,16 @@ const c1Tabs = ref([
   { name: 'Work Experience', index: 1 },
 ])
 
+// Handle Import
+onMounted(async () => {
+  const hasImport = !!pdsStore.importResult
+
+  if (hasImport) {
+    Object.assign(payload.individual_eligibility, pdsStore.importResult?.individual_eligibility ?? {})
+    Object.assign(payload.individual_work_experience, pdsStore.importResult?.individual_work_experience ?? {})
+  }
+})
+
 onMounted(() => {
   useCustomSalaryGrade.value = payload.individual_work_experience.map(
     (we) => !!we.custom_salary_grade // true if custom_salary_grade exists

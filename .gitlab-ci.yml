@@ -93,9 +93,9 @@ deploy_staging:
     name: registry.gitlab.com/gitlab-org/cloud-deploy/aws-base:latest
   script:
     - aws --version
-    - aws s3 rm s3://doc-tracker-spa-staging --recursive
-    - aws s3 cp  dist/ s3://doc-tracker-spa-staging --recursive
-    - aws cloudfront create-invalidation --distribution-id E12KB7WEMUBKUF --paths "/*"
+    - aws s3 rm s3://hr-cares-staging --recursive
+    - aws s3 cp  dist/ s3://hr-cares-staging --recursive
+    - aws cloudfront create-invalidation --distribution-id EL33I071153FA --paths "/*"
   environment:
     name: staging
 

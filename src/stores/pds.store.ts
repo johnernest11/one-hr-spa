@@ -1,4 +1,4 @@
-import { Ref, ref, reactive } from 'vue'
+import { Ref, ref, reactive, computed } from 'vue'
 import { defineStore } from 'pinia'
 import {
   IndividualAddress,
@@ -22,7 +22,7 @@ import {
 import { useApiCall } from '@/composables/network'
 import { useAuthStore } from '@/stores/auth.store.ts'
 import { ApiResponseBody } from '@/typings/http-resources.types'
-import { formatDateFields, formatValidationDate, formatYear } from '@/utils/helpers.js'
+import { formatDateFields, formatToYMD, formatValidationDate, formatYear } from '@/utils/helpers.js'
 
 import { useRoute } from 'vue-router'
 import { BloodType, CivilStatusType, SexType } from '@/typings/employee-entry.types'
@@ -110,13 +110,12 @@ export const usePdsStore = defineStore('pds', () => {
   /** States */
   const authStore = useAuthStore()
   const pdsMode = ref('')
-  const importResult: Ref<ApiResponseBody | null> = ref(null)
+  const importResult: Ref<PersonalDataSheetPayload | null> = ref(null)
   const selectedPDS = ref<PersonnelResponse | null>(null)
   const personnelPds = ref<PersonnelResponse[]>([])
-
   const route = useRoute()
-  const isMyPds = route.name === 'my-pds'
-  const individual = isMyPds ? authStore.authenticatedUser?.user_profile?.individual_basic_detail : null
+  const isMyPds = computed(() => route.name === 'my-pds')
+  const individual = isMyPds.value ? authStore.authenticatedUser?.user_profile?.individual_basic_detail : null
   const employee = individual?.employee
   const contactInfo = individual?.individual_contact_info
   const individual_address = individual?.individual_address
@@ -321,7 +320,7 @@ export const usePdsStore = defineStore('pds', () => {
         date_of_examination_conferment: elgi.date_of_examination_conferment ?? '',
         place_of_examination: elgi.place_of_examination ?? '',
         license_number: elgi.license_number ?? null,
-        license_date_of_validity: elgi.license_date_of_validity ?? null,
+        license_date_of_validity: elgi.license_date_of_validity ?? '',
         _delete: elgi._delete ?? null,
       }))
       : [
@@ -684,7 +683,7 @@ export const usePdsStore = defineStore('pds', () => {
         date_of_examination_conferment: e.date_of_examination_conferment ?? '',
         place_of_examination: e.place_of_examination ?? '',
         license_number: e.license_number ?? null,
-        license_date_of_validity: e.license_date_of_validity ?? null,
+        license_date_of_validity: e.license_date_of_validity ?? '',
         _delete: e._delete ?? null,
       }))
       : []
@@ -843,6 +842,10 @@ export const usePdsStore = defineStore('pds', () => {
   const savePds = async (payload: PersonalDataSheetPayload) => {
     const uri = '/individual-basic-details'
 
+    if (payload.individual?.birthday) {
+      payload.individual.birthday = formatToYMD(payload.individual.birthday)
+    }
+
     // Format education dates to 'YYYY'
     payload.individual_educational_background.forEach((edu) => {
       edu.period_of_attendance_from = formatYear(edu.period_of_attendance_from)
@@ -851,7 +854,10 @@ export const usePdsStore = defineStore('pds', () => {
     })
 
     //  Format all other date-based fields to 'YYYY-MM-DD'
-    formatDateFields(payload.individual_eligibility, ['date_of_examination_conferment', 'license_date_of_validity'])
+    formatDateFields(payload.individual_eligibility, [
+      'date_of_examination_conferment',
+      { field: 'license_date_of_validity', canBeFuture: true },
+    ])
     formatDateFields(payload.individual_work_experience, ['inclusive_date_from', 'inclusive_date_to'])
     formatDateFields(payload.individual_voluntary_work, ['from', 'to'])
     formatDateFields(payload.individual_lnd, ['from', 'to'])
@@ -885,7 +891,8 @@ export const usePdsStore = defineStore('pds', () => {
 
     const { data } = await useApiCall('/individual-basic-details/import', authStore.authenticationToken).post(formData).json()
 
-    importResult.value = data.value
+    importResult.value = data.value.data as PersonalDataSheetPayload
+
     return data.value
   }
 

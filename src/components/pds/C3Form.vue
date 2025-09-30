@@ -15,7 +15,7 @@ import { useToast } from 'primevue/usetoast'
 import { parseApiResponseError } from '@/utils/error-handle.ts'
 import { helpers, maxLength, required } from '@vuelidate/validators'
 import { TabGroup, TabList, Tab, TabPanels, TabPanel } from '@headlessui/vue'
-import { isAfterOrEqualFromDate, usePrependOrAppendOnce } from '@/utils/helpers.js'
+import { isAfterOrEqualFromDate, usePrependOrAppendOnce, notInFuture } from '@/utils/helpers.js'
 import { TransitionRoot } from '@headlessui/vue'
 import { PersonnelResponse } from '@/typings/models.types'
 
@@ -55,6 +55,8 @@ const globalStringMaxLengthRule = helpers.withMessage(
   maxLength(globalStringMaxLength)
 )
 
+const hasAnyValue = (vm: Record<string, unknown>) => Object.values(vm).some((v) => helpers.req(v))
+
 const formRules = computed(() => ({
   individual_lnd: payload.individual_lnd.map(() => ({
     title: {
@@ -81,12 +83,14 @@ const formRules = computed(() => ({
           return from <= to
         }
       ),
+      notInFuture: helpers.withMessage('Start date must not be in the future.', notInFuture),
     },
     to: {
       required: helpers.withMessage('Inclusive "To" date is required', (val, vm) => {
         return vm.is_current_work === true ? true : helpers.req(val)
       }),
       isAfterOrEqualFromDate,
+      notInFuture: helpers.withMessage('End date must not be in the future.', notInFuture),
     },
     number_of_hours: {
       required: helpers.withMessage('Number of hours is required.', required),
@@ -94,15 +98,30 @@ const formRules = computed(() => ({
         if (val === null || val === '') return true // allow empty (if not required)
         return Number.isInteger(Number(val))
       }),
+      maxLength: globalStringMaxLengthRule,
     },
     type: {
       required: helpers.withMessage('Type is required.', required),
+      maxLength: globalStringMaxLengthRule,
     },
     conducted_sponsor: {
       required: helpers.withMessage('Conducted Sponsor is required.', required),
+      maxLength: globalStringMaxLengthRule,
     },
   })),
   individual_voluntary_work: payload.individual_voluntary_work.map(() => ({
+    org_name: {
+      required: helpers.withMessage(' Fill up Name of Organization since other information is provided.', (val, vm) =>
+        hasAnyValue(vm) ? helpers.req(val) : true
+      ),
+      maxLength: globalStringMaxLengthRule,
+    },
+    org_address: {
+      required: helpers.withMessage('Fill up Address of Organization since other information is provided.', (val, vm) =>
+        hasAnyValue(vm) ? helpers.req(val) : true
+      ),
+      maxLength: globalStringMaxLengthRule,
+    },
     from: {
       isAfterOrEqualTo: helpers.withMessage(
         'Inclusive "From" date must not be after "To" date.',
@@ -123,9 +142,38 @@ const formRules = computed(() => ({
           return from <= to
         }
       ),
+      notInFuture: helpers.withMessage('End date must not be in the future.', notInFuture),
     },
     to: {
       isAfterOrEqualFromDate,
+      notInFuture: helpers.withMessage('End date must not be in the future.', notInFuture),
+    },
+    number_of_hours: {
+      required: helpers.withMessage('Fill up Hours since other info is provided.', (val, vm) =>
+        hasAnyValue(vm) ? helpers.req(val) : true
+      ),
+      maxLength: globalStringMaxLengthRule,
+    },
+    position_nature_of_work: {
+      required: helpers.withMessage('Fill up Position / Nature of Work since other information is provided.', (val, vm) =>
+        hasAnyValue(vm) ? helpers.req(val) : true
+      ),
+      maxLength: globalStringMaxLengthRule,
+    },
+  })),
+  individual_skills_hobby: payload.individual_skills_hobby.map(() => ({
+    skill_hobby: {
+      maxLength: globalStringMaxLengthRule,
+    },
+  })),
+  individual_recognition: payload.individual_skills_hobby.map(() => ({
+    recognition: {
+      maxLength: globalStringMaxLengthRule,
+    },
+  })),
+  individual_membership: payload.individual_skills_hobby.map(() => ({
+    association_organization: {
+      maxLength: globalStringMaxLengthRule,
     },
   })),
 }))
@@ -511,8 +559,16 @@ defineExpose({
                                 label="Name of Organization"
                                 :disabled="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  validator.individual_voluntary_work[voluntaryWorkIndex - 1].org_name.$error ? 'mb-0' : 'mb-6',
+                                ]"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                                :invalidText="
+                                  validator.individual_voluntary_work[voluntaryWorkIndex - 1].org_name.$errors[0]?.$message
+                                "
+                                :invalid="validator.individual_voluntary_work[voluntaryWorkIndex - 1].org_name.$error"
+                                @blur="validator.individual_voluntary_work[voluntaryWorkIndex - 1].org_name.$touch()"
                               />
                             </div>
                             <div>
@@ -521,8 +577,18 @@ defineExpose({
                                 label="Address of Organization"
                                 :disabled="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  validator.individual_voluntary_work[voluntaryWorkIndex - 1].org_address.$error
+                                    ? 'mb-0'
+                                    : 'mb-6',
+                                ]"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                                :invalidText="
+                                  validator.individual_voluntary_work[voluntaryWorkIndex - 1].org_address.$errors[0]?.$message
+                                "
+                                :invalid="validator.individual_voluntary_work[voluntaryWorkIndex - 1].org_address.$error"
+                                @blur="validator.individual_voluntary_work[voluntaryWorkIndex - 1].org_address.$touch()"
                               />
                             </div>
                           </div>
@@ -533,7 +599,10 @@ defineExpose({
                                 label="From"
                                 :disabled="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  validator.individual_voluntary_work[voluntaryWorkIndex - 1].from.$error ? 'mb-0' : 'mb-6',
+                                ]"
                                 :dateFormat="'yy-mm-dd'"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalidText="
@@ -553,6 +622,10 @@ defineExpose({
                                 :disabled="pdsStore.isMyPds"
                                 :dateFormat="'yy-mm-dd'"
                                 class="w-full text-sm"
+                                :class="[
+                                  'w-full text-sm',
+                                  validator.individual_voluntary_work[voluntaryWorkIndex - 1].to.$error ? 'mb-0' : 'mb-6',
+                                ]"
                                 label-class="text-md text-surface-600 md:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold"
                                 :invalidText="validator.individual_voluntary_work[voluntaryWorkIndex - 1].to.$errors[0]?.$message"
@@ -579,7 +652,10 @@ defineExpose({
                                 label="To"
                                 :disabled="pdsStore.isMyPds"
                                 :dateFormat="'yy-mm-dd'"
-                                class="w-full text-sm"
+                                :class="[
+                                  'w-full text-sm',
+                                  validator.individual_voluntary_work[voluntaryWorkIndex - 1].to.$error ? 'mb-0' : 'mb-6',
+                                ]"
                                 label-class="text-md text-surface-600 md:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalidText="validator.individual_voluntary_work[voluntaryWorkIndex - 1].to.$errors[0]?.$message"
@@ -594,8 +670,18 @@ defineExpose({
                                 label="No of Hours"
                                 :disabled="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  validator.individual_voluntary_work[voluntaryWorkIndex - 1].number_of_hours.$error
+                                    ? 'mb-0'
+                                    : 'mb-6',
+                                ]"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                                :invalidText="
+                                  validator.individual_voluntary_work[voluntaryWorkIndex - 1].number_of_hours.$errors[0]?.$message
+                                "
+                                :invalid="validator.individual_voluntary_work[voluntaryWorkIndex - 1].number_of_hours.$error"
+                                @blur="validator.individual_voluntary_work[voluntaryWorkIndex - 1].number_of_hours.$touch()"
                               />
                             </div>
                             <div class="flex items-end gap-2 md:col-span-3">
@@ -604,8 +690,23 @@ defineExpose({
                                 label="Position / Nature of Work"
                                 :disabled="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  validator.individual_voluntary_work[voluntaryWorkIndex - 1].position_nature_of_work.$error
+                                    ? 'mb-0'
+                                    : 'mb-10',
+                                ]"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                                :invalidText="
+                                  validator.individual_voluntary_work[voluntaryWorkIndex - 1].position_nature_of_work.$errors[0]
+                                    ?.$message
+                                "
+                                :invalid="
+                                  validator.individual_voluntary_work[voluntaryWorkIndex - 1].position_nature_of_work.$error
+                                "
+                                @blur="
+                                  validator.individual_voluntary_work[voluntaryWorkIndex - 1].position_nature_of_work.$touch()
+                                "
                               />
                               <!-- Delete button aligned right, below label -->
                               <Button
@@ -616,7 +717,12 @@ defineExpose({
                                 @click="handleRemoveVoluntaryWork(voluntaryWorkIndex)"
                                 v-tooltip.top="'Remove Voluntary Work'"
                                 severity="danger"
-                                class="mb-2 text-lg font-semibold dark:text-primary-100"
+                                :class="[
+                                  'text-lg font-semibold dark:text-primary-100',
+                                  validator.individual_voluntary_work[voluntaryWorkIndex - 1].position_nature_of_work.$error
+                                    ? 'mb-8'
+                                    : 'mb-12',
+                                ]"
                                 text
                               />
                             </div>
@@ -687,7 +793,10 @@ defineExpose({
                                 label="Title of L & D Interventions / Training Programs"
                                 :disabled="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-xs md:mb-1"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  validator.individual_lnd[learningDevelopmentIndex - 1].title.$error ? 'mb-0' : 'mb-6',
+                                ]"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalidText="validator.individual_lnd[learningDevelopmentIndex - 1].title.$errors[0]?.$message"
                                 :invalid="validator.individual_lnd[learningDevelopmentIndex - 1].title.$error"
@@ -702,7 +811,10 @@ defineExpose({
                                 label="From"
                                 :disabled="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  validator.individual_lnd[learningDevelopmentIndex - 1].from.$error ? 'mb-0' : 'mb-6',
+                                ]"
                                 :dateFormat="'yy-mm-dd'"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalidText="validator.individual_lnd[learningDevelopmentIndex - 1].from.$errors[0]?.$message"
@@ -718,7 +830,10 @@ defineExpose({
                                 label="To"
                                 :disabled="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  validator.individual_lnd[learningDevelopmentIndex - 1].to.$error ? 'mb-0' : 'mb-2',
+                                ]"
                                 :dateFormat="'yy-mm-dd'"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalidText="validator.individual_lnd[learningDevelopmentIndex - 1].to.$errors[0]?.$message"
@@ -734,7 +849,10 @@ defineExpose({
                                 label="No of Hours"
                                 :disabled="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  validator.individual_lnd[learningDevelopmentIndex - 1].number_of_hours.$error ? 'mb-0' : 'mb-6',
+                                ]"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalidText="
                                   validator.individual_lnd[learningDevelopmentIndex - 1].number_of_hours.$errors[0]?.$message
@@ -753,7 +871,10 @@ defineExpose({
                                 label="Type of LD"
                                 :disabled="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  validator.individual_lnd[learningDevelopmentIndex - 1].type.$error ? 'mb-0' : 'mb-2',
+                                ]"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalidText="validator.individual_lnd[learningDevelopmentIndex - 1].type.$errors[0]?.$message"
                                 :invalid="validator.individual_lnd[learningDevelopmentIndex - 1].type.$error"
@@ -769,7 +890,12 @@ defineExpose({
                                 label="Conducted / Sponsored By"
                                 :disabled="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md flex-1 text-sm placeholder:text-sm"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md flex-1 text-sm placeholder:text-sm',
+                                  validator.individual_lnd[learningDevelopmentIndex - 1].conducted_sponsor.$error
+                                    ? 'mb-0'
+                                    : 'mb-6',
+                                ]"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalidText="
                                   validator.individual_lnd[learningDevelopmentIndex - 1].conducted_sponsor.$errors[0]?.$message
@@ -787,7 +913,12 @@ defineExpose({
                                 @click="handleRemoveLearningDevelopment(learningDevelopmentIndex)"
                                 v-tooltip.top="'Remove L&D'"
                                 severity="danger"
-                                class="mb-2 text-lg font-semibold dark:text-primary-100"
+                                :class="[
+                                  'text-lg font-semibold dark:text-primary-100',
+                                  validator.individual_lnd[learningDevelopmentIndex - 1].conducted_sponsor.$error
+                                    ? 'mb-8'
+                                    : 'mb-2',
+                                ]"
                                 text
                               />
                             </div>
@@ -833,7 +964,7 @@ defineExpose({
                   leaveFrom="opacity-100"
                   leaveTo="opacity-0"
                 >
-                  <!-- VI. Voluntary Work or Involvement in Civic / Non-Government / People / Voluntary Organization/s -->
+                  <!-- Special Skills and Hobbies -->
                   <div class="flex flex-col gap-4">
                     <span class="flex flex-col justify-center space-y-2 font-medium">
                       <p class="mr-6 text-xl italic text-primary-700 md:text-2xl">VIII. Other Information</p>
@@ -859,8 +990,16 @@ defineExpose({
                                 label="Special Skill / Hobby"
                                 :disabled="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  validator.individual_skills_hobby[skillHobbiesIndex - 1].skill_hobby.$error ? 'mb-8' : 'mb-2',
+                                ]"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                                :invalidText="
+                                  validator.individual_skills_hobby[skillHobbiesIndex - 1].skill_hobby.$errors[0]?.$message
+                                "
+                                :invalid="validator.individual_skills_hobby[skillHobbiesIndex - 1].skill_hobby.$error"
+                                @blur="validator.individual_skills_hobby[skillHobbiesIndex - 1].skill_hobby.$touch()"
                               />
                               <!-- Delete button aligned right, below label -->
                               <Button
@@ -871,7 +1010,10 @@ defineExpose({
                                 @click="handleRemoveSkillHobbies(skillHobbiesIndex)"
                                 v-tooltip.top="'Remove Special Skills and Hobbies'"
                                 severity="danger"
-                                class="mb-2 text-lg font-semibold dark:text-primary-100 md:mb-2"
+                                :class="[
+                                  'text-lg font-semibold dark:text-primary-100',
+                                  validator.individual_skills_hobby[skillHobbiesIndex - 1].skill_hobby.$error ? 'mb-4' : 'mb-2',
+                                ]"
                                 text
                               />
                             </div>
@@ -927,6 +1069,11 @@ defineExpose({
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                                :invalidText="
+                                  validator.individual_recognition[recognitionIndex - 1].recognition.$errors[0]?.$message
+                                "
+                                :invalid="validator.individual_recognition[recognitionIndex - 1].recognition.$error"
+                                @blur="validator.individual_recognition[recognitionIndex - 1].recognition.$touch()"
                               />
                               <!-- Delete button aligned right, below label -->
                               <Button
@@ -937,7 +1084,10 @@ defineExpose({
                                 @click="handleRemoveRecognition(recognitionIndex)"
                                 v-tooltip.top="'Remove Non-Academic Distinctions / Recognition'"
                                 severity="danger"
-                                class="mb-2 text-lg font-semibold dark:text-primary-100 md:mb-2"
+                                :class="[
+                                  'text-lg font-semibold dark:text-primary-100',
+                                  validator.individual_recognition[recognitionIndex - 1].recognition.$error ? 'mb-8' : 'mb-2',
+                                ]"
                                 text
                               />
                             </div>
@@ -967,7 +1117,7 @@ defineExpose({
                     </span>
                   </div>
 
-                  <!-- VIII. Other Information -->
+                  <!-- Membership in Association / Organization -->
                   <div class="flex flex-col gap-4">
                     <span class="flex flex-col justify-center space-y-2 font-medium">
                       <p class="text-xl italic text-primary-700 md:text-2xl">Membership in Association / Organization</p>
@@ -994,6 +1144,12 @@ defineExpose({
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                                :invalidText="
+                                  validator.individual_membership[membershipIndex - 1].association_organization.$errors[0]
+                                    ?.$message
+                                "
+                                :invalid="validator.individual_membership[membershipIndex - 1].association_organization.$error"
+                                @blur="validator.individual_membership[membershipIndex - 1].association_organization.$touch()"
                               />
                               <!-- Delete button aligned right, below label -->
                               <Button
@@ -1004,7 +1160,12 @@ defineExpose({
                                 @click="handleRemoveMembership(membershipIndex)"
                                 v-tooltip.top="'Remove Membership in Association / Organization'"
                                 severity="danger"
-                                class="mb-2 text-lg font-semibold dark:text-primary-100 md:mb-2"
+                                :class="[
+                                  'text-lg font-semibold dark:text-primary-100',
+                                  validator.individual_membership[membershipIndex - 1].association_organization.$error
+                                    ? 'mb-8'
+                                    : 'mb-2',
+                                ]"
                                 text
                               />
                             </div>
