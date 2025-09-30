@@ -477,8 +477,9 @@ defineExpose({
                       </p>
                     </span>
                     <div class="col-span-2 my-4 ml-4">
-                      <div class="align-items-center flex items-center">
+                      <div v-if="!pdsStore.isMyPds" class="align-items-center flex items-center">
                         <Checkbox
+                          :disabled="pdsStore.isMyPds"
                           v-model="currentlyInvolved"
                           :id="getId('input-currently-involve')"
                           :inputId="getId('input-currently-involve')"
@@ -508,6 +509,7 @@ defineExpose({
                               <WbInputText
                                 v-model="payload.individual_voluntary_work[voluntaryWorkIndex - 1].org_name"
                                 label="Name of Organization"
+                                :disabled="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -517,6 +519,7 @@ defineExpose({
                               <WbInputText
                                 v-model="payload.individual_voluntary_work[voluntaryWorkIndex - 1].org_address"
                                 label="Address of Organization"
+                                :disabled="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -528,6 +531,7 @@ defineExpose({
                               <WbCalendar
                                 v-model="payload.individual_voluntary_work[voluntaryWorkIndex - 1].from"
                                 label="From"
+                                :disabled="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 :dateFormat="'yy-mm-dd'"
@@ -546,6 +550,7 @@ defineExpose({
                                 v-if="!currentlyInvolved"
                                 v-model="payload.individual_voluntary_work[voluntaryWorkIndex - 1].to"
                                 label="To"
+                                :disabled="pdsStore.isMyPds"
                                 :dateFormat="'yy-mm-dd'"
                                 class="w-full text-sm"
                                 label-class="text-md text-surface-600 md:text-sm"
@@ -572,6 +577,7 @@ defineExpose({
                               <WbCalendar
                                 v-model="payload.individual_voluntary_work[voluntaryWorkIndex - 1].to"
                                 label="To"
+                                :disabled="pdsStore.isMyPds"
                                 :dateFormat="'yy-mm-dd'"
                                 class="w-full text-sm"
                                 label-class="text-md text-surface-600 md:text-sm"
@@ -586,6 +592,7 @@ defineExpose({
                               <WbInputText
                                 v-model="payload.individual_voluntary_work[voluntaryWorkIndex - 1].number_of_hours"
                                 label="No of Hours"
+                                :disabled="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -595,12 +602,14 @@ defineExpose({
                               <WbInputText
                                 v-model="payload.individual_voluntary_work[voluntaryWorkIndex - 1].position_nature_of_work"
                                 label="Position / Nature of Work"
+                                :disabled="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                               />
                               <!-- Delete button aligned right, below label -->
                               <Button
+                                v-if="!pdsStore.isMyPds"
                                 v-show="voluntaryWorkIndex > 0"
                                 :id="getId(`button-remove-voluntary-work-${voluntaryWorkIndex}`)"
                                 icon="pi pi-trash"
@@ -617,7 +626,7 @@ defineExpose({
                       </TransitionRoot>
                     </template>
                     <Button
-                      v-if="payload.individual_voluntary_work.length < 7"
+                      v-if="payload.individual_voluntary_work.length < 7 && !pdsStore.isMyPds"
                       label="Add additional Voluntary Work field"
                       @click="handleAdditionalVoluntaryWork"
                       size="large"
@@ -676,6 +685,7 @@ defineExpose({
                               <WbInputText
                                 v-model="payload.individual_lnd[learningDevelopmentIndex - 1].title"
                                 label="Title of L & D Interventions / Training Programs"
+                                :disabled="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-xs md:mb-1"
                                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -690,6 +700,7 @@ defineExpose({
                               <WbCalendar
                                 v-model="payload.individual_lnd[learningDevelopmentIndex - 1].from"
                                 label="From"
+                                :disabled="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 :dateFormat="'yy-mm-dd'"
@@ -705,6 +716,7 @@ defineExpose({
                               <WbCalendar
                                 v-model="payload.individual_lnd[learningDevelopmentIndex - 1].to"
                                 label="To"
+                                :disabled="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 :dateFormat="'yy-mm-dd'"
@@ -720,6 +732,7 @@ defineExpose({
                               <WbInputText
                                 v-model="payload.individual_lnd[learningDevelopmentIndex - 1].number_of_hours"
                                 label="No of Hours"
+                                :disabled="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -738,6 +751,7 @@ defineExpose({
                               <WbInputText
                                 v-model="payload.individual_lnd[learningDevelopmentIndex - 1].type"
                                 label="Type of LD"
+                                :disabled="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -753,6 +767,7 @@ defineExpose({
                               <WbInputText
                                 v-model="payload.individual_lnd[learningDevelopmentIndex - 1].conducted_sponsor"
                                 label="Conducted / Sponsored By"
+                                :disabled="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 class="lg:text-md lg:placeholder:text-md flex-1 text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -765,6 +780,7 @@ defineExpose({
                               />
                               <!-- Delete button aligned right, below label -->
                               <Button
+                                v-if="!pdsStore.isMyPds"
                                 v-show="learningDevelopmentIndex > 0"
                                 :id="getId(`button-remove-learning-development-${learningDevelopmentIndex}`)"
                                 icon="pi pi-trash"
@@ -782,7 +798,7 @@ defineExpose({
                     </template>
 
                     <Button
-                      v-if="payload.individual_lnd.length < 21"
+                      v-if="payload.individual_lnd.length < 21 && !pdsStore.isMyPds"
                       label="Add additional L&D field"
                       @click="handleAdditionalLearningDevelopment"
                       size="large"
@@ -841,12 +857,14 @@ defineExpose({
                               <WbInputText
                                 v-model="payload.individual_skills_hobby[skillHobbiesIndex - 1].skill_hobby"
                                 label="Special Skill / Hobby"
+                                :disabled="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                               />
                               <!-- Delete button aligned right, below label -->
                               <Button
+                                v-if="!pdsStore.isMyPds"
                                 v-show="skillHobbiesIndex > 0"
                                 :id="getId(`button-remove-skill-hobbies-${skillHobbiesIndex}`)"
                                 icon="pi pi-trash"
@@ -863,7 +881,7 @@ defineExpose({
                       </TransitionRoot>
                     </template>
                     <Button
-                      v-if="payload.individual_skills_hobby.length < 7"
+                      v-if="payload.individual_skills_hobby.length < 7 && !pdsStore.isMyPds"
                       label="Add additional Special Skills and Hobbies field"
                       @click="handleAdditionalSkillHobbies"
                       size="large"
@@ -905,12 +923,14 @@ defineExpose({
                               <WbInputText
                                 v-model="payload.individual_recognition[recognitionIndex - 1].recognition"
                                 label="Non-Academic Distinction / Recognition"
+                                :disabled="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                               />
                               <!-- Delete button aligned right, below label -->
                               <Button
+                                v-if="!pdsStore.isMyPds"
                                 v-show="recognitionIndex > 0"
                                 :id="getId(`button-remove-recognition-${recognitionIndex}`)"
                                 icon="pi pi-trash"
@@ -927,7 +947,7 @@ defineExpose({
                       </TransitionRoot>
                     </template>
                     <Button
-                      v-if="payload.individual_work_experience.length < 7"
+                      v-if="payload.individual_work_experience.length < 7 && !pdsStore.isMyPds"
                       label="Add additional Non-Academic Distinctions / Recognition field"
                       @click="handleAdditionalRecognition"
                       size="large"
@@ -970,12 +990,14 @@ defineExpose({
                               <WbInputText
                                 v-model="payload.individual_membership[membershipIndex - 1].association_organization"
                                 label="Association / Organization"
+                                :disabled="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                               />
                               <!-- Delete button aligned right, below label -->
                               <Button
+                                v-if="!pdsStore.isMyPds"
                                 v-show="membershipIndex > 0"
                                 :id="getId(`button-remove-membership-${membershipIndex}`)"
                                 icon="pi pi-trash"
@@ -992,7 +1014,7 @@ defineExpose({
                       </TransitionRoot>
                     </template>
                     <Button
-                      v-if="payload.individual_work_experience.length < 28"
+                      v-if="payload.individual_work_experience.length < 28 && !pdsStore.isMyPds"
                       label="Add additional Membership in Association / Organization field"
                       @click="handleAdditionalMembership"
                       size="large"

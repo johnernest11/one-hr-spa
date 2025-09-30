@@ -765,7 +765,7 @@ defineExpose({
                       </p>
                     </span>
                     <div class="col-span-2 my-4 ml-4">
-                      <div class="align-items-center flex items-center">
+                      <div v-if="!pdsStore.isMyPds" class="align-items-center flex items-center">
                         <Checkbox
                           v-model="isCurrentlyEmployed"
                           :id="getId('input-currently-working')"

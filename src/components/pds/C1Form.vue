@@ -60,6 +60,10 @@ const selectedOffice = ref<WbAutoCompleteOption | null>(null)
 const selectedDivision = ref<WbAutoCompleteOption | null>(null)
 const selectedSectionUnit = ref<WbAutoCompleteOption | null>(null)
 
+const ppmsCanUpdate = computed(() => {
+  return authStore.authHasRequiredRole(['hr_pas_admin'])
+})
+
 /** Payload */
 const payload = reactive<PersonalDataSheetPayload>({
   ...pdsStore.pdsInfo,
@@ -1156,11 +1160,14 @@ onMounted(async () => {
           case 'Mother':
             Object.assign(payload.individual_family_mothers_maiden, fam)
             break
-          case 'Children':
-            payload.individual_family_children.push(fam) // array of children
-            break
         }
       })
+      payload.individual_family_children = familyArray
+        .filter((fam) => fam.class === 'Children')
+        .map((child) => ({
+          ...child,
+          _delete: null,
+        }))
     } else {
       console.warn('Failed to fetch PDS by ID or response unsuccessful.')
     }
@@ -1406,7 +1413,7 @@ defineExpose({
                           optionLabel="label"
                           optionValue="value"
                           required
-                          :disabled="pdsStore.isMyPds"
+                          :disabled="pdsStore.isMyPds || ppmsCanUpdate"
                           @on-true-value-computed="
                             (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
                               useWbAutoCompleteHandleTrueValue(value, toRef(payload.employee, 'item_id'))
@@ -2366,9 +2373,10 @@ defineExpose({
                         @blur="validator.individual_family_spouse.business_address.$touch"
                       />
 
-                      <WbInputText
+                      <WbInputMask
                         v-model="payload.individual_family_spouse.telephone_no"
                         label="Telephone No"
+                        mask="(999) 999-9999"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         :disabled="isSingle && pdsStore.isMyPds"
@@ -2842,7 +2850,7 @@ defineExpose({
                     <span class="mt-4 flex flex-col justify-center space-y-2 font-medium text-primary-700">
                       <p class="text-lg italic md:text-xl">Vocational / Trade Course</p>
                     </span>
-                    <div v-if="!currentlyEnrolledGraduate" class="col-span-2 my-4 ml-4">
+                    <div v-if="!currentlyEnrolledGraduate && !pdsStore.isMyPds" class="col-span-2 my-4 ml-4">
                       <div class="align-items-center flex items-center">
                         <Checkbox
                           :disabled="pdsStore.isMyPds"
@@ -3084,7 +3092,7 @@ defineExpose({
                     <span class="mt-4 flex flex-col justify-center space-y-2 font-medium text-primary-700">
                       <p class="text-lg italic md:text-xl">Graduate Studies</p>
                     </span>
-                    <div v-if="!currentlyEnrolledVocational" class="col-span-2 my-4 ml-4">
+                    <div v-if="!currentlyEnrolledVocational && !pdsStore.isMyPds" class="col-span-2 my-4 ml-4">
                       <div class="align-items-center flex items-center">
                         <Checkbox
                           :disabled="pdsStore.isMyPds"
