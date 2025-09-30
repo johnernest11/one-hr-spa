@@ -22,7 +22,7 @@ import {
 import { useApiCall } from '@/composables/network'
 import { useAuthStore } from '@/stores/auth.store.ts'
 import { ApiResponseBody } from '@/typings/http-resources.types'
-import { formatDateFields, formatToYMD, formatValidationDate, formatYear } from '@/utils/helpers.js'
+import { formatDateFields, formatValidationDate, formatYear } from '@/utils/helpers.js'
 
 import { useRoute } from 'vue-router'
 import { BloodType, CivilStatusType, SexType } from '@/typings/employee-entry.types'
@@ -841,10 +841,6 @@ export const usePdsStore = defineStore('pds', () => {
 
   const savePds = async (payload: PersonalDataSheetPayload) => {
     const uri = '/individual-basic-details'
-
-    if (payload.individual?.birthday) {
-      payload.individual.birthday = formatToYMD(payload.individual.birthday)
-    }
 
     // Format education dates to 'YYYY'
     payload.individual_educational_background.forEach((edu) => {

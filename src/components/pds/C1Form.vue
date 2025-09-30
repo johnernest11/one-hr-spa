@@ -868,8 +868,24 @@ watch(
       const dd = String(date.getDate()).padStart(2, '0')
       const yyyy = date.getFullYear()
 
-      payload.individual.birthday = `${mm}/${dd}/${yyyy}`
+      payload.individual.birthday = `${yyyy}-${mm}-${dd}`
     }
+  }
+)
+
+watch(
+  () => payload.individual_family_children.map((c) => c.date_of_birth),
+  (newDates) => {
+    newDates.forEach((bday, index) => {
+      if (bday) {
+        const date = new Date(bday)
+        const mm = String(date.getMonth() + 1).padStart(2, '0')
+        const dd = String(date.getDate()).padStart(2, '0')
+        const yyyy = date.getFullYear()
+
+        payload.individual_family_children[index].date_of_birth = `${yyyy}-${mm}-${dd}`
+      }
+    })
   }
 )
 
@@ -1574,6 +1590,10 @@ const handleSaveC1Form = async () => {
     payload.individual_educational_background.push({ ...payload.educations.graduate })
   }
 
+  if (payload.employee.item?.number) {
+    await itemStore.updateItemStatus(payload.employee.item?.number)
+  }
+
   const response = await pdsStore.savePds(payload)
 
   if (!response.success) {
@@ -1584,9 +1604,6 @@ const handleSaveC1Form = async () => {
     pdsErrors.value = result?.errors
     showToast('error', 'PDS Error', 'Pease see the validation messages')
   } else {
-    if (payload.employee.item?.number) {
-      await itemStore.updateItemStatus(payload.employee.item?.number)
-    }
     showToast('success', 'Personal Data Sheet (PDS)', 'PDS has been successfully updated.')
     router.push({ name: 'employment' })
   }
@@ -1885,21 +1902,6 @@ defineExpose({
                       </WbDropdown>
                       <WbCalendar
                         v-model="payload.individual.birthday"
-                        required
-                        label="From"
-                        :disabled="pdsStore.isMyPds"
-                        label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                        class="lg:text-md w-full text-sm placeholder:text-sm"
-                        :view="'year'"
-                        :dateFormat="'yy'"
-                        validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                        :invalid="validator.educations.elementary.period_of_attendance_from.$invalid"
-                        :invalid-text="validator.educations.elementary.period_of_attendance_from.$errors[0]?.$message"
-                        @blur="validator.educations.elementary.period_of_attendance_from.$touch"
-                      />
-                      <WbCalendar
-                        v-model="payload.individual.birthday"
-                        dateFormat="yy"
                         required
                         :disabled="pdsStore.isMyPds"
                         label="Date of Birth"
