@@ -6,7 +6,7 @@ import { ApiResponseBody } from '@/typings/http-resources.types.ts'
 import { useDateFormat } from '@vueuse/core'
 import { ref } from 'vue'
 import { WbAutoCompleteOption } from '@/components/webkit/WbAutoComplete.vue'
-/** Typings for Creating & Fecthing  Item Number */
+
 export type ItemNumberPayload = {
   number: string | null
   date_of_creation: string
@@ -20,7 +20,6 @@ export type ItemNumberPayload = {
 }
 
 export const useItemNumberStore = defineStore('item-number', () => {
-  /** States */
   const auth = useAuthStore()
   const itemNumbers = ref<ItemNumberResponse[]>([])
   const itemNumbersSuggestions = ref<WbAutoCompleteOption[]>([])

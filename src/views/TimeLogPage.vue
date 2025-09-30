@@ -14,8 +14,6 @@ import { WbAutoCompleteOption } from '@/components/webkit/WbAutoComplete.vue'
 
 interface Log {
   id: string | number
-  name: string
-  position: string
   timestamp: string
   is_in: boolean
   captured_image?: string
@@ -36,9 +34,7 @@ const todayISO = ref('')
 const errorMessage = ref<string | null>(null)
 const cameraError = ref<string | null>(null)
 const isMobile = ref(false)
-
 const MODAL_DISPLAY_DURATION_MS = 10000
-const isProcessingScan = ref(false)
 
 const scanTimeoutId = ref<number | undefined>(undefined)
 const intervalId = ref<number | undefined>(undefined)
@@ -58,29 +54,14 @@ const startTimeLogs = () => {
 
 const updateDailyLogsState = async (date: string) => {
   await dailyLogsStore.fetchDailyLogs(date)
-  const rawLogs = dailyLogsStore.getTodayWarmBodies(date)
-
-  recentLogs.value = rawLogs
-    .map((entry) => {
-      const basic = entry.daily_time_record?.employee?.individual_basic_detail
-      const position = entry.daily_time_record?.employee?.item?.position?.title ?? 'Unknown'
-
-      const name = basic
-        ? `${basic.first_name} ${basic.middle_name ? basic.middle_name + ' ' : ''}${basic.last_name}${basic.ext_name ? ' ' + basic.ext_name : ''}`
-        : 'Unknown'
-
-      const photoUrl = basic?.user_profile?.profile_picture_url ?? undefined
-
-      return {
-        id: entry.id,
-        name,
-        position,
-        timestamp: entry.timestamp,
-        is_in: entry.is_in,
-        photo_url: photoUrl,
-      }
-    })
+  recentLogs.value = dailyLogsStore
+    .getTodayWarmBodies(date)
     .slice(0, 10)
+    .map((log) => ({
+      id: log.employee_id,
+      timestamp: log.timestamp,
+      is_in: log.is_in,
+    }))
 }
 
 const updateDateTime = () => {
@@ -106,6 +87,7 @@ const updateDateTime = () => {
 }
 
 onMounted(async () => {
+  await librariesStore.fetchOffices()
   if (dailyLogsStore.timelogOfficeId) {
     showOfficeSelectionModal.value = false
     selectedOffice.value = librariesStore.officeOptions.find((office) => office.value === dailyLogsStore.timelogOfficeId)
@@ -147,12 +129,11 @@ onUnmounted(() => {
 })
 
 const onDetect = (detectedCodes: DetectedBarcode[]) => {
-  if (detectedCodes.length > 0 && !isProcessingScan.value) {
-    const firstCode = detectedCodes[0]
-    const decodedString = firstCode.rawValue
-    isProcessingScan.value = true
-    onDecode(decodedString)
-  }
+  if (!detectedCodes.length) return
+
+  const firstCode = detectedCodes[0]
+  const decodedString = firstCode.rawValue
+  onDecode(decodedString)
 }
 
 const capturePhoto = () => {
@@ -171,45 +152,41 @@ const capturePhoto = () => {
 }
 
 const onDecode = async (result: string) => {
-  if (scanTimeoutId.value) {
-    clearTimeout(scanTimeoutId.value)
-    scanTimeoutId.value = undefined
-  }
-  if (showModal.value) handleCloseDialog()
+  handleCloseDialog()
 
-  dailyLogsStore.clearScannedEmployee()
-  errorMessage.value = null
-
-  const capturedImage = capturePhoto()
-
-  if (!result || result.trim() === '') {
-    dailyLogsStore.lastLogMessage = 'Empty QR code scanned. Please try again.'
-    showModal.value = true
-    isProcessingScan.value = false
-    scanTimeoutId.value = setTimeout(() => handleCloseDialog(), MODAL_DISPLAY_DURATION_MS) as unknown as number
-    return
-  }
+  const imageData = capturePhoto()
+  const today = getManilaTodayISO()
+  let success = false
+  let message: string = 'Processing...'
 
   try {
     const response = await dailyLogsStore.logEmployeeTime({
       scanned_qr: result,
-      captured_image: capturedImage,
+      captured_image: imageData,
     })
-    if (response?.data) {
-      const newLog = response.data as Log
-      if (!newLog.captured_image && capturedImage) {
-        newLog.captured_image = capturedImage
+
+    success = response.success
+    message = response.message || (success ? 'Log successful' : 'An unknown error occurred')
+
+    if (success) {
+      await dailyLogsStore.fetchWarmBodySummary(today)
+      await updateDailyLogsState(today)
+      if (dailyLogsStore.currentScannedEmployee) {
+        dailyLogsStore.currentScannedEmployee.captured_image = imageData as string
       }
-      recentLogs.value.unshift(newLog)
-      recentLogs.value = recentLogs.value.slice(0, 10)
-      showModal.value = true
-    } else {
-      dailyLogsStore.lastLogMessage = 'QR Code not recognized. Please try again.'
-      showModal.value = true
     }
-  } catch (err) {
-    dailyLogsStore.lastLogMessage = 'An error occurred while logging. Please try again.'
+  } catch (error) {
+    console.error('Time log error:', error)
+    success = false
+    message = 'Network or server error during log attempt.'
+  } finally {
+    dailyLogsStore.lastLogMessage = message
+
     showModal.value = true
+
+    setTimeout(() => {
+      handleCloseDialog()
+    }, MODAL_DISPLAY_DURATION_MS)
   }
 }
 
@@ -335,10 +312,9 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
                 <tr v-for="entry in latestWarmBodyLogs" :key="entry.id">
                   <td class="p-2">
                     <img
-                      v-if="entry.captured_image || entry.photo_url"
-                      :src="entry.captured_image || entry.photo_url"
-                      alt="Captured"
-                      class="h-14 w-14 rounded-md object-cover"
+                      :src="dailyLogsStore.currentScannedEmployee?.captured_image"
+                      alt="Employee Profile Photo"
+                      class="aspect-[2270/2479] h-auto max-w-full rounded-lg shadow"
                     />
                   </td>
 
@@ -429,10 +405,9 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
 
             <div class="mb-4 flex justify-center">
               <img
-                :src="dailyLogsStore.currentScannedEmployee?.photo_url || dswdLogoMark"
+                :src="dswdLogoMark || dailyLogsStore.currentScannedEmployee?.photo_url"
                 alt="Employee Profile Photo"
-                class="h-auto max-w-full rounded-lg shadow"
-                style="aspect-ratio: 2270 / 2479"
+                class="aspect-[2270/2479] h-auto max-w-full rounded-lg shadow"
               />
             </div>
 

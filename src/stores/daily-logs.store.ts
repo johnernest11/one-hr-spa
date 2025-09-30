@@ -7,7 +7,6 @@ import type { ApiResponseBody, WarmBodyLogEntry, DailyLogEntry } from '@/typings
 import type { ScannedEmployeeResponse } from '@/typings/models.types'
 import type { WbAutoCompleteOption } from '@/components/webkit/WbAutoComplete.vue'
 
-/** Interfaces */
 interface DivisionSectionSummary {
   name: string
   count: number
@@ -46,6 +45,10 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
   const currentScannedEmployee = ref<ScannedEmployeeResponse | null>(null)
   const lastLogMessage = ref<string | null>(null)
   const warmBodySummary = ref<WarmBodySummary | null>(null)
+  const showModal = ref(false)
+
+  let modalTimer: ReturnType<typeof setTimeout> | null = null
+
   const countIn = computed(
     () => (date: string) => dailyLogs.value.find((l) => l.date === date)?.warm_bodies.filter((wb) => wb.is_in).length ?? 0
   )
@@ -53,14 +56,6 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
   const countOut = computed(
     () => (date: string) => dailyLogs.value.find((l) => l.date === date)?.warm_bodies.filter((wb) => !wb.is_in).length ?? 0
   )
-
-  const setOffice = (office: WbAutoCompleteOption) => {
-    timelogOfficeId.value = office.value as string
-  }
-
-  const clearOffice = () => {
-    timelogOfficeId.value = null
-  }
 
   const getTodayWarmBodies = computed(
     () => (date: string) =>
@@ -71,79 +66,33 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
         : []
   )
 
-  const logEmployeeTime = async (payload: { scanned_qr: string; captured_image: string | null }) => {
-    const { data, error } = await useApiCall('employees/log-time', authStore.authenticationToken).post(payload).json()
+  const setOffice = (office: WbAutoCompleteOption) => {
+    timelogOfficeId.value = office.value as string
+  }
 
-    if (error.value) {
-      return {
-        success: false,
-        message: error.value.message || 'Request failed',
-        data: null,
-      }
-    }
+  const clearOffice = () => {
+    timelogOfficeId.value = null
+  }
 
-    return data.value as ApiResponseBody
+  const showScannedEmployeeModal = (employee: ScannedEmployeeResponse | null, message: string) => {
+    currentScannedEmployee.value = employee
+    lastLogMessage.value = message
+    showModal.value = true
+
+    if (modalTimer) clearTimeout(modalTimer)
+
+    modalTimer = setTimeout(() => {
+      showModal.value = false
+      currentScannedEmployee.value = null
+      lastLogMessage.value = null
+    }, 10000)
   }
 
   const clearScannedEmployee = () => {
     currentScannedEmployee.value = null
     lastLogMessage.value = null
-  }
-
-  const fetchDailyLogs = async (date: string) => {
-    try {
-      const { data, error } = await useApiCall(
-        `employees/daily-time-records/time-logs?date=${date}`,
-        authStore.authenticationToken
-      )
-        .get()
-        .json()
-
-      if (error.value) return { success: false, message: error.value.message }
-
-      const responseBody: ApiResponseBody = data.value
-      if (!responseBody.success || !Array.isArray(responseBody.data)) {
-        updateDailyLogs(date, [])
-        return responseBody
-      }
-
-      const mappedLogs = (responseBody.data as TimeLogEntry[]).map((log) => ({
-        employee_id: log.id_number,
-        timestamp: `${log.time_log_date}T${log.scanned_time}`,
-        is_in: log.is_in,
-        id: log.time_log_id,
-        daily_time_record_id: undefined,
-      }))
-
-      updateDailyLogs(date, mappedLogs)
-      return { success: true, message: responseBody.message }
-    } catch {
-      updateDailyLogs(date, [])
-      return { success: false, message: 'Failed to fetch daily logs.' }
-    }
-  }
-
-  const fetchWarmBodySummary = async (date: string) => {
-    try {
-      const { data, error } = await useApiCall(
-        `/employees/daily-time-records/warm-bodies/count?date=${date}`,
-        authStore.authenticationToken
-      )
-        .get()
-        .json()
-
-      if (error.value) {
-        warmBodySummary.value = null
-        return { success: false, message: error.value.message }
-      }
-
-      const responseBody: ApiResponseBody = data.value
-      warmBodySummary.value = responseBody.success ? (responseBody.data as WarmBodySummary) : null
-      return responseBody
-    } catch {
-      warmBodySummary.value = null
-      return { success: false, message: 'Failed to fetch warm body summary.' }
-    }
+    showModal.value = false
+    if (modalTimer) clearTimeout(modalTimer)
   }
 
   const updateDailyLogs = (date: string, logs: WarmBodyLogEntry[]) => {
@@ -155,12 +104,51 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     }
   }
 
+  const logEmployeeTime = async (payload: { scanned_qr: string; captured_image: string | null }) => {
+    const { data } = await useApiCall('employees/log-time', authStore.authenticationToken).post(payload).json()
+    const responseBody: ApiResponseBody = data.value
+    return responseBody
+  }
+
+  const fetchDailyLogs = async (date: string) => {
+    const officeId = timelogOfficeId.value
+    let url = `employees/daily-time-records/time-logs?date=${date}`
+    if (officeId) url += `&office_id=${officeId}`
+    const { data } = await useApiCall(url, authStore.authenticationToken).get().json()
+    const responseBody: ApiResponseBody = data.value
+
+    if (responseBody?.success && Array.isArray(responseBody.data)) {
+      const mappedLogs = (responseBody.data as TimeLogEntry[]).map((log) => ({
+        employee_id: log.id_number,
+        timestamp: `${log.time_log_date}T${log.scanned_time}`,
+        is_in: log.is_in,
+        id: log.time_log_id,
+        created_at: undefined,
+        updated_at: undefined,
+        daily_time_record: undefined,
+      }))
+      updateDailyLogs(date, mappedLogs as WarmBodyLogEntry[])
+    } else if (responseBody) {
+      updateDailyLogs(date, [])
+    }
+    return responseBody
+  }
+
+  const fetchWarmBodySummary = async (date: string) => {
+    const url = `/employees/daily-time-records/warm-bodies/count?date=${date}`
+    const { data } = await useApiCall(url, authStore.authenticationToken).get().json()
+    const responseBody: ApiResponseBody = data.value
+    warmBodySummary.value = responseBody?.success ? (responseBody.data as WarmBodySummary) : null
+    return responseBody
+  }
+
   return {
     timelogOfficeId,
     dailyLogs,
     currentScannedEmployee,
     lastLogMessage,
     warmBodySummary,
+    showModal,
     countIn,
     countOut,
     getTodayWarmBodies,
@@ -170,5 +158,7 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     fetchWarmBodySummary,
     setOffice,
     clearOffice,
+    showScannedEmployeeModal,
+    updateDailyLogs,
   }
 })
