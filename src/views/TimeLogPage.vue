@@ -314,8 +314,7 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
                     <img
                       :src="dailyLogsStore.currentScannedEmployee?.captured_image"
                       alt="Employee Profile Photo"
-                      class="h-auto max-w-full rounded-lg shadow"
-                      style="aspect-ratio: 2270 / 2479"
+                      class="aspect-[2270/2479] h-auto max-w-full rounded-lg shadow"
                     />
                   </td>
 
@@ -408,8 +407,7 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
               <img
                 :src="dswdLogoMark || dailyLogsStore.currentScannedEmployee?.photo_url"
                 alt="Employee Profile Photo"
-                class="h-auto max-w-full rounded-lg shadow"
-                style="aspect-ratio: 2270 / 2479"
+                class="aspect-[2270/2479] h-auto max-w-full rounded-lg shadow"
               />
             </div>
 
