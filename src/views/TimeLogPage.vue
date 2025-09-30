@@ -11,12 +11,9 @@ import { getManilaTodayISO, formatTime } from '@/utils/helpers.ts'
 import dswdLogoMark from '@/assets/image/DSWD logo_Mark.png'
 import WbAutoComplete from '@/components/webkit/WbAutoComplete.vue'
 import { WbAutoCompleteOption } from '@/components/webkit/WbAutoComplete.vue'
-import type { WarmBodyLogEntry } from '@/typings/http-resources.types.ts'
 
 interface Log {
   id: string | number
-  name: string
-  position: string
   timestamp: string
   is_in: boolean
   captured_image?: string
@@ -47,7 +44,6 @@ const qrStreamRef = ref<InstanceType<typeof QrcodeStream> | null>(null)
 const selectedOffice = ref<WbAutoCompleteOption | null | undefined>(null)
 
 const recentLogs = ref<Log[]>([])
-const currentScanContent = ref<string | null>(null)
 
 const startTimeLogs = () => {
   if (selectedOffice.value) {
@@ -58,22 +54,14 @@ const startTimeLogs = () => {
 
 const updateDailyLogsState = async (date: string) => {
   await dailyLogsStore.fetchDailyLogs(date)
-
   recentLogs.value = dailyLogsStore
     .getTodayWarmBodies(date)
     .slice(0, 10)
-    .map((logEntry: WarmBodyLogEntry) => {
-      const employee = logEntry.daily_time_record?.employee
-      const basicDetails = employee?.individual_basic_detail
-      return {
-        id: employee?.id_number || logEntry.employee_id,
-        name: `${basicDetails?.first_name || ''} ${basicDetails?.last_name || ''}`.trim() || 'N/A',
-        position: employee?.item?.position?.title || 'N/A',
-        timestamp: logEntry.timestamp,
-        is_in: logEntry.is_in,
-        photo_url: basicDetails?.user_profile?.profile_picture_url,
-      } as Log
-    })
+    .map((log) => ({
+      id: log.employee_id,
+      timestamp: log.timestamp,
+      is_in: log.is_in,
+    }))
 }
 
 const updateDateTime = () => {
@@ -145,15 +133,10 @@ const onDetect = (detectedCodes: DetectedBarcode[]) => {
 
   const firstCode = detectedCodes[0]
   const decodedString = firstCode.rawValue
-
-  if (currentScanContent.value === decodedString) return
-
-  currentScanContent.value = decodedString
-
   onDecode(decodedString)
 }
 
-const capturePhoto = (): string | null => {
+const capturePhoto = () => {
   if (!qrStreamRef.value) return null
   const videoElement = qrStreamRef.value.$el.querySelector('video')
   if (!videoElement) return null
@@ -168,15 +151,13 @@ const capturePhoto = (): string | null => {
   return null
 }
 
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
-
 const onDecode = async (result: string) => {
   handleCloseDialog()
 
   const imageData = capturePhoto()
   const today = getManilaTodayISO()
   let success = false
-  let message = 'Processing...'
+  let message: string = 'Processing...'
 
   try {
     const response = await dailyLogsStore.logEmployeeTime({
@@ -190,9 +171,8 @@ const onDecode = async (result: string) => {
     if (success) {
       await dailyLogsStore.fetchWarmBodySummary(today)
       await updateDailyLogsState(today)
-
-      if (dailyLogsStore.currentScannedEmployee && imageData !== null) {
-        dailyLogsStore.currentScannedEmployee.captured_image = imageData
+      if (dailyLogsStore.currentScannedEmployee) {
+        dailyLogsStore.currentScannedEmployee.captured_image = imageData as string
       }
     }
   } catch (error) {
@@ -203,11 +183,10 @@ const onDecode = async (result: string) => {
     dailyLogsStore.lastLogMessage = message
 
     showModal.value = true
-    await delay(MODAL_DISPLAY_DURATION_MS)
 
-    handleCloseDialog()
-
-    currentScanContent.value = null
+    setTimeout(() => {
+      handleCloseDialog()
+    }, MODAL_DISPLAY_DURATION_MS)
   }
 }
 
@@ -335,7 +314,8 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
                     <img
                       :src="dailyLogsStore.currentScannedEmployee?.captured_image"
                       alt="Employee Profile Photo"
-                      class="aspect-[2270/2479] h-auto max-w-full rounded-lg shadow"
+                      class="h-auto max-w-full rounded-lg shadow"
+                      style="aspect-ratio: 2270 / 2479"
                     />
                   </td>
 
@@ -378,8 +358,10 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
               :constraints="{ facingMode: 'environment' }"
               @init="onInit"
               @camera-error="onCameraError"
+              :paused="false"
               class="h-full w-full object-cover"
             />
+
             <img
               src="@/assets/image/scanning.gif"
               alt="Scanning Animation"
@@ -426,7 +408,8 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
               <img
                 :src="dswdLogoMark || dailyLogsStore.currentScannedEmployee?.photo_url"
                 alt="Employee Profile Photo"
-                class="aspect-[2270/2479] h-auto max-w-full rounded-lg shadow"
+                class="h-auto max-w-full rounded-lg shadow"
+                style="aspect-ratio: 2270 / 2479"
               />
             </div>
 
