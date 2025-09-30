@@ -646,3 +646,22 @@ export function getPositionCode(label: string | null | undefined): string | null
 
   return initials
 }
+
+// utils/dateHelpers.ts
+export const formatToYMD = (date: string | Date | null): string | null => {
+  if (!date) return null
+  if (date instanceof Date) {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+  // Assume string in MM/DD/YYYY or YYYY-MM-DD
+  const parts = date.split('/')
+  if (parts.length === 3) {
+    // Convert MM/DD/YYYY → YYYY-MM-DD
+    const [month, day, year] = parts
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+  }
+  return date // already in YYYY-MM-DD
+}
