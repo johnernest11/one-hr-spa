@@ -63,10 +63,23 @@ onMounted(async () => {
   const hasImport = !!pdsStore.importResult
 
   if (hasImport) {
-    Object.assign(payload.individual_eligibility, pdsStore.importResult?.individual_eligibility ?? {})
-    Object.assign(payload.individual_work_experience, pdsStore.importResult?.individual_work_experience ?? {})
+    const importedEligibility = pdsStore.importResult?.individual_eligibility ?? []
+    const filteredEligibility = removeEmptyArrays(importedEligibility)
+    const importedWork = pdsStore.importResult?.individual_work_experience ?? []
+    const filteredWork = removeEmptyArrays(importedWork)
+    Object.assign(payload.individual_eligibility, filteredEligibility)
+    Object.assign(payload.individual_work_experience, filteredWork)
   }
 })
+
+const removeEmptyArrays = <T,>(arr: T[]): T[] => {
+  return arr.filter((item) => {
+    if (Array.isArray(item) && item.length === 0) {
+      return false
+    }
+    return true
+  })
+}
 
 onMounted(() => {
   useCustomSalaryGrade.value = payload.individual_work_experience.map(
