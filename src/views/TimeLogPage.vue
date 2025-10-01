@@ -45,23 +45,31 @@ const selectedOffice = ref<WbAutoCompleteOption | null | undefined>(null)
 
 const recentLogs = ref<Log[]>([])
 
-const startTimeLogs = () => {
+const startTimeLogs = async () => {
   if (selectedOffice.value) {
     dailyLogsStore.setOffice(selectedOffice.value)
     showOfficeSelectionModal.value = false
+    const today = getManilaTodayISO()
+    await dailyLogsStore.fetchWarmBodySummary(today)
+    await updateDailyLogsState(today)
   }
 }
 
 const updateDailyLogsState = async (date: string) => {
   await dailyLogsStore.fetchDailyLogs(date)
-  recentLogs.value = dailyLogsStore
-    .getTodayWarmBodies(date)
-    .slice(0, 10)
-    .map((log) => ({
-      id: log.employee_id,
-      timestamp: log.timestamp,
-      is_in: log.is_in,
-    }))
+
+  const logs = dailyLogsStore.getTodayWarmBodies(date) || []
+  const sortedLogs = logs.slice().sort((a, b) => {
+    return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+  })
+
+  recentLogs.value = sortedLogs.slice(0, 10).map((log: Log) => ({
+    id: log.id,
+    timestamp: log.timestamp,
+    is_in: log.is_in,
+    photo_url: log.photo_url,
+    captured_image: log.captured_image,
+  }))
 }
 
 const updateDateTime = () => {
@@ -101,6 +109,7 @@ onMounted(async () => {
   intervalId.value = window.setInterval(updateDateTime, 1000)
   checkScreenSize()
   window.addEventListener('resize', checkScreenSize)
+
   await dailyLogsStore.fetchWarmBodySummary(today)
   await updateDailyLogsState(today)
 })
@@ -146,9 +155,16 @@ const capturePhoto = () => {
   const context = canvas.getContext('2d')
   if (context) {
     context.drawImage(videoElement, 0, 0, canvas.width, canvas.height)
-    return canvas.toDataURL('image/jpeg', 0.8)
+    return canvas.toDataURL('image/jpeg', 0.9)
   }
   return null
+}
+
+const handleCloseDialog = () => {
+  showModal.value = false
+  errorMessage.value = null
+  dailyLogsStore.clearScannedEmployee()
+  if (scanTimeoutId.value) clearTimeout(scanTimeoutId.value)
 }
 
 const onDecode = async (result: string) => {
@@ -156,37 +172,70 @@ const onDecode = async (result: string) => {
 
   const imageData = capturePhoto()
   const today = getManilaTodayISO()
-  let success = false
   let message: string = 'Processing...'
 
+  dailyLogsStore.clearScannedEmployee()
+
   try {
-    const response = await dailyLogsStore.logEmployeeTime({
+    const errorResponse = await dailyLogsStore.logEmployeeTime({
       scanned_qr: result,
       captured_image: imageData,
     })
 
-    success = response.success
-    message = response.message || (success ? 'Log successful' : 'An unknown error occurred')
+    if (errorResponse) {
+      const apiErrors = errorResponse.errors
+      if (apiErrors?.length && apiErrors[0].messages?.length) {
+        message = apiErrors[0].messages[0]
+      } else {
+        message = errorResponse.message || 'Time log failed with an unknown error.'
+      }
 
-    if (success) {
-      await dailyLogsStore.fetchWarmBodySummary(today)
-      await updateDailyLogsState(today)
-      if (dailyLogsStore.currentScannedEmployee) {
+      dailyLogsStore.lastLogMessage = message
+    } else if (dailyLogsStore.currentScannedEmployee) {
+      const employee = dailyLogsStore.currentScannedEmployee
+      const is_in = employee.is_in
+
+      if (dailyLogsStore.warmBodySummary) {
+        if (is_in) {
+          dailyLogsStore.warmBodySummary.in_office++
+        } else {
+          dailyLogsStore.warmBodySummary.out_of_office++
+        }
+      }
+
+      const newLog: Log = {
+        id: employee.id,
+        timestamp: new Date().toISOString(),
+        is_in: is_in,
+        photo_url: employee.photo_url,
+        captured_image: imageData as string,
+      }
+
+      recentLogs.value = [newLog, ...recentLogs.value]
+        .slice(0, 10)
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+
+      void dailyLogsStore.fetchWarmBodySummary(today)
+      void updateDailyLogsState(today)
+
+      if (imageData) {
         dailyLogsStore.currentScannedEmployee.captured_image = imageData as string
       }
+    } else {
+      message = 'Log completed, but state is inconsistent.'
+      dailyLogsStore.lastLogMessage = message
     }
   } catch (error) {
     console.error('Time log error:', error)
-    success = false
     message = 'Network or server error during log attempt.'
+    dailyLogsStore.showScannedEmployeeModal(null, message)
   } finally {
-    dailyLogsStore.lastLogMessage = message
+    showModal.value = dailyLogsStore.showModal
 
-    showModal.value = true
-
-    setTimeout(() => {
+    if (scanTimeoutId.value) clearTimeout(scanTimeoutId.value)
+    scanTimeoutId.value = window.setTimeout(() => {
       handleCloseDialog()
-    }, MODAL_DISPLAY_DURATION_MS)
+    }, MODAL_DISPLAY_DURATION_MS) as unknown as number
   }
 }
 
@@ -226,12 +275,6 @@ const dynamicSuccessMessage = computed(() => {
   if (dailyLogsStore.lastLogMessage) return dailyLogsStore.lastLogMessage
   return 'Processing...'
 })
-
-const handleCloseDialog = () => {
-  showModal.value = false
-  errorMessage.value = null
-  dailyLogsStore.clearScannedEmployee()
-}
 
 const latestWarmBodyLogs = computed(() => recentLogs.value)
 </script>
@@ -307,24 +350,24 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
         </div>
         <div class="scrollbar-hide flex flex-1 justify-center overflow-y-auto font-mono text-sm md:text-base">
           <template v-if="latestWarmBodyLogs.length">
-            <table class="w-1/2 text-center">
+            <table class="w-3/4 text-center">
               <tbody>
                 <tr v-for="entry in latestWarmBodyLogs" :key="entry.id">
                   <td class="p-2">
                     <img
-                      :src="dailyLogsStore.currentScannedEmployee?.captured_image"
-                      alt="Employee Profile Photo"
+                      :src="entry.captured_image"
+                      alt="Employee Captured Photo"
                       class="aspect-[2270/2479] h-auto max-w-full rounded-lg shadow"
                     />
                   </td>
 
                   <td class="p-2">
-                    <p class="text-xs">{{ entry.id }} - {{ formatTime(entry.timestamp) }}</p>
+                    <p class="text-xl">{{ entry.id }} - {{ formatTime(entry.timestamp) }}</p>
                   </td>
 
                   <td class="p-2">
                     <span
-                      class="rounded-full px-3 py-1 text-xs font-bold"
+                      class="rounded-full px-3 py-1 text-xl font-bold"
                       :class="entry.is_in ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'"
                     >
                       {{ entry.is_in ? 'IN' : 'OUT' }}

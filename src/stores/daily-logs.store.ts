@@ -3,7 +3,8 @@ import { ref, computed } from 'vue'
 import { useStorage } from '@vueuse/core'
 import { useApiCall } from '@/composables/network.ts'
 import { useAuthStore } from '@/stores/auth.store'
-import type { ApiResponseBody, WarmBodyLogEntry, DailyLogEntry, ApiErrorCode } from '@/typings/http-resources.types.ts'
+import { ApiErrorCode } from '@/typings/http-resources.types.ts'
+import type { ApiResponseBody, WarmBodyLogEntry, DailyLogEntry } from '@/typings/http-resources.types.ts'
 import type { ScannedEmployeeResponse } from '@/typings/models.types'
 import type { WbAutoCompleteOption } from '@/components/webkit/WbAutoComplete.vue'
 
@@ -187,11 +188,11 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     getTodayWarmBodies,
     logEmployeeTime,
     clearScannedEmployee,
+    updateDailyLogs,
+    showScannedEmployeeModal,
     fetchDailyLogs,
     fetchWarmBodySummary,
     setOffice,
     clearOffice,
-    showScannedEmployeeModal,
-    updateDailyLogs,
   }
 })
