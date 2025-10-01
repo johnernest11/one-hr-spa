@@ -97,6 +97,30 @@ const toggleAccordion = (index: number) => {
   }
 }
 
+const onAccordionClick = (item: { is_missing: string; date: Date; row: ViewDailyTimeRecordResponse | null }, index: number) => {
+  const slots = resolveDTRSlots(item.row?.time_log ?? [])
+  const hasMissing = Object.values(slots).some((value) => value === null)
+  const hasEnoughEntries = (item.row?.time_log?.length ?? 0) >= 4
+
+  if (hasMissing || hasEnoughEntries) {
+    toggleAccordion(index)
+  }
+}
+
+const isLocatorSlip = (log: TimeLogResponse, allLogs: TimeLogResponse[]): boolean => {
+  const slots = resolveDTRSlots(allLogs)
+
+  const usedTimes = [
+    slots.in1 && `${slots.in1.date} ${slots.in1.scanned_time}`,
+    slots.out1 && `${slots.out1.date} ${slots.out1.scanned_time}`,
+    slots.in2 && `${slots.in2.date} ${slots.in2.scanned_time}`,
+    slots.out2 && `${slots.out2.date} ${slots.out2.scanned_time}`,
+  ].filter(Boolean)
+
+  const key = `${log.date} ${log.scanned_time}`
+  return !usedTimes.includes(key)
+}
+
 const normalizeTimeKey = (dtrTimeLogs: string, date: Date | string | null) =>
   `${dtrTimeLogs}-${date ? new Date(date).toISOString().slice(0, 10) : 'no-date'}`
 
@@ -517,43 +541,28 @@ const isEditedTimeLog = computed(() => {
                 <p class="text-xs font-semibold text-surface-500 md:hidden">Date</p>
                 <!-- Show badge if there's missing entries -->
                 <span
-                  v-if="dtr.row && (!dtr.row.time_log || dtr.row.time_log.length === 0)"
-                  class="text-warm-900 rounded bg-warn-200 px-2 py-1 text-xs"
-                  title="This DTR has missing time entries"
-                  v-tooltip.bottom="'This DTR has no time logs recorded'"
+                  v-if="dtr.row && Object.values(resolveDTRSlots(dtr.row?.time_log ?? [])).some((value) => value === null)"
+                  class="rounded bg-error-600 px-2 py-1 text-xs !text-surface-0"
                 >
                   Missing entries
                 </span>
-
+                <br />
                 <span
-                  v-else-if="dtr.row && Object.values(resolveDTRSlots(dtr.row?.time_log ?? [])).length < 4"
-                  class="text-warm-900 cursor-pointer rounded bg-info-200 px-2 py-1 text-xs"
-                  v-tooltip.bottom="'Show All Entries'"
-                  @click="toggleAccordion(index)"
+                  v-if="dtr.row && (dtr.row.time_log?.length ?? 0) > 4"
+                  class="text-warm-900 rounded bg-warn-400 px-2 py-1 text-xs"
                 >
-                  Multiple Entries
+                  Multiple Entry
                 </span>
 
                 <!-- Date text -->
                 <p
                   class="text-base text-surface-600"
                   :class="{
-                    'cursor-pointer text-error-900':
-                      dtr.row && Object.values(resolveDTRSlots(dtr.row?.time_log ?? [])).some((value) => value === null),
+                    'cursor-pointer text-error-900': (dtr.row?.time_log?.length ?? 0) > 4,
                   }"
-                  @click="
-                    () => {
-                      const slots = resolveDTRSlots(dtr.row?.time_log ?? [])
-                      const hasMissing = Object.values(slots).some((value) => value === null)
-                      const hasEnoughEntries = (dtr.row?.time_log?.length ?? 0) >= 4
-
-                      if (!hasMissing && hasEnoughEntries) {
-                        toggleAccordion(index)
-                      }
-                    }
-                  "
+                  @click="(dtr.row?.time_log?.length ?? 0) > 4 ? onAccordionClick(dtr, index) : null"
                 >
-                  {{ getFormattedDTRDate((dtr.date?.toISOString() ?? new Date().toISOString()) || '') }}
+                  {{ getFormattedDTRDate(dtr.date.toISOString()) }}
                 </p>
 
                 <!-- Show details if active -->
@@ -568,7 +577,13 @@ const isEditedTimeLog = computed(() => {
                           class="mb-1 flex cursor-pointer flex-row items-center gap-2"
                         >
                           <span class="mb-2 text-xs font-semibold text-surface-500">#{{ logIDx + 1 }}.</span>
-                          <p class="absolute right-2 mb-2 text-base !text-surface-600 sm:right-2">
+                          <p
+                            v-tooltip="isLocatorSlip(log, dtr.row?.time_log ?? []) ? 'Locator Slip' : ''"
+                            :class="[
+                              'absolute right-2 mb-2 text-base sm:right-2',
+                              isLocatorSlip(log, dtr.row?.time_log ?? []) ? 'text-success-600' : '!text-surface-600',
+                            ]"
+                          >
                             {{ formatDTRTime(toTimestamp(log.date, log.scanned_time)) }}
                           </p>
                         </div>
