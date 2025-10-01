@@ -14,6 +14,7 @@ import { WbAutoCompleteOption } from '@/components/webkit/WbAutoComplete.vue'
 
 interface Log {
   id: string | number
+  employee_id: string | number
   timestamp: string
   is_in: boolean
   captured_image?: string
@@ -58,13 +59,15 @@ const startTimeLogs = async () => {
 const updateDailyLogsState = async (date: string) => {
   await dailyLogsStore.fetchDailyLogs(date)
 
-  const logs = dailyLogsStore.getTodayWarmBodies(date) || []
+  const logs: Log[] = dailyLogsStore.getTodayWarmBodies(date) || []
+
   const sortedLogs = logs.slice().sort((a, b) => {
     return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
   })
 
-  recentLogs.value = sortedLogs.slice(0, 10).map((log: Log) => ({
+  recentLogs.value = sortedLogs.slice(0, 10).map((log) => ({
     id: log.id,
+    employee_id: log.employee_id,
     timestamp: log.timestamp,
     is_in: log.is_in,
     photo_url: log.photo_url,
@@ -205,10 +208,12 @@ const onDecode = async (result: string) => {
 
       const newLog: Log = {
         id: employee.id,
+        employee_id: employee.id,
+
         timestamp: new Date().toISOString(),
         is_in: is_in,
         photo_url: employee.photo_url,
-        captured_image: imageData as string,
+        captured_image: imageData ?? undefined,
       }
 
       recentLogs.value = [newLog, ...recentLogs.value]
@@ -362,7 +367,7 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
                   </td>
 
                   <td class="p-2">
-                    <p class="text-xl">{{ entry.id }} - {{ formatTime(entry.timestamp) }}</p>
+                    <p class="text-xl">{{ entry.employee_id }} - {{ formatTime(entry.timestamp) }}</p>
                   </td>
 
                   <td class="p-2">
