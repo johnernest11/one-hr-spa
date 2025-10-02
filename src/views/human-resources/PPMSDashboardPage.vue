@@ -33,7 +33,6 @@ const isSubmitting = ref(false)
 const getId = usePrependOrAppendOnce('dashboard')
 const libraryStore = useLibrariesStore()
 const showSidebar = ref(false)
-
 const selectedDivision = ref<WbAutoCompleteOption | null>(null)
 const selectedSectionUnit = ref<WbAutoCompleteOption | null>(null)
 const selectedDivisionLabel = ref<string | null>(null)
@@ -46,10 +45,9 @@ const employees = ref<Employee[]>([])
 const selectedYear = ref<number | null>(currentYear)
 const selectedMonth = ref<number | null>(currentMonth)
 const yearList = computed(() => getYearOptions(currentYear, 6))
-
 const payload = reactive({
-  division: null,
-  section: null,
+  division: null as string | null,
+  section: null as string | null,
 })
 
 const filteredEmployees = computed(() => {

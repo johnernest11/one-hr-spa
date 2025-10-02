@@ -46,6 +46,30 @@ const selectedOffice = ref<WbAutoCompleteOption | null | undefined>(null)
 
 const recentLogs = ref<Log[]>([])
 
+// --- Detection Tracking Function ---
+/**
+ * Draws a red outline around all detected barcodes/QR codes on the canvas.
+ * This provides visual confirmation that the code has been successfully read.
+ */
+function paintOutline(detectedCodes: DetectedBarcode[], ctx: CanvasRenderingContext2D) {
+  for (const detectedCode of detectedCodes) {
+    const [firstPoint, ...otherPoints] = detectedCode.cornerPoints
+
+    ctx.strokeStyle = 'red'
+    ctx.lineWidth = 4 // Thicker line for better visibility
+
+    ctx.beginPath()
+    ctx.moveTo(firstPoint.x, firstPoint.y)
+    for (const { x, y } of otherPoints) {
+      ctx.lineTo(x, y)
+    }
+    ctx.lineTo(firstPoint.x, firstPoint.y)
+    ctx.closePath()
+    ctx.stroke()
+  }
+}
+// --- End Detection Tracking Function ---
+
 const startTimeLogs = async () => {
   if (selectedOffice.value) {
     dailyLogsStore.setOffice(selectedOffice.value)
@@ -73,6 +97,7 @@ const updateDailyLogsState = async (date: string) => {
     photo_url: log.photo_url,
     captured_image: log.captured_image,
   }))
+  recentLogs.value = dailyLogsStore.getTodayWarmBodies(date).slice(0, 10)
 }
 
 const updateDateTime = () => {
@@ -403,6 +428,8 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
               ref="qrStreamRef"
               @detect="onDetect"
               :constraints="{ facingMode: 'environment' }"
+              :formats="['qr_code']"
+              :track="paintOutline"
               @init="onInit"
               @camera-error="onCameraError"
               :paused="false"
