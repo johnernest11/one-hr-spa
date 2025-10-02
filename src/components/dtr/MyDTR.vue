@@ -455,6 +455,53 @@ const isEditedTimeLog = computed(() => {
     )
   }
 })
+
+/** _____________________________________________________________
+                           Export to PDF  DTRs .
+_________________________________________________________________ */
+const exportToPDF = async (employeeId: string, startDate = '1900-01-01', endDate = '2100-12-31') => {
+  toast.add({
+    severity: 'info',
+    summary: 'Exporting...',
+    detail: `Exporting DTR from ${startDate} to ${endDate}...`,
+    life: 5000,
+  })
+
+  try {
+    const reportResponse = await dailyTimeRecordsStore.generateDailyTimeRecords(employeeId, startDate, endDate)
+
+    if (!reportResponse.data.value) {
+      throw new Error('No data received from the server')
+    }
+
+    const blob = new Blob([reportResponse.data.value], { type: 'application/pdf' })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+
+    a.download = reportResponse.fileNameHeader.value || `DTR-${employeeId}-${startDate}_to_${endDate}.pdf`
+
+    document.body.appendChild(a)
+    a.click()
+    window.URL.revokeObjectURL(url)
+    document.body.removeChild(a)
+
+    toast.add({
+      severity: 'success',
+      summary: 'DTR Exported',
+      detail: `The DTR for employee ${employeeId} was successfully exported.`,
+      life: 5000,
+    })
+  } catch (error) {
+    toast.add({
+      severity: 'error',
+      summary: 'Export Failed',
+      detail: `Failed to export DTR: ${(error as Error).message}`,
+      life: 5000,
+    })
+    console.error('Export error:', error)
+  }
+}
 </script>
 
 <template>
@@ -489,17 +536,17 @@ const isEditedTimeLog = computed(() => {
 
           <!-- Export & Navigation Buttons -->
           <div class="flex w-full flex-col gap-4 md:w-auto md:flex-row md:justify-end">
-            <RouterLink :to="{ name: 'my-dtrs/list' }" class="w-full md:w-auto">
-              <Button
-                label="Export DTR"
-                class="dark:text-secondary-100 w-full border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
-                text
-              >
-                <template #icon>
-                  <i class="pi pi-file-word mr-2"></i>
-                </template>
-              </Button>
-            </RouterLink>
+            <Button
+              label="Export All DTRs"
+              @click="() => exportToPDF(selectedEmployeeId || '', '2025-10-01', '2025-10-31')"
+              :loading="formIsSubmitting"
+              :disabled="formIsSubmitting"
+              text
+            >
+              <template #icon>
+                <i class="pi pi-file-pdf mr-2"></i>
+              </template>
+            </Button>
           </div>
         </div>
         <br />

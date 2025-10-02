@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { reactive, ref } from 'vue'
 import { useAuthStore } from '@/stores/auth.store.ts'
 import { useApiCall } from '@/composables/network'
+import { useFetchBlob } from '@/composables/fetch.blob'
 import { ApiResponseBody } from '@/typings/http-resources.types.ts'
 import {
   CountWarmBodiesResponse,
@@ -180,15 +181,16 @@ _________________________________________________________________ */
     return data.value as ApiResponseBody
   }
 
-  const generateDailyTimeRecords = async (id: string) => {
-    const response = await fetch('/mock/Request-Form.docx')
-    const blob = await response.blob()
-    const fileNameHeader = `Request-Form-${id}.docx`
+  const generateDailyTimeRecords = async (employeeId: string, startDate: string, endDate: string) => {
+    const fallbackEmployeeId = auth.authenticatedUser.user_profile?.individual_basic_detail?.employee?.id?.toString()
 
-    return {
-      data: ref(blob),
-      fileNameHeader: ref(fileNameHeader),
-    }
+    const finalEmployeeId = employeeId || fallbackEmployeeId
+    if (!finalEmployeeId) throw new Error('No employee id provided')
+
+    const api_url = `/employees/${finalEmployeeId}/daily-time-records/generate-dtr?start_date=${startDate}&end_date=${endDate}&sort=asc`
+
+    const { data, fileNameHeader } = await useFetchBlob(api_url, auth.authenticationToken)
+    return { data, fileNameHeader }
   }
 
   /** _____________________________________________________________
