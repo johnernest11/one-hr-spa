@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
-import { ViewDailyTimeRecordResponse } from '@/typings/models.types.ts'
+import { TimeLogResponse, ViewDailyTimeRecordResponse } from '@/typings/models.types.ts'
 import { useDailyTimeRecordsStore } from '@/stores/daily-time-record.store'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import WbCalendar from '@/components/webkit/WbCalendar.vue'
@@ -31,7 +31,6 @@ const monthDate = ref<Date>(new Date(initialYear, initialMonth))
 const dailyTimeRecordsStore = useDailyTimeRecordsStore()
 const toast = useToast()
 const isLoading = ref(true)
-const selectedTimeLogId = ref<number[]>([])
 const allDailyTimeRecordsData = ref<ViewDailyTimeRecordResponse[]>([])
 const fromDate = ref<Date | null>(null)
 const toDate = ref<Date | null>(null)
@@ -49,23 +48,25 @@ const onAccordionClick = (item: { is_missing: string; date: Date; row: ViewDaily
   const hasMissing = Object.values(slots).some((value) => value === null)
   const hasEnoughEntries = (item.row?.time_log?.length ?? 0) >= 4
 
-  if (!hasMissing && hasEnoughEntries) {
+  if (hasMissing || hasEnoughEntries) {
     toggleAccordion(index)
   }
 }
 
-// Add selectRequest function to handle log selection
-const selectRequest = (id: number) => {
-  if (selectedTimeLogId.value.includes(id)) {
-    selectedTimeLogId.value = selectedTimeLogId.value.filter((logId) => logId !== id)
-  } else {
-    selectedTimeLogId.value.push(id)
-  }
+const isLocatorSlip = (log: TimeLogResponse, allLogs: TimeLogResponse[]): boolean => {
+  const slots = resolveDTRSlots(allLogs)
+
+  const usedTimes = [
+    slots.in1 && `${slots.in1.date} ${slots.in1.scanned_time}`,
+    slots.out1 && `${slots.out1.date} ${slots.out1.scanned_time}`,
+    slots.in2 && `${slots.in2.date} ${slots.in2.scanned_time}`,
+    slots.out2 && `${slots.out2.date} ${slots.out2.scanned_time}`,
+  ].filter(Boolean)
+
+  const key = `${log.date} ${log.scanned_time}`
+  return !usedTimes.includes(key)
 }
 
-// Dummy implementation for isRequestSelected; update logic as needed
-
-const isRequestSelected = (id: number): boolean => selectedTimeLogId.value.includes(id)
 onMounted(async () => {
   await handleViewDtr()
   isLoading.value = false
@@ -297,55 +298,58 @@ const computeOTValue = computed(() => {
 
             <!-- Data row -->
             <div
-              v-for="(item, index) in monthDates"
-              :key="item.date.getTime()"
+              v-for="(dtr, index) in monthDates"
+              :key="dtr.date.getTime()"
               class="grid grid-cols-1 items-center gap-y-2 border-b border-surface-300 px-4 py-2 md:grid-cols-9 md:gap-2 md:px-24"
             >
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">Date</p>
                 <!-- Show badge if there's missing entries -->
                 <span
-                  v-if="item.row && Object.values(resolveDTRSlots(item.row?.time_log ?? [])).some((value) => value === null)"
-                  class="text-warm-900 rounded bg-yellow-200 px-2 py-1 text-xs"
+                  v-if="dtr.row && Object.values(resolveDTRSlots(dtr.row?.time_log ?? [])).some((value) => value === null)"
+                  class="rounded bg-error-600 px-2 py-1 text-xs !text-surface-0"
                 >
                   Missing entries
+                </span>
+                <br />
+                <span
+                  v-if="dtr.row && (dtr.row.time_log?.length ?? 0) > 4"
+                  class="text-warm-900 rounded bg-warn-400 px-2 py-1 text-xs"
+                >
+                  Multiple Entry
                 </span>
 
                 <!-- Date text -->
                 <p
                   class="text-base text-surface-600"
                   :class="{
-                    'cursor-pointer text-error-900':
-                      item.row && Object.values(resolveDTRSlots(item.row?.time_log ?? [])).some((value) => value === null),
+                    'cursor-pointer text-error-900': (dtr.row?.time_log?.length ?? 0) > 4,
                   }"
-                  @click="onAccordionClick(item, index)"
+                  @click="(dtr.row?.time_log?.length ?? 0) > 4 ? onAccordionClick(dtr, index) : null"
                 >
-                  {{ getFormattedDTRDate(item.date.toISOString()) }}
+                  {{ getFormattedDTRDate(dtr.date.toISOString()) }}
                 </p>
 
                 <!-- Show details if active -->
-                <div v-if="item.row && activeIndices.includes(index)">
+                <div v-if="dtr.row && activeIndices.includes(index)">
                   <!-- Detailed info: list of time logs -->
                   <div class="relative w-full p-2">
                     <div class="relative w-full p-2">
                       <div class="mt-2">
                         <div
-                          v-for="(log, logIDx) in item.row?.time_log"
+                          v-for="(log, logIDx) in dtr.row?.time_log"
                           :key="log.id"
-                          class="mb-1 flex cursor-pointer flex-row items-center gap-2"
-                          :class="{ '!bg-surface-0 !text-black': isRequestSelected(log.id) }"
-                          @click="selectRequest(log.id)"
+                          class="mb-1 flex flex-row items-center gap-2"
                         >
                           <span class="mb-2 text-xs font-semibold text-surface-500">#{{ logIDx + 1 }}.</span>
-                          <p class="absolute right-2 mb-2 text-base !text-surface-600 sm:right-2">
+                          <p
+                            v-tooltip="isLocatorSlip(log, dtr.row?.time_log ?? []) ? 'Locator Slip' : ''"
+                            :class="[
+                              'absolute right-2 mb-2 text-base sm:right-2',
+                              isLocatorSlip(log, dtr.row?.time_log ?? []) ? 'text-success-600' : '!text-surface-600',
+                            ]"
+                          >
                             {{ formatDTRTime(toTimestamp(log.date, log.scanned_time)) }}
-                            <font-awesome-icon
-                              :icon="isRequestSelected(log.id) ? ['fas', 'check-square'] : ['fas', 'square-full']"
-                              :class="{
-                                'text-primary-600': isRequestSelected(log.id),
-                                'border border-surface-300 text-base text-gray-50': !isRequestSelected(log.id),
-                              }"
-                            />
                           </p>
                         </div>
                       </div>
@@ -355,7 +359,7 @@ const computeOTValue = computed(() => {
               </div>
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">Day</p>
-                <p class="text-base text-surface-600">{{ getDTRDayOfWeek(item.date.toISOString()) }}</p>
+                <p class="text-base text-surface-600">{{ getDTRDayOfWeek(dtr.date.toISOString()) }}</p>
               </div>
 
               <!-- IN 1 -->
@@ -363,11 +367,11 @@ const computeOTValue = computed(() => {
                 <p class="text-xs font-semibold text-surface-500 md:hidden">IN 1</p>
                 <p class="text-base text-surface-600">
                   {{
-                    item.row && resolveDTRSlots(item.row.time_log ?? []).in1
+                    dtr.row && resolveDTRSlots(dtr.row.time_log ?? []).in1
                       ? formatDTRTime(
                           toTimestamp(
-                            resolveDTRSlots(item.row.time_log ?? []).in1!.date,
-                            resolveDTRSlots(item.row.time_log ?? []).in1!.scanned_time
+                            resolveDTRSlots(dtr.row.time_log ?? []).in1!.date,
+                            resolveDTRSlots(dtr.row.time_log ?? []).in1!.scanned_time
                           )
                         )
                       : ''
@@ -380,11 +384,11 @@ const computeOTValue = computed(() => {
                 <p class="text-xs font-semibold text-surface-500 md:hidden">OUT 1</p>
                 <p class="text-base text-surface-600">
                   {{
-                    item.row && resolveDTRSlots(item.row.time_log ?? []).out1
+                    dtr.row && resolveDTRSlots(dtr.row.time_log ?? []).out1
                       ? formatDTRTime(
                           toTimestamp(
-                            resolveDTRSlots(item.row.time_log ?? []).out1!.date,
-                            resolveDTRSlots(item.row.time_log ?? []).out1!.scanned_time
+                            resolveDTRSlots(dtr.row.time_log ?? []).out1!.date,
+                            resolveDTRSlots(dtr.row.time_log ?? []).out1!.scanned_time
                           )
                         )
                       : ''
@@ -397,11 +401,11 @@ const computeOTValue = computed(() => {
                 <p class="text-xs font-semibold text-surface-500 md:hidden">IN 2</p>
                 <p class="text-base text-surface-600">
                   {{
-                    item.row && resolveDTRSlots(item.row.time_log ?? []).in2
+                    dtr.row && resolveDTRSlots(dtr.row.time_log ?? []).in2
                       ? formatDTRTime(
                           toTimestamp(
-                            resolveDTRSlots(item.row.time_log ?? []).in2!.date,
-                            resolveDTRSlots(item.row.time_log ?? []).in2!.scanned_time
+                            resolveDTRSlots(dtr.row.time_log ?? []).in2!.date,
+                            resolveDTRSlots(dtr.row.time_log ?? []).in2!.scanned_time
                           )
                         )
                       : ''
@@ -414,11 +418,11 @@ const computeOTValue = computed(() => {
                 <p class="text-xs font-semibold text-surface-500 md:hidden">OUT 2</p>
                 <p class="text-base text-surface-600">
                   {{
-                    item.row && resolveDTRSlots(item.row.time_log ?? []).out2
+                    dtr.row && resolveDTRSlots(dtr.row.time_log ?? []).out2
                       ? formatDTRTime(
                           toTimestamp(
-                            resolveDTRSlots(item.row.time_log ?? []).out2!.date,
-                            resolveDTRSlots(item.row.time_log ?? []).out2!.scanned_time
+                            resolveDTRSlots(dtr.row.time_log ?? []).out2!.date,
+                            resolveDTRSlots(dtr.row.time_log ?? []).out2!.scanned_time
                           )
                         )
                       : ''
@@ -430,20 +434,20 @@ const computeOTValue = computed(() => {
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">UT</p>
                 <p class="text-base text-surface-600">
-                  {{ computeUTValue(item) }}
+                  {{ computeUTValue(dtr) }}
                 </p>
               </div>
 
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">OT</p>
                 <p class="text-base text-surface-600">
-                  {{ computeOTValue(item) }}
+                  {{ computeOTValue(dtr) }}
                 </p>
               </div>
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">Remarks</p>
                 <p class="text-base text-surface-600">
-                  {{ item.row?.employee_remarks }}
+                  {{ dtr.row?.employee_remarks }}
                 </p>
               </div>
             </div>

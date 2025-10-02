@@ -183,7 +183,7 @@ const handleSearchEmployee = async () => {
                       {{ props.data.ext_name ?? null }}
                     </p>
                     <p class="font-semibold uppercase text-surface-500">
-                      {{ props.data.employee.item.number }}
+                      {{ props.data.employee?.item?.number ?? '' }}
                     </p>
                   </template>
                 </Column>
