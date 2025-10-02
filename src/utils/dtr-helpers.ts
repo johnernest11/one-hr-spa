@@ -66,17 +66,9 @@ export type DTRSlots = {
 }
 
 export const resolveDTRSlots = (entries: TimeLogResponse[] = []): DTRSlots => {
-  const inLogs = entries
-    .filter((e) => e.is_in)
-    .sort(
-      (a, b) => new Date(toTimestamp(a.date, a.scanned_time)).getTime() - new Date(toTimestamp(b.date, b.scanned_time)).getTime()
-    )
-
-  const outLogs = entries
-    .filter((e) => !e.is_in)
-    .sort(
-      (a, b) => new Date(toTimestamp(a.date, a.scanned_time)).getTime() - new Date(toTimestamp(b.date, b.scanned_time)).getTime()
-    )
+  const sorted = [...entries].sort(
+    (a, b) => new Date(toTimestamp(a.date, a.scanned_time)).getTime() - new Date(toTimestamp(b.date, b.scanned_time)).getTime()
+  )
 
   const slots: DTRSlots = { in1: null, out1: null, in2: null, out2: null }
 
@@ -85,27 +77,25 @@ export const resolveDTRSlots = (entries: TimeLogResponse[] = []): DTRSlots => {
     return hours >= startHour && hours < endHour
   }
 
-  // IN 1
-  slots.in1 = inLogs.find((e) => isBetween(toTimestamp(e.date, e.scanned_time), 6, 12)) ?? null
+  // IN 1 → earliest log between 6–12
+  slots.in1 = sorted.find((e) => isBetween(toTimestamp(e.date, e.scanned_time), 6, 12)) ?? null
 
-  // OUT 1
-  slots.out1 = outLogs.find((e) => isBetween(toTimestamp(e.date, e.scanned_time), 12, 13)) ?? null
+  // OUT 1 → first log between 12–13 (regardless of is_in/out)
+  slots.out1 = sorted.find((e) => isBetween(toTimestamp(e.date, e.scanned_time), 12, 13)) ?? null
 
-  // IN 2
+  // IN 2 → first log after OUT1 that’s between 12–14
   if (slots.out1) {
     const out1Time = new Date(toTimestamp(slots.out1.date, slots.out1.scanned_time)).getTime()
-    const in2Candidates = inLogs.filter((e) => {
-      const timestamp = toTimestamp(e.date, e.scanned_time)
-      const time = new Date(timestamp).getTime()
-      return isBetween(timestamp, 12, 14) && time >= out1Time + 15 * 60 * 1000
-    })
-    slots.in2 = in2Candidates[0] ?? null
-  } else {
-    slots.in2 = inLogs.find((e) => isBetween(toTimestamp(e.date, e.scanned_time), 12, 14)) ?? null
+    slots.in2 =
+      sorted.find((e) => {
+        const timestamp = toTimestamp(e.date, e.scanned_time)
+        const time = new Date(timestamp).getTime()
+        return isBetween(timestamp, 12, 14) && time >= out1Time + 15 * 60 * 1000
+      }) ?? null
   }
 
-  // OUT 2
-  slots.out2 = outLogs.find((e) => new Date(toTimestamp(e.date, e.scanned_time)).getHours() >= 14) ?? null
+  // OUT 2 → first log ≥ 14 (regardless of is_in/out)
+  slots.out2 = sorted.find((e) => new Date(toTimestamp(e.date, e.scanned_time)).getHours() >= 14) ?? null
 
   return slots
 }

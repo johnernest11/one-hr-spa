@@ -117,7 +117,7 @@ _________________________________________________________________ */
     const formattedMonthYear = `${year}-${month}`
 
     let uri = `/employees/${employeeId}/daily-time-records/view-dtr?limit=${limit}&`
-    if (formattedMonthYear) uri += `month=${formattedMonthYear}&`
+    if (formattedMonthYear) uri += `month=${formattedMonthYear}`
 
     const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
     const responseBody: ApiResponseBody = data.value
