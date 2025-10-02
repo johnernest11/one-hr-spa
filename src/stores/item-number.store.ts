@@ -6,11 +6,11 @@ import { ApiResponseBody } from '@/typings/http-resources.types.ts'
 import { useDateFormat } from '@vueuse/core'
 import { ref } from 'vue'
 import { WbAutoCompleteOption } from '@/components/webkit/WbAutoComplete.vue'
-/** Typings for Creating & Fecthing  Item Number */
+
 export type ItemNumberPayload = {
   number: string | null
   date_of_creation: string
-  status: 'Unfilled'
+  status: 'Unfilled' | 'Filled'
   date_filled_up: string
   fund_source: number
   fund_source_id?: string | number | null
@@ -20,11 +20,16 @@ export type ItemNumberPayload = {
 }
 
 export const useItemNumberStore = defineStore('item-number', () => {
-  /** States */
   const auth = useAuthStore()
   const itemNumbers = ref<ItemNumberResponse[]>([])
   const itemNumbersSuggestions = ref<WbAutoCompleteOption[]>([])
   const selectedItemNumber = ref<ItemNumberResponse | null>(null)
+  const previousItemNumber = ref<string | null>(null)
+  const lastNumbers = ref<Record<string, number>>({
+    'Contract of Service': 0,
+    Contractual: 0,
+    Casual: 0,
+  })
 
   const fetchItemNumber = async (limit: number = 10, page: number | null = null) => {
     let uri = `/items?limit=${limit}&sort=asc&`
@@ -34,12 +39,6 @@ export const useItemNumberStore = defineStore('item-number', () => {
     if (responseBody.success) {
       const ItemNumbersList = Array.isArray(responseBody.data) ? (responseBody.data as ItemNumberResponse[]) : []
       itemNumbers.value = [...ItemNumbersList]
-      ItemNumbersList.map((el) => {
-        itemNumbersSuggestions.value.push({
-          value: el.id,
-          label: el.number ?? 'null',
-        })
-      })
     }
     return responseBody
   }
@@ -111,14 +110,53 @@ export const useItemNumberStore = defineStore('item-number', () => {
     return responseBody
   }
 
+  const fetchLastNumber = async (employment_status: string) => {
+    const { data } = await useApiCall(
+      `/items?employment_status=${encodeURIComponent(employment_status)}`,
+      auth.authenticationToken
+    )
+      .get()
+      .json()
+
+    const responseBody: ApiResponseBody = data.value
+    if (responseBody.success && Array.isArray(responseBody.data)) {
+      const items = responseBody.data as ItemNumberResponse[]
+      const count = items.filter((item) => item.employment_status === employment_status).length
+
+      lastNumbers.value[employment_status] = count
+    } else {
+      lastNumbers.value[employment_status] = 0
+    }
+    return responseBody
+  }
+
+  const updateItemStatus = async (itemNumber: string) => {
+    if (previousItemNumber.value && previousItemNumber.value !== itemNumber) {
+      const previousItem = itemNumbers.value.find((i) => i.number === previousItemNumber.value)
+      if (previousItem) {
+        await updateItemNumber({ status: 'Unfilled' }, previousItem.id!)
+      }
+    }
+    const item = itemNumbers.value.find((i) => i.number === itemNumber)
+    if (!item) return null
+
+    const result = await updateItemNumber({ status: 'Filled' }, item.id!)
+    previousItemNumber.value = itemNumber
+
+    return result
+  }
+
   return {
     itemNumbers,
     itemNumbersSuggestions,
+    lastNumbers,
     createItemNumber,
     fetchItemNumber,
     fetchItemNumberById,
     updateItemNumber,
     searchItemNumber,
     filterItemNumber,
+    fetchLastNumber,
+    updateItemStatus,
   }
 })

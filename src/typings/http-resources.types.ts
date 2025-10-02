@@ -84,3 +84,15 @@ export enum ApiErrorCode {
   INVALID_MFA_CODE_ERROR = 'INVALID_MFA_CODE_ERROR',
   INVALID_MFA_BACKUP_CODE_ERROR = 'INVALID_MFA_BACKUP_CODE_ERROR',
 }
+
+export interface ApiValidationErrorResponse {
+  success: false
+  message: string
+  error_code?: 'VALIDATION_ERROR' | string
+  errors?: Array<{ messages: string[] }>
+  error_message?: string
+}
+
+export interface ObservedErrorDetails {
+  messages: string[]
+}

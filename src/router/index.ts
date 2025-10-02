@@ -153,10 +153,20 @@ const routes = [
       {
         path: '/my-locator-slips',
         name: 'my-locator-slips',
-        component: () => import('@/views/personnel/LocatorSlipsPage.vue'),
+        component: () => import('@/views/request/LocatorSlipsPage.vue'),
         meta: <RouteMeta>{
           label: 'My Locator Slip',
           isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+      {
+        path: '/my-locator-slips/:id/editor',
+        name: 'my-locator-slips/editor',
+        component: () => import('@/components/locator-slip/LocatorSlipForm.vue'),
+        meta: <RouteMeta>{
+          isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
           roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
         },
@@ -820,7 +830,7 @@ const routes = [
       {
         path: '/locator-slips/:id?',
         name: 'locator-slips',
-        component: () => import('@/views/personnel/LocatorSlipsPage.vue'),
+        component: () => import('@/views/request/LocatorSlipsPage.vue'),
         meta: <RouteMeta>{
           label: 'Locator Slip',
           isSidebarMenu: true,
@@ -1212,6 +1222,17 @@ router.beforeEach(async (to, from) => {
   // Verify email guard page can only be accessed if the user have not validated their email address
   if (to.name === 'verify-email-guard' && authStore.authEmailIsVerified) {
     return { name: 'dashboard' }
+  }
+
+  // Attempt to refresh tokens if ever the auth token is expired.
+  if (authStore.authExpired && authStore.refreshToken && !authStore.refreshTokenExpired) {
+    try {
+      await authStore.refreshCurrentTokens()
+      return { name: 'time-logs' }
+    } catch (err) {
+      console.error('Failed to refresh tokens:', err)
+      return { name: 'login' }
+    }
   }
 
   // Protect routes that need authentication

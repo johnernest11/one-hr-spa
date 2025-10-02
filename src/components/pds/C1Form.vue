@@ -2,7 +2,18 @@
 import Message from 'primevue/message'
 import { helpers, maxLength, required, email } from '@vuelidate/validators'
 import { digitCountRule, mobilePhoneRule, uniqueUserIdentifierRule } from '@/utils/custom-validations'
-import { reactive, ref, onBeforeMount, toRef, watch, computed, onMounted } from 'vue'
+import {
+  reactive,
+  ref,
+  onBeforeMount,
+  toRef,
+  watch,
+  computed,
+  onMounted,
+  onBeforeUnmount,
+  nextTick,
+  type WatchStopHandle,
+} from 'vue'
 import { storeToRefs } from 'pinia'
 import { useFilterByParentId } from '@/composables/address.options.ts'
 import { useAddressStore } from '@/stores/address.store.ts'
@@ -28,7 +39,7 @@ import { WbAutoCompleteOption, WbAutoCompleteOptionTrueValue } from '@/component
 import { useWbAutoCompleteHandleTrueValue } from '@/composables/wb-ui-components.ts'
 import { bloodTypeOptions, SexTypeOptions, ExtensionTypeOptions } from '@/typings/employee-entry.types'
 import { TabGroup, TabList, Tab, TabPanels, TabPanel } from '@headlessui/vue'
-import { usePrependOrAppendOnce, isNotMoreThanYearsAgo } from '@/utils/helpers.js'
+import { usePrependOrAppendOnce, isNotMoreThanYearsAgo, isAfterOrEqualFromDate, notInFuture } from '@/utils/helpers.js'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { TransitionRoot } from '@headlessui/vue'
 import { IndividualEducBg, ItemNumberResponse, PersonnelResponse, IndividualFamily } from '@/typings/models.types'
@@ -44,11 +55,12 @@ const authStore = useAuthStore()
 const toast = useToast()
 const router = useRouter()
 const route = useRoute()
-// const pdsStore.isMyPds = route.name === 'my-pds'
 
 const currentlyEnrolledGraduate = ref(false)
 const currentlyEnrolledVocational = ref(false)
 const isPositionLoading = ref(false)
+const isItemsLoading = ref(false)
+const isSalaryGradeLoading = ref(false)
 const isSameResidential = ref(false)
 const isLoading = ref(true)
 const activeToasts = ref<number>(0)
@@ -59,6 +71,10 @@ const selectedSalaryGrade = ref<WbAutoCompleteOption | null>(null)
 const selectedOffice = ref<WbAutoCompleteOption | null>(null)
 const selectedDivision = ref<WbAutoCompleteOption | null>(null)
 const selectedSectionUnit = ref<WbAutoCompleteOption | null>(null)
+
+const ppmsCanUpdate = computed(() => {
+  return authStore.authHasRequiredRole(['hr_pas_admin'])
+})
 
 /** Payload */
 const payload = reactive<PersonalDataSheetPayload>({
@@ -91,6 +107,8 @@ const isPdsError = ref(false)
 const errorMessage = ref()
 onBeforeMount(async () => {
   addressesAreLoading.value = true
+  isItemsLoading.value = true
+  isSalaryGradeLoading.value = true
   await Promise.allSettled([
     publicStore.fetchRegions(),
     publicStore.fetchProvinces(),
@@ -103,6 +121,9 @@ onBeforeMount(async () => {
     sgStore.fetchSalaryGrade(),
   ])
 
+  isItemsLoading.value = false
+  isSalaryGradeLoading.value = false
+  addressesAreLoading.value = false
   const individual = authStore.authenticatedUser?.user_profile?.individual_basic_detail
 
   if (individual) {
@@ -127,6 +148,51 @@ onBeforeMount(async () => {
     payload.individual.citizenship_acquisition = payload.individual.citizenship_acquisition ?? individual.citizenship_acquisition
   }
 })
+
+onMounted(async () => {
+  const hasImport = !!pdsStore.importResult
+
+  if (hasImport) {
+    // perform import with NO watcher present
+    // (do NOT call setupSpouseWatch yet)
+    // this is to prevent the bug wherein the spouse data is being overwritten by the watcher
+    Object.assign(payload.individual, pdsStore.importResult?.individual ?? {})
+    Object.assign(payload.employee, pdsStore.importResult?.employee ?? {})
+    Object.assign(payload.individual_address_init, pdsStore.importResult?.individual_address?.[0] ?? {})
+    Object.assign(payload.contact_info, pdsStore.importResult?.individual_contact_info?.[0] ?? {})
+    Object.assign(payload.educations, pdsStore.importResult?.educations ?? {})
+
+    if (pdsStore.importResult?.individual_family) {
+      payload.individual_family_children.length = 0
+      pdsStore.importResult?.individual_family.forEach((family) => {
+        switch (family.class) {
+          case 'Spouse':
+            Object.assign(payload.individual_family_spouse, family ?? {})
+            break
+
+          case 'Father':
+            Object.assign(payload.individual_family_father, family ?? {})
+            break
+
+          case 'Mother':
+            Object.assign(payload.individual_family_mothers_maiden, family ?? {})
+            break
+
+          case 'Children':
+            payload.individual_family_children.push(family)
+            break
+        }
+      })
+    }
+
+    await nextTick()
+    setupSpouseWatch(false)
+  } else {
+    setupSpouseWatch(true)
+  }
+})
+
+onBeforeUnmount(() => stopSpouseWatch?.())
 
 const { provinceOptions, cityOptions, barangayOptions } = storeToRefs(publicStore)
 const filteredProvinceOptionsByRegion = useFilterByParentId(
@@ -194,8 +260,9 @@ const formRules = computed(() => ({
     },
     birthday: {
       required: helpers.withMessage(() => generateMessage('birthday').required, required),
-      date: helpers.withMessage('Invalid date format, please use YYYY-MM-DD', required),
+      maxLength: helpers.withMessage(() => generateMessage('birthday').maxLength, globalStringMaxLengthRule),
       isNotTooOld: helpers.withMessage('Birthdate cannot be more than 130 years ago', isNotMoreThanYearsAgo(130)),
+      notInFuture: helpers.withMessage('Birthdate must not be in the future.', notInFuture),
     },
     sex: {
       in: helpers.withMessage('Select a valid sex option: male or female', required),
@@ -209,8 +276,14 @@ const formRules = computed(() => ({
       in: helpers.withMessage('Select a valid civil status from the list', required),
     },
     height: {
-      maxLength: helpers.withMessage(() => generateMessage('height').maxLength, globalStringMaxLengthRule),
-      regex: helpers.withMessage('Invalid height format. Please enter a valid height.', required),
+      required: helpers.withMessage(() => generateMessage('height').required, required),
+      heightFormat: helpers.withMessage(
+        'Invalid height format. Please enter a valid height in meters, e.g., 1.56m',
+        (value: string | null) => {
+          if (!value) return true
+          return /^\d{1}(\.\d{1,2})/.test(value)
+        }
+      ),
     },
     weight: {
       maxLength: helpers.withMessage(() => generateMessage('weight').maxLength, globalStringMaxLengthRule),
@@ -400,152 +473,234 @@ const formRules = computed(() => ({
     date_of_birth: {
       maxLength: helpers.withMessage(() => generateMessage('child_date_of_birth').maxLength, globalStringMaxLengthRule),
       isNotTooOld: helpers.withMessage('Birthdate cannot be more than 130 years ago', isNotMoreThanYearsAgo(130)),
+      notInFuture: helpers.withMessage('Birthdate must not be in the future.', notInFuture),
     },
   })),
   educations: {
     elementary: {
       schools_name: {
         required: helpers.withMessage(() => generateMessage('elementary_school_name').required, required),
-        maxLength: helpers.withMessage(() => generateMessage('elementary_school_name').maxLength, globalStringMaxLengthRule),
+        maxLength: globalStringMaxLengthRule,
       },
       education_description: {
         required: helpers.withMessage(() => generateMessage('elementary_basic_education_degree_course').required, required),
-        maxLength: helpers.withMessage(
-          () => generateMessage('elementary_basic_education_degree_course').maxLength,
-          globalStringMaxLengthRule
-        ),
+        maxLength: globalStringMaxLengthRule,
       },
       period_of_attendance_from: {
         required: helpers.withMessage(() => generateMessage('elementary_from').required, required),
-        maxLength: helpers.withMessage(() => generateMessage('elementary_from').maxLength, globalStringMaxLengthRule),
+        isAfterOrEqualTo: helpers.withMessage(
+          'Inclusive "From" date must not be after "To" date.',
+          (
+            val: string | number | Date | null,
+            vm: {
+              period_of_attendance_to: string | number | Date | null
+            }
+          ) => {
+            if (!helpers.req(vm.period_of_attendance_to)) return true
+
+            const from = val ? new Date(val) : null
+            const to = vm.period_of_attendance_to ? new Date(vm.period_of_attendance_to) : null
+
+            if (!from || !to || isNaN(from.getTime()) || isNaN(to.getTime())) return true
+
+            return from <= to
+          }
+        ),
+        notInFuture: helpers.withMessage('Date must not be in the future.', notInFuture),
       },
       period_of_attendance_to: {
         required: helpers.withMessage(() => generateMessage('elementary_to').required, required),
-        maxLength: helpers.withMessage(() => generateMessage('elementary_to').maxLength, globalStringMaxLengthRule),
+        isAfterOrEqualFromDate,
+        notInFuture: helpers.withMessage('Date must not be in the future.', notInFuture),
       },
       highest_level_units_earned: {
-        maxLength: helpers.withMessage(() => generateMessage('highest_level_units_earned').maxLength, globalStringMaxLengthRule),
+        maxLength: globalStringMaxLengthRule,
       },
       year_graduated: {
         required: helpers.withMessage(() => generateMessage('year_graduated').required, required),
-        maxLength: helpers.withMessage(() => generateMessage('year_graduated').maxLength, globalStringMaxLengthRule),
       },
       scholarship_academic_honors_received: {
-        maxLength: helpers.withMessage(() => generateMessage('year_graduated').maxLength, globalStringMaxLengthRule),
+        maxLength: globalStringMaxLengthRule,
       },
     },
     high_school: {
       schools_name: {
         required: helpers.withMessage(() => generateMessage('high_school_name').required, required),
-        maxLength: helpers.withMessage(() => generateMessage('high_school_name').maxLength, globalStringMaxLengthRule),
+        maxLength: globalStringMaxLengthRule,
       },
       education_description: {
         required: helpers.withMessage(() => generateMessage('high_school_basic_education_degree_course').required, required),
-        maxLength: helpers.withMessage(
-          () => generateMessage('high_school_basic_education_degree_course').maxLength,
-          globalStringMaxLengthRule
-        ),
+        maxLength: globalStringMaxLengthRule,
       },
       period_of_attendance_from: {
         required: helpers.withMessage(() => generateMessage('high_school_from').required, required),
-        maxLength: helpers.withMessage(() => generateMessage('high_school_from').maxLength, globalStringMaxLengthRule),
+        isAfterOrEqualTo: helpers.withMessage(
+          'Inclusive "From" date must not be after "To" date.',
+          (
+            val: string | number | Date | null,
+            vm: {
+              period_of_attendance_to: string | number | Date | null
+            }
+          ) => {
+            if (!helpers.req(vm.period_of_attendance_to)) return true
+
+            const from = val ? new Date(val) : null
+            const to = vm.period_of_attendance_to ? new Date(vm.period_of_attendance_to) : null
+
+            if (!from || !to || isNaN(from.getTime()) || isNaN(to.getTime())) return true
+
+            return from <= to
+          }
+        ),
+        notInFuture: helpers.withMessage('Date must not be in the future.', notInFuture),
       },
       period_of_attendance_to: {
         required: helpers.withMessage(() => generateMessage('high_school_to').required, required),
-        maxLength: helpers.withMessage(() => generateMessage('schools_name_to').maxLength, globalStringMaxLengthRule),
+        isAfterOrEqualFromDate,
+        notInFuture: helpers.withMessage('Date must not be in the future.', notInFuture),
       },
       highest_level_units_earned: {
-        maxLength: helpers.withMessage(() => generateMessage('highest_level_units_earned').maxLength, globalStringMaxLengthRule),
+        maxLength: globalStringMaxLengthRule,
       },
       year_graduated: {
         required: helpers.withMessage(() => generateMessage('year_graduated').required, required),
-        maxLength: helpers.withMessage(() => generateMessage('year_graduated').maxLength, globalStringMaxLengthRule),
       },
       scholarship_academic_honors_received: {
-        maxLength: helpers.withMessage(() => generateMessage('year_graduated').maxLength, globalStringMaxLengthRule),
+        maxLength: globalStringMaxLengthRule,
       },
     },
     vocational: {
       schools_name: {
-        maxLength: helpers.withMessage(() => generateMessage('elementary_school_name').maxLength, globalStringMaxLengthRule),
+        maxLength: globalStringMaxLengthRule,
       },
       education_description: {
-        maxLength: helpers.withMessage(
-          () => generateMessage('elementary_basic_education_degree_course').maxLength,
-          globalStringMaxLengthRule
-        ),
+        maxLength: globalStringMaxLengthRule,
       },
       period_of_attendance_from: {
         maxLength: helpers.withMessage(() => generateMessage('elementary_from').maxLength, globalStringMaxLengthRule),
+        isAfterOrEqualTo: helpers.withMessage(
+          'Inclusive "From" date must not be after "To" date.',
+          (
+            val: string | number | Date | null,
+            vm: {
+              period_of_attendance_to: string | number | Date | null
+            }
+          ) => {
+            if (!helpers.req(vm.period_of_attendance_to)) return true
+
+            const from = val ? new Date(val) : null
+            const to = vm.period_of_attendance_to ? new Date(vm.period_of_attendance_to) : null
+
+            if (!from || !to || isNaN(from.getTime()) || isNaN(to.getTime())) return true
+
+            return from <= to
+          }
+        ),
+        notInFuture: helpers.withMessage('Date must not be in the future.', notInFuture),
       },
       period_of_attendance_to: {
         maxLength: helpers.withMessage(() => generateMessage('elementary_to').maxLength, globalStringMaxLengthRule),
+        isAfterOrEqualFromDate,
+        notInFuture: helpers.withMessage('Date must not be in the future.', notInFuture),
       },
       highest_level_units_earned: {
-        maxLength: helpers.withMessage(() => generateMessage('highest_level_units_earned').maxLength, globalStringMaxLengthRule),
+        maxLength: globalStringMaxLengthRule,
       },
       year_graduated: {
         maxLength: helpers.withMessage(() => generateMessage('year_graduated').maxLength, globalStringMaxLengthRule),
       },
       scholarship_academic_honors_received: {
-        maxLength: helpers.withMessage(() => generateMessage('year_graduated').maxLength, globalStringMaxLengthRule),
+        maxLength: globalStringMaxLengthRule,
       },
     },
     college: {
       schools_name: {
         required: helpers.withMessage(() => generateMessage('college_name').required, required),
-        maxLength: helpers.withMessage(() => generateMessage('college_name').maxLength, globalStringMaxLengthRule),
+        maxLength: globalStringMaxLengthRule,
       },
       education_description: {
         required: helpers.withMessage(() => generateMessage('college_basic_education_degree_course').required, required),
-        maxLength: helpers.withMessage(
-          () => generateMessage('college_basic_education_degree_course').maxLength,
-          globalStringMaxLengthRule
-        ),
+        maxLength: globalStringMaxLengthRule,
       },
       period_of_attendance_from: {
         required: helpers.withMessage(() => generateMessage('college_from').required, required),
-        maxLength: helpers.withMessage(() => generateMessage('college_from').maxLength, globalStringMaxLengthRule),
+        isAfterOrEqualTo: helpers.withMessage(
+          'Inclusive "From" date must not be after "To" date.',
+          (
+            val: string | number | Date | null,
+            vm: {
+              period_of_attendance_to: string | number | Date | null
+            }
+          ) => {
+            if (!helpers.req(vm.period_of_attendance_to)) return true
+
+            const from = val ? new Date(val) : null
+            const to = vm.period_of_attendance_to ? new Date(vm.period_of_attendance_to) : null
+
+            if (!from || !to || isNaN(from.getTime()) || isNaN(to.getTime())) return true
+
+            return from <= to
+          }
+        ),
+        notInFuture: helpers.withMessage('Date must not be in the future.', notInFuture),
       },
       period_of_attendance_to: {
         required: helpers.withMessage(() => generateMessage('college_to').required, required),
-        maxLength: helpers.withMessage(() => generateMessage('college_to').maxLength, globalStringMaxLengthRule),
+        isAfterOrEqualFromDate,
+        notInFuture: helpers.withMessage('Date must not be in the future.', notInFuture),
       },
       highest_level_units_earned: {
-        maxLength: helpers.withMessage(() => generateMessage('highest_level_units_earned').maxLength, globalStringMaxLengthRule),
+        maxLength: globalStringMaxLengthRule,
       },
       year_graduated: {
         required: helpers.withMessage(() => generateMessage('year_graduated').required, required),
-        maxLength: helpers.withMessage(() => generateMessage('year_graduated').maxLength, globalStringMaxLengthRule),
       },
       scholarship_academic_honors_received: {
-        maxLength: helpers.withMessage(() => generateMessage('year_graduated').maxLength, globalStringMaxLengthRule),
+        maxLength: globalStringMaxLengthRule,
       },
     },
     graduate: {
       schools_name: {
-        maxLength: helpers.withMessage(() => generateMessage('graduate_school_name').maxLength, globalStringMaxLengthRule),
+        maxLength: globalStringMaxLengthRule,
       },
       education_description: {
-        maxLength: helpers.withMessage(
-          () => generateMessage('graduate_basic_education_degree_course').maxLength,
-          globalStringMaxLengthRule
-        ),
+        maxLength: globalStringMaxLengthRule,
       },
       period_of_attendance_from: {
         maxLength: helpers.withMessage(() => generateMessage('graduate_from').maxLength, globalStringMaxLengthRule),
+        isAfterOrEqualTo: helpers.withMessage(
+          'Inclusive "From" date must not be after "To" date.',
+          (
+            val: string | number | Date | null,
+            vm: {
+              period_of_attendance_to: string | number | Date | null
+            }
+          ) => {
+            if (!helpers.req(vm.period_of_attendance_to)) return true
+
+            const from = val ? new Date(val) : null
+            const to = vm.period_of_attendance_to ? new Date(vm.period_of_attendance_to) : null
+
+            if (!from || !to || isNaN(from.getTime()) || isNaN(to.getTime())) return true
+
+            return from <= to
+          }
+        ),
+        notInFuture: helpers.withMessage('Date must not be in the future.', notInFuture),
       },
       period_of_attendance_to: {
         maxLength: helpers.withMessage(() => generateMessage('graduate_to').maxLength, globalStringMaxLengthRule),
+        isAfterOrEqualFromDate,
+        notInFuture: helpers.withMessage('Date must not be in the future.', notInFuture),
       },
       highest_level_units_earned: {
-        maxLength: helpers.withMessage(() => generateMessage('highest_level_units_earned').maxLength, globalStringMaxLengthRule),
+        maxLength: globalStringMaxLengthRule,
       },
       year_graduated: {
         maxLength: helpers.withMessage(() => generateMessage('year_graduated').maxLength, globalStringMaxLengthRule),
       },
       scholarship_academic_honors_received: {
-        maxLength: helpers.withMessage(() => generateMessage('year_graduated').maxLength, globalStringMaxLengthRule),
+        maxLength: globalStringMaxLengthRule,
       },
     },
   },
@@ -554,19 +709,33 @@ const formRules = computed(() => ({
 const validator = useVuelidate<PersonalDataSheetPayload>(formRules, payload)
 
 watch(isSameResidential, (newVal) => {
+  const v = validator.value
   if (newVal === true) {
     const residential = payload.individual_address_init
-    if (
-      !residential.residential_house_block_lot_no &&
-      !residential.residential_street &&
-      !residential.residential_subdivision_village &&
-      !residential.residential_zip_code &&
-      !selectedResidentialRegion.value &&
-      !selectedResidentialProvince.value &&
-      !selectedResidentialCity.value &&
-      !selectedResidentialBarangay.value
-    ) {
-      showToast('error', 'Validation Error', 'Please enter your residential address first.')
+
+    // Trigger validation for all residential fields
+    v.individual_address_init.residential_house_block_lot_no.$touch()
+    v.individual_address_init.residential_street.$touch()
+    v.individual_address_init.residential_subdivision_village.$touch()
+    v.individual_address_init.residential_zip_code.$touch()
+    v.individual_address_init.residential_brgy_id.$touch()
+    v.individual_address_init.residential_citymun_id.$touch()
+    v.individual_address_init.residential_province_id.$touch()
+    v.individual_address_init.residential_region_id.$touch()
+
+    // Check if any field is invalid
+    const anyInvalid =
+      v.individual_address_init.residential_house_block_lot_no.$invalid ||
+      v.individual_address_init.residential_street.$invalid ||
+      v.individual_address_init.residential_subdivision_village.$invalid ||
+      v.individual_address_init.residential_zip_code.$invalid ||
+      v.individual_address_init.residential_brgy_id.$invalid ||
+      v.individual_address_init.residential_citymun_id.$invalid ||
+      v.individual_address_init.residential_province_id.$invalid ||
+      v.individual_address_init.residential_region_id.$invalid
+
+    if (anyInvalid) {
+      showToast('error', 'Validation Error', 'Please complete your residential address first.')
       isSameResidential.value = false
       return
     }
@@ -590,6 +759,15 @@ watch(isSameResidential, (newVal) => {
     payload.individual_address_init.permanent_zip_code = null
   }
 })
+
+watch(
+  () => payload.individual.sex,
+  (newSex) => {
+    if (newSex === 'female') {
+      payload.individual.ext_name = null
+    }
+  }
+)
 
 watch(
   () => payload.individual_address_init.residential_region_id,
@@ -684,17 +862,30 @@ watch(
 watch(
   () => payload.individual.birthday,
   (newBday) => {
-    if (newBday !== null) {
-      const dateBday = new Date(newBday).toLocaleDateString('default', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        timeZone: 'Asia/Manila',
-      })
+    if (newBday) {
+      const date = new Date(newBday)
+      const mm = String(date.getMonth() + 1).padStart(2, '0')
+      const dd = String(date.getDate()).padStart(2, '0')
+      const yyyy = date.getFullYear()
 
-      const formatBday = dateBday.split('/')
-      payload.individual.birthday = `${formatBday[2]}-${formatBday[0]}-${formatBday[1]}`
+      payload.individual.birthday = `${yyyy}-${mm}-${dd}`
     }
+  }
+)
+
+watch(
+  () => payload.individual_family_children.map((c) => c.date_of_birth),
+  (newDates) => {
+    newDates.forEach((bday, index) => {
+      if (bday) {
+        const date = new Date(bday)
+        const mm = String(date.getMonth() + 1).padStart(2, '0')
+        const dd = String(date.getDate()).padStart(2, '0')
+        const yyyy = date.getFullYear()
+
+        payload.individual_family_children[index].date_of_birth = `${yyyy}-${mm}-${dd}`
+      }
+    })
   }
 )
 
@@ -731,24 +922,33 @@ watch(
   { immediate: true }
 )
 
-watch(
-  () => payload.individual.civil_status,
-  (newStatus) => {
-    const spouse = payload.individual_family_spouse
+let stopSpouseWatch: WatchStopHandle | null = null
 
-    if (newStatus === 'Single') {
-      spouse.first_name = 'N/A'
-      spouse.middle_name = 'N/A'
-      spouse.last_name = 'N/A'
-      spouse.ext_name = null
-      spouse.occupation = 'N/A'
-      spouse.employers_business_name = 'N/A'
-      spouse.business_address = 'N/A'
-      spouse.telephone_no = null
-    }
-  },
-  { immediate: true }
-)
+const setupSpouseWatch = (immediate: boolean) => {
+  stopSpouseWatch?.()
+
+  stopSpouseWatch = watch(
+    () => payload.individual.civil_status,
+    (newStatus) => {
+      const spouse = payload.individual_family_spouse
+
+      const fill = (v: string) => {
+        spouse.first_name = v
+        spouse.middle_name = v
+        spouse.last_name = v
+        spouse.ext_name = v
+        spouse.occupation = v
+        spouse.employers_business_name = v
+        spouse.business_address = v
+        spouse.telephone_no = v
+      }
+
+      if (newStatus === 'Single') fill('N/A')
+      else fill('')
+    },
+    { immediate }
+  )
+}
 
 watch(
   () => selectedPermanentRegion.value,
@@ -852,31 +1052,46 @@ watch(
 
 watch(
   () => payload.employee.item_id,
-  (newId) => {
+  async (newId) => {
+    isItemsLoading.value = true
+    // 1. Check for a null/undefined ID immediately
     if (!newId) {
       selectedItemNo.value = null
       return
     }
 
-    const existing = libraryStore.itemsOptions.find((opt) => opt.value === newId)
+    // 2. Check the local cache of fetched items first
+    const existing = libraryStore.itemsOptions.find((opt) => Number(opt.value) === Number(newId))
 
     if (existing) {
+      // If found in local cache, set the value and call propPosition
       selectedItemNo.value = existing
       propPosition()
     } else {
-      const unwatch = watch(
-        () => libraryStore.itemsOptions,
-        (options) => {
-          const found = options.find((opt) => opt.value === newId)
-          if (found) {
-            selectedItemNo.value = found
-            propPosition()
-            unwatch()
-          }
-        },
-        { immediate: true }
-      )
+      // 3. If not found, fetch the item directly from the API by its ID
+      const response = await itemStore.fetchItemNumberById(Number(newId))
+
+      // 4. Check if the API call was successful
+      if (response && response.success) {
+        const itemResponse = response.data as ItemNumberResponse
+        // 5. If successful, use the data to set the selected item
+        const foundItem = {
+          value: itemResponse.id,
+          label: itemResponse.number,
+        }
+
+        // 6. Push the new item to the local cache so it's available next time
+        libraryStore.itemsOptions.push(foundItem)
+
+        selectedItemNo.value = foundItem
+        propPosition()
+      } else {
+        // Handle case where item is not found or API call fails
+        selectedItemNo.value = null
+      }
     }
+
+    isItemsLoading.value = false
   },
   { immediate: true }
 )
@@ -884,6 +1099,7 @@ watch(
 watch(
   () => payload.employee.salary_grade_id,
   (newSelected) => {
+    isSalaryGradeLoading.value = true
     if (!newSelected) {
       selectedSalaryGrade.value = null
       return
@@ -891,7 +1107,7 @@ watch(
 
     const selectedId = typeof newSelected === 'object' && newSelected !== null ? newSelected.id : newSelected
 
-    const existing = sgStore.salaryGradesOptions.find((opt) => opt.value === selectedId)
+    const existing = sgStore.salaryGradesOptions.find((opt) => Number(opt.value) === Number(selectedId))
 
     if (existing) {
       selectedSalaryGrade.value = existing
@@ -899,7 +1115,7 @@ watch(
       const unwatch = watch(
         () => sgStore.salaryGradesOptions,
         (options) => {
-          const found = options.find((opt) => opt.value === selectedId)
+          const found = options.find((opt) => Number(opt.value) === Number(selectedId))
           if (found) {
             selectedSalaryGrade.value = found
             unwatch()
@@ -908,6 +1124,8 @@ watch(
         { immediate: true }
       )
     }
+
+    isSalaryGradeLoading.value = false
   },
   { immediate: true }
 )
@@ -949,14 +1167,14 @@ watch(
       return
     }
 
-    const existing = libraryStore.divisionOptions.find((opt) => opt.value === newSelectedId)
+    const existing = libraryStore.divisionOptions.find((opt) => Number(opt.value) === Number(newSelectedId))
     if (existing) {
       selectedDivision.value = existing
     } else {
       const unwatch = watch(
         () => libraryStore.divisionOptions,
         (options) => {
-          const found = options.find((opt) => opt.value === newSelectedId)
+          const found = options.find((opt) => Number(opt.value) === Number(newSelectedId))
           if (found) {
             selectedDivision.value = found
             unwatch()
@@ -1016,6 +1234,15 @@ watch(
   }
 )
 
+watch(
+  () => payload.educations.graduate.is_current_enrolled,
+  (newVal) => {
+    if (newVal) {
+      currentlyEnrolledGraduate.value = newVal
+    }
+  }
+)
+
 watch(currentlyEnrolledGraduate, (newVal) => {
   if (newVal) {
     currentlyEnrolledVocational.value = false
@@ -1025,6 +1252,15 @@ watch(currentlyEnrolledGraduate, (newVal) => {
   payload.educations.graduate.is_current_enrolled = newVal
   if (newVal) payload.educations.graduate.period_of_attendance_to = null
 })
+
+watch(
+  () => payload.educations.vocational.is_current_enrolled,
+  (newVal) => {
+    if (newVal) {
+      currentlyEnrolledVocational.value = newVal
+    }
+  }
+)
 
 watch(currentlyEnrolledVocational, (newVal) => {
   if (newVal) {
@@ -1070,7 +1306,7 @@ const handleAdditionalChild = () => {
     telephone_no: null,
     class: 'Children',
     date_of_birth: null,
-    _delete: null,
+    _delete: false,
   })
 }
 
@@ -1156,11 +1392,14 @@ onMounted(async () => {
           case 'Mother':
             Object.assign(payload.individual_family_mothers_maiden, fam)
             break
-          case 'Children':
-            payload.individual_family_children.push(fam) // array of children
-            break
         }
       })
+      payload.individual_family_children = familyArray
+        .filter((fam) => fam.class === 'Children')
+        .map((child) => ({
+          ...child,
+          _delete: null,
+        }))
     } else {
       console.warn('Failed to fetch PDS by ID or response unsuccessful.')
     }
@@ -1183,6 +1422,18 @@ watch(
   { immediate: true }
 )
 
+const previousItemNumber = ref<string | null>(null)
+
+watch(selectedItemNo, async (newValueFilled, oldValueUnfilled) => {
+  if (oldValueUnfilled && oldValueUnfilled !== newValueFilled) {
+    await itemStore.updateItemStatus(oldValueUnfilled.value.toString())
+  }
+  if (newValueFilled) {
+    await itemStore.updateItemStatus(newValueFilled.value.toString())
+  }
+  previousItemNumber.value = newValueFilled?.value?.toString() ?? null
+})
+
 const updateC1Form = async () => {
   IsBeingUpdated.value = true
   const id = pdsStore.isMyPds
@@ -1190,6 +1441,36 @@ const updateC1Form = async () => {
     : (route.params.id as string)
 
   formIsSubmitting.value = true
+
+  const valid = await validator.value.$validate()
+  if (!valid) {
+    const hasEmployeeError = validator.value.employee?.$error
+    const hasIndividualError = validator.value.individual?.$error
+    const hasContactInfoError = validator.value.contact_info?.$error
+    const hasAddressError = validator.value.individual_address_init?.$error
+    const hasSpouseError = validator.value.individual_family_spouse?.$error
+    const hasFatherError = validator.value.individual_family_father?.$error
+    const hasMotherError = validator.value.individual_family_mothers_maiden?.$error
+    const hasChildError = validator.value.individual_family_child?.$error
+    const hasEducationError = validator.value.educations?.$error
+
+    const errorFields: string[] = []
+    if (hasEmployeeError) errorFields.push('Employee')
+    if (hasIndividualError) errorFields.push('Individual')
+    if (hasContactInfoError) errorFields.push('Contact Info')
+    if (hasAddressError) errorFields.push('Address')
+    if (hasSpouseError) errorFields.push('Spouse')
+    if (hasFatherError) errorFields.push('Father')
+    if (hasMotherError) errorFields.push('Mother')
+    if (hasChildError) errorFields.push('Child')
+    if (hasEducationError) errorFields.push('Education')
+
+    const tabList = errorFields.join(', ')
+    showToast('error', 'Validation Error', `Please check the following section(s): ${tabList}`)
+
+    isC1Loading.value = false
+    return { valid: false, errorTabs: ['C1'] }
+  }
 
   const familyArray = [
     payload.individual_family_spouse,
@@ -1273,7 +1554,7 @@ const handleSaveC1Form = async () => {
   }
 
   /** Propagate indiividual family to required payload */
-  const families = [{ ...payload.individual_family_father }, { ...payload.individual_family_mothers_maiden }]
+  let families = [{ ...payload.individual_family_father }, { ...payload.individual_family_mothers_maiden }]
 
   if (
     typeof payload.individual_family_spouse.last_name?.trim() !== 'undefined' ||
@@ -1283,10 +1564,10 @@ const handleSaveC1Form = async () => {
   }
 
   if (
-    typeof payload.individual_family_children[0].last_name?.trim() !== 'undefined' ||
-    payload.individual_family_children[0].last_name !== null
+    typeof payload.individual_family_children[0]?.last_name?.trim() !== 'undefined' ||
+    payload.individual_family_children[0]?.last_name !== null
   ) {
-    payload.individual_family = families.concat(payload.individual_family_children)
+    families.push(...payload.individual_family_children)
   }
   payload.individual_family = families
 
@@ -1309,12 +1590,13 @@ const handleSaveC1Form = async () => {
     payload.individual_educational_background.push({ ...payload.educations.graduate })
   }
 
-  console.log(validator.value)
-  if (!valid) return (isC1Loading.value = false)
+  if (payload.employee.item?.number) {
+    await itemStore.updateItemStatus(payload.employee.item?.number)
+  }
 
   const response = await pdsStore.savePds(payload)
 
-  if (response.success === false) {
+  if (!response.success) {
     const result = parseApiResponseError(response)
 
     isPdsError.value = true
@@ -1325,7 +1607,6 @@ const handleSaveC1Form = async () => {
     showToast('success', 'Personal Data Sheet (PDS)', 'PDS has been successfully updated.')
     router.push({ name: 'employment' })
   }
-
   isC1Loading.value = false
 }
 
@@ -1396,7 +1677,9 @@ defineExpose({
                         <WbAutoComplete
                           :useApiFilter="true"
                           :apiEndpoint="'/items/search'"
+                          :apiFilters="{ status: 'Unfilled' }"
                           :suggestions="itemStore.itemNumbersSuggestions"
+                          :loading="isItemsLoading"
                           @item-select="propPosition"
                           apiOptionLabel="number"
                           label="Item Number"
@@ -1406,7 +1689,7 @@ defineExpose({
                           optionLabel="label"
                           optionValue="value"
                           required
-                          :disabled="pdsStore.isMyPds"
+                          :disabled="pdsStore.isMyPds || ppmsCanUpdate"
                           @on-true-value-computed="
                             (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
                               useWbAutoCompleteHandleTrueValue(value, toRef(payload.employee, 'item_id'))
@@ -1446,6 +1729,7 @@ defineExpose({
                         :useApiFilter="true"
                         :apiEndpoint="'libraries/salary-grades/search'"
                         :suggestions="sgStore.salaryGradesOptions"
+                        :loading="isSalaryGradeLoading"
                         apiOptionLabel="salary_grade"
                         label="Salary Grade"
                         placeholder="Type Salary Grade with its tranche here"
@@ -1605,18 +1889,19 @@ defineExpose({
                         :disabled="pdsStore.isMyPds || payload.individual.sex === 'female'"
                         label="Extension Name"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                        class="lg:text-md lg:placeholder:text-md cursor-not-allowed bg-surface-200 text-sm placeholder:text-sm read-only:cursor-not-allowed disabled:cursor-not-allowed"
+                        :class="[
+                          'lg:text-md lg:placeholder:text-md text-sm placeholder:text-sm',
+                          payload.individual.sex === 'female' ? 'cursor-not-allowed bg-surface-200' : 'bg-surface-0',
+                          pdsStore.isMyPds ? 'cursor-not-allowed bg-surface-200' : '',
+                        ]"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         :invalid="validator.individual.ext_name.$invalid"
                         :invalid-text="validator.individual.ext_name.$errors[0]?.$message"
                         @blur="validator.individual.ext_name.$touch"
                       >
                       </WbDropdown>
-
                       <WbCalendar
                         v-model="payload.individual.birthday"
-                        dateFormat="yy-mm-dd"
-                        :maxDate="new Date()"
                         required
                         :disabled="pdsStore.isMyPds"
                         label="Date of Birth"
@@ -1726,12 +2011,13 @@ defineExpose({
                           <FontAwesomeIcon icon="fa-solid fa-house-flag" />
                         </template>
                       </WbDropdown>
-                      <WbInputNumber
+                      <WbInputText
                         v-model="payload.individual.height"
                         label="Height (m)"
                         placeholder="Height in meters"
-                        suffix=" m"
+                        suffix="m"
                         required
+                        :disabled="pdsStore.isMyPds"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -1742,7 +2028,7 @@ defineExpose({
                         <template #prepend-icon>
                           <FontAwesomeIcon icon="fa-solid fa-ruler-vertical" />
                         </template>
-                      </WbInputNumber>
+                      </WbInputText>
 
                       <WbDropdown
                         v-model="payload.individual.blood_type"
@@ -1768,6 +2054,7 @@ defineExpose({
                         placeholder="Weight in kilos"
                         suffix=" kg"
                         required
+                        :disabled="pdsStore.isMyPds"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -1925,6 +2212,7 @@ defineExpose({
                           v-model="selectedResidentialRegion"
                           :suggestions="publicStore.regionOptions"
                           label=" Region "
+                          :disabled="pdsStore.isMyPds"
                           required
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
@@ -1953,6 +2241,7 @@ defineExpose({
                           v-model="selectedResidentialProvince"
                           :suggestions="filteredProvinceOptionsByRegion"
                           label=" Province "
+                          :disabled="pdsStore.isMyPds"
                           required
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
@@ -1980,6 +2269,7 @@ defineExpose({
                           v-model="selectedResidentialCity"
                           :suggestions="filteredCityOptionsByProvince"
                           label=" City / Municipality "
+                          :disabled="pdsStore.isMyPds"
                           required
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
@@ -2008,6 +2298,7 @@ defineExpose({
                           v-model="selectedResidentialBarangay"
                           :suggestions="filteredBarangayOptionsByCity"
                           label=" Barangay "
+                          :disabled="pdsStore.isMyPds"
                           required
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
@@ -2035,6 +2326,7 @@ defineExpose({
                         <WbInputText
                           v-model="payload.individual_address_init.residential_subdivision_village"
                           label="Subdivision / Village"
+                          :disabled="pdsStore.isMyPds"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -2046,6 +2338,7 @@ defineExpose({
                         <WbInputText
                           v-model="payload.individual_address_init.residential_street"
                           label="Street"
+                          :disabled="pdsStore.isMyPds"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -2057,6 +2350,7 @@ defineExpose({
                         <WbInputText
                           v-model="payload.individual_address_init.residential_house_block_lot_no"
                           label="House / Block / Lot No."
+                          :disabled="pdsStore.isMyPds"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -2068,6 +2362,7 @@ defineExpose({
                         <WbInputText
                           v-model="payload.individual_address_init.residential_zip_code"
                           required
+                          :disabled="pdsStore.isMyPds"
                           label="ZIP Code"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
@@ -2091,6 +2386,7 @@ defineExpose({
                         <div class="col-span-2 my-4 ml-4">
                           <div class="align-items-center flex items-center">
                             <Checkbox
+                              :disabled="pdsStore.isMyPds"
                               v-model="isSameResidential"
                               :id="getId('input-same-residential')"
                               :inputId="getId('input-same-residential')"
@@ -2111,7 +2407,7 @@ defineExpose({
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           optionLabel="label"
-                          :disabled="isSameResidential"
+                          :disabled="isSameResidential || pdsStore.isMyPds"
                           :placeholder="'Select or Type your Region'"
                           forceSelection
                           @on-true-value-computed="
@@ -2134,7 +2430,7 @@ defineExpose({
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           optionLabel="label"
-                          :disabled="isSameResidential"
+                          :disabled="isSameResidential || pdsStore.isMyPds"
                           :placeholder="'Select or Type your Province'"
                           forceSelection
                           @on-true-value-computed="
@@ -2157,7 +2453,7 @@ defineExpose({
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           optionLabel="label"
-                          :disabled="isSameResidential"
+                          :disabled="isSameResidential || pdsStore.isMyPds"
                           :placeholder="'Select or Type your City/Municipality'"
                           forceSelection
                           @on-true-value-computed="
@@ -2181,7 +2477,7 @@ defineExpose({
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           optionLabel="label"
-                          :disabled="isSameResidential"
+                          :disabled="isSameResidential || pdsStore.isMyPds"
                           :placeholder="'Select your Barangay'"
                           forceSelection
                           @on-true-value-computed="
@@ -2200,7 +2496,7 @@ defineExpose({
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                          :disabled="isSameResidential"
+                          :disabled="isSameResidential || pdsStore.isMyPds"
                           :invalid="validator.individual_address_init.permanent_subdivision_village.$invalid"
                           :invalid-text="validator.individual_address_init.permanent_subdivision_village.$errors[0]?.$message"
                           @blur="validator.individual_address_init.permanent_subdivision_village.$touch"
@@ -2212,7 +2508,7 @@ defineExpose({
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                          :disabled="isSameResidential"
+                          :disabled="isSameResidential || pdsStore.isMyPds"
                           :invalid="validator.individual_address_init.permanent_street.$invalid"
                           :invalid-text="validator.individual_address_init.permanent_street.$errors[0]?.$message"
                           @blur="validator.individual_address_init.permanent_street.$touch"
@@ -2224,7 +2520,7 @@ defineExpose({
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                          :disabled="isSameResidential"
+                          :disabled="isSameResidential || pdsStore.isMyPds"
                           :invalid="validator.individual_address_init.permanent_house_block_lot_no.$invalid"
                           :invalid-text="validator.individual_address_init.permanent_house_block_lot_no.$errors[0]?.$message"
                           @blur="validator.individual_address_init.permanent_house_block_lot_no.$touch"
@@ -2237,7 +2533,7 @@ defineExpose({
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                          :disabled="isSameResidential"
+                          :disabled="isSameResidential || pdsStore.isMyPds"
                           :invalid="validator.individual_address_init.permanent_zip_code.$invalid"
                           :invalid-text="validator.individual_address_init.permanent_zip_code.$errors[0]?.$message"
                           @blur="validator.individual_address_init.permanent_zip_code.$touch"
@@ -2273,7 +2569,7 @@ defineExpose({
                         label="Surname"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                        :disabled="isSingle"
+                        :disabled="isSingle && pdsStore.isMyPds"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         :invalid="validator.individual_family_spouse.last_name.$invalid"
                         :invalid-text="validator.individual_family_spouse.last_name.$errors[0]?.$message"
@@ -2285,7 +2581,7 @@ defineExpose({
                         label="First Name"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                        :disabled="isSingle"
+                        :disabled="isSingle && pdsStore.isMyPds"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         :invalid="validator.individual_family_spouse.first_name.$invalid"
                         :invalid-text="validator.individual_family_spouse.first_name.$errors[0]?.$message"
@@ -2297,7 +2593,7 @@ defineExpose({
                         label="Middle Name"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                        :disabled="isSingle"
+                        :disabled="isSingle && pdsStore.isMyPds"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         :invalid="validator.individual_family_spouse.middle_name.$invalid"
                         :invalid-text="validator.individual_family_spouse.middle_name.$errors[0]?.$message"
@@ -2311,7 +2607,7 @@ defineExpose({
                         label="Extension Name"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                        :disabled="isSingle"
+                        :disabled="isSingle && pdsStore.isMyPds"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         :invalid="validator.individual_family_spouse.ext_name.$invalid"
                         :invalid-text="validator.individual_family_spouse.ext_name.$errors[0]?.$message"
@@ -2324,7 +2620,7 @@ defineExpose({
                         label="Occupation"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                        :disabled="isSingle"
+                        :disabled="isSingle && pdsStore.isMyPds"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         :invalid="validator.individual_family_spouse.occupation.$invalid"
                         :invalid-text="validator.individual_family_spouse.occupation.$errors[0]?.$message"
@@ -2336,7 +2632,7 @@ defineExpose({
                         label="Employer/Business Name"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                        :disabled="isSingle"
+                        :disabled="isSingle && pdsStore.isMyPds"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         :invalid="validator.individual_family_spouse.employers_business_name.$invalid"
                         :invalid-text="validator.individual_family_spouse.employers_business_name.$errors[0]?.$message"
@@ -2348,19 +2644,20 @@ defineExpose({
                         label="Business Address"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                        :disabled="isSingle"
+                        :disabled="isSingle && pdsStore.isMyPds"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         :invalid="validator.individual_family_spouse.business_address.$invalid"
                         :invalid-text="validator.individual_family_spouse.business_address.$errors[0]?.$message"
                         @blur="validator.individual_family_spouse.business_address.$touch"
                       />
 
-                      <WbInputText
+                      <WbInputMask
                         v-model="payload.individual_family_spouse.telephone_no"
                         label="Telephone No"
+                        mask="(999) 999-9999"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                        :disabled="isSingle"
+                        :disabled="isSingle && pdsStore.isMyPds"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         :invalid="validator.individual_family_spouse.telephone_no.$invalid"
                         :invalid-text="validator.individual_family_spouse.telephone_no.$errors[0]?.$message"
@@ -2374,6 +2671,7 @@ defineExpose({
                       <WbInputText
                         v-model="payload.individual_family_father.last_name"
                         label="Surname"
+                        :disabled="pdsStore.isMyPds"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         required
@@ -2386,6 +2684,7 @@ defineExpose({
                       <WbInputText
                         v-model="payload.individual_family_father.first_name"
                         label="First Name"
+                        :disabled="pdsStore.isMyPds"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         required
@@ -2398,6 +2697,7 @@ defineExpose({
                       <WbInputText
                         v-model="payload.individual_family_father.middle_name"
                         label="Middle Name"
+                        :disabled="pdsStore.isMyPds"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -2411,6 +2711,7 @@ defineExpose({
                         optionLabel="label"
                         optionValue="value"
                         :options="ExtensionTypeOptions"
+                        :disabled="pdsStore.isMyPds"
                         label="Extension Name"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
@@ -2428,6 +2729,7 @@ defineExpose({
                       <WbInputText
                         v-model="payload.individual_family_mothers_maiden.last_name"
                         label="Surname"
+                        :disabled="pdsStore.isMyPds"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         required
@@ -2440,6 +2742,7 @@ defineExpose({
                       <WbInputText
                         v-model="payload.individual_family_mothers_maiden.first_name"
                         label="First Name"
+                        :disabled="pdsStore.isMyPds"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         required
@@ -2452,6 +2755,7 @@ defineExpose({
                       <WbInputText
                         v-model="payload.individual_family_mothers_maiden.middle_name"
                         label="Middle Name"
+                        :disabled="pdsStore.isMyPds"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -2481,6 +2785,7 @@ defineExpose({
                             <WbInputText
                               v-model="payload.individual_family_children[childIdx - 1].last_name"
                               label="Surname"
+                              :disabled="pdsStore.isMyPds"
                               label-class="text-md text-surface-600 dark:lg:text-surface-200"
                               class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                               validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -2494,6 +2799,7 @@ defineExpose({
                             <WbInputText
                               v-model="payload.individual_family_children[childIdx - 1].first_name"
                               label="First Name"
+                              :disabled="pdsStore.isMyPds"
                               label-class="text-md text-surface-600 dark:lg:text-surface-200"
                               class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                               validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -2507,6 +2813,7 @@ defineExpose({
                             <WbInputText
                               v-model="payload.individual_family_children[childIdx - 1].middle_name"
                               label="Middle Name"
+                              :disabled="pdsStore.isMyPds"
                               label-class="text-md text-surface-600 dark:lg:text-surface-200"
                               class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                               validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -2521,6 +2828,7 @@ defineExpose({
                               v-model="payload.individual_family_children[childIdx - 1].ext_name"
                               optionLabel="label"
                               optionValue="value"
+                              :disabled="pdsStore.isMyPds"
                               :options="ExtensionTypeOptions"
                               label="Extension Name"
                               label-class="text-md text-surface-600 dark:lg:text-surface-200"
@@ -2533,7 +2841,12 @@ defineExpose({
                               dateFormat="mm/dd/yy"
                               :maxDate="new Date()"
                               label="Date of Birth"
+                              :disabled="pdsStore.isMyPds"
                               label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                              :class="[
+                                'text-lg font-semibold dark:text-primary-100',
+                                validator.individual_family_children[childIdx - 1].date_of_birth.$error ? 'mb-0' : 'mb-2',
+                              ]"
                               :invalid="validator.individual_family_children?.[childIdx - 1]?.date_of_birth?.$error"
                               :invalid-text="
                                 validator.individual_family_children?.[childIdx - 1]?.date_of_birth?.$errors[0]?.$message
@@ -2546,6 +2859,7 @@ defineExpose({
                             </WbCalendar>
 
                             <Button
+                              v-if="!pdsStore.isMyPds"
                               v-show="childIdx > 0"
                               :id="getId(`button-remove-child-${childIdx}`)"
                               icon="pi pi-trash"
@@ -2553,6 +2867,10 @@ defineExpose({
                               v-tooltip.top="'Remove Child'"
                               severity="danger"
                               class="mt-8 text-lg font-semibold dark:text-primary-100"
+                              :class="[
+                                'text-lg font-semibold dark:text-primary-100',
+                                validator.individual_family_children[childIdx - 1].date_of_birth.$error ? 'mb-6' : 'mb-2',
+                              ]"
                               text
                             />
                           </div>
@@ -2561,6 +2879,7 @@ defineExpose({
                     </template>
 
                     <Button
+                      v-if="!pdsStore.isMyPds"
                       label="Add additional child field"
                       @click="handleAdditionalChild"
                       size="large"
@@ -2599,6 +2918,7 @@ defineExpose({
                           v-model="payload.educations.elementary.schools_name"
                           required
                           label="Name of School"
+                          :disabled="pdsStore.isMyPds"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -2611,6 +2931,7 @@ defineExpose({
                           v-model="payload.educations.elementary.education_description"
                           required
                           label="Basic Education / Degree / Course "
+                          :disabled="pdsStore.isMyPds"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -2626,6 +2947,7 @@ defineExpose({
                             v-model="payload.educations.elementary.period_of_attendance_from"
                             required
                             label="From"
+                            :disabled="pdsStore.isMyPds"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
                             class="lg:text-md w-full text-sm placeholder:text-sm"
                             :view="'year'"
@@ -2640,6 +2962,7 @@ defineExpose({
                             v-model="payload.educations.elementary.period_of_attendance_to"
                             required
                             label="To"
+                            :disabled="pdsStore.isMyPds"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
                             class="lg:text-md w-full text-sm placeholder:text-sm"
                             :view="'year'"
@@ -2653,6 +2976,7 @@ defineExpose({
                           <WbInputText
                             v-model="payload.educations.elementary.highest_level_units_earned"
                             label="Highest Level / Units Earned "
+                            :disabled="pdsStore.isMyPds"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -2681,6 +3005,7 @@ defineExpose({
                           <WbInputText
                             v-model="payload.educations.elementary.scholarship_academic_honors_received"
                             label="Scholarship / Academic Honors Received "
+                            :disabled="pdsStore.isMyPds"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -2705,6 +3030,7 @@ defineExpose({
                           v-model="payload.educations.high_school.schools_name"
                           required
                           label="Name of School"
+                          :disabled="pdsStore.isMyPds"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -2717,6 +3043,7 @@ defineExpose({
                           v-model="payload.educations.high_school.education_description"
                           required
                           label="Basic Education / Degree / Course "
+                          :disabled="pdsStore.isMyPds"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -2732,6 +3059,7 @@ defineExpose({
                             v-model="payload.educations.high_school.period_of_attendance_from"
                             required
                             label="From"
+                            :disabled="pdsStore.isMyPds"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             :view="'year'"
@@ -2746,6 +3074,7 @@ defineExpose({
                             v-model="payload.educations.high_school.period_of_attendance_to"
                             required
                             label="To "
+                            :disabled="pdsStore.isMyPds"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             :view="'year'"
@@ -2759,6 +3088,7 @@ defineExpose({
                           <WbInputText
                             v-model="payload.educations.high_school.highest_level_units_earned"
                             label="Highest Level / Units Earned "
+                            :disabled="pdsStore.isMyPds"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -2787,6 +3117,7 @@ defineExpose({
                           <WbInputText
                             v-model="payload.educations.high_school.scholarship_academic_honors_received"
                             label="Scholarship / Academic Honors Received "
+                            :disabled="pdsStore.isMyPds"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -2805,9 +3136,10 @@ defineExpose({
                     <span class="mt-4 flex flex-col justify-center space-y-2 font-medium text-primary-700">
                       <p class="text-lg italic md:text-xl">Vocational / Trade Course</p>
                     </span>
-                    <div v-if="!currentlyEnrolledGraduate" class="col-span-2 my-4 ml-4">
+                    <div v-if="!currentlyEnrolledGraduate && !pdsStore.isMyPds" class="col-span-2 my-4 ml-4">
                       <div class="align-items-center flex items-center">
                         <Checkbox
+                          :disabled="pdsStore.isMyPds"
                           v-model="currentlyEnrolledVocational"
                           :id="getId('input-currently-enrolled-vocational')"
                           name="currentlyEnrolledVocational"
@@ -2823,6 +3155,7 @@ defineExpose({
                         <WbInputText
                           v-model="payload.educations.vocational.schools_name"
                           label="Name of School"
+                          :disabled="pdsStore.isMyPds"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -2834,6 +3167,7 @@ defineExpose({
                         <WbInputText
                           v-model="payload.educations.vocational.education_description"
                           label="Basic Education / Degree / Course "
+                          :disabled="pdsStore.isMyPds"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -2848,11 +3182,13 @@ defineExpose({
                           <WbCalendar
                             v-model="payload.educations.vocational.period_of_attendance_from"
                             label="From"
+                            :disabled="pdsStore.isMyPds"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                             :view="'year'"
                             :dateFormat="'yy'"
+                            placeholder="1970"
                             :invalid="validator.educations.vocational.period_of_attendance_from.$invalid"
                             :invalid-text="validator.educations.vocational.period_of_attendance_from.$errors[0]?.$message"
                             @blur="validator.educations.vocational.period_of_attendance_from.$touch"
@@ -2862,11 +3198,13 @@ defineExpose({
                             v-if="!currentlyEnrolledVocational"
                             v-model="payload.educations.vocational.period_of_attendance_to"
                             label="To "
+                            :disabled="pdsStore.isMyPds"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                             :view="'year'"
                             :dateFormat="'yy'"
+                            placeholder="1970"
                             :invalid="validator.educations.vocational.period_of_attendance_to.$invalid"
                             :invalid-text="validator.educations.vocational.period_of_attendance_to.$errors[0]?.$message"
                             @blur="validator.educations.vocational.period_of_attendance_to.$touch"
@@ -2886,7 +3224,7 @@ defineExpose({
                             v-model="payload.educations.vocational.highest_level_units_earned"
                             label="Highest Level / Units Earned "
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            :disabled="currentlyEnrolledVocational"
+                            :disabled="currentlyEnrolledVocational || pdsStore.isMyPds"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                             :invalid="validator.educations.vocational.highest_level_units_earned.$invalid"
@@ -2902,7 +3240,8 @@ defineExpose({
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
                             :view="'year'"
                             :dateFormat="'yy'"
-                            :disabled="currentlyEnrolledVocational"
+                            :disabled="currentlyEnrolledVocational || pdsStore.isMyPds"
+                            placeholder="1970"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                             :invalid="validator.educations.vocational.year_graduated.$invalid"
@@ -2914,7 +3253,7 @@ defineExpose({
                             v-model="payload.educations.vocational.scholarship_academic_honors_received"
                             label="Scholarship / Academic Honors Received "
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            :disabled="currentlyEnrolledVocational"
+                            :disabled="currentlyEnrolledVocational || pdsStore.isMyPds"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                             :invalid="validator.educations.vocational.scholarship_academic_honors_received.$invalid"
@@ -2938,6 +3277,7 @@ defineExpose({
                           v-model="payload.educations.college.schools_name"
                           required
                           label="Name of School"
+                          :disabled="pdsStore.isMyPds"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -2950,6 +3290,7 @@ defineExpose({
                           v-model="payload.educations.college.education_description"
                           required
                           label="Basic Education / Degree / Course "
+                          :disabled="pdsStore.isMyPds"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -2965,6 +3306,7 @@ defineExpose({
                             v-model="payload.educations.college.period_of_attendance_from"
                             required
                             label="From"
+                            :disabled="pdsStore.isMyPds"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -2979,6 +3321,7 @@ defineExpose({
                             v-model="payload.educations.college.period_of_attendance_to"
                             required
                             label="To "
+                            :disabled="pdsStore.isMyPds"
                             :view="'year'"
                             :dateFormat="'yy'"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
@@ -2992,6 +3335,7 @@ defineExpose({
                           <WbInputText
                             v-model="payload.educations.college.highest_level_units_earned"
                             label="Highest Level / Units Earned "
+                            :disabled="pdsStore.isMyPds"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -3006,6 +3350,7 @@ defineExpose({
                             v-model="payload.educations.college.year_graduated"
                             required
                             label="Year Graduated"
+                            :disabled="pdsStore.isMyPds"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
                             :view="'year'"
                             :dateFormat="'yy'"
@@ -3019,6 +3364,7 @@ defineExpose({
                           <WbInputText
                             v-model="payload.educations.college.scholarship_academic_honors_received"
                             label="Scholarship / Academic Honors Received "
+                            :disabled="pdsStore.isMyPds"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -3035,9 +3381,10 @@ defineExpose({
                     <span class="mt-4 flex flex-col justify-center space-y-2 font-medium text-primary-700">
                       <p class="text-lg italic md:text-xl">Graduate Studies</p>
                     </span>
-                    <div v-if="!currentlyEnrolledVocational" class="col-span-2 my-4 ml-4">
+                    <div v-if="!currentlyEnrolledVocational && !pdsStore.isMyPds" class="col-span-2 my-4 ml-4">
                       <div class="align-items-center flex items-center">
                         <Checkbox
+                          :disabled="pdsStore.isMyPds"
                           v-model="currentlyEnrolledGraduate"
                           :id="getId('input-currently-enrolled-graduate')"
                           name="currentlyEnrolledGraduate"
@@ -3053,6 +3400,7 @@ defineExpose({
                         <WbInputText
                           v-model="payload.educations.graduate.schools_name"
                           label="Name of School"
+                          :disabled="pdsStore.isMyPds"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -3064,6 +3412,7 @@ defineExpose({
                         <WbInputText
                           v-model="payload.educations.graduate.education_description"
                           label="Basic Education / Degree / Course "
+                          :disabled="pdsStore.isMyPds"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -3078,11 +3427,13 @@ defineExpose({
                           <WbCalendar
                             v-model="payload.educations.graduate.period_of_attendance_from"
                             label="From"
+                            :disabled="pdsStore.isMyPds"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                             :view="'year'"
                             :dateFormat="'yy'"
+                            placeholder="1970"
                             :invalid="validator.educations.graduate.period_of_attendance_from.$invalid"
                             :invalid-text="validator.educations.graduate.period_of_attendance_from.$errors[0]?.$message"
                             @blur="validator.educations.graduate.period_of_attendance_from.$touch"
@@ -3092,11 +3443,13 @@ defineExpose({
                             v-if="!currentlyEnrolledGraduate"
                             v-model="payload.educations.graduate.period_of_attendance_to"
                             label="To "
+                            :disabled="pdsStore.isMyPds"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                             :view="'year'"
                             :dateFormat="'yy'"
+                            placeholder="1970"
                             :invalid="validator.educations.graduate.period_of_attendance_to.$invalid"
                             :invalid-text="validator.educations.graduate.period_of_attendance_to.$errors[0]?.$message"
                             @blur="validator.educations.graduate.period_of_attendance_to.$touch"
@@ -3115,6 +3468,7 @@ defineExpose({
                           <WbInputText
                             v-model="payload.educations.graduate.highest_level_units_earned"
                             label="Highest Level / Units Earned "
+                            :disabled="pdsStore.isMyPds"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -3131,7 +3485,8 @@ defineExpose({
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
                             :view="'year'"
                             :dateFormat="'yy'"
-                            :disabled="currentlyEnrolledGraduate"
+                            placeholder="1970"
+                            :disabled="currentlyEnrolledGraduate || pdsStore.isMyPds"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                             :invalid="validator.educations.graduate.year_graduated.$invalid"
@@ -3143,7 +3498,7 @@ defineExpose({
                             v-model="payload.educations.graduate.scholarship_academic_honors_received"
                             label="Scholarship / Academic Honors Received "
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            :disabled="currentlyEnrolledGraduate"
+                            :disabled="currentlyEnrolledGraduate || pdsStore.isMyPds"
                             class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                             :invalid="validator.educations.graduate.scholarship_academic_honors_received.$invalid"
