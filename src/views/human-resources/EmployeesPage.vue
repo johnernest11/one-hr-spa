@@ -489,7 +489,7 @@ watchEffect(() => {
           margin: 5,
         },
         qrOptions: {
-          errorCorrectionLevel: 'L',
+          errorCorrectionLevel: 'H',
         },
         cornersSquareOptions: {
           type: 'square',
