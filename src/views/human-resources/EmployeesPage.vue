@@ -1111,7 +1111,7 @@ const downloadQrCode = async () => {
               class="text-surface-400 hover:text-surface-600 dark:text-surface-300 dark:hover:text-surface-500"
             >
               <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="extra-round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
               </svg>
             </button>
           </div>
