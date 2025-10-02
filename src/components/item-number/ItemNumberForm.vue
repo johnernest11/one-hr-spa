@@ -26,6 +26,8 @@ const router = useRouter()
 const publicPositionStore = usePositionStore()
 const publicFundSourceStore = useFundSourceStore()
 const itemNumberStore = useItemNumberStore()
+const isEditorMode = computed(() => route.name?.toString().includes('editor'))
+const initialized = ref(false)
 
 const payload = reactive<ItemNumberPayload>({
   number: null,
@@ -53,7 +55,7 @@ const formRules = {
     maxLength: globalStringMaxLengthRule,
     unique: helpers.withAsync(
       helpers.withMessage(
-        'This Item Number is already taken',
+        'This Item Number already exists.',
         uniqueItemNumberRuleLocal(
           itemNumberStore.itemNumbers.map((el) => el.number ?? ''),
           payload.number ?? ''
@@ -165,22 +167,34 @@ const generateItemNumber = (employment_status: string, position: string | number
         : ''
 }
 
-watch([() => payload.employment_status, () => selectedPosition.value], async ([newStatus, newPosition]) => {
-  if (newStatus === 'Permanent' || newStatus === 'Job Order') {
-    payload.number = null
-    isItemNumberManual.value = true
-    return
-  }
-  if (!newStatus || !newPosition?.value) {
-    payload.number = null
-    isItemNumberManual.value = false
-    return
-  }
+watch(
+  [() => payload.employment_status, () => selectedPosition.value],
+  async ([newStatus, newPosition], [oldStatus, oldPosition]) => {
+    if (!initialized.value) {
+      initialized.value = true
+      return
+    }
 
-  await itemNumberStore.fetchLastNumber(newStatus)
-  isItemNumberManual.value = false
-  payload.number = generateItemNumber(newStatus, positionCode.value)
-})
+    if (isEditorMode.value && newStatus === oldStatus && newPosition?.value === oldPosition?.value) {
+      return
+    }
+
+    if (newStatus === 'Permanent' || newStatus === 'Job Order') {
+      payload.number = null
+      isItemNumberManual.value = true
+      return
+    }
+    if (!newStatus || !newPosition?.value) {
+      payload.number = null
+      isItemNumberManual.value = false
+      return
+    }
+
+    await itemNumberStore.fetchLastNumber(newStatus)
+    isItemNumberManual.value = false
+    payload.number = generateItemNumber(newStatus, positionCode.value)
+  }
+)
 
 const isButtonVisible = computed(() => true)
 const handleButtonClick = async () => {
