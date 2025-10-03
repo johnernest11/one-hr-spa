@@ -331,26 +331,26 @@ const updateDTRTimeLogs = async () => {
         }
       })
       // === Validation: Ensure OUT1 → IN2 gap >= 15 minutes ===
-      // const out1 = time_logs.find((log) => log.is_in === false && log.scanned_time && log.date === formatDateYMD(item.date))
-      // const in2 = time_logs.find((log) => log.is_in === true && log.scanned_time && log.date === formatDateYMD(item.date))
+      const out1 = time_logs.find((log) => log.is_in === false && log.scanned_time && log.date === formatDateYMD(item.date))
+      const in2 = time_logs.find((log) => log.is_in === true && log.scanned_time && log.date === formatDateYMD(item.date))
 
-      // if (out1 && in2) {
-      //   const out1Time = new Date(`${out1.date}T${out1.scanned_time}`)
-      //   const in2Time = new Date(`${in2.date}T${in2.scanned_time}`)
+      if (out1 && in2) {
+        const out1Time = new Date(`${out1.date}T${out1.scanned_time}`)
+        const in2Time = new Date(`${in2.date}T${in2.scanned_time}`)
 
-      //   const diffMinutes = (in2Time.getTime() - out1Time.getTime()) / (1000 * 60)
+        const diffMinutes = (in2Time.getTime() - out1Time.getTime()) / (1000 * 60)
 
-      //   if (diffMinutes < 15) {
-      //     toast.add({
-      //       severity: 'error',
-      //       summary: 'Invalid Time Entry',
-      //       detail: 'There must be at least a 15-minute gap between OUT1 and IN2.',
-      //       life: 3000,
-      //     })
-      //     hasValidationError = true
-      //     return null
-      //   }
-      // }
+        if (diffMinutes < 15) {
+          toast.add({
+            severity: 'error',
+            summary: 'Invalid Time Entry',
+            detail: 'There must be at least a 15-minute gap between OUT1 and IN2.',
+            life: 3000,
+          })
+          hasValidationError = true
+          return null
+        }
+      }
 
       // === Existing DTR ===
       if (existingDTR) {
