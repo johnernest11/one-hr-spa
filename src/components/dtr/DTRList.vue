@@ -75,7 +75,7 @@ const navigateToDetails = (monthlyGroup: { month: string; records: DailyTimeReco
   router.push({
     name: targetRouteName,
     params: {
-      id: employeeId, // employee ID
+      id: employeeId,
       year: year.toString(),
       month: (monthIndex + 1).toString().padStart(2, '0'),
     },
@@ -140,7 +140,7 @@ watch(
 
 const searchSubmitted = ref(false)
 
-const handleSearchApplicationLeave = async () => {
+const handleSearchDailyTimeRecord = async () => {
   dailyTimeRecordIsLoading.value = true
   searchSubmitted.value = true
 
@@ -163,48 +163,78 @@ const handleSearchApplicationLeave = async () => {
 }
 
 const toast = useToast()
-const exportPdf = async (dailyTimeRecord: DailyTimeRecordResponse) => {
-  const { date, id } = dailyTimeRecord
+
+/** _____________________________________________________________
+                           Export to PDF  DTRs .
+_________________________________________________________________ */
+const exportCurrentMonthDTR = (monthlyRecord: { month: string; records: DailyTimeRecordResponse[] }) => {
+  if (!monthlyRecord.month) {
+    console.error('Month not available in record')
+    return
+  }
+
+  const [monthName, yearStr] = monthlyRecord.month.split(' ')
+  if (!monthName || !yearStr) {
+    console.error('Invalid month format in record')
+    return
+  }
+
+  const yearNum = Number(yearStr)
+  const monthNum = new Date(`${monthName} 1, ${yearNum}`).getMonth() + 1
+
+  const pad = (n: number) => n.toString().padStart(2, '0')
+  const startDateStr = `${yearNum}-${pad(monthNum)}-01`
+  const endDateStr = `${yearNum}-${pad(monthNum)}-${new Date(yearNum, monthNum, 0).getDate()}`
+
+  exportToPDF(selectedEmployeeId.value || '', startDateStr, endDateStr, yearNum, monthNum)
+}
+
+const exportToPDF = async (employeeId: string, startDate: string, endDate: string, yearNum?: number, monthNum?: number) => {
+  const monthName = monthNum
+    ? new Date(yearNum!, monthNum - 1).toLocaleString('default', { month: 'long' })
+    : new Date(startDate).toLocaleString('default', { month: 'long' })
+  const year = yearNum || new Date(startDate).getFullYear()
+
   toast.add({
     severity: 'info',
     summary: 'Exporting...',
-    detail: `Exporting ${date}'Daily Time Record '}...`,
+    detail: `Exporting DTR of ${monthName} ${year}...`,
     life: 5000,
   })
 
   try {
-    const reportResponse = await dailyTimeRecordStore.generateDailyTimeRecords(String(id))
+    const reportResponse = await dailyTimeRecordsStore.generateDailyTimeRecords(employeeId, startDate, endDate)
 
-    const blob = reportResponse.data.value
-    const fileName = reportResponse.fileNameHeader?.value || `Daily Time Record-${id}.xlsx`
-
-    if (blob) {
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = fileName
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      window.URL.revokeObjectURL(url)
-
-      toast.add({
-        severity: 'success',
-        summary: 'Daily Time Record Details Exported',
-        detail: `The Daily Time Record from ${dailyTimeRecord.date} was successfully exported.`,
-        life: 5000,
-      })
-    } else {
-      throw new Error('Failed to generate file.')
+    if (!reportResponse.data.value) {
+      throw new Error('No data received from the server')
     }
+
+    const blob = new Blob([reportResponse.data.value], { type: 'application/pdf' })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+
+    a.download = reportResponse.fileNameHeader.value || `DTR-${employeeId}-${startDate}_to_${endDate}.pdf`
+
+    document.body.appendChild(a)
+    a.click()
+    window.URL.revokeObjectURL(url)
+    document.body.removeChild(a)
+
+    toast.add({
+      severity: 'success',
+      summary: 'DTR Exported',
+      detail: `The DTR for employee ${employeeId} for ${monthName} ${year} was successfully exported.`,
+      life: 5000,
+    })
   } catch (error) {
     toast.add({
       severity: 'error',
       summary: 'Export Failed',
-      detail: 'There was an issue exporting the Daily Time Record. Please try again.',
+      detail: `Failed to export DTR: ${(error as Error).message}`,
       life: 5000,
     })
-    console.error(error)
+    console.error('Export error:', error)
   }
 }
 const isHumanResourceActive = computed(() => route.name === 'daily-time-records')
@@ -244,12 +274,12 @@ const getMonthlyStatus = (records: ViewDailyTimeRecordResponse[]): string => {
             <InputGroup v-model="searchQuery" class="w-full">
               <InputText
                 v-model="searchQuery"
-                placeholder="Search via Period or Date"
+                placeholder="Search via Period or Month"
                 class="w-full"
                 :disabled="dailyTimeRecordIsLoading"
-                @keyup.enter="handleSearchApplicationLeave"
+                @keyup.enter="handleSearchDailyTimeRecord"
               />
-              <Button icon="pi pi-search" @click="handleSearchApplicationLeave" />
+              <Button icon="pi pi-search" @click="handleSearchDailyTimeRecord" />
             </InputGroup>
           </div>
         </div>
@@ -304,7 +334,7 @@ const getMonthlyStatus = (records: ViewDailyTimeRecordResponse[]): string => {
                   <div class="flex gap-4 whitespace-nowrap md:w-auto">
                     <Button
                       icon="pi pi-eye"
-                      v-tooltip.top="'View Leave Application'"
+                      v-tooltip.top="'View Daily Time Record'"
                       severity="info"
                       class="border-none text-lg font-semibold text-primary-600 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
                       text
@@ -312,11 +342,11 @@ const getMonthlyStatus = (records: ViewDailyTimeRecordResponse[]): string => {
                     />
                     <Button
                       icon="pi pi-download"
-                      v-tooltip.top="'View Leave Application'"
+                      v-tooltip.top="'Download Daily Time Record'"
                       severity="info"
                       class="border-none text-lg font-semibold text-primary-600 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
                       text
-                      @click="exportPdf(props.data)"
+                      @click="exportCurrentMonthDTR(props.data)"
                     />
                   </div>
                 </template>
@@ -363,18 +393,6 @@ const getMonthlyStatus = (records: ViewDailyTimeRecordResponse[]): string => {
                 <h1 class="mb-4 text-center text-base text-surface-600 dark:text-surface-400 sm:text-lg">
                   Daily Time Record created by you shall appear here
                 </h1>
-                <div class="mt-4 flex w-full justify-center">
-                  <RouterLink :to="{ name: 'my-leaveapplications/store' }">
-                    <Button
-                      icon="pi pi-plus"
-                      label="New Daily Time Record"
-                      severity="info"
-                      size="large"
-                      class="border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100 sm:text-primary-400 md:text-primary-400 lg:text-primary-400 dark:lg:text-primary-400"
-                      text
-                    />
-                  </RouterLink>
-                </div>
               </div>
             </template>
           </Card>

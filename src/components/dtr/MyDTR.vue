@@ -331,26 +331,26 @@ const updateDTRTimeLogs = async () => {
         }
       })
       // === Validation: Ensure OUT1 → IN2 gap >= 15 minutes ===
-      const out1 = time_logs.find((log) => log.is_in === false && log.scanned_time && log.date === formatDateYMD(item.date))
-      const in2 = time_logs.find((log) => log.is_in === true && log.scanned_time && log.date === formatDateYMD(item.date))
+      // const out1 = time_logs.find((log) => log.is_in === false && log.scanned_time && log.date === formatDateYMD(item.date))
+      // const in2 = time_logs.find((log) => log.is_in === true && log.scanned_time && log.date === formatDateYMD(item.date))
 
-      if (out1 && in2) {
-        const out1Time = new Date(`${out1.date}T${out1.scanned_time}`)
-        const in2Time = new Date(`${in2.date}T${in2.scanned_time}`)
+      // if (out1 && in2) {
+      //   const out1Time = new Date(`${out1.date}T${out1.scanned_time}`)
+      //   const in2Time = new Date(`${in2.date}T${in2.scanned_time}`)
 
-        const diffMinutes = (in2Time.getTime() - out1Time.getTime()) / (1000 * 60)
+      //   const diffMinutes = (in2Time.getTime() - out1Time.getTime()) / (1000 * 60)
 
-        if (diffMinutes < 15) {
-          toast.add({
-            severity: 'error',
-            summary: 'Invalid Time Entry',
-            detail: 'There must be at least a 15-minute gap between OUT1 and IN2.',
-            life: 3000,
-          })
-          hasValidationError = true
-          return null
-        }
-      }
+      //   if (diffMinutes < 15) {
+      //     toast.add({
+      //       severity: 'error',
+      //       summary: 'Invalid Time Entry',
+      //       detail: 'There must be at least a 15-minute gap between OUT1 and IN2.',
+      //       life: 3000,
+      //     })
+      //     hasValidationError = true
+      //     return null
+      //   }
+      // }
 
       // === Existing DTR ===
       if (existingDTR) {
@@ -459,11 +459,50 @@ const isEditedTimeLog = computed(() => {
 /** _____________________________________________________________
                            Export to PDF  DTRs .
 _________________________________________________________________ */
-const exportToPDF = async (employeeId: string, startDate = '1900-01-01', endDate = '2100-12-31') => {
+
+const exportCurrentMonthDTR = () => {
+  // Read selected month from route params
+  const monthStr = route.params.month as string | undefined
+  const yearStr = route.params.year as string | undefined
+
+  if (!monthStr || !yearStr) {
+    console.error('Month or year not selected')
+    return
+  }
+
+  const yearNum = Number(yearStr)
+  const monthNum = Number(monthStr) // 1-12
+
+  if (isNaN(yearNum) || isNaN(monthNum) || monthNum < 1 || monthNum > 12) {
+    console.error('Invalid year or month')
+    return
+  }
+
+  // Helper to pad month/day
+  const pad = (n: number) => n.toString().padStart(2, '0')
+
+  const startDateStr = `${yearNum}-${pad(monthNum)}-01`
+  const endDateStr = `${yearNum}-${pad(monthNum)}-${new Date(yearNum, monthNum, 0).getDate()}`
+
+  exportToPDF(selectedEmployeeId.value || '', startDateStr, endDateStr)
+}
+
+const exportToPDF = async (
+  employeeId: string,
+  startDate = '1900-01-01',
+  endDate = '2100-12-31',
+  yearNum?: number,
+  monthNum?: number
+) => {
+  const monthName = monthNum
+    ? new Date(yearNum!, monthNum - 1).toLocaleString('default', { month: 'long' })
+    : new Date(startDate).toLocaleString('default', { month: 'long' })
+  const year = yearNum || new Date(startDate).getFullYear()
+
   toast.add({
     severity: 'info',
     summary: 'Exporting...',
-    detail: `Exporting DTR from ${startDate} to ${endDate}...`,
+    detail: `Exporting DTR of ${monthName} ${year}...`,
     life: 5000,
   })
 
@@ -489,7 +528,7 @@ const exportToPDF = async (employeeId: string, startDate = '1900-01-01', endDate
     toast.add({
       severity: 'success',
       summary: 'DTR Exported',
-      detail: `The DTR for employee ${employeeId} was successfully exported.`,
+      detail: `The DTR for employee ${employeeId} for ${monthName} ${year} was successfully exported.`,
       life: 5000,
     })
   } catch (error) {
@@ -537,10 +576,11 @@ const exportToPDF = async (employeeId: string, startDate = '1900-01-01', endDate
           <!-- Export & Navigation Buttons -->
           <div class="flex w-full flex-col gap-4 md:w-auto md:flex-row md:justify-end">
             <Button
-              label="Export All DTRs"
-              @click="() => exportToPDF(selectedEmployeeId || '', '2025-10-01', '2025-10-31')"
+              label="Export DTR"
+              @click="exportCurrentMonthDTR"
               :loading="formIsSubmitting"
               :disabled="formIsSubmitting"
+              class="border border-primary-400 text-base text-primary-500 dark:border-primary-700 dark:text-primary-100 lg:text-primary-500 dark:lg:text-primary-400"
               text
             >
               <template #icon>
