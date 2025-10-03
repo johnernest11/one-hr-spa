@@ -218,13 +218,7 @@ const onDecode = async (result: string) => {
     })
 
     if (errorResponse) {
-      const apiErrors = errorResponse.errors
-      if (apiErrors?.length && apiErrors[0].messages?.length) {
-        message = apiErrors[0].messages[0]
-      } else {
-        message = errorResponse.message || 'Time log failed with an unknown error.'
-      }
-
+      message = errorResponse.error_message ?? 'Time log failed with an unknown error.'
       dailyLogsStore.lastLogMessage = message
     } else if (dailyLogsStore.currentScannedEmployee) {
       const employee = dailyLogsStore.currentScannedEmployee
