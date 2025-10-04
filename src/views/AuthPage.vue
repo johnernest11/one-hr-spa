@@ -5,6 +5,7 @@ import { useRoute } from 'vue-router'
 import { computed, onMounted, ref, watch } from 'vue'
 import RegisterForm from '@/components/auth-page/register-form/RegisterForm.vue'
 import { useAuthStore } from '@/stores/auth.store.ts'
+import { TransitionRoot } from '@headlessui/vue'
 
 /** We either show the Login Form or the Create Account Form based on the route */
 const route = useRoute()
@@ -59,12 +60,33 @@ const showRefreshTokenExpiredAlert = computed(() => {
         ></div>
         <!-- Start Webkit Text -->
         <div
-          :class="`z-10 w-full max-w-md ${formHasError || formHasWarning || showLoginExpiredAlert || showRefreshTokenExpiredAlert ? 'animate-shake' : ''}`"
+          :class="`z-10 w-full max-w-2xl ${formHasError || formHasWarning || showLoginExpiredAlert || showRefreshTokenExpiredAlert ? 'animate-shake' : ''}`"
         >
-          <div class="mb-6 font-menu font-bold leading-tight dark:text-surface-0 sm:text-4xl xl:text-5xl">Webkit (Prime)</div>
-          <div class="xl:text-md font-normal text-surface-200 dark:text-surface-0 sm:text-sm">
-            Nipper holystone six pounders barkadeer rutters Privateer hail-shot warp black spot fore. Knave six pounders
-            quarterdeck crack Jennys tea cup starboard aye league lass Sink me heave down.
+          <div class="flex items-center gap-6">
+            <TransitionRoot
+              :show="true"
+              appear
+              enter="transition-all duration-700 delay-700"
+              enterFrom="opacity-0 translate-y-6"
+              enterTo="opacity-100 translate-y-0"
+            >
+              <img src="@/assets/favicon.svg" class="mr-2 h-28 w-auto" />
+            </TransitionRoot>
+
+            <TransitionRoot
+              :show="true"
+              appear
+              enter="transition-all duration-1000 delay-1000"
+              enterFrom="opacity-0 translate-y-6"
+              enterTo="opacity-100 translate-y-0"
+            >
+              <div class="flex flex-col">
+                <h1 class="font-menu font-bold leading-tight dark:text-surface-0 sm:text-4xl xl:text-5xl">HRCARES</h1>
+                <span class="font-normal text-surface-200 dark:text-surface-0 sm:text-sm xl:text-lg">
+                  Human Resources Comprehensive Access to Records and Employee Services</span
+                >
+              </div>
+            </TransitionRoot>
           </div>
         </div>
         <!-- End Webkit Text -->

@@ -479,7 +479,7 @@ watchEffect(() => {
         image: DSWDLogo,
         dotsOptions: {
           color: '#000000',
-          type: 'extra-rounded',
+          type: 'square',
         },
         backgroundOptions: {
           color: '#FFFFFF',
@@ -492,11 +492,11 @@ watchEffect(() => {
           errorCorrectionLevel: 'H',
         },
         cornersSquareOptions: {
-          type: 'extra-rounded',
+          type: 'square',
           color: '#000000',
         },
         cornersDotOptions: {
-          type: 'extra-rounded',
+          type: 'square',
           color: '#000000',
         },
       })
@@ -506,14 +506,14 @@ watchEffect(() => {
         data: fetchedQrCode.value?.qr_code_value,
         image: DSWDLogo,
         dotsOptions: {
-          type: 'extra-rounded',
+          type: 'square',
         },
         cornersSquareOptions: {
-          type: 'extra-rounded',
+          type: 'square',
           color: '#000000',
         },
         cornersDotOptions: {
-          type: 'extra-rounded',
+          type: 'square',
           color: '#000000',
         },
       })
@@ -1110,7 +1110,7 @@ const downloadQrCode = async () => {
               @click="closeQrModal"
               class="text-surface-400 hover:text-surface-600 dark:text-surface-300 dark:hover:text-surface-500"
             >
-              <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
               </svg>
             </button>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch, type Ref } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick, type Ref } from 'vue'
 import { QrcodeStream, DetectedBarcode } from 'vue-qrcode-reader'
 import { useDailyLogsStore } from '@/stores/daily-logs.store'
 import { useLibrariesStore } from '@/stores/libraries.store'
@@ -46,6 +46,30 @@ const selectedOffice = ref<WbAutoCompleteOption | null | undefined>(null)
 
 const recentLogs = ref<Log[]>([])
 
+// State for locking the scanner during the API call
+const isScanLocked = ref(false)
+
+// CRITICAL NEW STATE: Controls the momentary pause flicker to reset the scanner cache
+const isScannerResetting = ref(false)
+
+function paintOutline(detectedCodes: DetectedBarcode[], ctx: CanvasRenderingContext2D) {
+  for (const detectedCode of detectedCodes) {
+    const [firstPoint, ...otherPoints] = detectedCode.cornerPoints
+
+    ctx.strokeStyle = 'red'
+    ctx.lineWidth = 4
+
+    ctx.beginPath()
+    ctx.moveTo(firstPoint.x, firstPoint.y)
+    for (const { x, y } of otherPoints) {
+      ctx.lineTo(x, y)
+    }
+    ctx.lineTo(firstPoint.x, firstPoint.y)
+    ctx.closePath()
+    ctx.stroke()
+  }
+}
+
 const startTimeLogs = async () => {
   if (selectedOffice.value) {
     dailyLogsStore.setOffice(selectedOffice.value)
@@ -73,6 +97,7 @@ const updateDailyLogsState = async (date: string) => {
     photo_url: log.photo_url,
     captured_image: log.captured_image,
   }))
+  recentLogs.value = dailyLogsStore.getTodayWarmBodies(date).slice(0, 10)
 }
 
 const updateDateTime = () => {
@@ -143,6 +168,9 @@ onUnmounted(() => {
 const onDetect = (detectedCodes: DetectedBarcode[]) => {
   if (!detectedCodes.length) return
 
+  // Gate the scan only while the previous API request is active
+  if (isScanLocked.value) return
+
   const firstCode = detectedCodes[0]
   const decodedString = firstCode.rawValue
   onDecode(decodedString)
@@ -171,7 +199,11 @@ const handleCloseDialog = () => {
 }
 
 const onDecode = async (result: string) => {
+  // Reset the modal/timer from the previous scan
   handleCloseDialog()
+
+  // 1. Lock the scan during API call
+  isScanLocked.value = true
 
   const imageData = capturePhoto()
   const today = getManilaTodayISO()
@@ -186,13 +218,7 @@ const onDecode = async (result: string) => {
     })
 
     if (errorResponse) {
-      const apiErrors = errorResponse.errors
-      if (apiErrors?.length && apiErrors[0].messages?.length) {
-        message = apiErrors[0].messages[0]
-      } else {
-        message = errorResponse.message || 'Time log failed with an unknown error.'
-      }
-
+      message = errorResponse.error_message ?? 'Time log failed with an unknown error.'
       dailyLogsStore.lastLogMessage = message
     } else if (dailyLogsStore.currentScannedEmployee) {
       const employee = dailyLogsStore.currentScannedEmployee
@@ -209,7 +235,6 @@ const onDecode = async (result: string) => {
       const newLog: Log = {
         id: employee.id,
         employee_id: employee.id,
-
         timestamp: new Date().toISOString(),
         is_in: is_in,
         photo_url: employee.photo_url,
@@ -237,6 +262,18 @@ const onDecode = async (result: string) => {
   } finally {
     showModal.value = dailyLogsStore.showModal
 
+    // 2. CRITICAL: Clear the internal QR code cache by momentarily pausing the component.
+    isScannerResetting.value = true
+    await nextTick() // Ensure the pause state is applied to the component
+
+    // 3. Immediately unpause and unlock the scan logic, ready for the next frame.
+    // The 0ms delay ensures this runs on the next browser cycle, correctly clearing the cache.
+    window.setTimeout(() => {
+      isScannerResetting.value = false // Unpause the camera
+      isScanLocked.value = false // Unlock the logic
+    }, 0)
+
+    // 4. Start the 10-second timer for the modal dismissal.
     if (scanTimeoutId.value) clearTimeout(scanTimeoutId.value)
     scanTimeoutId.value = window.setTimeout(() => {
       handleCloseDialog()
@@ -403,9 +440,11 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
               ref="qrStreamRef"
               @detect="onDetect"
               :constraints="{ facingMode: 'environment' }"
+              :formats="['qr_code']"
+              :track="paintOutline"
               @init="onInit"
               @camera-error="onCameraError"
-              :paused="false"
+              :paused="isScannerResetting"
               class="h-full w-full object-cover"
             />
 
