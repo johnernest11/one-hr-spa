@@ -619,9 +619,12 @@ defineExpose({
                               <WbInputText
                                 v-model="payload.individual_eligibility[eligibilityIndex - 1].eligibility"
                                 label="Eligibility"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalid="validator.individual_eligibility[eligibilityIndex - 1].eligibility.$error"
                                 :invalidText="
@@ -635,9 +638,12 @@ defineExpose({
                               <WbInputText
                                 v-model="payload.individual_eligibility[eligibilityIndex - 1].rating"
                                 label="Rating"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalid="validator.individual_eligibility[eligibilityIndex - 1].rating.$error"
                                 :invalidText="validator.individual_eligibility[eligibilityIndex - 1].rating.$errors[0]?.$message"
@@ -649,9 +655,12 @@ defineExpose({
                               <WbCalendar
                                 v-model="payload.individual_eligibility[eligibilityIndex - 1].date_of_examination_conferment"
                                 label="Date of Exam / Conferment"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 :dateFormat="'yy-mm-dd'"
                                 :invalid="
                                   validator.individual_eligibility[eligibilityIndex - 1].date_of_examination_conferment.$error
@@ -672,9 +681,12 @@ defineExpose({
                               <WbInputText
                                 v-model="payload.individual_eligibility[eligibilityIndex - 1].place_of_examination"
                                 label="Place of Examination"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalid="validator.individual_eligibility[eligibilityIndex - 1].place_of_examination.$error"
                                 :invalidText="
@@ -688,9 +700,12 @@ defineExpose({
                               <WbInputText
                                 v-model="payload.individual_eligibility[eligibilityIndex - 1].license_number"
                                 label="License Number"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalid="validator.individual_eligibility[eligibilityIndex - 1].license_number.$error"
                                 :invalidText="
@@ -705,10 +720,13 @@ defineExpose({
                               <WbCalendar
                                 v-model="payload.individual_eligibility[eligibilityIndex - 1].license_date_of_validity"
                                 label="License Validity"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 :dateFormat="'yy-mm-dd'"
-                                class="lg:text-md lg:placeholder:text-md flex-1 text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalidText="
                                   validator.individual_eligibility[eligibilityIndex - 1].license_date_of_validity.$errors[0]
@@ -820,10 +838,13 @@ defineExpose({
                               <WbCalendar
                                 v-model="payload.individual_work_experience[workExperienceIndex - 1].inclusive_date_from"
                                 label="From"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                                 required
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 :dateFormat="'yy-mm-dd'"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalidText="
@@ -843,9 +864,12 @@ defineExpose({
                                 v-if="!isCurrentlyEmployed"
                                 v-model="payload.individual_work_experience[workExperienceIndex - 1].inclusive_date_to"
                                 label="To"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                                 :dateFormat="'yy-mm-dd'"
-                                class="w-full text-sm"
                                 label-class="text-md text-surface-600 md:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold"
                                 :invalidText="
@@ -875,9 +899,12 @@ defineExpose({
                               <WbCalendar
                                 v-model="payload.individual_work_experience[workExperienceIndex - 1].inclusive_date_to"
                                 label="To"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                                 :dateFormat="'yy-mm-dd'"
-                                class="w-full text-sm"
                                 label-class="text-md text-surface-600 md:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold"
                                 :invalidText="
@@ -894,9 +921,12 @@ defineExpose({
                               <WbInputText
                                 v-model="payload.individual_work_experience[workExperienceIndex - 1].position_title"
                                 label="Position Title"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalidText="
                                   validator.individual_work_experience[workExperienceIndex - 1].position_title.$errors[0]
@@ -913,9 +943,12 @@ defineExpose({
                                   payload.individual_work_experience[workExperienceIndex - 1].department_agency_office_company
                                 "
                                 label="Department/Agency/Company"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalidText="
                                   validator.individual_work_experience[workExperienceIndex - 1].department_agency_office_company
@@ -939,10 +972,13 @@ defineExpose({
                               <WbInputText
                                 v-model="payload.individual_work_experience[workExperienceIndex - 1].monthly_salary"
                                 label="Monthly Salary"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                                 required
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalidText="
                                   validator.individual_work_experience[workExperienceIndex - 1].monthly_salary.$errors[0]
@@ -957,7 +993,11 @@ defineExpose({
                               <WbAutoComplete
                                 v-if="!useCustomSalaryGrade[workExperienceIndex - 1]"
                                 :useApiFilter="true"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                                 :apiEndpoint="'libraries/salary-grades/search'"
                                 :suggestions="sgStore.salaryGradesOptions"
                                 apiOptionLabel="work_experience_salary_grade"
@@ -976,7 +1016,6 @@ defineExpose({
                                     )
                                 "
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalidText="
                                   validator.individual_work_experience[workExperienceIndex - 1].salary_grade_id.$errors[0]
@@ -991,11 +1030,14 @@ defineExpose({
                                 v-else
                                 v-model="payload.individual_work_experience[workExperienceIndex - 1].custom_salary_grade"
                                 label="Salary Grade"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                                 required
                                 placeholder="e.g 01-0 ,01-1 ,02-0"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalidText="
                                   validator.individual_work_experience[workExperienceIndex - 1].custom_salary_grade.$errors[0]
@@ -1026,13 +1068,16 @@ defineExpose({
                               <WbDropdown
                                 v-model="payload.individual_work_experience[workExperienceIndex - 1].status_of_appointment"
                                 optionLabel="label"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                                 optionValue="value"
                                 :options="EmploymentStatusOptions"
                                 required
                                 label="Status of Appointment"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalidText="
                                   validator.individual_work_experience[workExperienceIndex - 1].status_of_appointment.$errors[0]
@@ -1052,13 +1097,16 @@ defineExpose({
                               <WbDropdown
                                 v-model="payload.individual_work_experience[workExperienceIndex - 1].is_gov_service"
                                 optionLabel="label"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                                 optionValue="value"
                                 :options="isGovServiceYesNoOptions"
                                 required
                                 label="Gov’t Service"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalidText="
                                   validator.individual_work_experience[workExperienceIndex - 1].is_gov_service.$errors[0]

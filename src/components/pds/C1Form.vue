@@ -1689,13 +1689,16 @@ defineExpose({
                           optionLabel="label"
                           optionValue="value"
                           required
-                          :disabled="pdsStore.isMyPds || ppmsCanUpdate"
+                          :readonly="pdsStore.isMyPds || ppmsCanUpdate"
+                          :class="[
+                            'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                            pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                          ]"
                           @on-true-value-computed="
                             (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
                               useWbAutoCompleteHandleTrueValue(value, toRef(payload.employee, 'item_id'))
                           "
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           :invalid="validator.employee.item_id.$invalid"
                           :invalid-text="validator.employee.item_id.$errors[0]?.$message"
@@ -1738,13 +1741,16 @@ defineExpose({
                         optionLabel="label"
                         optionValue="value"
                         required
-                        :disabled="pdsStore.isMyPds"
+                        :readonly="pdsStore.isMyPds"
+                        :class="[
+                          'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                          pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                        ]"
                         @on-true-value-computed="
                           (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
                             useWbAutoCompleteHandleTrueValue(value, toRef(payload.employee, 'salary_grade_id'))
                         "
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         :invalid="validator.employee.salary_grade_id.$invalid"
                         :invalid-text="validator.employee.salary_grade_id.$errors[0]?.$message"
@@ -1767,14 +1773,17 @@ defineExpose({
                           optionLabel="label"
                           optionValue="value"
                           required
-                          :disabled="pdsStore.isMyPds"
+                          :readonly="pdsStore.isMyPds"
+                          :class="[
+                            'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                            pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                          ]"
                           forceSelection
                           @on-true-value-computed="
                             (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
                               useWbAutoCompleteHandleTrueValue(value, toRef(payload.employee, 'office_id'))
                           "
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           :invalid="validator.employee.office_id.$invalid"
                           :invalid-text="validator.employee.office_id.$errors[0]?.$message"
@@ -1795,13 +1804,16 @@ defineExpose({
                           optionLabel="label"
                           optionValue="value"
                           required
-                          :disabled="pdsStore.isMyPds"
+                          :readonly="pdsStore.isMyPds"
+                          :class="[
+                            'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                            pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                          ]"
                           @on-true-value-computed="
                             (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
                               useWbAutoCompleteHandleTrueValue(value, toRef(payload.employee, 'division_id'))
                           "
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           :invalid="validator.employee.division_id.$invalid"
                           :invalid-text="validator.employee.division_id.$errors[0]?.$message"
@@ -1822,13 +1834,16 @@ defineExpose({
                           optionLabel="label"
                           optionValue="value"
                           required
-                          :disabled="pdsStore.isMyPds"
+                          :readonly="pdsStore.isMyPds"
+                          :class="[
+                            'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                            pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                          ]"
                           @on-true-value-computed="
                             (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
                               useWbAutoCompleteHandleTrueValue(value, toRef(payload.employee, 'section_or_unit_id'))
                           "
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           :invalid="validator.employee.section_or_unit_id.$invalid"
                           :invalid-text="validator.employee.section_or_unit_id.$errors[0]?.$message"
@@ -1846,9 +1861,12 @@ defineExpose({
                         v-model="payload.individual.last_name"
                         label="Surname"
                         required
-                        :disabled="pdsStore.isMyPds"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                        :readonly="pdsStore.isMyPds"
+                        :class="[
+                          'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                          pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                        ]"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         :invalid="validator.individual.last_name.$invalid"
                         :invalid-text="validator.individual.last_name.$errors[0]?.$message"
@@ -1860,9 +1878,12 @@ defineExpose({
                         v-model="payload.individual.first_name"
                         label="First Name"
                         required
-                        :disabled="pdsStore.isMyPds"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                        :readonly="pdsStore.isMyPds"
+                        :class="[
+                          'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                          pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                        ]"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         :invalid="validator.individual.first_name.$invalid"
                         :invalid-text="validator.individual.first_name.$errors[0]?.$message"
@@ -1872,9 +1893,12 @@ defineExpose({
                       <WbInputText
                         v-model="payload.individual.middle_name"
                         label="Middle Name"
-                        :disabled="pdsStore.isMyPds"
+                        :readonly="pdsStore.isMyPds"
+                        :class="[
+                          'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                          pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                        ]"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         :invalid="validator.individual.middle_name.$invalid"
                         :invalid-text="validator.individual.middle_name.$errors[0]?.$message"
@@ -1903,7 +1927,11 @@ defineExpose({
                       <WbCalendar
                         v-model="payload.individual.birthday"
                         required
-                        :disabled="pdsStore.isMyPds"
+                        :readonly="pdsStore.isMyPds"
+                        :class="[
+                          'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                          pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                        ]"
                         label="Date of Birth"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         :invalid="validator.individual.birthday.$invalid"
@@ -1920,9 +1948,12 @@ defineExpose({
                         label="Place of Birth"
                         required
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                        :class="[
+                          'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                          pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                        ]"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                        :disabled="pdsStore.isMyPds"
+                        :readonly="pdsStore.isMyPds"
                         :invalid="validator.individual.place_of_birth.$invalid"
                         :invalid-text="validator.individual.place_of_birth.$errors[0]?.$message"
                         @blur="validator.individual.place_of_birth.$touch"
@@ -1936,7 +1967,11 @@ defineExpose({
                         optionLabel="label"
                         optionValue="value"
                         label="Sex"
-                        :disabled="pdsStore.isMyPds"
+                        :readonly="pdsStore.isMyPds"
+                        :class="[
+                          'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                          pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                        ]"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         :invalid="validator.individual.sex.$invalid"
                         :invalid-text="validator.individual.sex.$errors[0]?.$message"
@@ -1983,7 +2018,11 @@ defineExpose({
                         optionLabel="label"
                         optionValue="value"
                         label="Civil Status"
-                        :disabled="pdsStore.isMyPds"
+                        :readonly="pdsStore.isMyPds"
+                        :class="[
+                          'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                          pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                        ]"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         :invalid="validator.individual.civil_status.$invalid"
                         :invalid-text="validator.individual.civil_status.$errors[0]?.$message"
@@ -2002,7 +2041,11 @@ defineExpose({
                         optionValue="value"
                         label="Filipino by"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                        :disabled="pdsStore.isMyPds"
+                        :readonly="pdsStore.isMyPds"
+                        :class="[
+                          'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                          pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                        ]"
                         :invalid="validator.individual.citizenship_acquisition.$invalid"
                         :invalid-text="validator.individual.citizenship_acquisition.$errors[0]?.$message"
                         @blur="validator.individual.citizenship_acquisition.$touch"
@@ -2017,9 +2060,12 @@ defineExpose({
                         placeholder="Height in meters"
                         suffix="m"
                         required
-                        :disabled="pdsStore.isMyPds"
+                        :readonly="pdsStore.isMyPds"
+                        :class="[
+                          'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                          pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                        ]"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         :invalid="validator.individual.height.$invalid"
                         :invalid-text="validator.individual.height.$errors[0]?.$message"
@@ -2037,7 +2083,11 @@ defineExpose({
                         optionLabel="label"
                         optionValue="value"
                         label="Blood Type"
-                        :disabled="pdsStore.isMyPds"
+                        :readonly="pdsStore.isMyPds"
+                        :class="[
+                          'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                          pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                        ]"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         :invalid="validator.individual.blood_type.$invalid"
                         :invalid-text="validator.individual.blood_type.$errors[0]?.$message"
@@ -2054,9 +2104,12 @@ defineExpose({
                         placeholder="Weight in kilos"
                         suffix=" kg"
                         required
-                        :disabled="pdsStore.isMyPds"
+                        :readonly="pdsStore.isMyPds"
+                        :class="[
+                          'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                          pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                        ]"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         :invalid="validator.individual.weight.$invalid"
                         :invalid-text="validator.individual.weight.$errors[0]?.$message"
@@ -2071,8 +2124,11 @@ defineExpose({
                         v-model="payload.individual.gsis_no"
                         label="GSIS ID No."
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                        :disabled="pdsStore.isMyPds"
+                        :readonly="pdsStore.isMyPds"
+                        :class="[
+                          'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                          pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                        ]"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         :invalid="validator.individual.gsis_no.$invalid"
                         :invalid-text="validator.individual.gsis_no.$errors[0]?.$message"
@@ -2084,9 +2140,12 @@ defineExpose({
                         v-model="payload.individual.pag_ibig_no"
                         label="PAG-IBIG ID No."
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                        :disabled="pdsStore.isMyPds"
+                        :readonly="pdsStore.isMyPds"
+                        :class="[
+                          'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                          pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                        ]"
                         :invalid="validator.individual.pag_ibig_no.$invalid"
                         :invalid-text="validator.individual.pag_ibig_no.$errors[0]?.$message"
                         @blur="validator.individual.pag_ibig_no.$touch"
@@ -2097,9 +2156,12 @@ defineExpose({
                         required
                         label="PHILHEALTH No."
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                        :disabled="pdsStore.isMyPds"
+                        :readonly="pdsStore.isMyPds"
+                        :class="[
+                          'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                          pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                        ]"
                         :invalid="validator.individual.philhealth_no.$invalid"
                         :invalid-text="validator.individual.philhealth_no.$errors[0]?.$message"
                         @blur="validator.individual.philhealth_no.$touch"
@@ -2110,9 +2172,12 @@ defineExpose({
                         required
                         label="TIN"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                        :disabled="pdsStore.isMyPds"
+                        :readonly="pdsStore.isMyPds"
+                        :class="[
+                          'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                          pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                        ]"
                         :invalid="validator.individual.tin.$invalid"
                         :invalid-text="validator.individual.tin.$errors[0]?.$message"
                         @blur="validator.individual.tin.$touch"
@@ -2123,9 +2188,12 @@ defineExpose({
                         label="SSS No."
                         required
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                        :readonly="pdsStore.isMyPds"
+                        :class="[
+                          'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                          pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                        ]"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                        :disabled="pdsStore.isMyPds"
                         :invalid="validator.individual.sss_no.$invalid"
                         :invalid-text="validator.individual.sss_no.$errors[0]?.$message"
                         @blur="validator.individual.sss_no.$touch"
@@ -2138,9 +2206,12 @@ defineExpose({
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         mask="+639999999999"
                         placeholder="+63 XXX XXX XXXX"
-                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                        :readonly="pdsStore.isMyPds"
+                        :class="[
+                          'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                          pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                        ]"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                        :disabled="pdsStore.isMyPds"
                         :invalid="validator.contact_info.mobile_no.$invalid"
                         :invalid-text="validator.contact_info.mobile_no.$errors[0]?.$message"
                         @blur="validator.contact_info.mobile_no.$touch"
@@ -2156,9 +2227,12 @@ defineExpose({
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
                         mask="(999) 999-9999"
                         placeholder="(072) 687-8000"
-                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                        :disabled="pdsStore.isMyPds"
+                        :readonly="pdsStore.isMyPds"
+                        :class="[
+                          'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                          pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                        ]"
                         :invalid="validator.contact_info.tel_no.$invalid"
                         :invalid-text="validator.contact_info.tel_no.$errors[0]?.$message"
                         @blur="validator.contact_info.tel_no.$touch"
@@ -2173,9 +2247,12 @@ defineExpose({
                         required
                         label="Agency Employee No."
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                        :disabled="pdsStore.isMyPds"
+                        :readonly="pdsStore.isMyPds"
+                        :class="[
+                          'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                          pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                        ]"
                         :invalid="validator.employee.agency_employee_no.$invalid"
                         :invalid-text="validator.employee.agency_employee_no.$errors[0]?.$message"
                         @blur="validator.employee.agency_employee_no.$touch"
@@ -2186,9 +2263,12 @@ defineExpose({
                         required
                         label="Email Address"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                        :disabled="pdsStore.isMyPds"
+                        :readonly="pdsStore.isMyPds"
+                        :class="[
+                          'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                          pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                        ]"
                         :invalid="validator.contact_info.email_address.$invalid"
                         :invalid-text="validator.contact_info.email_address.$errors[0]?.$message"
                         @blur="validator.contact_info.email_address.$touch"
@@ -2212,10 +2292,13 @@ defineExpose({
                           v-model="selectedResidentialRegion"
                           :suggestions="publicStore.regionOptions"
                           label=" Region "
-                          :disabled="pdsStore.isMyPds"
+                          :readonly="pdsStore.isMyPds"
+                          :class="[
+                            'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                            pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                          ]"
                           required
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           optionLabel="label"
                           :placeholder="'Select or Type your Region'"
@@ -2241,10 +2324,13 @@ defineExpose({
                           v-model="selectedResidentialProvince"
                           :suggestions="filteredProvinceOptionsByRegion"
                           label=" Province "
-                          :disabled="pdsStore.isMyPds"
+                          :readonly="pdsStore.isMyPds"
+                          :class="[
+                            'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                            pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                          ]"
                           required
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           optionLabel="label"
                           :placeholder="'Select or Type your Province'"
@@ -2269,10 +2355,13 @@ defineExpose({
                           v-model="selectedResidentialCity"
                           :suggestions="filteredCityOptionsByProvince"
                           label=" City / Municipality "
-                          :disabled="pdsStore.isMyPds"
+                          :readonly="pdsStore.isMyPds"
+                          :class="[
+                            'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                            pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                          ]"
                           required
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           optionLabel="label"
                           :placeholder="'Select or Type your City/Municipality'"
@@ -2298,10 +2387,13 @@ defineExpose({
                           v-model="selectedResidentialBarangay"
                           :suggestions="filteredBarangayOptionsByCity"
                           label=" Barangay "
-                          :disabled="pdsStore.isMyPds"
+                          :readonly="pdsStore.isMyPds"
+                          :class="[
+                            'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                            pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                          ]"
                           required
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           optionLabel="label"
                           :placeholder="'Select your Barangay'"
@@ -2326,9 +2418,12 @@ defineExpose({
                         <WbInputText
                           v-model="payload.individual_address_init.residential_subdivision_village"
                           label="Subdivision / Village"
-                          :disabled="pdsStore.isMyPds"
+                          :readonly="pdsStore.isMyPds"
+                          :class="[
+                            'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                            pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                          ]"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           :invalid="validator.individual_address_init.residential_subdivision_village.$invalid"
                           :invalid-text="validator.individual_address_init.residential_subdivision_village.$errors[0]?.$message"
@@ -2338,9 +2433,12 @@ defineExpose({
                         <WbInputText
                           v-model="payload.individual_address_init.residential_street"
                           label="Street"
-                          :disabled="pdsStore.isMyPds"
+                          :readonly="pdsStore.isMyPds"
+                          :class="[
+                            'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                            pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                          ]"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           :invalid="validator.individual_address_init.residential_street.$invalid"
                           :invalid-text="validator.individual_address_init.residential_street.$errors[0]?.$message"
@@ -2350,9 +2448,12 @@ defineExpose({
                         <WbInputText
                           v-model="payload.individual_address_init.residential_house_block_lot_no"
                           label="House / Block / Lot No."
-                          :disabled="pdsStore.isMyPds"
+                          :readonly="pdsStore.isMyPds"
+                          :class="[
+                            'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                            pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                          ]"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           :invalid="validator.individual_address_init.residential_house_block_lot_no.$invalid"
                           :invalid-text="validator.individual_address_init.residential_house_block_lot_no.$errors[0]?.$message"
@@ -2362,10 +2463,13 @@ defineExpose({
                         <WbInputText
                           v-model="payload.individual_address_init.residential_zip_code"
                           required
-                          :disabled="pdsStore.isMyPds"
+                          :readonly="pdsStore.isMyPds"
+                          :class="[
+                            'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                            pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                          ]"
                           label="ZIP Code"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           :invalid="validator.individual_address_init.residential_zip_code.$invalid"
                           :invalid-text="validator.individual_address_init.residential_zip_code.$errors[0]?.$message"
@@ -2404,10 +2508,13 @@ defineExpose({
                           label=" Region "
                           required
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           optionLabel="label"
-                          :disabled="isSameResidential || pdsStore.isMyPds"
+                          :readonly="pdsStore.isMyPds || isSameResidential"
+                          :class="[
+                            'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                            pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                          ]"
                           :placeholder="'Select or Type your Region'"
                           forceSelection
                           @on-true-value-computed="
@@ -2427,10 +2534,13 @@ defineExpose({
                           :suggestions="filteredProvinceOptionsByRegion"
                           label=" Province "
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           optionLabel="label"
-                          :disabled="isSameResidential || pdsStore.isMyPds"
+                          :readonly="pdsStore.isMyPds || isSameResidential"
+                          :class="[
+                            'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                            pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                          ]"
                           :placeholder="'Select or Type your Province'"
                           forceSelection
                           @on-true-value-computed="
@@ -2450,10 +2560,13 @@ defineExpose({
                           :suggestions="filteredCityOptionsByProvince"
                           label=" City / Municipality "
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           optionLabel="label"
-                          :disabled="isSameResidential || pdsStore.isMyPds"
+                          :readonly="pdsStore.isMyPds || isSameResidential"
+                          :class="[
+                            'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                            pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                          ]"
                           :placeholder="'Select or Type your City/Municipality'"
                           forceSelection
                           @on-true-value-computed="
@@ -2474,10 +2587,13 @@ defineExpose({
                           :suggestions="filteredBarangayOptionsByCity"
                           label=" Barangay "
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           optionLabel="label"
-                          :disabled="isSameResidential || pdsStore.isMyPds"
+                          :readonly="pdsStore.isMyPds || isSameResidential"
+                          :class="[
+                            'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                            pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                          ]"
                           :placeholder="'Select your Barangay'"
                           forceSelection
                           @on-true-value-computed="
@@ -2494,9 +2610,12 @@ defineExpose({
                           v-model="payload.individual_address_init.permanent_subdivision_village"
                           label="Subdivision / Village"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                          :disabled="isSameResidential || pdsStore.isMyPds"
+                          :readonly="pdsStore.isMyPds || isSameResidential"
+                          :class="[
+                            'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                            pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                          ]"
                           :invalid="validator.individual_address_init.permanent_subdivision_village.$invalid"
                           :invalid-text="validator.individual_address_init.permanent_subdivision_village.$errors[0]?.$message"
                           @blur="validator.individual_address_init.permanent_subdivision_village.$touch"
@@ -2506,9 +2625,12 @@ defineExpose({
                           v-model="payload.individual_address_init.permanent_street"
                           label="Street"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                          :disabled="isSameResidential || pdsStore.isMyPds"
+                          :readonly="pdsStore.isMyPds || isSameResidential"
+                          :class="[
+                            'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                            pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                          ]"
                           :invalid="validator.individual_address_init.permanent_street.$invalid"
                           :invalid-text="validator.individual_address_init.permanent_street.$errors[0]?.$message"
                           @blur="validator.individual_address_init.permanent_street.$touch"
@@ -2518,9 +2640,12 @@ defineExpose({
                           v-model="payload.individual_address_init.permanent_house_block_lot_no"
                           label="House / Block / Lot No."
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                          :disabled="isSameResidential || pdsStore.isMyPds"
+                          :readonly="pdsStore.isMyPds || isSameResidential"
+                          :class="[
+                            'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                            pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                          ]"
                           :invalid="validator.individual_address_init.permanent_house_block_lot_no.$invalid"
                           :invalid-text="validator.individual_address_init.permanent_house_block_lot_no.$errors[0]?.$message"
                           @blur="validator.individual_address_init.permanent_house_block_lot_no.$touch"
@@ -2531,9 +2656,12 @@ defineExpose({
                           required
                           label="ZIP Code"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                          :disabled="isSameResidential || pdsStore.isMyPds"
+                          :readonly="pdsStore.isMyPds || isSameResidential"
+                          :class="[
+                            'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                            pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                          ]"
                           :invalid="validator.individual_address_init.permanent_zip_code.$invalid"
                           :invalid-text="validator.individual_address_init.permanent_zip_code.$errors[0]?.$message"
                           @blur="validator.individual_address_init.permanent_zip_code.$touch"
@@ -2568,8 +2696,11 @@ defineExpose({
                         v-model="payload.individual_family_spouse.last_name"
                         label="Surname"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                        :disabled="isSingle && pdsStore.isMyPds"
+                        :readonly="pdsStore.isMyPds || isSingle"
+                        :class="[
+                          'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                          pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                        ]"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         :invalid="validator.individual_family_spouse.last_name.$invalid"
                         :invalid-text="validator.individual_family_spouse.last_name.$errors[0]?.$message"
@@ -2580,8 +2711,11 @@ defineExpose({
                         v-model="payload.individual_family_spouse.first_name"
                         label="First Name"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                        :disabled="isSingle && pdsStore.isMyPds"
+                        :readonly="pdsStore.isMyPds || isSingle"
+                        :class="[
+                          'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                          pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                        ]"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         :invalid="validator.individual_family_spouse.first_name.$invalid"
                         :invalid-text="validator.individual_family_spouse.first_name.$errors[0]?.$message"
@@ -2592,8 +2726,11 @@ defineExpose({
                         v-model="payload.individual_family_spouse.middle_name"
                         label="Middle Name"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                        :disabled="isSingle && pdsStore.isMyPds"
+                        :readonly="pdsStore.isMyPds || isSingle"
+                        :class="[
+                          'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                          pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                        ]"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         :invalid="validator.individual_family_spouse.middle_name.$invalid"
                         :invalid-text="validator.individual_family_spouse.middle_name.$errors[0]?.$message"
@@ -2606,8 +2743,11 @@ defineExpose({
                         :options="ExtensionTypeOptions"
                         label="Extension Name"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                        :disabled="isSingle && pdsStore.isMyPds"
+                        :readonly="pdsStore.isMyPds || isSingle"
+                        :class="[
+                          'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                          pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                        ]"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         :invalid="validator.individual_family_spouse.ext_name.$invalid"
                         :invalid-text="validator.individual_family_spouse.ext_name.$errors[0]?.$message"
@@ -2619,8 +2759,11 @@ defineExpose({
                         v-model="payload.individual_family_spouse.occupation"
                         label="Occupation"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                        :disabled="isSingle && pdsStore.isMyPds"
+                        :readonly="pdsStore.isMyPds || isSingle"
+                        :class="[
+                          'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                          pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                        ]"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         :invalid="validator.individual_family_spouse.occupation.$invalid"
                         :invalid-text="validator.individual_family_spouse.occupation.$errors[0]?.$message"
@@ -2631,8 +2774,11 @@ defineExpose({
                         v-model="payload.individual_family_spouse.employers_business_name"
                         label="Employer/Business Name"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                        :disabled="isSingle && pdsStore.isMyPds"
+                        :readonly="pdsStore.isMyPds || isSingle"
+                        :class="[
+                          'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                          pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                        ]"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         :invalid="validator.individual_family_spouse.employers_business_name.$invalid"
                         :invalid-text="validator.individual_family_spouse.employers_business_name.$errors[0]?.$message"
@@ -2643,8 +2789,11 @@ defineExpose({
                         v-model="payload.individual_family_spouse.business_address"
                         label="Business Address"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                        :disabled="isSingle && pdsStore.isMyPds"
+                        :readonly="pdsStore.isMyPds || isSingle"
+                        :class="[
+                          'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                          pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                        ]"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         :invalid="validator.individual_family_spouse.business_address.$invalid"
                         :invalid-text="validator.individual_family_spouse.business_address.$errors[0]?.$message"
@@ -2656,8 +2805,11 @@ defineExpose({
                         label="Telephone No"
                         mask="(999) 999-9999"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                        :disabled="isSingle && pdsStore.isMyPds"
+                        :readonly="pdsStore.isMyPds || isSingle"
+                        :class="[
+                          'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                          pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                        ]"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         :invalid="validator.individual_family_spouse.telephone_no.$invalid"
                         :invalid-text="validator.individual_family_spouse.telephone_no.$errors[0]?.$message"
@@ -2671,9 +2823,12 @@ defineExpose({
                       <WbInputText
                         v-model="payload.individual_family_father.last_name"
                         label="Surname"
-                        :disabled="pdsStore.isMyPds"
+                        :readonly="pdsStore.isMyPds"
+                        :class="[
+                          'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                          pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                        ]"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         required
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         :invalid="validator.individual_family_father.last_name.$invalid"
@@ -2684,9 +2839,12 @@ defineExpose({
                       <WbInputText
                         v-model="payload.individual_family_father.first_name"
                         label="First Name"
-                        :disabled="pdsStore.isMyPds"
+                        :readonly="pdsStore.isMyPds"
+                        :class="[
+                          'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                          pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                        ]"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         required
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         :invalid="validator.individual_family_father.first_name.$invalid"
@@ -2697,9 +2855,12 @@ defineExpose({
                       <WbInputText
                         v-model="payload.individual_family_father.middle_name"
                         label="Middle Name"
-                        :disabled="pdsStore.isMyPds"
+                        :readonly="pdsStore.isMyPds"
+                        :class="[
+                          'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                          pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                        ]"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         :invalid="validator.individual_family_father.middle_name.$invalid"
                         :invalid-text="validator.individual_family_father.middle_name.$errors[0]?.$message"
@@ -2711,10 +2872,13 @@ defineExpose({
                         optionLabel="label"
                         optionValue="value"
                         :options="ExtensionTypeOptions"
-                        :disabled="pdsStore.isMyPds"
+                        :readonly="pdsStore.isMyPds"
+                        :class="[
+                          'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                          pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                        ]"
                         label="Extension Name"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         :invalid="validator.individual_family_father.ext_name.$invalid"
                         :invalid-text="validator.individual_family_father.ext_name.$errors[0]?.$message"
@@ -2729,9 +2893,12 @@ defineExpose({
                       <WbInputText
                         v-model="payload.individual_family_mothers_maiden.last_name"
                         label="Surname"
-                        :disabled="pdsStore.isMyPds"
+                        :readonly="pdsStore.isMyPds"
+                        :class="[
+                          'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                          pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                        ]"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         required
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         :invalid="validator.individual_family_mothers_maiden.last_name.$invalid"
@@ -2742,9 +2909,12 @@ defineExpose({
                       <WbInputText
                         v-model="payload.individual_family_mothers_maiden.first_name"
                         label="First Name"
-                        :disabled="pdsStore.isMyPds"
+                        :readonly="pdsStore.isMyPds"
+                        :class="[
+                          'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                          pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                        ]"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         required
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         :invalid="validator.individual_family_mothers_maiden.first_name.$invalid"
@@ -2755,9 +2925,12 @@ defineExpose({
                       <WbInputText
                         v-model="payload.individual_family_mothers_maiden.middle_name"
                         label="Middle Name"
-                        :disabled="pdsStore.isMyPds"
+                        :readonly="pdsStore.isMyPds"
+                        :class="[
+                          'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                          pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                        ]"
                         label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                        class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                         validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                         :invalid="validator.individual_family_mothers_maiden.middle_name.$invalid"
                         :invalid-text="validator.individual_family_mothers_maiden.middle_name.$errors[0]?.$message"
@@ -2785,9 +2958,12 @@ defineExpose({
                             <WbInputText
                               v-model="payload.individual_family_children[childIdx - 1].last_name"
                               label="Surname"
-                              :disabled="pdsStore.isMyPds"
+                              :readonly="pdsStore.isMyPds"
+                              :class="[
+                                'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                                pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                              ]"
                               label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                               validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                               :invalid="validator.individual_family_children?.[childIdx - 1]?.last_name?.$error"
                               :invalid-text="
@@ -2799,9 +2975,12 @@ defineExpose({
                             <WbInputText
                               v-model="payload.individual_family_children[childIdx - 1].first_name"
                               label="First Name"
-                              :disabled="pdsStore.isMyPds"
+                              :readonly="pdsStore.isMyPds"
+                              :class="[
+                                'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                                pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                              ]"
                               label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                               validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                               :invalid="validator.individual_family_children?.[childIdx - 1]?.first_name?.$error"
                               :invalid-text="
@@ -2813,9 +2992,12 @@ defineExpose({
                             <WbInputText
                               v-model="payload.individual_family_children[childIdx - 1].middle_name"
                               label="Middle Name"
-                              :disabled="pdsStore.isMyPds"
+                              :readonly="pdsStore.isMyPds"
+                              :class="[
+                                'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                                pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                              ]"
                               label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                               validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                               :invalid="validator.individual_family_children?.[childIdx - 1]?.middle_name?.$error"
                               :invalid-text="
@@ -2828,11 +3010,14 @@ defineExpose({
                               v-model="payload.individual_family_children[childIdx - 1].ext_name"
                               optionLabel="label"
                               optionValue="value"
-                              :disabled="pdsStore.isMyPds"
+                              :readonly="pdsStore.isMyPds"
+                              :class="[
+                                'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                                pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                              ]"
                               :options="ExtensionTypeOptions"
                               label="Extension Name"
                               label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                               validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                             />
 
@@ -2841,7 +3026,7 @@ defineExpose({
                               dateFormat="mm/dd/yy"
                               :maxDate="new Date()"
                               label="Date of Birth"
-                              :disabled="pdsStore.isMyPds"
+                              :readonly="pdsStore.isMyPds"
                               label-class="text-md text-surface-600 dark:lg:text-surface-200"
                               :class="[
                                 'text-lg font-semibold dark:text-primary-100',
@@ -2918,9 +3103,12 @@ defineExpose({
                           v-model="payload.educations.elementary.schools_name"
                           required
                           label="Name of School"
-                          :disabled="pdsStore.isMyPds"
+                          :readonly="pdsStore.isMyPds"
+                          :class="[
+                            'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                            pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                          ]"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           :invalid="validator.educations.elementary.schools_name.$invalid"
                           :invalid-text="validator.educations.elementary.schools_name.$errors[0]?.$message"
@@ -2931,9 +3119,12 @@ defineExpose({
                           v-model="payload.educations.elementary.education_description"
                           required
                           label="Basic Education / Degree / Course "
-                          :disabled="pdsStore.isMyPds"
+                          :readonly="pdsStore.isMyPds"
+                          :class="[
+                            'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                            pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                          ]"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           :invalid="validator.educations.elementary.education_description.$invalid"
                           :invalid-text="validator.educations.elementary.education_description.$errors[0]?.$message"
@@ -2947,9 +3138,12 @@ defineExpose({
                             v-model="payload.educations.elementary.period_of_attendance_from"
                             required
                             label="From"
-                            :disabled="pdsStore.isMyPds"
+                            :readonly="pdsStore.isMyPds"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            class="lg:text-md w-full text-sm placeholder:text-sm"
                             :view="'year'"
                             :dateFormat="'yy'"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -2962,9 +3156,12 @@ defineExpose({
                             v-model="payload.educations.elementary.period_of_attendance_to"
                             required
                             label="To"
-                            :disabled="pdsStore.isMyPds"
+                            :readonly="pdsStore.isMyPds"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            class="lg:text-md w-full text-sm placeholder:text-sm"
                             :view="'year'"
                             :dateFormat="'yy'"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -2976,9 +3173,12 @@ defineExpose({
                           <WbInputText
                             v-model="payload.educations.elementary.highest_level_units_earned"
                             label="Highest Level / Units Earned "
-                            :disabled="pdsStore.isMyPds"
+                            :readonly="pdsStore.isMyPds"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                             :invalid="validator.educations.elementary.highest_level_units_earned.$invalid"
                             :invalid-text="validator.educations.elementary.highest_level_units_earned.$errors[0]?.$message"
@@ -2992,10 +3192,13 @@ defineExpose({
                             required
                             :view="'year'"
                             :dateFormat="'yy'"
-                            disabled
+                            :readonly="pdsStore.isMyPds"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
                             label="Year Graduated"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                             :invalid="validator.educations.elementary.year_graduated.$invalid"
                             :invalid-text="validator.educations.elementary.year_graduated.$errors[0]?.$message"
@@ -3005,9 +3208,12 @@ defineExpose({
                           <WbInputText
                             v-model="payload.educations.elementary.scholarship_academic_honors_received"
                             label="Scholarship / Academic Honors Received "
-                            :disabled="pdsStore.isMyPds"
+                            :readonly="pdsStore.isMyPds"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                             :invalid="validator.educations.elementary.scholarship_academic_honors_received.$invalid"
                             :invalid-text="
@@ -3030,9 +3236,12 @@ defineExpose({
                           v-model="payload.educations.high_school.schools_name"
                           required
                           label="Name of School"
-                          :disabled="pdsStore.isMyPds"
+                          :readonly="pdsStore.isMyPds"
+                          :class="[
+                            'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                            pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                          ]"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           :invalid="validator.educations.high_school.schools_name.$invalid"
                           :invalid-text="validator.educations.high_school.schools_name.$errors[0]?.$message"
@@ -3043,9 +3252,12 @@ defineExpose({
                           v-model="payload.educations.high_school.education_description"
                           required
                           label="Basic Education / Degree / Course "
-                          :disabled="pdsStore.isMyPds"
+                          :readonly="pdsStore.isMyPds"
+                          :class="[
+                            'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                            pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                          ]"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           :invalid="validator.educations.high_school.education_description.$invalid"
                           :invalid-text="validator.educations.high_school.education_description.$errors[0]?.$message"
@@ -3059,9 +3271,12 @@ defineExpose({
                             v-model="payload.educations.high_school.period_of_attendance_from"
                             required
                             label="From"
-                            :disabled="pdsStore.isMyPds"
+                            :readonly="pdsStore.isMyPds"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             :view="'year'"
                             :dateFormat="'yy'"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -3074,9 +3289,12 @@ defineExpose({
                             v-model="payload.educations.high_school.period_of_attendance_to"
                             required
                             label="To "
-                            :disabled="pdsStore.isMyPds"
+                            :readonly="pdsStore.isMyPds"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             :view="'year'"
                             :dateFormat="'yy'"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -3088,9 +3306,12 @@ defineExpose({
                           <WbInputText
                             v-model="payload.educations.high_school.highest_level_units_earned"
                             label="Highest Level / Units Earned "
-                            :disabled="pdsStore.isMyPds"
+                            :readonly="pdsStore.isMyPds"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                             :invalid="validator.educations.high_school.highest_level_units_earned.$invalid"
                             :invalid-text="validator.educations.high_school.highest_level_units_earned.$errors[0]?.$message"
@@ -3105,9 +3326,12 @@ defineExpose({
                             :view="'year'"
                             :dateFormat="'yy'"
                             label="Year Graduated"
-                            disabled
+                            :readonly="pdsStore.isMyPds"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                             :invalid="validator.educations.high_school.year_graduated.$invalid"
                             :invalid-text="validator.educations.high_school.year_graduated.$errors[0]?.$message"
@@ -3117,9 +3341,12 @@ defineExpose({
                           <WbInputText
                             v-model="payload.educations.high_school.scholarship_academic_honors_received"
                             label="Scholarship / Academic Honors Received "
-                            :disabled="pdsStore.isMyPds"
+                            :readonly="pdsStore.isMyPds"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                             :invalid="validator.educations.high_school.scholarship_academic_honors_received.$invalid"
                             :invalid-text="
@@ -3139,7 +3366,7 @@ defineExpose({
                     <div v-if="!currentlyEnrolledGraduate && !pdsStore.isMyPds" class="col-span-2 my-4 ml-4">
                       <div class="align-items-center flex items-center">
                         <Checkbox
-                          :disabled="pdsStore.isMyPds"
+                          :readonly="pdsStore.isMyPds"
                           v-model="currentlyEnrolledVocational"
                           :id="getId('input-currently-enrolled-vocational')"
                           name="currentlyEnrolledVocational"
@@ -3155,9 +3382,12 @@ defineExpose({
                         <WbInputText
                           v-model="payload.educations.vocational.schools_name"
                           label="Name of School"
-                          :disabled="pdsStore.isMyPds"
+                          :readonly="pdsStore.isMyPds"
+                          :class="[
+                            'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                            pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                          ]"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           :invalid="validator.educations.vocational.schools_name.$invalid"
                           :invalid-text="validator.educations.vocational.schools_name.$errors[0]?.$message"
@@ -3167,9 +3397,12 @@ defineExpose({
                         <WbInputText
                           v-model="payload.educations.vocational.education_description"
                           label="Basic Education / Degree / Course "
-                          :disabled="pdsStore.isMyPds"
+                          :readonly="pdsStore.isMyPds"
+                          :class="[
+                            'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                            pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                          ]"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           :invalid="validator.educations.vocational.education_description.$invalid"
                           :invalid-text="validator.educations.vocational.education_description.$errors[0]?.$message"
@@ -3182,9 +3415,12 @@ defineExpose({
                           <WbCalendar
                             v-model="payload.educations.vocational.period_of_attendance_from"
                             label="From"
-                            :disabled="pdsStore.isMyPds"
+                            :readonly="pdsStore.isMyPds"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                             :view="'year'"
                             :dateFormat="'yy'"
@@ -3198,9 +3434,12 @@ defineExpose({
                             v-if="!currentlyEnrolledVocational"
                             v-model="payload.educations.vocational.period_of_attendance_to"
                             label="To "
-                            :disabled="pdsStore.isMyPds"
+                            :readonly="pdsStore.isMyPds"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                             :view="'year'"
                             :dateFormat="'yy'"
@@ -3224,8 +3463,11 @@ defineExpose({
                             v-model="payload.educations.vocational.highest_level_units_earned"
                             label="Highest Level / Units Earned "
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            :disabled="currentlyEnrolledVocational || pdsStore.isMyPds"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                            :readonly="currentlyEnrolledVocational || pdsStore.isMyPds"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                             :invalid="validator.educations.vocational.highest_level_units_earned.$invalid"
                             :invalid-text="validator.educations.vocational.highest_level_units_earned.$errors[0]?.$message"
@@ -3240,9 +3482,12 @@ defineExpose({
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
                             :view="'year'"
                             :dateFormat="'yy'"
-                            :disabled="currentlyEnrolledVocational || pdsStore.isMyPds"
+                            :readonly="currentlyEnrolledVocational || pdsStore.isMyPds"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
                             placeholder="1970"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                             :invalid="validator.educations.vocational.year_graduated.$invalid"
                             :invalid-text="validator.educations.vocational.year_graduated.$errors[0]?.$message"
@@ -3253,8 +3498,11 @@ defineExpose({
                             v-model="payload.educations.vocational.scholarship_academic_honors_received"
                             label="Scholarship / Academic Honors Received "
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            :disabled="currentlyEnrolledVocational || pdsStore.isMyPds"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                            :readonly="currentlyEnrolledVocational || pdsStore.isMyPds"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                             :invalid="validator.educations.vocational.scholarship_academic_honors_received.$invalid"
                             :invalid-text="
@@ -3277,9 +3525,12 @@ defineExpose({
                           v-model="payload.educations.college.schools_name"
                           required
                           label="Name of School"
-                          :disabled="pdsStore.isMyPds"
+                          :readonly="pdsStore.isMyPds"
+                          :class="[
+                            'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                            pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                          ]"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           :invalid="validator.educations.college.schools_name.$invalid"
                           :invalid-text="validator.educations.college.schools_name.$errors[0]?.$message"
@@ -3290,9 +3541,12 @@ defineExpose({
                           v-model="payload.educations.college.education_description"
                           required
                           label="Basic Education / Degree / Course "
-                          :disabled="pdsStore.isMyPds"
+                          :readonly="pdsStore.isMyPds"
+                          :class="[
+                            'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                            pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                          ]"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           :invalid="validator.educations.college.education_description.$invalid"
                           :invalid-text="validator.educations.college.education_description.$errors[0]?.$message"
@@ -3306,9 +3560,12 @@ defineExpose({
                             v-model="payload.educations.college.period_of_attendance_from"
                             required
                             label="From"
-                            :disabled="pdsStore.isMyPds"
+                            :readonly="pdsStore.isMyPds"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                             :view="'year'"
                             :dateFormat="'yy'"
@@ -3321,11 +3578,14 @@ defineExpose({
                             v-model="payload.educations.college.period_of_attendance_to"
                             required
                             label="To "
-                            :disabled="pdsStore.isMyPds"
+                            :readonly="pdsStore.isMyPds"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
                             :view="'year'"
                             :dateFormat="'yy'"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                             :invalid="validator.educations.college.period_of_attendance_to.$invalid"
                             :invalid-text="validator.educations.college.period_of_attendance_to.$errors[0]?.$message"
@@ -3335,9 +3595,12 @@ defineExpose({
                           <WbInputText
                             v-model="payload.educations.college.highest_level_units_earned"
                             label="Highest Level / Units Earned "
-                            :disabled="pdsStore.isMyPds"
+                            :readonly="pdsStore.isMyPds"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                             :invalid="validator.educations.college.highest_level_units_earned.$invalid"
                             :invalid-text="validator.educations.college.highest_level_units_earned.$errors[0]?.$message"
@@ -3350,11 +3613,14 @@ defineExpose({
                             v-model="payload.educations.college.year_graduated"
                             required
                             label="Year Graduated"
-                            :disabled="pdsStore.isMyPds"
+                            :readonly="pdsStore.isMyPds"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
                             :view="'year'"
                             :dateFormat="'yy'"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                             :invalid="validator.educations.college.year_graduated.$invalid"
                             :invalid-text="validator.educations.college.year_graduated.$errors[0]?.$message"
@@ -3364,9 +3630,12 @@ defineExpose({
                           <WbInputText
                             v-model="payload.educations.college.scholarship_academic_honors_received"
                             label="Scholarship / Academic Honors Received "
-                            :disabled="pdsStore.isMyPds"
+                            :readonly="pdsStore.isMyPds"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                             :invalid="validator.educations.college.scholarship_academic_honors_received.$invalid"
                             :invalid-text="validator.educations.college.scholarship_academic_honors_received.$errors[0]?.$message"
@@ -3400,9 +3669,12 @@ defineExpose({
                         <WbInputText
                           v-model="payload.educations.graduate.schools_name"
                           label="Name of School"
-                          :disabled="pdsStore.isMyPds"
+                          :readonly="pdsStore.isMyPds"
+                          :class="[
+                            'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                            pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                          ]"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           :invalid="validator.educations.graduate.schools_name.$invalid"
                           :invalid-text="validator.educations.graduate.schools_name.$errors[0]?.$message"
@@ -3412,9 +3684,12 @@ defineExpose({
                         <WbInputText
                           v-model="payload.educations.graduate.education_description"
                           label="Basic Education / Degree / Course "
-                          :disabled="pdsStore.isMyPds"
+                          :readonly="pdsStore.isMyPds"
+                          :class="[
+                            'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                            pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                          ]"
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                           :invalid="validator.educations.graduate.education_description.$invalid"
                           :invalid-text="validator.educations.graduate.education_description.$errors[0]?.$message"
@@ -3427,9 +3702,12 @@ defineExpose({
                           <WbCalendar
                             v-model="payload.educations.graduate.period_of_attendance_from"
                             label="From"
-                            :disabled="pdsStore.isMyPds"
+                            :readonly="pdsStore.isMyPds"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                             :view="'year'"
                             :dateFormat="'yy'"
@@ -3443,9 +3721,12 @@ defineExpose({
                             v-if="!currentlyEnrolledGraduate"
                             v-model="payload.educations.graduate.period_of_attendance_to"
                             label="To "
-                            :disabled="pdsStore.isMyPds"
+                            :readonly="pdsStore.isMyPds"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                             :view="'year'"
                             :dateFormat="'yy'"
@@ -3468,9 +3749,12 @@ defineExpose({
                           <WbInputText
                             v-model="payload.educations.graduate.highest_level_units_earned"
                             label="Highest Level / Units Earned "
-                            :disabled="pdsStore.isMyPds"
+                            :readonly="pdsStore.isMyPds"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                             :invalid="validator.educations.graduate.highest_level_units_earned.$invalid"
                             :invalid-text="validator.educations.graduate.highest_level_units_earned.$errors[0]?.$message"
@@ -3486,8 +3770,11 @@ defineExpose({
                             :view="'year'"
                             :dateFormat="'yy'"
                             placeholder="1970"
-                            :disabled="currentlyEnrolledGraduate || pdsStore.isMyPds"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                            :readonly="currentlyEnrolledGraduate || pdsStore.isMyPds"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                             :invalid="validator.educations.graduate.year_graduated.$invalid"
                             :invalid-text="validator.educations.graduate.year_graduated.$errors[0]?.$message"
@@ -3498,8 +3785,11 @@ defineExpose({
                             v-model="payload.educations.graduate.scholarship_academic_honors_received"
                             label="Scholarship / Academic Honors Received "
                             label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            :disabled="currentlyEnrolledGraduate || pdsStore.isMyPds"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                            :readonly="currentlyEnrolledGraduate || pdsStore.isMyPds"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                             :invalid="validator.educations.graduate.scholarship_academic_honors_received.$invalid"
                             :invalid-text="
