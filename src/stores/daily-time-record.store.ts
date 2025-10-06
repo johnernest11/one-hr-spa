@@ -110,25 +110,16 @@ _________________________________________________________________ */
   }
 
   // Fetch DTR for a specific employee by ID
-  const fetchDailyTimeRecordsByEmployee = async (employeeId: string | number, date: Date, limit = 31) => {
+  const fetchDailyTimeRecordsByEmployee = async (employeeId: string | number) => {
     if (!employeeId) throw new Error('Employee ID is required.')
-
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const formattedMonthYear = `${year}-${month}`
-
-    let uri = `/employees/${employeeId}/daily-time-records/view-dtr?limit=${limit}&`
-    if (formattedMonthYear) uri += `month=${formattedMonthYear}`
-
+    const uri = `/employees/${employeeId}/daily-time-records/view-dtr?start_date=1900-01-01&end_date=2100-12-31&sort=asc`
     const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
     const responseBody: ApiResponseBody = data.value
 
-    if (responseBody.success && Array.isArray(responseBody.data)) {
-      viewDailyTimeRecords.value = responseBody.data as ViewDailyTimeRecordResponse[]
-    } else {
-      viewDailyTimeRecords.value = []
+    if (responseBody.success) {
+      const dailyTimeRecordList = Array.isArray(responseBody.data) ? (responseBody.data as DailyTimeRecordResponse[]) : []
+      dailyTimeRecords.value = [...dailyTimeRecordList]
     }
-
     return responseBody
   }
 

@@ -327,7 +327,7 @@ const computeOTValue = computed(() => {
                   }"
                   @click="(dtr.row?.time_log?.length ?? 0) > 4 ? onAccordionClick(dtr, index) : null"
                 >
-                  {{ getFormattedDTRDate(dtr.date.toISOString()) }}
+                  {{ dtr.date ? getFormattedDTRDate(dtr.date) : '-' }}
                 </p>
 
                 <!-- Show details if active -->
@@ -359,7 +359,7 @@ const computeOTValue = computed(() => {
               </div>
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">Day</p>
-                <p class="text-base text-surface-600">{{ getDTRDayOfWeek(dtr.date.toISOString()) }}</p>
+                <p class="text-base text-surface-600">{{ dtr.date ? getDTRDayOfWeek(dtr.date) : '-' }}</p>
               </div>
 
               <!-- IN 1 -->

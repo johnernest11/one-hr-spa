@@ -306,25 +306,21 @@ export const formatPayrollPeriod = (periodStr: string | null): string => {
  * @description Gets "Month Year" from a date string.
  * @example getMonthAndYear('2025-07-14') // "Jul 2025"
  */
-export const getMonthAndYear = (dateString: string | null | undefined): string => {
-  if (!dateString) return ''
-  try {
-    const date = new Date(dateString)
-    if (isNaN(date.getTime())) {
-      console.error('Invalid date string:', dateString)
-      return 'Invalid Date'
-    }
+export const getMonthAndYear = (dateValue: string | Date | null | undefined): string => {
+  if (!dateValue) return ''
 
-    const options: Intl.DateTimeFormatOptions = {
-      month: 'short',
-      year: 'numeric',
-    }
-
-    return date.toLocaleDateString(undefined, options)
-  } catch (error) {
-    console.error('Error formatting date:', error)
+  const date = typeof dateValue === 'string' ? new Date(dateValue) : dateValue
+  if (isNaN(date.getTime())) {
+    console.error('Invalid date value:', dateValue)
     return 'Invalid Date'
   }
+
+  const options: Intl.DateTimeFormatOptions = {
+    month: 'short',
+    year: 'numeric',
+  }
+
+  return date.toLocaleDateString(undefined, options)
 }
 
 /**

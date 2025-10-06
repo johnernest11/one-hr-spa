@@ -17,24 +17,29 @@ export const formatDTRTime = (dateString: string | undefined): string => {
 /**
  * Formats a date string into a short day-month format (e.g., "1-Feb").
  */
-export const getFormattedDTRDate = (dateString: string): string => {
-  if (!dateString) return ''
+export const getFormattedDTRDate = (dateValue: string | Date | null | undefined): string => {
+  if (!dateValue) return ''
 
-  const date = new Date(dateString)
+  const date = typeof dateValue === 'string' ? new Date(dateValue) : dateValue
+  if (isNaN(date.getTime())) return ''
+
   const formatted = new Intl.DateTimeFormat('en-GB', {
     day: 'numeric',
     month: 'short',
   }).format(date)
+
   return formatted.replace(' ', '-')
 }
 
 /**
  * Returns the short weekday name (e.g., "Mon", "Tue") for a given date string.
  */
-export const getDTRDayOfWeek = (dateString: string): string => {
-  if (!dateString) return ''
+export const getDTRDayOfWeek = (dateValue: string | Date | null | undefined): string => {
+  if (!dateValue) return ''
 
-  const date = new Date(dateString)
+  const date = typeof dateValue === 'string' ? new Date(dateValue) : dateValue
+  if (isNaN(date.getTime())) return ''
+
   return date.toLocaleDateString('en-US', { weekday: 'short' })
 }
 
