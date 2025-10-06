@@ -557,10 +557,11 @@ defineExpose({
                               <WbInputText
                                 v-model="payload.individual_voluntary_work[voluntaryWorkIndex - 1].org_name"
                                 label="Name of Organization"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 :class="[
                                   'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
                                   validator.individual_voluntary_work[voluntaryWorkIndex - 1].org_name.$error ? 'mb-0' : 'mb-6',
                                 ]"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -575,10 +576,11 @@ defineExpose({
                               <WbInputText
                                 v-model="payload.individual_voluntary_work[voluntaryWorkIndex - 1].org_address"
                                 label="Address of Organization"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 :class="[
                                   'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
                                   validator.individual_voluntary_work[voluntaryWorkIndex - 1].org_address.$error
                                     ? 'mb-0'
                                     : 'mb-6',
@@ -597,10 +599,11 @@ defineExpose({
                               <WbCalendar
                                 v-model="payload.individual_voluntary_work[voluntaryWorkIndex - 1].from"
                                 label="From"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 :class="[
                                   'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
                                   validator.individual_voluntary_work[voluntaryWorkIndex - 1].from.$error ? 'mb-0' : 'mb-6',
                                 ]"
                                 :dateFormat="'yy-mm-dd'"
@@ -619,11 +622,12 @@ defineExpose({
                                 v-if="!currentlyInvolved"
                                 v-model="payload.individual_voluntary_work[voluntaryWorkIndex - 1].to"
                                 label="To"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
                                 :dateFormat="'yy-mm-dd'"
                                 class="w-full text-sm"
                                 :class="[
                                   'w-full text-sm',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
                                   validator.individual_voluntary_work[voluntaryWorkIndex - 1].to.$error ? 'mb-0' : 'mb-6',
                                 ]"
                                 label-class="text-md text-surface-600 md:text-sm"
@@ -650,10 +654,11 @@ defineExpose({
                               <WbCalendar
                                 v-model="payload.individual_voluntary_work[voluntaryWorkIndex - 1].to"
                                 label="To"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
                                 :dateFormat="'yy-mm-dd'"
                                 :class="[
                                   'w-full text-sm',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
                                   validator.individual_voluntary_work[voluntaryWorkIndex - 1].to.$error ? 'mb-0' : 'mb-6',
                                 ]"
                                 label-class="text-md text-surface-600 md:text-sm"
@@ -668,10 +673,11 @@ defineExpose({
                               <WbInputText
                                 v-model="payload.individual_voluntary_work[voluntaryWorkIndex - 1].number_of_hours"
                                 label="No of Hours"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 :class="[
                                   'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
                                   validator.individual_voluntary_work[voluntaryWorkIndex - 1].number_of_hours.$error
                                     ? 'mb-0'
                                     : 'mb-6',
@@ -688,10 +694,11 @@ defineExpose({
                               <WbInputText
                                 v-model="payload.individual_voluntary_work[voluntaryWorkIndex - 1].position_nature_of_work"
                                 label="Position / Nature of Work"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 :class="[
                                   'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
                                   validator.individual_voluntary_work[voluntaryWorkIndex - 1].position_nature_of_work.$error
                                     ? 'mb-0'
                                     : 'mb-10',
@@ -791,10 +798,11 @@ defineExpose({
                               <WbInputText
                                 v-model="payload.individual_lnd[learningDevelopmentIndex - 1].title"
                                 label="Title of L & D Interventions / Training Programs"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-xs md:mb-1"
                                 :class="[
                                   'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
                                   validator.individual_lnd[learningDevelopmentIndex - 1].title.$error ? 'mb-0' : 'mb-6',
                                 ]"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -809,10 +817,11 @@ defineExpose({
                               <WbCalendar
                                 v-model="payload.individual_lnd[learningDevelopmentIndex - 1].from"
                                 label="From"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 :class="[
                                   'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
                                   validator.individual_lnd[learningDevelopmentIndex - 1].from.$error ? 'mb-0' : 'mb-6',
                                 ]"
                                 :dateFormat="'yy-mm-dd'"
@@ -828,10 +837,11 @@ defineExpose({
                               <WbCalendar
                                 v-model="payload.individual_lnd[learningDevelopmentIndex - 1].to"
                                 label="To"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 :class="[
                                   'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
                                   validator.individual_lnd[learningDevelopmentIndex - 1].to.$error ? 'mb-0' : 'mb-2',
                                 ]"
                                 :dateFormat="'yy-mm-dd'"
@@ -847,10 +857,11 @@ defineExpose({
                               <WbInputText
                                 v-model="payload.individual_lnd[learningDevelopmentIndex - 1].number_of_hours"
                                 label="No of Hours"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 :class="[
                                   'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
                                   validator.individual_lnd[learningDevelopmentIndex - 1].number_of_hours.$error ? 'mb-0' : 'mb-6',
                                 ]"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -869,10 +880,11 @@ defineExpose({
                               <WbInputText
                                 v-model="payload.individual_lnd[learningDevelopmentIndex - 1].type"
                                 label="Type of LD"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 :class="[
                                   'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
                                   validator.individual_lnd[learningDevelopmentIndex - 1].type.$error ? 'mb-0' : 'mb-2',
                                 ]"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -888,10 +900,11 @@ defineExpose({
                               <WbInputText
                                 v-model="payload.individual_lnd[learningDevelopmentIndex - 1].conducted_sponsor"
                                 label="Conducted / Sponsored By"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 :class="[
                                   'lg:text-md lg:placeholder:text-md flex-1 text-sm placeholder:text-sm',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
                                   validator.individual_lnd[learningDevelopmentIndex - 1].conducted_sponsor.$error
                                     ? 'mb-0'
                                     : 'mb-6',
@@ -988,10 +1001,11 @@ defineExpose({
                               <WbInputText
                                 v-model="payload.individual_skills_hobby[skillHobbiesIndex - 1].skill_hobby"
                                 label="Special Skill / Hobby"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 :class="[
                                   'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
                                   validator.individual_skills_hobby[skillHobbiesIndex - 1].skill_hobby.$error ? 'mb-8' : 'mb-2',
                                 ]"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -1065,9 +1079,12 @@ defineExpose({
                               <WbInputText
                                 v-model="payload.individual_recognition[recognitionIndex - 1].recognition"
                                 label="Non-Academic Distinction / Recognition"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalidText="
                                   validator.individual_recognition[recognitionIndex - 1].recognition.$errors[0]?.$message
@@ -1140,9 +1157,12 @@ defineExpose({
                               <WbInputText
                                 v-model="payload.individual_membership[membershipIndex - 1].association_organization"
                                 label="Association / Organization"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalidText="
                                   validator.individual_membership[membershipIndex - 1].association_organization.$errors[0]

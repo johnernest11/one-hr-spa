@@ -164,7 +164,9 @@ const generateItemNumber = (employment_status: string, position: string | number
       ? `FO1-CONTRACTUAL-${pos}-${paddedNumber}`
       : employment_status === 'Casual'
         ? `FO1-CASUAL-${pos}-${paddedNumber}`
-        : ''
+        : employment_status === 'Job Order'
+          ? `FO1-JO-${pos}-${paddedNumber}`
+          : ''
 }
 
 watch(
@@ -179,7 +181,7 @@ watch(
       return
     }
 
-    if (newStatus === 'Permanent' || newStatus === 'Job Order') {
+    if (newStatus === 'Permanent') {
       payload.number = null
       isItemNumberManual.value = true
       return

@@ -473,10 +473,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q34_a"
                                 :id="getId('input-question-34a-yes')"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
                                 name="q34_a"
                                 :value="true"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-34a-yes')" class="ml-2 cursor-pointer">Yes</label>
                             </div>
@@ -484,10 +487,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q34_a"
                                 :id="getId('input-question-34a-no')"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
                                 name="q34_a"
                                 :value="false"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-34a-no')" class="ml-2 cursor-pointer">No</label>
                             </div>
@@ -506,10 +512,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q34_b"
                                 :id="getId('input-question-34b-yes')"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
                                 name="q34_b"
                                 :value="true"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-34b-yes')" class="ml-2 cursor-pointer">Yes</label>
                             </div>
@@ -517,10 +526,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q34_b"
                                 :id="getId('input-question-34b-no')"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
                                 name="q34_b"
                                 :value="false"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-34b-no')" class="ml-2 cursor-pointer">No</label>
                             </div>
@@ -534,9 +546,12 @@ defineExpose({
                           <WbInputText
                             v-model="payload.individual_question[0].q34_details"
                             label="If YES, give details"
-                            :disabled="pdsStore.isMyPds"
+                            :readonly="pdsStore.isMyPds"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                             :invalid="validator.individual_question[0].q34_details.$error"
                             :invalid-text="validator.individual_question[0].q34_details.$errors[0]?.$message"
@@ -560,10 +575,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q35_a"
                                 :id="getId('input-question-35a-yes')"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
                                 name="q35_a"
                                 :value="true"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-34a-yes')" class="ml-2 cursor-pointer">Yes</label>
                             </div>
@@ -571,10 +589,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q35_a"
                                 :id="getId('input-question-35a-no')"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
                                 name="q35_a"
                                 :value="false"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-35a-no')" class="ml-2 cursor-pointer">No</label>
                             </div>
@@ -588,9 +609,12 @@ defineExpose({
                           <WbInputText
                             v-model="payload.individual_question[0].q35_a_details"
                             label="If YES, give details"
-                            :disabled="pdsStore.isMyPds"
+                            :readonly="pdsStore.isMyPds"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
                             :invalid="validator.individual_question[0].q35_a_details.$error"
                             :invalid-text="validator.individual_question[0].q35_a_details.$errors[0]?.$message"
                             @blur="validator.individual_question[0].q35_a_details.$touch"
@@ -608,10 +632,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q35_b"
                                 :id="getId('input-question-35b-yes')"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
                                 name="q35_b"
                                 :value="true"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-34b-yes')" class="ml-2 cursor-pointer">Yes</label>
                             </div>
@@ -619,10 +646,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q35_b"
                                 :id="getId('input-question-35b-no')"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
                                 name="q35_b"
                                 :value="false"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-35b-no')" class="ml-2 cursor-pointer">No</label>
                             </div>
@@ -637,9 +667,12 @@ defineExpose({
                             <WbCalendar
                               v-model="payload.individual_question[0].q35_b_date_filed"
                               label="Date Filed"
-                              :disabled="pdsStore.isMyPds"
+                              :readonly="pdsStore.isMyPds"
                               label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm md:mb-1"
-                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                              :class="[
+                                'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                              ]"
                               validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                               :invalid="validator.individual_question[0].q35_b_date_filed.$error"
                               :invalid-text="validator.individual_question[0].q35_b_date_filed.$errors[0]?.$message"
@@ -651,9 +684,12 @@ defineExpose({
                             <WbInputText
                               v-model="payload.individual_question[0].q35_b_status"
                               label="Status of Case/s"
-                              :disabled="pdsStore.isMyPds"
+                              :readonly="pdsStore.isMyPds"
                               label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                              :class="[
+                                'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                              ]"
                               validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                               :invalid="validator.individual_question[0].q35_b_status.$error"
                               :invalid-text="validator.individual_question[0].q35_b_status.$errors[0]?.$message"
@@ -679,10 +715,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q36"
                                 :id="getId('input-question-36-yes')"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
                                 name="q36"
                                 :value="true"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-36-yes')" class="ml-2 cursor-pointer">Yes</label>
                             </div>
@@ -690,10 +729,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q36"
                                 :id="getId('input-question-36-no')"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
                                 name="q36"
                                 :value="false"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-36-no')" class="ml-2 cursor-pointer">No</label>
                             </div>
@@ -707,9 +749,12 @@ defineExpose({
                           <WbInputText
                             v-model="payload.individual_question[0].q36_details"
                             label="If YES, give details"
-                            :disabled="pdsStore.isMyPds"
+                            :readonly="pdsStore.isMyPds"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
                             :invalid="validator.individual_question[0].q36_details.$error"
                             :invalid-text="validator.individual_question[0].q36_details.$errors[0]?.$message"
                             @blur="validator.individual_question[0].q36_details.$touch"
@@ -734,10 +779,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q37"
                                 :id="getId('input-question-37-yes')"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
                                 name="q37"
                                 :value="true"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-37-yes')" class="ml-2 cursor-pointer">Yes</label>
                             </div>
@@ -745,10 +793,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q37"
                                 :id="getId('input-question-37-no')"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
                                 name="q37"
                                 :value="false"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-37-no')" class="ml-2 cursor-pointer">No</label>
                             </div>
@@ -762,9 +813,12 @@ defineExpose({
                           <WbInputText
                             v-model="payload.individual_question[0].q37_details"
                             label="If YES, give details"
-                            :disabled="pdsStore.isMyPds"
+                            :readonly="pdsStore.isMyPds"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
                             :invalid="validator.individual_question[0].q37_details.$error"
                             :invalid-text="validator.individual_question[0].q37_details.$errors[0]?.$message"
                             @blur="validator.individual_question[0].q37_details.$touch"
@@ -789,10 +843,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q38_a"
                                 :id="getId('input-question-38_a-yes')"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
                                 name="q38_a"
                                 :value="true"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-38_a-yes')" class="ml-2 cursor-pointer">Yes</label>
                             </div>
@@ -800,10 +857,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q38_a"
                                 :id="getId('input-question-38_a-no')"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
                                 name="q38_a"
                                 :value="false"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-38_a-no')" class="ml-2 cursor-pointer">No</label>
                             </div>
@@ -817,9 +877,12 @@ defineExpose({
                           <WbInputText
                             v-model="payload.individual_question[0].q38_a_details"
                             label="If YES, give details"
-                            :disabled="pdsStore.isMyPds"
+                            :readonly="pdsStore.isMyPds"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
                             :invalid="validator.individual_question[0].q38_a_details.$error"
                             :invalid-text="validator.individual_question[0].q38_a_details.$errors[0]?.$message"
                             @blur="validator.individual_question[0].q38_a_details.$touch"
@@ -841,10 +904,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q38_b"
                                 :id="getId('input-question-38_b-yes')"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
                                 name="q38_b"
                                 :value="true"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-38_b-yes')" class="ml-2 cursor-pointer">Yes</label>
                             </div>
@@ -852,10 +918,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q38_b"
                                 :id="getId('input-question-38_b-no')"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
                                 name="q38_b"
                                 :value="false"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-38_b-no')" class="ml-2 cursor-pointer">No</label>
                             </div>
@@ -869,9 +938,12 @@ defineExpose({
                           <WbInputText
                             v-model="payload.individual_question[0].q38_b_details"
                             label="If YES, give details"
-                            :disabled="pdsStore.isMyPds"
+                            :readonly="pdsStore.isMyPds"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
                             :invalid="validator.individual_question[0].q38_b_details.$error"
                             :invalid-text="validator.individual_question[0].q38_b_details.$errors[0]?.$message"
                             @blur="validator.individual_question[0].q38_b_details.$touch"
@@ -894,10 +966,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q39"
                                 :id="getId('input-question-39-yes')"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
                                 name="q39"
                                 :value="true"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-39-yes')" class="ml-2 cursor-pointer">Yes</label>
                             </div>
@@ -905,10 +980,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q39"
                                 :id="getId('input-question-39-no')"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
                                 name="q39"
                                 :value="false"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-39-no')" class="ml-2 cursor-pointer">No</label>
                             </div>
@@ -926,7 +1004,7 @@ defineExpose({
                             :loading="libraryStore.countryOptionsLoading"
                             apiOptionLabel="country_code"
                             label="If YES, give details"
-                            :disabled="pdsStore.isMyPds"
+                            :readonly="pdsStore.isMyPds"
                             placeholder="Type the Country"
                             v-model="selectedCountry"
                             :id="getId('input-office')"
@@ -939,7 +1017,10 @@ defineExpose({
                                 useWbAutoCompleteHandleTrueValue(value, toRef(payload.individual_question[0], 'country_id'))
                             "
                             label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                             :invalid="validator.individual_question[0].country_id.$error"
                             :invalid-text="validator.individual_question[0].country_id.$errors[0]?.$message"
@@ -955,7 +1036,7 @@ defineExpose({
                           <div class="flex items-start gap-2 md:col-span-4">
                             <span class="shrink-0 text-base font-medium text-surface-600">40.</span>
                             <p class="md:text-md text-lg text-surface-600">
-                              Pursuant to: (a) Indigenous People`s Act (RA 8371); (b) Magna Carta for Disabled Persons (RA 7277);
+                              Pursuant to: (a) Indigenous People`s Act (RA 8371); (b) Magna Carta for readonly Persons (RA 7277);
                               and (c) Solo Parents Welfare Act of 2000 (RA 8972), please answer the following items:
                             </p>
                           </div>
@@ -973,9 +1054,12 @@ defineExpose({
                                 v-model="payload.individual_question[0].q40_a_indigenous_group"
                                 :id="getId('input-question-q40_a_indigenous_group-yes')"
                                 name="q40_a_indigenous_group"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
                                 :value="true"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-q40_a_indigenous_group-yes')" class="ml-2 cursor-pointer"
                                 >Yes</label
@@ -986,9 +1070,12 @@ defineExpose({
                                 v-model="payload.individual_question[0].q40_a_indigenous_group"
                                 :id="getId('input-question-q40_a_indigenous_group-no')"
                                 name="q40_a_indigenous_group"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
                                 :value="false"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-q40_a_indigenous_group-no')" class="ml-2 cursor-pointer"
                                 >No</label
@@ -1004,9 +1091,12 @@ defineExpose({
                           <WbInputText
                             v-model="payload.individual_question[0].q40_a_details"
                             label="If YES, give details"
-                            :disabled="pdsStore.isMyPds"
+                            :readonly="pdsStore.isMyPds"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
                             :invalid="validator.individual_question[0].q40_a_details.$error"
                             :invalid-text="validator.individual_question[0].q40_a_details.$errors[0]?.$message"
                             @blur="validator.individual_question[0].q40_a_details.$touch"
@@ -1025,10 +1115,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q40_b_pwd"
                                 :id="getId('input-question-q40_b_pwd-yes')"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
                                 name="q40_b_pwd"
                                 :value="true"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-q40_b_pwd-yes')" class="ml-2 cursor-pointer">Yes</label>
                             </div>
@@ -1036,10 +1129,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q40_b_pwd"
                                 :id="getId('input-question-q40_b_pwd-no')"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
                                 name="q40_b_pwd"
                                 :value="false"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-q40_b_pwd-no')" class="ml-2 cursor-pointer">No</label>
                             </div>
@@ -1053,9 +1149,12 @@ defineExpose({
                           <WbInputText
                             v-model="payload.individual_question[0].q40_b_details"
                             label="If YES, give details"
-                            :disabled="pdsStore.isMyPds"
+                            :readonly="pdsStore.isMyPds"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
                             :invalid="validator.individual_question[0].q40_b_details.$error"
                             :invalid-text="validator.individual_question[0].q40_b_details.$errors[0]?.$message"
                             @blur="validator.individual_question[0].q40_b_details.$touch"
@@ -1074,10 +1173,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q40_c_solo_parent"
                                 :id="getId('input-question-q40_c_solo_parent-yes')"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
                                 name="q40_c_solo_parent"
                                 :value="true"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-q40_c_solo_parent-yes')" class="ml-2 cursor-pointer">Yes</label>
                             </div>
@@ -1085,10 +1187,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q40_c_solo_parent"
                                 :id="getId('input-question-q40_c_solo_parent-no')"
-                                :disabled="pdsStore.isMyPds"
+                                :readonly="pdsStore.isMyPds"
                                 name="q40_c_solo_parent"
                                 :value="false"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-q40_c_solo_parent-no')" class="ml-2 cursor-pointer">No</label>
                             </div>
@@ -1102,9 +1207,12 @@ defineExpose({
                           <WbInputText
                             v-model="payload.individual_question[0].q40_c_details"
                             label="If YES, give details"
-                            :disabled="pdsStore.isMyPds"
+                            :readonly="pdsStore.isMyPds"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
                             :invalid="validator.individual_question[0].q40_c_details.$error"
                             :invalid-text="validator.individual_question[0].q40_c_details.$errors[0]?.$message"
                             @blur="validator.individual_question[0].q40_c_details.$touch"
@@ -1166,7 +1274,7 @@ defineExpose({
                                 <WbInputText
                                   v-model="payload.individual_reference[referenceIndex - 1].name"
                                   label="Name"
-                                  :disabled="pdsStore.isMyPds"
+                                  :readonly="pdsStore.isMyPds"
                                   label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-xs md:mb-1"
                                   :class="[
                                     'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
@@ -1183,7 +1291,7 @@ defineExpose({
                                 <WbInputText
                                   v-model="payload.individual_reference[referenceIndex - 1].address"
                                   label="Address"
-                                  :disabled="pdsStore.isMyPds"
+                                  :readonly="pdsStore.isMyPds"
                                   label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                   :class="[
                                     'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
@@ -1201,7 +1309,7 @@ defineExpose({
                                 <WbInputText
                                   v-model="payload.individual_reference[referenceIndex - 1].tel_no"
                                   label="Tel. No"
-                                  :disabled="pdsStore.isMyPds"
+                                  :readonly="pdsStore.isMyPds"
                                   label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                   :class="[
                                     'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
@@ -1281,9 +1389,12 @@ defineExpose({
                             <WbInputText
                               v-model="payload.individual_government_id.gov_id_name"
                               label="Government Issued ID"
-                              :disabled="pdsStore.isMyPds"
+                              :readonly="pdsStore.isMyPds"
                               label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm md:mb-1"
-                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                              :class="[
+                                'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                              ]"
                               validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                               :invalid="validator.individual_government_id.gov_id_name.$error"
                               :invalid-text="validator.individual_government_id.gov_id_name.$errors[0]?.$message"
@@ -1295,9 +1406,12 @@ defineExpose({
                             <WbInputText
                               v-model="payload.individual_government_id.gov_id_no"
                               label="ID/License/Passport No."
-                              :disabled="pdsStore.isMyPds"
+                              :readonly="pdsStore.isMyPds"
                               label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                              :class="[
+                                'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                              ]"
                               validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                               :invalid="validator.individual_government_id.gov_id_no.$error"
                               :invalid-text="validator.individual_government_id.gov_id_no.$errors[0]?.$message"
@@ -1309,9 +1423,12 @@ defineExpose({
                             <WbInputText
                               v-model="payload.individual_government_id.gov_id_issuance"
                               label="Date/Place of Issuance"
-                              :disabled="pdsStore.isMyPds"
+                              :readonly="pdsStore.isMyPds"
                               label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                              :class="[
+                                'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                              ]"
                               validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                               :invalid="validator.individual_government_id.gov_id_issuance.$error"
                               :invalid-text="validator.individual_government_id.gov_id_issuance.$errors[0]?.$message"

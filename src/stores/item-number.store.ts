@@ -111,23 +111,26 @@ export const useItemNumberStore = defineStore('item-number', () => {
   }
 
   const fetchLastNumber = async (employment_status: string) => {
-    const { data } = await useApiCall(
-      `/items?employment_status=${encodeURIComponent(employment_status)}`,
-      auth.authenticationToken
-    )
-      .get()
-      .json()
+    let page = 1
+    let totalCount = 0
+    let lastPage = 1
 
-    const responseBody: ApiResponseBody = data.value
-    if (responseBody.success && Array.isArray(responseBody.data)) {
-      const items = responseBody.data as ItemNumberResponse[]
-      const count = items.filter((item) => item.employment_status === employment_status).length
+    do {
+      const { data } = await useApiCall(`/items?page=${page}`, auth.authenticationToken).get().json()
 
-      lastNumbers.value[employment_status] = count
-    } else {
-      lastNumbers.value[employment_status] = 0
-    }
-    return responseBody
+      const responseBody: ApiResponseBody = data.value
+      if (!responseBody.success || !Array.isArray(responseBody.data)) break
+
+      totalCount += (responseBody.data as ItemNumberResponse[]).filter(
+        (item) => item.employment_status === employment_status
+      ).length
+
+      lastPage = responseBody.pagination?.last_page ?? 1
+      page++
+    } while (page <= lastPage)
+
+    lastNumbers.value[employment_status] = totalCount
+    return totalCount
   }
 
   const updateItemStatus = async (itemNumber: string) => {
