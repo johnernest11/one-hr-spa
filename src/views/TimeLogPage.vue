@@ -433,9 +433,7 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
         </div>
 
         <div class="flex w-full flex-1 items-center justify-center">
-          <div
-            class="relative flex h-full max-h-[80vh] w-full items-center justify-center overflow-hidden rounded-lg bg-black shadow"
-          >
+          <div class="relative flex h-full max-h-[80vh] w-full items-center justify-center overflow-hidden">
             <qrcode-stream
               ref="qrStreamRef"
               @detect="onDetect"
