@@ -69,7 +69,7 @@ onMounted(async () => {
   isLoading.value = true
 
   if (id) {
-    await dailyTimeRecordsStore.fetchDailyTimeRecordsByEmployee(id, new Date())
+    await dailyTimeRecordsStore.fetchDailyTimeRecordsByEmployee(id)
   }
   await dailyTimeRecordsStore.fetchDailyTimeRecords()
 
@@ -231,7 +231,7 @@ watch(
       if (dtr.row?.time_log) {
         const slots = resolveDTRSlots(dtr.row.time_log)
 
-        const dateKey = dtr.date.toISOString()
+        const dateKey = dtr.date ? new Date(dtr.date).toISOString() : 'no-date'
 
         remarksMap[`in1-${dateKey}`] = slots.in1 ? formatDTRTime(toTimestamp(slots.in1.date, slots.in1.scanned_time)) : ''
 
@@ -279,7 +279,7 @@ const updateDTRTimeLogs = async () => {
   const dtrPayloads: UpdateDTRPayload['dtr'] = monthDates.value
     .map((item) => {
       const existingDTR = item.row
-      const dateKey = item.date.toISOString()
+      const dateKey = item.date ? new Date(item.date).toISOString() : 'no-date'
       const remarksKey = `employee_remarks-${dateKey}`
       const remarksHrKey = `hr_remarks-${dateKey}`
       const utKey = `ut-${dateKey}`
@@ -560,7 +560,7 @@ const exportToPDF = async (
           <h2 class="mb-2 ml-4 text-3xl text-surface-600 dark:text-primary-100 md:ml-4">
             <font-awesome-icon :icon="['fas', 'calendar']" class="h-5 text-surface-600 sm:h-6 md:h-7" />
             {{ route.params.id ? '' : 'My ' }}Daily Time Record (DTR) for
-            {{ getMonthAndYear((monthDate?.toISOString() ?? new Date().toISOString()) || '') }}
+            {{ getMonthAndYear(monthDate) }}
             <br />
             <span v-if="currentEmployee" class="ml-4 text-lg text-surface-600 md:text-xl lg:text-2xl">
               {{ currentEmployee.last_name }} , {{ currentEmployee.first_name }} {{ currentEmployee.middle_name }}
@@ -649,7 +649,7 @@ const exportToPDF = async (
                   }"
                   @click="(dtr.row?.time_log?.length ?? 0) > 4 ? onAccordionClick(dtr, index) : null"
                 >
-                  {{ getFormattedDTRDate(dtr.date.toISOString()) }}
+                  {{ getFormattedDTRDate(dtr.date) }}
                 </p>
 
                 <!-- Show details if active -->
@@ -682,7 +682,7 @@ const exportToPDF = async (
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">Day</p>
                 <p class="text-base text-surface-600">
-                  {{ getDTRDayOfWeek((dtr.date?.toISOString() ?? new Date().toISOString()) || '') }}
+                  {{ getDTRDayOfWeek(dtr.date) }}
                 </p>
               </div>
 
@@ -709,7 +709,8 @@ const exportToPDF = async (
                   v-else-if="
                     dtr.row &&
                     dtr.row.time_log?.length &&
-                    (!resolveDTRSlots(dtr.row.time_log).in1 || isEditedTimeLog('in1', dtr.row.time_log))
+                    (!resolveDTRSlots(dtr.row.time_log).in1 || isEditedTimeLog('in1', dtr.row.time_log)) &&
+                    new Date(dtr.date).setHours(0, 0, 0, 0) < new Date().setHours(0, 0, 0, 0)
                   "
                   v-model="remarksMap[getRemarksKey('in1', dtr.date)]"
                   label=""
@@ -745,7 +746,8 @@ const exportToPDF = async (
                   v-else-if="
                     dtr.row &&
                     dtr.row.time_log?.length &&
-                    (!resolveDTRSlots(dtr.row.time_log).out1 || isEditedTimeLog('out1', dtr.row.time_log))
+                    (!resolveDTRSlots(dtr.row.time_log).out1 || isEditedTimeLog('out1', dtr.row.time_log)) &&
+                    new Date(dtr.date).setHours(0, 0, 0, 0) < new Date().setHours(0, 0, 0, 0)
                   "
                   v-model="remarksMap[getRemarksKey('out1', dtr.date)]"
                   label=""
@@ -779,7 +781,8 @@ const exportToPDF = async (
                   v-else-if="
                     dtr.row &&
                     dtr.row.time_log?.length &&
-                    (!resolveDTRSlots(dtr.row.time_log).in2 || isEditedTimeLog('in2', dtr.row.time_log))
+                    (!resolveDTRSlots(dtr.row.time_log).in2 || isEditedTimeLog('in2', dtr.row.time_log)) &&
+                    new Date(dtr.date).setHours(0, 0, 0, 0) < new Date().setHours(0, 0, 0, 0)
                   "
                   v-model="remarksMap[getRemarksKey('in2', dtr.date)]"
                   label=""
@@ -815,7 +818,8 @@ const exportToPDF = async (
                   v-else-if="
                     dtr.row &&
                     dtr.row.time_log?.length &&
-                    (!resolveDTRSlots(dtr.row.time_log).out2 || isEditedTimeLog('out2', dtr.row.time_log))
+                    (!resolveDTRSlots(dtr.row.time_log).out2 || isEditedTimeLog('out2', dtr.row.time_log)) &&
+                    new Date(dtr.date).setHours(0, 0, 0, 0) < new Date().setHours(0, 0, 0, 0)
                   "
                   v-model="remarksMap[getRemarksKey('out2', dtr.date)]"
                   label=""
@@ -831,12 +835,16 @@ const exportToPDF = async (
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">UT</p>
                 <template v-if="!route.params.id">
-                  <p class="h-12 text-surface-600 md:h-8 md:w-24">
-                    {{ remarksMap[`ut-${dtr.date?.toISOString() ?? ''}`] ?? 0 }}
+                  <p
+                    v-if="new Date(dtr.date) < new Date(new Date().setHours(0, 0, 0, 0))"
+                    class="h-12 text-surface-600 md:h-8 md:w-24"
+                  >
+                    {{ dtr.date ? remarksMap[`ut-${new Date(dtr.date).toISOString()}`] ?? 0 : 0 }}
                   </p>
                 </template>
                 <template v-else>
                   <WbInputText
+                    v-if="new Date(dtr.date) < new Date(new Date().setHours(0, 0, 0, 0))"
                     label=""
                     type="number"
                     v-model="remarksMap[getRemarksKey('ut', dtr.date)]"
@@ -851,12 +859,16 @@ const exportToPDF = async (
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">OT</p>
                 <template v-if="!route.params.id">
-                  <p class="h-12 text-surface-600 md:h-8 md:w-24">
-                    {{ remarksMap[`ot-${dtr.date?.toISOString() ?? ''}`] ?? 0 }}
+                  <p
+                    v-if="new Date(dtr.date) < new Date(new Date().setHours(0, 0, 0, 0))"
+                    class="h-12 text-surface-600 md:h-8 md:w-24"
+                  >
+                    {{ dtr.date ? remarksMap[`ot-${new Date(dtr.date).toISOString()}`] ?? 0 : 0 }}
                   </p>
                 </template>
                 <template v-else>
                   <WbInputText
+                    v-if="new Date(dtr.date) < new Date(new Date().setHours(0, 0, 0, 0))"
                     label=""
                     type="number"
                     v-model="remarksMap[getRemarksKey('ot', dtr.date)]"
@@ -871,6 +883,7 @@ const exportToPDF = async (
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">Remarks</p>
                 <WbTextArea
+                  v-if="new Date(dtr.date) < new Date(new Date().setHours(0, 0, 0, 0))"
                   v-model="remarksMap[getRemarksKey('employee_remarks', dtr.date)] as string"
                   label=""
                   class="md:w-30 h-8 md:h-8"
@@ -881,11 +894,12 @@ const exportToPDF = async (
                 <p class="text-xs font-semibold text-surface-500 md:hidden">HR Remarks</p>
                 <template v-if="!route.params.id">
                   <p class="h-12 text-surface-600 md:h-8 md:w-24">
-                    {{ remarksMap[`hr_remarks-${dtr.date?.toISOString() ?? ''}`] ?? '' }}
+                    {{ dtr.date ? remarksMap[`hr_remarks-${new Date(dtr.date).toISOString()}`] ?? '' : '' }}
                   </p>
                 </template>
                 <template v-else>
                   <WbTextArea
+                    v-if="new Date(dtr.date) < new Date(new Date().setHours(0, 0, 0, 0))"
                     v-model="remarksMap[getRemarksKey('hr_remarks', dtr.date)] as string"
                     label=""
                     class="h-8 md:h-8 md:w-48"

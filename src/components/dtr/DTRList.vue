@@ -33,7 +33,7 @@ onMounted(async () => {
 
   if (id) {
     // Fetch another user's DTR by their employee ID
-    await dailyTimeRecordsStore.fetchDailyTimeRecordsByEmployee(id, new Date())
+    await dailyTimeRecordsStore.fetchDailyTimeRecordsByEmployee(id)
   } else {
     // Fetch current user's DTR
     await dailyTimeRecordsStore.fetchDailyTimeRecords()
@@ -98,7 +98,17 @@ const dailyTimeRecordIsLoading = ref(false)
 
 onBeforeMount(async () => {
   dailyTimeRecordIsLoading.value = true
-  const response = await dailyTimeRecordStore.fetchDailyTimeRecords()
+
+  const employeeId = route.params.id ? String(route.params.id) : null
+
+  let response
+  if (employeeId) {
+    // Fetch DTR for specific employee
+    response = await dailyTimeRecordStore.fetchDailyTimeRecordsByEmployee(employeeId)
+  } else {
+    // Fetch current user DTR
+    response = await dailyTimeRecordStore.fetchDailyTimeRecords()
+  }
 
   if (response.success && response.pagination) {
     pagination.value = response.pagination

@@ -44,10 +44,16 @@ const navigateToDetails = (personnelDtr: PersonnelResponse) => {
     console.error('Cannot navigate to details: Employee or ID is undefined', personnelDtr)
     return
   }
+
+  const employeeId = personnelDtr.employee?.id
+  if (!employeeId) {
+    console.error('Cannot navigate: Employee ID not found', personnelDtr)
+    return
+  }
   router.push({
     name: 'my-dtrs/list',
     params: {
-      id: personnelDtr.id,
+      id: employeeId,
     },
   })
 }
@@ -188,7 +194,7 @@ const handleSearchEmployee = async () => {
                   </template>
                 </Column>
                 <Column
-                  field="employee.item.position.title"
+                  field="employee.division.name"
                   header="POSITION / DESIGNATION"
                   headerClass=" w-80 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
                 >

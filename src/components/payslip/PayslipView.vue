@@ -239,8 +239,11 @@ watch(
                 For the Period of
                 {{
                   formatPayrollPeriod(
-                    payload.payroll.period
-                      ? payload.payroll.period.map((date) => date.toISOString().split('T')[0]).join(', ')
+                    payload?.payroll?.period
+                      ? payload.payroll.period
+                          .map((date) => (date ? new Date(date).toISOString().split('T')[0] : null))
+                          .filter(Boolean)
+                          .join(', ')
                       : null
                   )
                 }}
