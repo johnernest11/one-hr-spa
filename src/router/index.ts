@@ -915,7 +915,7 @@ const routes = [
     meta: <RouteMeta>{
       group: RouteGroup.HUMAN_RESOURCES,
       label: 'Management',
-      isSidebarMenu: false,
+      isSidebarMenu: true,
       roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
     },
     children: [
@@ -925,7 +925,7 @@ const routes = [
         component: () => import('@/views/human-resources/ActiveDirectPage.vue'),
         meta: <RouteMeta>{
           label: 'Active Directory',
-          isSidebarMenu: false,
+          isSidebarMenu: true,
           authType: AuthType.AUTHENTICATED,
           roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
         },
