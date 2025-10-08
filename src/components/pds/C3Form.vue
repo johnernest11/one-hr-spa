@@ -211,7 +211,7 @@ const showToast = (
 
     setTimeout(() => {
       activeToasts.value--
-    }, 5000)
+    }, 10000)
   }
 }
 
@@ -408,11 +408,19 @@ const updateC3Form = async () => {
       (entry) => (entry as { $error: boolean })?.$error
     )
 
-    let errorTabs = []
-    if (hasLearningDevelopmentError) errorTabs.push(' Learning and Development (L&D) Interventions / Training Programs Attended')
+    const errorTabs: string[] = []
+    if (hasLearningDevelopmentError)
+      errorTabs.push('C3 - Learning and Development (L&D) Interventions / Training Programs Attended')
 
-    const tabList = errorTabs.join(', ')
-    showToast('error', 'Validation Error', `Please check the following tab(s): ${tabList}`)
+    const sectionDescriptions: Record<string, string> = {
+      'C3 - Learning and Development (L&D) Interventions / Training Programs Attended':
+        'C3 - Learning and Development (L&D) Interventions / Training Programs Attended',
+    }
+
+    errorTabs.forEach((field) => {
+      const message = sectionDescriptions[field] ?? field
+      showToast('error', 'Validation Error - Please check the following', message)
+    })
 
     isC3Loading.value = false
     return { valid: false, errorTabs: ['C3'] }
@@ -424,18 +432,14 @@ const updateC3Form = async () => {
     'C3' // pass form_type as a separate argument if your store expects it
   )
 
-  if (response.success === false) {
+  if (!response.success) {
     const result = parseApiResponseError(response)
 
     isPdsError.value = true
     errorMessage.value = result?.message
     pdsErrors.value = result?.errors
-    showToast('error', 'PDS C3 Error', 'Please see the validation messages')
-  } else {
-    showToast('success', 'Personal Data Sheet (PDS)', 'PDS has been successfully updated.')
+    return { valid: false, errorTabs: ['C1'] }
   }
-
-  formIsSubmitting.value = false
 }
 
 // ──────────────────────────────────────────────────────────
@@ -451,11 +455,19 @@ const handleSaveC3Form = async () => {
       (entry) => (entry as { $error: boolean })?.$error
     )
 
-    let errorTabs = []
-    if (hasLearningDevelopmentError) errorTabs.push(' Learning and Development (L&D) Interventions / Training Programs Attended')
+    const errorTabs = []
+    if (hasLearningDevelopmentError)
+      errorTabs.push('C3 - Learning and Development (L&D) Interventions / Training Programs Attended')
 
-    const tabList = errorTabs.join(', ')
-    showToast('error', 'Validation Error', `Please check the following tab(s): ${tabList}`)
+    const sectionDescriptions: Record<string, string> = {
+      'C3 - Learning and Development (L&D) Interventions / Training Programs Attended':
+        'C3 - Learning and Development (L&D) Interventions / Training Programs Attended',
+    }
+
+    errorTabs.forEach((field) => {
+      const message = sectionDescriptions[field] ?? field
+      showToast('error', 'Validation Error - Please check the following', message)
+    })
 
     isC3Loading.value = false
     return { valid: false, errorTabs: ['C3'] }
@@ -463,7 +475,7 @@ const handleSaveC3Form = async () => {
 
   const response = await pdsStore.savePds(payload)
 
-  if (response.success === false) {
+  if (!response.success) {
     const result = parseApiResponseError(response)
 
     isPdsError.value = true

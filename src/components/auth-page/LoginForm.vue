@@ -8,7 +8,6 @@ import useVuelidate from '@vuelidate/core'
 import { helpers, required } from '@vuelidate/validators'
 import { useRoute, useRouter } from 'vue-router'
 import { LoginPayload, useAuthStore } from '@/stores/auth.store.ts'
-import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import AppLogo from '@/components/layout/AppLogo.vue'
 import { checkIfValidMobileNumber } from '@/utils/helpers.ts'
 import { ApiErrorCode } from '@/typings/http-resources.types.ts'
@@ -242,30 +241,6 @@ const manageIfEmailIsPhoneNumber = (payload: LoginPayload) => {
           class="mt-3 w-full"
         ></Button>
       </div>
-      <p class="flex justify-between pt-3 text-center">
-        <Button
-          label="Forgot Password"
-          size="small"
-          class="text-xs text-surface-0 hover:bg-surface-100 dark:text-primary-100 dark:hover:bg-primary-300/20 lg:text-surface-500 dark:lg:text-primary-400"
-          text
-          @click="$router.push({ name: 'forgot-password' })"
-        >
-          <template #icon>
-            <FontAwesomeIcon icon="fa-solid fa-lock" class="mr-1.5" />
-          </template>
-        </Button>
-        <Button
-          label="Create an account"
-          size="small"
-          class="text-xs text-surface-0 dark:text-primary-100 lg:text-primary-400 dark:lg:text-primary-400"
-          text
-          @click="$router.push({ name: 'sign-up' })"
-        >
-          <template #icon>
-            <FontAwesomeIcon icon="fa-solid fa-right-to-bracket" class="mr-1.5" />
-          </template>
-        </Button>
-      </p>
     </form>
     <!-- End Form -->
   </section>

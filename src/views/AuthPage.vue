@@ -10,10 +10,11 @@ import { TransitionRoot } from '@headlessui/vue'
 /** We either show the Login Form or the Create Account Form based on the route */
 const route = useRoute()
 const showLogin = ref(true)
-
+const token = ref<string | undefined>()
 // We check route when DOM mounts
 onMounted(() => {
   showLogin.value = route.name === 'login' ? (showLogin.value = true) : (showLogin.value = false)
+  token.value = route.query.token as string | undefined
 })
 
 // We toggle background color of the Webkit text on the left side based on form errors and warnings
@@ -86,6 +87,20 @@ const showRefreshTokenExpiredAlert = computed(() => {
                   Human Resources Comprehensive Access to Records and Employee Services</span
                 >
               </div>
+              <div v-if="token" class="animate-fade-in z-10 flex flex-col items-center justify-center space-y-6 text-center">
+                <div class="animate-fade-in flex items-center gap-3 text-base">
+                  <svg
+                    class="h-5 w-5 animate-spin text-surface-0"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                  </svg>
+                  <span class="tracking-wide">Authenticating, please wait...</span>
+                </div>
+              </div>
             </TransitionRoot>
           </div>
         </div>
@@ -93,6 +108,7 @@ const showRefreshTokenExpiredAlert = computed(() => {
         <AnimatedFloaters class="hidden lg:flex" />
       </div>
       <div
+        v-if="!token"
         :class="`h-full w-full bg-gradient-to-b
          from-primary-500 to-primary-900 p-8 transition-all duration-500
          dark:from-primary-900 dark:to-primary-950 sm:w-auto
