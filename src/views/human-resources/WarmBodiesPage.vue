@@ -12,9 +12,9 @@ import WbAutoComplete from '@/components/webkit/WbAutoComplete.vue'
 import { useThemeConfig } from '@/composables/theme.ts'
 import { useDailyTimeRecordsStore, ViewWarmBodiesPayload } from '@/stores/daily-time-record.store'
 import { useLibrariesStore } from '@/stores/libraries.store'
-import { ApiResponsePagination } from '@/typings/http-resources.types.ts'
+import type { ApiResponsePagination } from '@/typings/http-resources.types.ts'
 import { useToast } from 'primevue/usetoast'
-import { CountWarmBodiesResponse } from '@/typings/models.types'
+import type { CountWarmBodiesResponse, ViewTimeLogsResponse } from '@/typings/models.types'
 import WarmBodiesDonutChart from '@/components/dtr/WarmBodiesDonutChart.vue'
 import WarmBodiesBarGraph from '@/components/dtr/WarmBodiesBarGraph.vue'
 import type { DonutFormatterOptions } from '@/components/dtr/WarmBodiesDonutChart.vue'
@@ -26,20 +26,14 @@ const toast = useToast()
 const warmBodiesIsLoading = ref(false)
 const showModal = ref(false)
 const paginationLimit = 5
+const pagination = ref<ApiResponsePagination | null>(null)
 
 const payload = reactive<ViewWarmBodiesPayload>({
   division: null,
   section: null,
 })
 
-const pagination = ref<ApiResponsePagination>({
-  current_page: 1,
-  per_page: paginationLimit,
-  total: 0,
-  from: 0,
-  to: 0,
-})
-
+/** ✅ FIXED — Safely assign typed API response */
 const loadWarmBodies = async (page = 1) => {
   warmBodiesIsLoading.value = true
   try {
@@ -48,10 +42,11 @@ const loadWarmBodies = async (page = 1) => {
     if (response.success) {
       if (response.pagination) pagination.value = response.pagination
 
-      if (Array.isArray(response.data)) {
-        warmBodiesStore.viewTimeLogs = response.data
-      } else if (response.data) {
-        warmBodiesStore.viewTimeLogs = [response.data]
+      const data = response.data
+      if (Array.isArray(data)) {
+        warmBodiesStore.viewTimeLogs = data as ViewTimeLogsResponse[]
+      } else if (data) {
+        warmBodiesStore.viewTimeLogs = [data as ViewTimeLogsResponse]
       } else {
         warmBodiesStore.viewTimeLogs = []
       }
@@ -69,17 +64,14 @@ const loadWarmBodies = async (page = 1) => {
   }
 }
 
+/** Pagination handler */
 const handlePaginationPageChange = async (event: PageState) => {
   const nextPage = event.page + 1
   console.log('Changing to page:', nextPage)
   await loadWarmBodies(nextPage)
 }
 
-onMounted(async () => {
-  await loadWarmBodies(1)
-  await handleGraphs()
-})
-
+/** Search logic */
 const searchQuery = ref<string | null>(null)
 const searchSubmitted = ref(false)
 const isSearching = ref(false)
@@ -99,7 +91,8 @@ const handleSearchTimeLogs = async () => {
     const response = await warmBodiesStore.searchTimeLogs(searchQuery.value, isMyProfile.value, null)
     if (response.success) {
       if (response.pagination) pagination.value = response.pagination
-      warmBodiesStore.viewTimeLogs = Array.isArray(response.data) ? response.data : [response.data]
+      const data = response.data
+      warmBodiesStore.viewTimeLogs = Array.isArray(data) ? (data as ViewTimeLogsResponse[]) : [data as ViewTimeLogsResponse]
     }
   } catch (e) {
     console.error('Error searching time logs:', e)
@@ -109,8 +102,9 @@ const handleSearchTimeLogs = async () => {
   }
 }
 
-const selectedDivision = ref(null)
-const selectedSectionUnit = ref(null)
+/** Filter logic */
+const selectedDivision = ref<{ label: string; value: number } | null>(null)
+const selectedSectionUnit = ref<{ label: string; value: number } | null>(null)
 const selectedDivisionLabel = ref<string | null>(null)
 const selectedSectionLabel = ref<string | null>(null)
 
@@ -122,14 +116,8 @@ const handleFilterWarmBodies = async () => {
   selectedSectionLabel.value = selectedSectionUnit.value?.label ?? null
 
   try {
-    if (!selectedDivision.value && !selectedSectionUnit.value) {
-      payload.division = null
-      payload.section = null
-    } else {
-      payload.division = selectedDivision.value?.value ?? null
-      payload.section = selectedSectionUnit.value?.value ?? null
-    }
-
+    payload.division = selectedDivision.value?.value ?? null
+    payload.section = selectedSectionUnit.value?.value ?? null
     await loadWarmBodies(1)
     searchQuery.value = null
   } finally {
@@ -138,6 +126,7 @@ const handleFilterWarmBodies = async () => {
   }
 }
 
+/** Graphs & Chart Data */
 const inCount = ref(0)
 const outCount = ref(0)
 const rawPerDivisionData = ref<CountWarmBodiesResponse['per_division']>([])
@@ -183,18 +172,14 @@ const barCategories = computed(() =>
 )
 
 const barSeries = computed(() => [
-  {
-    name: 'In Office',
-    data: filteredBarGraphData.value.map((entry) => entry.in_office),
-  },
-  {
-    name: 'Out of Office',
-    data: filteredBarGraphData.value.map((entry) => entry.out_of_office),
-  },
+  { name: 'In Office', data: filteredBarGraphData.value.map((e) => e.in_office) },
+  { name: 'Out of Office', data: filteredBarGraphData.value.map((e) => e.out_of_office) },
 ])
 
+/** Chart formatter */
 const donutValueFormatter = (_: number, opts: DonutFormatterOptions) => String(opts.w.config.series[opts.seriesIndex])
 
+/** Theme Watcher */
 const { selectedTheme } = useThemeConfig()
 const chartsInDarkMode = ref(selectedTheme.value?.value === 'dark')
 
@@ -203,7 +188,18 @@ watch(
   (theme) => (chartsInDarkMode.value = theme?.value === 'dark')
 )
 
+onMounted(async () => {
+  await loadWarmBodies(1)
+  await handleGraphs()
+})
+
+/** Flatten data for display */
 const flatViewTimeLogs = computed(() => warmBodiesStore.viewTimeLogs.flat())
+
+/** ✅ Define missing variables used in template */
+const wbDonutChartLabels = ['In Office', 'Out of Office']
+const graphColors = ['#22C55E', '#EF4444']
+const DateToday = new Date().toLocaleDateString()
 </script>
 
 <template>
@@ -212,9 +208,7 @@ const flatViewTimeLogs = computed(() => warmBodiesStore.viewTimeLogs.flat())
       <div class="h-full w-full rounded-md bg-surface-0 p-6">
         <div class="flex flex-col font-medium text-primary-700 dark:text-primary-100 md:ml-4 md:mt-2">
           <h1 class="mb-1 text-xl text-surface-700 dark:text-primary-100 md:text-xl lg:text-4xl">Daily Time-in/Time-out</h1>
-          <p class="text-base text-surface-500 dark:text-primary-200">
-            {{ DateToday }}
-          </p>
+          <p class="text-base text-surface-500 dark:text-primary-200">{{ DateToday }}</p>
         </div>
 
         <div
@@ -231,10 +225,10 @@ const flatViewTimeLogs = computed(() => warmBodiesStore.viewTimeLogs.flat())
                   :colors="graphColors"
                   :value-formatter="donutValueFormatter"
                   class="w-full max-w-[450px] sm:w-2/3 md:w-1/2 lg:w-[60%] xl:w-[50%]"
-                  style="height: auto"
                 />
               </div>
             </div>
+
             <div class="flex h-[40vh] max-h-[450px] min-h-[350px] w-full flex-col rounded-lg bg-white p-4 pb-4 shadow-md">
               <p class="mb-4 text-sm font-semibold uppercase text-surface-600">All</p>
               <div class="flex h-full w-full">
@@ -281,6 +275,7 @@ const flatViewTimeLogs = computed(() => warmBodiesStore.viewTimeLogs.flat())
             </div>
           </div>
         </div>
+
         <div class="flex flex-col">
           <div class="w-full">
             <div
@@ -309,9 +304,7 @@ const flatViewTimeLogs = computed(() => warmBodiesStore.viewTimeLogs.flat())
                             .join(' ')
                         }}
                       </p>
-                      <p class="text-sm text-surface-500">
-                        {{ props.data.id_number || 'N/A' }}
-                      </p>
+                      <p class="text-sm text-surface-500">{{ props.data.id_number || 'N/A' }}</p>
                     </div>
                   </template>
                 </Column>
@@ -319,27 +312,25 @@ const flatViewTimeLogs = computed(() => warmBodiesStore.viewTimeLogs.flat())
                 <Column
                   field="division"
                   header="Division"
-                  headerClass=" w-80 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
+                  headerClass="w-80 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
                 >
                   <template #body="props">
-                    <p class="uppercase text-surface-600">
-                      {{ props.data.division_name }}
-                    </p>
+                    <p class="uppercase text-surface-600">{{ props.data.division_name }}</p>
                   </template>
                 </Column>
+
                 <Column
                   field="section"
                   header="Section"
-                  headerClass=" w-80 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
+                  headerClass="w-80 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
                 >
                   <template #body="props">
-                    <p class="uppercase text-surface-600">
-                      {{ props.data.section_name }}
-                    </p>
+                    <p class="uppercase text-surface-600">{{ props.data.section_name }}</p>
                   </template>
                 </Column>
               </DataTable>
             </div>
+
             <div class="mt-6 flex w-full justify-center md:mt-10">
               <Paginator
                 v-if="pagination && pagination.total > 0"
@@ -352,6 +343,7 @@ const flatViewTimeLogs = computed(() => warmBodiesStore.viewTimeLogs.flat())
               />
             </div>
           </div>
+
           <div
             v-if="searchSubmitted && !warmBodiesIsLoading && !flatViewTimeLogs.length"
             class="flex h-full w-full flex-col items-center justify-center font-menu text-lg dark:text-surface-300"
@@ -359,6 +351,7 @@ const flatViewTimeLogs = computed(() => warmBodiesStore.viewTimeLogs.flat())
             <i class="pi pi-exclamation-triangle mb-2 pt-5 text-2xl"></i>
             <p>No matching employees found.</p>
           </div>
+
           <div
             v-if="!warmBodiesIsLoading && !flatViewTimeLogs.length && !searchSubmitted"
             class="mx-auto flex h-full w-full flex-col"
@@ -383,6 +376,7 @@ const flatViewTimeLogs = computed(() => warmBodiesStore.viewTimeLogs.flat())
             </Card>
           </div>
         </div>
+
         <Dialog
           v-model:visible="showModal"
           :modal="false"
@@ -391,11 +385,6 @@ const flatViewTimeLogs = computed(() => warmBodiesStore.viewTimeLogs.flat())
           :position="'right'"
           :style="{ width: '20vw', maxWidth: '600px', minWidth: '320px' }"
           :breakpoints="{ '1199px': '75vw', '575px': '90vw' }"
-          :pt="{
-            root: {
-              class: 'relative w-full h-full flex flex-col bg-white shadow-lg',
-            },
-          }"
         >
           <template #header>
             <div class="flex w-full items-center justify-between p-4 pb-0">
@@ -405,6 +394,7 @@ const flatViewTimeLogs = computed(() => warmBodiesStore.viewTimeLogs.flat())
               </h1>
             </div>
           </template>
+
           <div class="flex-1 px-4 pb-24">
             <h2 class="mb-2 mt-4 text-lg font-semibold text-surface-500 dark:text-primary-100">Filters</h2>
             <div class="mb-4">
@@ -417,20 +407,10 @@ const flatViewTimeLogs = computed(() => warmBodiesStore.viewTimeLogs.flat())
                 label="Division"
                 placeholder="Type the Division"
                 v-model="selectedDivision"
-                :id="getId('input-division')"
                 optionLabel="label"
                 optionValue="value"
                 required
-                @on-true-value-computed="
-                  (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) => {
-                    useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'division'))
-                  }
-                "
-                label-class="mt-4 text-md text-surface-600 dark:lg:text-surface-200"
-                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-              >
-              </WbAutoComplete>
+              />
               <WbAutoComplete
                 :useApiFilter="true"
                 :apiEndpoint="'/libraries/section-or-units/search'"
@@ -440,21 +420,13 @@ const flatViewTimeLogs = computed(() => warmBodiesStore.viewTimeLogs.flat())
                 label="Section/Unit"
                 placeholder="Type the Section / Unit"
                 v-model="selectedSectionUnit"
-                :id="getId('input-section-unit')"
                 optionLabel="label"
                 optionValue="value"
                 required
-                @on-true-value-computed="
-                  (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
-                    useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'section'))
-                "
-                label-class="mt-4 text-md text-surface-600 dark:lg:text-surface-200"
-                class="lg:text-md lg:placeholder:text-md relative w-full max-w-[600px] text-sm placeholder:text-sm"
-                validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-              >
-              </WbAutoComplete>
+              />
             </div>
           </div>
+
           <div
             class="absolute bottom-0 left-0 right-0 border-t border-surface-300 bg-surface-0 px-4 py-3 dark:border-surface-700 dark:bg-surface-900"
           >
@@ -464,11 +436,7 @@ const flatViewTimeLogs = computed(() => warmBodiesStore.viewTimeLogs.flat())
                 class="dark:text-secondary-100 w-full border border-surface-400 px-4 py-2 text-surface-500 dark:border-surface-700"
                 @click="showModal = false"
                 text
-              >
-                <template #icon>
-                  <i class="pi pi-ban mr-2 text-lg"></i>
-                </template>
-              </Button>
+              />
               <Button
                 :loading="warmBodiesIsLoading"
                 :disabled="warmBodiesIsLoading"
@@ -476,16 +444,13 @@ const flatViewTimeLogs = computed(() => warmBodiesStore.viewTimeLogs.flat())
                 label="Apply"
                 class="dark:text-secondary-100 w-full border border-primary-500 px-4 py-3 text-primary-600 dark:border-surface-700"
                 text
-              >
-                <template #icon>
-                  <font-awesome-icon :icon="['fas', 'check']" class="mr-2 text-lg" />
-                </template>
-              </Button>
+              />
             </div>
           </div>
         </Dialog>
       </div>
     </template>
+
     <template v-else-if="warmBodiesIsLoading && !isSearching">
       <div class="bg-surface-2 h-full w-full animate-pulse rounded-md p-6">
         <div class="flex flex-col md:ml-4 md:mt-2">
@@ -493,40 +458,9 @@ const flatViewTimeLogs = computed(() => warmBodiesStore.viewTimeLogs.flat())
           <div class="h-6 w-1/4 rounded-full bg-surface-300"></div>
         </div>
 
-        <div class="mb-10 mt-8 grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div class="flex h-[40vh] max-h-[450px] min-h-[300px] w-full flex-col rounded-lg">
-            <div class="flex flex-grow flex-col gap-6 bg-surface-300 md:flex-row md:gap-10"></div>
-          </div>
-
-          <div class="flex h-[40vh] max-h-[450px] min-h-[350px] w-full flex-col rounded-lg">
-            <div class="flex h-full w-full bg-surface-300"></div>
-          </div>
+        <div class="my-10 space-y-4">
+          <div v-for="i in 5" :key="i" class="h-10 w-full rounded bg-surface-300"></div>
         </div>
-
-        <div class="mt-6 w-1/2">
-          <div class="flex w-full items-center gap-4">
-            <div class="h-8 flex-grow rounded bg-surface-300"></div>
-            <div class="h-8 w-12 rounded bg-surface-300"></div>
-            <div class="h-8 w-12 rounded bg-surface-300"></div>
-          </div>
-        </div>
-
-        <table class="mt-4 w-full">
-          <thead class="bg-surface-0">
-            <tr class="border-[1px] border-surface-300">
-              <td v-for="(width, index) in columnWidths" :key="'header-' + index">
-                <div class="mx-4 mt-4 h-2.5 rounded-full bg-surface-300" :class="width + ' mb-4'"></div>
-              </td>
-            </tr>
-          </thead>
-          <tbody class="bg-surface-100">
-            <tr v-for="row in 5" :key="'row-' + row" class="border-[1px] border-t-0 border-surface-300">
-              <td v-for="(width, index) in columnWidths" :key="'row-' + row + '-col-' + index">
-                <div class="mx-4 mt-4 h-2.5 rounded-full bg-surface-300" :class="width + ' mb-4'"></div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
       </div>
     </template>
   </div>
