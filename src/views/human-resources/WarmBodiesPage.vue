@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, watch, computed, toRef, reactive } from 'vue'
+import { onMounted, ref, watch, computed, reactive } from 'vue'
 import Button from 'primevue/button'
 import Column from 'primevue/column'
 import DataTable from 'primevue/datatable'
@@ -9,170 +9,177 @@ import Dialog from 'primevue/dialog'
 import Paginator, { PageState } from 'primevue/paginator'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import WbAutoComplete from '@/components/webkit/WbAutoComplete.vue'
-import { WbAutoCompleteOption, WbAutoCompleteOptionTrueValue } from '@/components/webkit/WbAutoComplete.vue'
-import { useWbAutoCompleteHandleTrueValue } from '@/composables/wb-ui-components.ts'
-import WarmBodiesDonutChart from '@/components/dtr/WarmBodiesDonutChart.vue'
-import { DonutFormatterOptions } from '@/components/dtr/WarmBodiesDonutChart.vue'
-import WarmBodiesBarGraph from '@/components/dtr/WarmBodiesBarGraph.vue'
 import { useThemeConfig } from '@/composables/theme.ts'
 import { useDailyTimeRecordsStore, ViewWarmBodiesPayload } from '@/stores/daily-time-record.store'
 import { useLibrariesStore } from '@/stores/libraries.store'
 import { ApiResponsePagination } from '@/typings/http-resources.types.ts'
-import { DateToday } from '@/utils/helpers.ts'
-import { usePrependOrAppendOnce } from '@/utils/helpers.js'
 import { useToast } from 'primevue/usetoast'
 import { CountWarmBodiesResponse } from '@/typings/models.types'
+import WarmBodiesDonutChart from '@/components/dtr/WarmBodiesDonutChart.vue'
+import WarmBodiesBarGraph from '@/components/dtr/WarmBodiesBarGraph.vue'
+import type { DonutFormatterOptions } from '@/components/dtr/WarmBodiesDonutChart.vue'
 
 const warmBodiesStore = useDailyTimeRecordsStore()
 const libraryStore = useLibrariesStore()
-const warmBodiesIsLoading = ref(false)
-const paginationLimit = 5
-const columnWidths = ['w-80', 'w-80', 'w-80', 'w-80']
 const toast = useToast()
-const showModal = ref(false)
-const getId = usePrependOrAppendOnce('warm-bodies-filter')
 
-/** Payload */
+const warmBodiesIsLoading = ref(false)
+const showModal = ref(false)
+const paginationLimit = 5
+
 const payload = reactive<ViewWarmBodiesPayload>({
   division: null,
   section: null,
 })
 
-/* -------------------------------------------------------------------------- */
-/*                    Handling Table Data & Search Results                    */
-/* -------------------------------------------------------------------------- */
+const pagination = ref<ApiResponsePagination>({
+  current_page: 1,
+  per_page: paginationLimit,
+  total: 0,
+  from: 0,
+  to: 0,
+})
 
-onMounted(async () => {
+const loadWarmBodies = async (page = 1) => {
   warmBodiesIsLoading.value = true
   try {
-    /* ------------------------------ Handle Table ------------------------------ */
-    const response = await warmBodiesStore.fetchTimeLogsForToday()
-    if (response.success && response.pagination) {
-      pagination.value = response.pagination
-    }
+    const response = await warmBodiesStore.fetchTimeLogsForToday(paginationLimit, page, payload.division, payload.section)
 
-    /* ---------------------------- Handle Graph Info --------------------------- */
-    await handleGraphs()
+    if (response.success) {
+      if (response.pagination) pagination.value = response.pagination
+
+      if (Array.isArray(response.data)) {
+        warmBodiesStore.viewTimeLogs = response.data
+      } else if (response.data) {
+        warmBodiesStore.viewTimeLogs = [response.data]
+      } else {
+        warmBodiesStore.viewTimeLogs = []
+      }
+    }
   } catch (e) {
     toast.add({
       severity: 'error',
-      summary: 'Cannot view time logs.',
-      detail: 'Something went wrong.',
-      life: 5000,
+      summary: 'Cannot load time logs.',
+      detail: 'Something went wrong while fetching data.',
+      life: 4000,
     })
-    console.log('Encountered error while attempting to fetch time logs. ', e)
+    console.error('Error loading warm bodies:', e)
   } finally {
     warmBodiesIsLoading.value = false
   }
-})
-
-const flatViewTimeLogs = computed(() => warmBodiesStore.viewTimeLogs.flat())
-
-const pagination = ref<ApiResponsePagination | null>(null)
-const handlePaginationPageChange = async (event: PageState) => {
-  const pageSelected = event.page + 1
-  warmBodiesIsLoading.value = true
-  const response = await warmBodiesStore.fetchTimeLogsForToday(paginationLimit, pageSelected)
-  if (response.success && response.pagination) {
-    pagination.value = response.pagination
-  }
-  warmBodiesIsLoading.value = false
 }
 
-const roleFilter = ref<number | null>(null)
+const handlePaginationPageChange = async (event: PageState) => {
+  const nextPage = event.page + 1
+  console.log('Changing to page:', nextPage)
+  await loadWarmBodies(nextPage)
+}
+
+onMounted(async () => {
+  await loadWarmBodies(1)
+  await handleGraphs()
+})
+
 const searchQuery = ref<string | null>(null)
-const isSearching = ref(false)
-watch(
-  () => roleFilter.value,
-  async () => {
-    warmBodiesIsLoading.value = true
-    searchQuery.value = null
-    isSearching.value = false
-    const response = await warmBodiesStore.fetchTimeLogsForToday()
-    if (response.success && response.pagination) {
-      pagination.value = response.pagination
-    }
-    warmBodiesIsLoading.value = false
-  }
-)
 const searchSubmitted = ref(false)
+const isSearching = ref(false)
 const isMyProfile = ref(true)
+
 const handleSearchTimeLogs = async () => {
   warmBodiesIsLoading.value = true
   searchSubmitted.value = true
   isSearching.value = true
 
-  if (!searchQuery.value) {
-    const response = await warmBodiesStore.fetchTimeLogsForToday()
-    if (response.success && response.pagination) {
-      pagination.value = response.pagination
+  try {
+    if (!searchQuery.value) {
+      await loadWarmBodies(1)
+      return
     }
-    warmBodiesIsLoading.value = false
-    return
-  }
 
-  const response = await warmBodiesStore.searchTimeLogs(searchQuery.value, isMyProfile.value, null)
-  if (response.success && response.pagination) {
-    pagination.value = response.pagination
+    const response = await warmBodiesStore.searchTimeLogs(searchQuery.value, isMyProfile.value, null)
+    if (response.success) {
+      if (response.pagination) pagination.value = response.pagination
+      warmBodiesStore.viewTimeLogs = Array.isArray(response.data) ? response.data : [response.data]
+    }
+  } catch (e) {
+    console.error('Error searching time logs:', e)
+  } finally {
+    warmBodiesIsLoading.value = false
+    isSearching.value = false
   }
-  warmBodiesIsLoading.value = false
-  isSearching.value = false
 }
 
-/* -------------------------------------------------------------------------- */
-/*                               Handling Graphs                              */
-/* -------------------------------------------------------------------------- */
+const selectedDivision = ref(null)
+const selectedSectionUnit = ref(null)
+const selectedDivisionLabel = ref<string | null>(null)
+const selectedSectionLabel = ref<string | null>(null)
+
+const handleFilterWarmBodies = async () => {
+  warmBodiesIsLoading.value = true
+  searchSubmitted.value = true
+
+  selectedDivisionLabel.value = selectedDivision.value?.label ?? null
+  selectedSectionLabel.value = selectedSectionUnit.value?.label ?? null
+
+  try {
+    if (!selectedDivision.value && !selectedSectionUnit.value) {
+      payload.division = null
+      payload.section = null
+    } else {
+      payload.division = selectedDivision.value?.value ?? null
+      payload.section = selectedSectionUnit.value?.value ?? null
+    }
+
+    await loadWarmBodies(1)
+    searchQuery.value = null
+  } finally {
+    warmBodiesIsLoading.value = false
+    showModal.value = false
+  }
+}
 
 const inCount = ref(0)
 const outCount = ref(0)
-
 const rawPerDivisionData = ref<CountWarmBodiesResponse['per_division']>([])
 const rawPerSectionData = ref<CountWarmBodiesResponse['per_section']>([])
 
 const handleGraphs = async (): Promise<CountWarmBodiesResponse> => {
   warmBodiesIsLoading.value = true
-  const response = await warmBodiesStore.fetchCountWarmBodies()
-  const result = response.data as CountWarmBodiesResponse
+  try {
+    const response = await warmBodiesStore.fetchCountWarmBodies()
+    const result = response.data as CountWarmBodiesResponse
 
-  inCount.value = result.in_office ?? 0
-  outCount.value = result.out_of_office ?? 0
+    inCount.value = result.in_office ?? 0
+    outCount.value = result.out_of_office ?? 0
+    rawPerDivisionData.value = result.per_division ?? []
+    rawPerSectionData.value = result.per_section ?? []
 
-  rawPerDivisionData.value = result.per_division ?? []
-  rawPerSectionData.value = result.per_section ?? []
-
-  warmBodiesIsLoading.value = false
-  return result
+    return result
+  } finally {
+    warmBodiesIsLoading.value = false
+  }
 }
 
 const filteredBarGraphData = computed(() => {
-  // If section is selected, use per_section
   if (payload.section) {
-    return rawPerSectionData.value?.filter((sec) => sec.section_id === payload.section)
+    return rawPerSectionData.value.filter((sec) => sec.section_id === payload.section)
   }
-
-  // If division is selected, use per_division
   if (payload.division) {
-    return rawPerDivisionData.value?.filter((div) => div.division_id === payload.division)
+    return rawPerDivisionData.value.filter((div) => div.division_id === payload.division)
   }
-
-  // No filter: show all divisions
   return rawPerDivisionData.value
 })
 
 const filteredDonutSeries = computed(() => {
   const inTotal = filteredBarGraphData.value.reduce((sum, entry) => sum + entry.in_office, 0)
   const outTotal = filteredBarGraphData.value.reduce((sum, entry) => sum + entry.out_of_office, 0)
-
   return [inTotal, outTotal]
 })
 
 const barCategories = computed(() =>
-  filteredBarGraphData.value.map((entry) => {
-    if ('section_name' in entry && entry.section_name) {
-      return `${entry.section_name}`
-    }
-    return `${entry.division_name}`
-  })
+  filteredBarGraphData.value.map((entry) =>
+    'section_name' in entry && entry.section_name ? entry.section_name : entry.division_name
+  )
 )
 
 const barSeries = computed(() => [
@@ -186,56 +193,19 @@ const barSeries = computed(() => [
   },
 ])
 
-const donutValueFormatter = (_: number, opts: DonutFormatterOptions) => {
-  return String(opts.w.config.series[opts.seriesIndex])
-}
+const donutValueFormatter = (_: number, opts: DonutFormatterOptions) => String(opts.w.config.series[opts.seriesIndex])
 
-const wbDonutChartLabels = ref(['IN', 'OUT'])
-const graphColors = ref(['#46A01F', '#CC0000'])
 const { selectedTheme } = useThemeConfig()
 const chartsInDarkMode = ref(selectedTheme.value?.value === 'dark')
 
 watch(
   () => selectedTheme.value,
-  (theme) => {
-    chartsInDarkMode.value = theme?.value === 'dark'
-  }
+  (theme) => (chartsInDarkMode.value = theme?.value === 'dark')
 )
 
-/* -------------------------------------------------------------------------- */
-/*                              Handling Filters                              */
-/* -------------------------------------------------------------------------- */
-const selectedDivision = ref<WbAutoCompleteOption | null>(null)
-const selectedSectionUnit = ref<WbAutoCompleteOption | null>(null)
-
-const selectedDivisionLabel = ref<string | null>(null)
-const selectedSectionLabel = ref<string | null>(null)
-
-const handleFilterWarmBodies = async () => {
-  warmBodiesIsLoading.value = true
-  searchSubmitted.value = true
-
-  selectedDivisionLabel.value = selectedDivision.value?.label ?? null
-  selectedSectionLabel.value = selectedSectionUnit.value?.label ?? null
-
-  if (!selectedDivision.value && !selectedSectionUnit.value) {
-    const response = await warmBodiesStore.fetchTimeLogsForToday()
-    if (response.success && response.pagination) {
-      pagination.value = response.pagination
-    }
-    warmBodiesIsLoading.value = false
-    return
-  }
-  const response = await warmBodiesStore.fetchTimeLogsForToday(paginationLimit, 1, payload.division, payload.section)
-  if (response.success && response.pagination) {
-    pagination.value = response.pagination
-    searchQuery.value = null
-  }
-
-  warmBodiesIsLoading.value = false
-  showModal.value = false
-}
+const flatViewTimeLogs = computed(() => warmBodiesStore.viewTimeLogs.flat())
 </script>
+
 <template>
   <div class="flex h-full w-full flex-col">
     <template v-if="!warmBodiesIsLoading || isSearching">
@@ -375,11 +345,10 @@ const handleFilterWarmBodies = async () => {
                 v-if="pagination && pagination.total > 0"
                 :rows="pagination.per_page"
                 :total-records="pagination.total"
+                :first="(pagination.current_page - 1) * pagination.per_page"
                 template="CurrentPageReport FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink"
                 currentPageReportTemplate="Showing {first} to {last} of {totalRecords}"
-                @page="(event: PageState) => handlePaginationPageChange(event)"
-                class="text-s md:text-sm"
-                :pt="{ pageButton: {} }"
+                @page="handlePaginationPageChange"
               />
             </div>
           </div>
@@ -428,7 +397,6 @@ const handleFilterWarmBodies = async () => {
             },
           }"
         >
-          <!-- Header -->
           <template #header>
             <div class="flex w-full items-center justify-between p-4 pb-0">
               <h1 class="text-xl font-semibold text-surface-600 dark:text-primary-100">
@@ -437,7 +405,6 @@ const handleFilterWarmBodies = async () => {
               </h1>
             </div>
           </template>
-          <!-- Scrollable Content (space reserved for footer height) -->
           <div class="flex-1 px-4 pb-24">
             <h2 class="mb-2 mt-4 text-lg font-semibold text-surface-500 dark:text-primary-100">Filters</h2>
             <div class="mb-4">
@@ -488,7 +455,6 @@ const handleFilterWarmBodies = async () => {
               </WbAutoComplete>
             </div>
           </div>
-          <!-- Fixed Footer (inside dialog container) -->
           <div
             class="absolute bottom-0 left-0 right-0 border-t border-surface-300 bg-surface-0 px-4 py-3 dark:border-surface-700 dark:bg-surface-900"
           >
@@ -522,13 +488,11 @@ const handleFilterWarmBodies = async () => {
     </template>
     <template v-else-if="warmBodiesIsLoading && !isSearching">
       <div class="bg-surface-2 h-full w-full animate-pulse rounded-md p-6">
-        <!-- --------------------------- Title and Subtitle Skeleton --------------------------- -->
         <div class="flex flex-col md:ml-4 md:mt-2">
           <div class="mb-2 h-8 w-1/3 rounded-full bg-surface-300"></div>
           <div class="h-6 w-1/4 rounded-full bg-surface-300"></div>
         </div>
 
-        <!-- ----------------------------- Graphs Skeleton ---------------------------- -->
         <div class="mb-10 mt-8 grid grid-cols-1 gap-4 md:grid-cols-2">
           <div class="flex h-[40vh] max-h-[450px] min-h-[300px] w-full flex-col rounded-lg">
             <div class="flex flex-grow flex-col gap-6 bg-surface-300 md:flex-row md:gap-10"></div>
@@ -539,7 +503,6 @@ const handleFilterWarmBodies = async () => {
           </div>
         </div>
 
-        <!-- ----------------------------- Search Bar Skeleton ---------------------------- -->
         <div class="mt-6 w-1/2">
           <div class="flex w-full items-center gap-4">
             <div class="h-8 flex-grow rounded bg-surface-300"></div>
@@ -548,7 +511,6 @@ const handleFilterWarmBodies = async () => {
           </div>
         </div>
 
-        <!-- ----------------------------- Table Skeleton ---------------------------- -->
         <table class="mt-4 w-full">
           <thead class="bg-surface-0">
             <tr class="border-[1px] border-surface-300">
