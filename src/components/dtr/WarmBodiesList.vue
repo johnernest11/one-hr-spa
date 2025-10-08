@@ -180,9 +180,10 @@ const handleSearchTimeLogs = async () => {
                 :total-records="pagination.total"
                 template="CurrentPageReport FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink"
                 currentPageReportTemplate="Showing {first} to {last} of {totalRecords}"
-                @page="(event: PageState) => handlePaginationPageChange(event)"
                 class="text-s md:text-sm"
                 :pt="{ pageButton: {} }"
+                :first="(pagination.current_page - 1) * pagination.per_page"
+                @page="handlePaginationPageChange"
               />
             </div>
           </div>

@@ -221,14 +221,28 @@ _________________________________________________________________ */
     return responseBody
   }
 
-  const searchTimeLogs = async (query: string, is_my_profile: boolean, date: string | null, limit: number = 5) => {
-    let uri = `/employees/daily-time-records/time-logs/search?limit=${limit}&`
+  const searchTimeLogs = async (
+    query: string,
+    is_my_profile: boolean,
+    date: string | null,
+    limit: number = 5,
+    page: number = 1 // 1. Added page parameter
+  ) => {
+    // 2. Included page in the URI
+    let uri = `/employees/daily-time-records/time-logs/search?limit=${limit}&page=${page}&`
+
     if (query && is_my_profile) uri += `query=${query}&is_my_profile=${+is_my_profile}&`
     if (date) uri += `date=${date}`
+
     const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
     const responseBody: ApiResponseBody = data.value
+
     if (responseBody.success) {
       viewTimeLogs.value = []
+      // NOTE: search results usually return an array of items, but your current implementation
+      // unwraps the data and unshifts a single item. If the API returns paginated data (an array),
+      // the unshift should be changed to a direct assignment to 'viewTimeLogs.value'.
+      // For now, I'm keeping the original logic, assuming the API returns a single object containing the list.
       viewTimeLogs.value.unshift(responseBody.data as ViewTimeLogsResponse)
       console.log(viewTimeLogs.value)
     }
