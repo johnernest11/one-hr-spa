@@ -33,7 +33,6 @@ const payload = reactive<ViewWarmBodiesPayload>({
   section: null,
 })
 
-/** ✅ FIXED — Safely assign typed API response */
 const loadWarmBodies = async (page = 1) => {
   warmBodiesIsLoading.value = true
   try {
@@ -64,14 +63,12 @@ const loadWarmBodies = async (page = 1) => {
   }
 }
 
-/** Pagination handler */
 const handlePaginationPageChange = async (event: PageState) => {
   const nextPage = event.page + 1
   console.log('Changing to page:', nextPage)
   await loadWarmBodies(nextPage)
 }
 
-/** Search logic */
 const searchQuery = ref<string | null>(null)
 const searchSubmitted = ref(false)
 const isSearching = ref(false)
@@ -102,7 +99,6 @@ const handleSearchTimeLogs = async () => {
   }
 }
 
-/** Filter logic */
 const selectedDivision = ref<{ label: string; value: number } | null>(null)
 const selectedSectionUnit = ref<{ label: string; value: number } | null>(null)
 const selectedDivisionLabel = ref<string | null>(null)
@@ -126,7 +122,6 @@ const handleFilterWarmBodies = async () => {
   }
 }
 
-/** Graphs & Chart Data */
 const inCount = ref(0)
 const outCount = ref(0)
 const rawPerDivisionData = ref<CountWarmBodiesResponse['per_division']>([])
@@ -165,21 +160,21 @@ const filteredDonutSeries = computed(() => {
   return [inTotal, outTotal]
 })
 
-const barCategories = computed(() =>
-  filteredBarGraphData.value.map((entry) =>
-    'section_name' in entry && entry.section_name ? entry.section_name : entry.division_name
-  )
-)
+const barCategories = computed(() => {
+  return filteredBarGraphData.value.map((entry) => {
+    const section = (entry as { section_name?: string; division_name?: string }).section_name
+    const division = (entry as { section_name?: string; division_name?: string }).division_name
+    return section || division || ''
+  }) as string[]
+})
 
 const barSeries = computed(() => [
   { name: 'In Office', data: filteredBarGraphData.value.map((e) => e.in_office) },
   { name: 'Out of Office', data: filteredBarGraphData.value.map((e) => e.out_of_office) },
 ])
 
-/** Chart formatter */
 const donutValueFormatter = (_: number, opts: DonutFormatterOptions) => String(opts.w.config.series[opts.seriesIndex])
 
-/** Theme Watcher */
 const { selectedTheme } = useThemeConfig()
 const chartsInDarkMode = ref(selectedTheme.value?.value === 'dark')
 
@@ -193,10 +188,8 @@ onMounted(async () => {
   await handleGraphs()
 })
 
-/** Flatten data for display */
 const flatViewTimeLogs = computed(() => warmBodiesStore.viewTimeLogs.flat())
 
-/** ✅ Define missing variables used in template */
 const wbDonutChartLabels = ['In Office', 'Out of Office']
 const graphColors = ['#22C55E', '#EF4444']
 const DateToday = new Date().toLocaleDateString()
