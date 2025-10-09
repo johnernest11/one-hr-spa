@@ -46,10 +46,8 @@ const selectedOffice = ref<WbAutoCompleteOption | null | undefined>(null)
 
 const recentLogs = ref<Log[]>([])
 
-// State for locking the scanner during the API call
 const isScanLocked = ref(false)
 
-// CRITICAL NEW STATE: Controls the momentary pause flicker to reset the scanner cache
 const isScannerResetting = ref(false)
 
 function paintOutline(detectedCodes: DetectedBarcode[], ctx: CanvasRenderingContext2D) {
@@ -490,9 +488,14 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
 
             <div class="mb-4 flex justify-center">
               <img
-                :src="dswdLogoMark || dailyLogsStore.currentScannedEmployee?.photo_url"
+                :src="
+                  dailyLogsStore.currentScannedEmployee?.photo_url ||
+                  dailyLogsStore.currentScannedEmployee?.profile_picture_url ||
+                  dswdLogoMark
+                "
                 alt="Employee Profile Photo"
                 class="aspect-[2270/2479] h-auto max-w-full rounded-lg shadow"
+                @error="(e) => (e.target.src = dswdLogoMark)"
               />
             </div>
 
