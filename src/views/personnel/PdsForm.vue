@@ -11,9 +11,9 @@ import C4Form from '@/components/pds/C4Form.vue'
 import { lcFirst } from '@/utils/helpers.ts'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { TabGroup, TabList, Tab, TabPanels, TabPanel } from '@headlessui/vue'
-import { TransitionRoot } from '@headlessui/vue'
 import Button from 'primevue/button'
-
+import { useToast } from 'primevue/usetoast'
+const toast = useToast()
 const route = useRoute()
 const isMyPds = route.name === 'my-pds'
 const isEditMode = computed(() => !!route.params.id)
@@ -40,43 +40,73 @@ onBeforeMount(async () => {
 const handleSubmit = async () => {
   isSubmitting.value = true
 
-  try {
-    const resultC1 = await c1FormRef.value?.handleSaveC1Form?.()
-    if (resultC1?.valid === false) return
+  // Gather all tab save promises
+  const promises = [
+    c1FormRef.value?.handleSaveC1Form?.(),
+    c2FormRef.value?.handleSaveC2Form?.(),
+    c3FormRef.value?.handleSaveC3Form?.(),
+    c4FormRef.value?.handleSaveC4Form?.(),
+  ].filter(Boolean)
 
-    const resultC2 = await c2FormRef.value?.handleSaveC2Form?.()
-    if (resultC2?.valid === false) return
+  // Run all in parallel
+  const results = await Promise.all(promises)
 
-    const resultC3 = await c3FormRef.value?.handleSaveC3Form?.()
-    if (resultC3?.valid === false) return
+  // Check for any failed validations
+  const failedTabs = results.filter((r) => r?.valid === false).flatMap((r) => r.errorTabs || [])
 
-    const resultC4 = await c4FormRef.value?.handleSaveC4Form?.()
-    if (resultC4?.valid === false) return
+  if (failedTabs.length > 0) {
+    // Stop: at least one tab failed
 
-    if (route.query.mode !== 'via-pds-importation') {
-      window.location.reload()
-    }
-  } finally {
     isSubmitting.value = false
+    return
   }
+
+  // All tabs passed
+  toast.add({
+    severity: 'success',
+    summary: 'PDS Update',
+    detail: 'All forms have been successfully updated.',
+    life: 1500,
+  })
+
+  // Optional reload
+  if (route.query.mode !== 'via-pds-importation') {
+    window.location.reload()
+  }
+
+  isSubmitting.value = false
 }
 
 const handleUpdate = async () => {
   isSubmitting.value = true
-
   try {
-    const promises = [
-      c1FormRef.value?.updateC1Form?.(),
-      c2FormRef.value?.updateC2Form?.(),
-      c3FormRef.value?.updateC3Form?.(),
-      c4FormRef.value?.updateC4Form?.(),
-    ].filter(Boolean)
+    const results = await Promise.all(
+      [
+        c1FormRef.value?.updateC1Form?.(),
+        c2FormRef.value?.updateC2Form?.(),
+        c3FormRef.value?.updateC3Form?.(),
+        c4FormRef.value?.updateC4Form?.(),
+      ].filter(Boolean)
+    )
 
-    const results = await Promise.all(promises)
+    const failedTabs = results.filter((r) => r?.valid === false).flatMap((r) => r.errorTabs || [])
 
-    for (const result of results) {
-      if (result?.valid === false) return
+    if (failedTabs.length > 0) {
+      console.warn('Validation failed for tabs:', failedTabs)
+      toast.add({
+        severity: 'error',
+        summary: 'Validation Error',
+        detail: 'Please check the following tabs',
+        life: 10000,
+      })
+      return
     }
+    toast.add({
+      severity: 'success',
+      summary: 'PDS Update',
+      detail: 'All forms have been successfully updated.',
+      life: 1500,
+    })
   } finally {
     isSubmitting.value = false
   }
@@ -121,7 +151,7 @@ const handleUpdate = async () => {
 
             <!-- Show Update button only if id exists -->
             <Button
-              v-if="!isMyPds || isEditMode"
+              v-if="!isMyPds && isEditMode"
               label="Update PDS"
               @click.prevent="handleUpdate"
               :loading="isSubmitting"
@@ -194,61 +224,17 @@ const handleUpdate = async () => {
             </TabList>
 
             <TabPanels>
-              <TabPanel>
-                <TransitionRoot
-                  appear
-                  :show="true"
-                  enter="transition-all ease-in-out duration-500"
-                  enterFrom="opacity-0 translate-y-6"
-                  enterTo="opacity-100 translate-y-0"
-                  leave="transition-all ease-in-out duration-800"
-                  leaveFrom="opacity-100"
-                  leaveTo="opacity-0"
-                >
-                  <C1Form ref="c1FormRef" :activeSubTab="0" :key="route.fullPath" />
-                </TransitionRoot>
+              <TabPanel :static="true" v-slot="{ selected }">
+                <div v-show="selected"><C1Form ref="c1FormRef" /></div>
               </TabPanel>
-              <TabPanel>
-                <TransitionRoot
-                  appear
-                  :show="true"
-                  enter="transition-all ease-in-out duration-500"
-                  enterFrom="opacity-0 translate-y-6"
-                  enterTo="opacity-100 translate-y-0"
-                  leave="transition-all ease-in-out duration-800"
-                  leaveFrom="opacity-100"
-                  leaveTo="opacity-0"
-                >
-                  <C2Form ref="c2FormRef" :activeSubTab="0" :key="route.fullPath" />
-                </TransitionRoot>
+              <TabPanel :static="true" v-slot="{ selected }">
+                <div v-show="selected"><C2Form ref="c2FormRef" /></div>
               </TabPanel>
-              <TabPanel>
-                <TransitionRoot
-                  appear
-                  :show="true"
-                  enter="transition-all ease-in-out duration-500"
-                  enterFrom="opacity-0 translate-y-6"
-                  enterTo="opacity-100 translate-y-0"
-                  leave="transition-all ease-in-out duration-800"
-                  leaveFrom="opacity-100"
-                  leaveTo="opacity-0"
-                >
-                  <C3Form ref="c3FormRef" :activeSubTab="0" :key="route.fullPath" />
-                </TransitionRoot>
+              <TabPanel :static="true" v-slot="{ selected }">
+                <div v-show="selected"><C3Form ref="c3FormRef" /></div>
               </TabPanel>
-              <TabPanel>
-                <TransitionRoot
-                  appear
-                  :show="true"
-                  enter="transition-all ease-in-out duration-500"
-                  enterFrom="opacity-0 translate-y-6"
-                  enterTo="opacity-100 translate-y-0"
-                  leave="transition-all ease-in-out duration-800"
-                  leaveFrom="opacity-100"
-                  leaveTo="opacity-0"
-                >
-                  <C4Form ref="c4FormRef" :activeSubTab="0" :key="route.fullPath" />
-                </TransitionRoot>
+              <TabPanel :static="true" v-slot="{ selected }">
+                <div v-show="selected"><C4Form ref="c4FormRef" /></div>
               </TabPanel>
             </TabPanels>
           </TabGroup>

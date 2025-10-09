@@ -105,6 +105,7 @@ const updatePayloadFromReport = (payRoll: PayrollResponse | null) => {
           tin: '',
           citizenship: '',
           citizenship_acquisition: '',
+          country_id: null,
           individual_address: null,
           individual_contact_info: null,
           individual_family: null,

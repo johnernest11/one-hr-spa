@@ -54,6 +54,7 @@ export type PersonalDataSheetPayload = {
     citizenship: string | null
     citizenship_country: string | null
     citizenship_acquisition: string | null
+    country_id: number | null
   }
   contact_info: IndividualContactInfo
   individual_contact_info: IndividualContactInfo[]
@@ -156,6 +157,7 @@ export const usePdsStore = defineStore('pds', () => {
       citizenship: individual?.citizenship ?? null,
       citizenship_country: null,
       citizenship_acquisition: individual?.citizenship_acquisition ?? null,
+      country_id: individual?.country_id ?? null,
     },
 
     contact_info: {
