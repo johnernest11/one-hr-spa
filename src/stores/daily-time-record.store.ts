@@ -78,9 +78,6 @@ export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => 
     dtr: [],
   })
 
-  /** _____________________________________________________________
-                    Daily Time Records
-_________________________________________________________________ */
   const fetchDailyTimeRecordsByMonth = async (date: Date, limit = 31) => {
     const individual = auth.authenticatedUser.user_profile?.individual_basic_detail as PersonnelResponse
     if (!individual) {
@@ -109,7 +106,6 @@ _________________________________________________________________ */
     return responseBody
   }
 
-  // Fetch DTR for a specific employee by ID
   const fetchDailyTimeRecordsByEmployee = async (employeeId: string | number) => {
     if (!employeeId) throw new Error('Employee ID is required.')
     const uri = `/employees/${employeeId}/daily-time-records/view-dtr?start_date=1900-01-01&end_date=2100-12-31&sort=asc`
@@ -184,10 +180,6 @@ _________________________________________________________________ */
     return { data, fileNameHeader }
   }
 
-  /** _____________________________________________________________
-                     Time Logs
-_________________________________________________________________ */
-
   const fetchTimeLogsForToday = async (
     limit: number = 5,
     page: number = 1,
@@ -221,12 +213,21 @@ _________________________________________________________________ */
     return responseBody
   }
 
-  const searchTimeLogs = async (query: string, is_my_profile: boolean, date: string | null, limit: number = 5) => {
-    let uri = `/employees/daily-time-records/time-logs/search?limit=${limit}&`
+  const searchTimeLogs = async (
+    query: string,
+    is_my_profile: boolean,
+    date: string | null,
+    limit: number = 5,
+    page: number = 1
+  ) => {
+    let uri = `/employees/daily-time-records/time-logs/search?limit=${limit}&page=${page}&`
+
     if (query && is_my_profile) uri += `query=${query}&is_my_profile=${+is_my_profile}&`
     if (date) uri += `date=${date}`
+
     const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
     const responseBody: ApiResponseBody = data.value
+
     if (responseBody.success) {
       viewTimeLogs.value = []
       viewTimeLogs.value.unshift(responseBody.data as ViewTimeLogsResponse)
