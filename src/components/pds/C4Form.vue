@@ -276,7 +276,23 @@ onMounted(async () => {
 
     if (response && response.success) {
       console.log('Fetched PDS data:', response.data)
-      pdsStore.updatePdsFromPersonnel(response.data as PersonnelResponse)
+      const data = response.data as PersonnelResponse
+      pdsStore.updatePdsFromPersonnel(data)
+
+      /** --------------------
+       *  Questions & Reference
+       * ------------------- */
+      payload.individual_reference = Array.isArray(data.individual_reference)
+        ? data.individual_reference
+        : data.individual_reference
+          ? [data.individual_reference]
+          : []
+
+      payload.individual_question = Array.isArray(data.individual_question)
+        ? data.individual_question
+        : data.individual_question
+          ? [data.individual_question]
+          : []
     } else {
       console.warn('Failed to fetch PDS by ID or response unsuccessful.')
     }

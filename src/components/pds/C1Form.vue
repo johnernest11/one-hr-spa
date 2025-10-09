@@ -109,6 +109,8 @@ onBeforeMount(async () => {
   addressesAreLoading.value = true
   isItemsLoading.value = true
   isSalaryGradeLoading.value = true
+
+  // Load dropdowns and other reference data
   await Promise.allSettled([
     publicStore.fetchRegions(),
     publicStore.fetchProvinces(),
@@ -121,32 +123,9 @@ onBeforeMount(async () => {
     sgStore.fetchSalaryGrade(),
   ])
 
+  addressesAreLoading.value = false
   isItemsLoading.value = false
   isSalaryGradeLoading.value = false
-  addressesAreLoading.value = false
-  const individual = authStore.authenticatedUser?.user_profile?.individual_basic_detail
-
-  if (individual) {
-    payload.individual.first_name = payload.individual.first_name ?? individual.first_name
-    payload.individual.last_name = payload.individual.last_name ?? individual.last_name
-    payload.individual.middle_name = payload.individual.middle_name ?? individual.middle_name
-    payload.individual.ext_name = payload.individual.ext_name ?? individual.ext_name
-    payload.individual.birthday = payload.individual.birthday ?? individual.birthday
-    payload.individual.sex = payload.individual.sex ?? (individual.sex as 'male' | 'female')
-    payload.individual.place_of_birth = payload.individual.place_of_birth ?? individual.place_of_birth
-    payload.individual.civil_status =
-      payload.individual.civil_status ?? (individual.civil_status as 'Single' | 'Married' | 'Widowed' | 'Divorced' | 'Separated')
-    payload.individual.height = payload.individual.height ?? individual.height
-    payload.individual.weight = payload.individual.weight ?? individual.weight
-    payload.individual.blood_type = payload.individual.blood_type ?? individual.blood_type
-    payload.individual.gsis_no = payload.individual.gsis_no ?? individual.gsis_no
-    payload.individual.pag_ibig_no = payload.individual.pag_ibig_no ?? individual.pag_ibig_no
-    payload.individual.philhealth_no = payload.individual.philhealth_no ?? individual.philhealth_no
-    payload.individual.sss_no = payload.individual.sss_no ?? individual.sss_no
-    payload.individual.tin = payload.individual.tin ?? individual.tin
-    payload.individual.citizenship = payload.individual.citizenship ?? individual.citizenship
-    payload.individual.citizenship_acquisition = payload.individual.citizenship_acquisition ?? individual.citizenship_acquisition
-  }
 })
 
 onMounted(async () => {
@@ -1331,7 +1310,7 @@ type pdsDetailsFormProps = {
 }
 const props = defineProps<pdsDetailsFormProps>()
 onMounted(async () => {
-  const id = route.params.id as string
+  const id = (route.params.id as string) || authStore.authenticatedUser?.user_profile?.individual_basic_detail_id
   if (id) {
     const response = await pdsStore.fetchPdsById(id)
 
@@ -1400,6 +1379,63 @@ onMounted(async () => {
           ...child,
           _delete: null,
         }))
+
+      /** -----------------------
+       * Contact & Handle Address
+       * ------------------------ */
+      const contactRaw = data.individual_contact_info
+      payload.individual_contact_info = Array.isArray(contactRaw)
+        ? reactive([...contactRaw])
+        : contactRaw
+          ? reactive([contactRaw])
+          : reactive([])
+      const addressRaw = data.individual_address
+
+      if (addressRaw) {
+        // --- Residential ---
+        selectedResidentialRegion.value = addressRaw.residential_region_id
+          ? publicStore.regionOptions.find((r) => r.value === addressRaw.residential_region_id) ?? null
+          : null
+        selectedResidentialProvince.value = addressRaw.residential_province_id
+          ? publicStore.provinceOptions.find((p) => p.value === addressRaw.residential_province_id) ?? null
+          : null
+        selectedResidentialCity.value = addressRaw.residential_citymun_id
+          ? publicStore.cityOptions.find((c) => c.value === addressRaw.residential_citymun_id) ?? null
+          : null
+        selectedResidentialBarangay.value = addressRaw.residential_brgy_id
+          ? publicStore.barangayOptions.find((b) => b.value === addressRaw.residential_brgy_id) ?? null
+          : null
+
+        // --- Permanent ---
+        selectedPermanentRegion.value = addressRaw.permanent_region_id
+          ? publicStore.regionOptions.find((r) => r.value === addressRaw.permanent_region_id) ?? null
+          : null
+        selectedPermanentProvince.value = addressRaw.permanent_province_id
+          ? publicStore.provinceOptions.find((p) => p.value === addressRaw.permanent_province_id) ?? null
+          : null
+        selectedPermanentCity.value = addressRaw.permanent_citymun_id
+          ? publicStore.cityOptions.find((c) => c.value === addressRaw.permanent_citymun_id) ?? null
+          : null
+        selectedPermanentBarangay.value = addressRaw.permanent_brgy_id
+          ? publicStore.barangayOptions.find((b) => b.value === addressRaw.permanent_brgy_id) ?? null
+          : null
+      }
+
+      /** --------------------
+       * Handle Voluntary Work
+       * ------------------- */
+      const voluntaryRaw = data.individual_voluntary_work
+      payload.individual_voluntary_work = Array.isArray(voluntaryRaw)
+        ? reactive([...voluntaryRaw])
+        : voluntaryRaw
+          ? reactive([voluntaryRaw])
+          : reactive([])
+
+      /** --------------------
+       * Handle L&D
+       * ------------------- */
+      const lndRaw = data.individual_lnd
+      payload.individual_lnd = Array.isArray(lndRaw) ? reactive([...lndRaw]) : lndRaw ? reactive([lndRaw]) : reactive([])
     } else {
       console.warn('Failed to fetch PDS by ID or response unsuccessful.')
     }

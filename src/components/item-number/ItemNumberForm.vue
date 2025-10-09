@@ -168,6 +168,7 @@ const generateItemNumber = (employment_status: string, position: string | number
           ? `FO1-JO-${pos}-${paddedNumber}`
           : ''
 }
+const isGeneratingNumber = ref(false)
 
 watch(
   [() => payload.employment_status, () => selectedPosition.value],
@@ -192,9 +193,11 @@ watch(
       return
     }
 
+    isGeneratingNumber.value = true
     await itemNumberStore.fetchLastNumber(newStatus)
     isItemNumberManual.value = false
     payload.number = generateItemNumber(newStatus, positionCode.value)
+    isGeneratingNumber.value = false
   }
 )
 
@@ -389,79 +392,6 @@ const updateButtonSubmission = async () => {
           </div>
           <div class="flex flex-col gap-4 pb-6 md:flex-row">
             <div class="flex w-full flex-col">
-              <WbInputText
-                v-model="payload.number"
-                label="Item Number"
-                label-class="text-sm text-surface-600"
-                :disabled="!isItemNumberManual"
-                :invalid="validator.number.$invalid || manualInvalidFields.number"
-                :invalid-text="validator.number.$errors[0]?.$message"
-                @blur="validator.number.$touch"
-                v-tooltip.bottom="!payload.employment_status ? 'Please select Employment Status and Position first' : ''"
-                required
-              />
-            </div>
-            <div class="flex w-full flex-col">
-              <WbCalendar
-                v-model="payload.date_filled_up"
-                label="Date Filled Up  "
-                label-class=" text-sm text-surface-600"
-                dateFormat="MM dd, yy"
-                :maxDate="new Date()"
-                :invalid="validator.date_filled_up.$invalid"
-                :invalid-text="validator.date_filled_up.$errors[0]?.$message"
-                @blur="validator.date_filled_up.$touch"
-              >
-              </WbCalendar>
-            </div>
-          </div>
-          <div class="flex flex-col gap-4 pb-6 md:flex-row">
-            <div class="flex w-full flex-col">
-              <WbCalendar
-                v-model="payload.date_of_creation"
-                label="Date of Creation"
-                label-class="text-sm text-surface-600"
-                dateFormat="MM dd, yy"
-                :maxDate="new Date()"
-                :invalid="validator.date_of_creation.$invalid"
-                :invalid-text="validator.date_of_creation.$errors[0]?.$message"
-                @blur="validator.date_of_creation.$touch"
-                required
-              >
-              </WbCalendar>
-            </div>
-            <div class="flex w-full flex-col">
-              <WbAutoComplete
-                :useApiFilter="true"
-                :apiEndpoint="'/libraries/fund-sources/search'"
-                :suggestions="publicFundSourceStore.fundSourceOptions"
-                :loading="publicFundSourceStore.fundSourceOptionsIsLoading"
-                apiOptionLabel="name"
-                label="Funding"
-                placeholder="Type the Funding"
-                v-model="selectedFundSource"
-                :id="getId('input-funding-sources')"
-                optionLabel="label"
-                optionValue="value"
-                :forceSelection="true"
-                required
-                @on-true-value-computed="
-                  (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
-                    useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'fund_source_id'))
-                "
-                label-class="text-sm text-surface-600 dark:lg:text-surface-200"
-                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                :invalid="validator.fund_source_id.$invalid"
-                :invalid-text="validator.fund_source_id.$errors[0]?.$message"
-                @blur="validator.fund_source_id.$touch"
-                @focusin="validator.fund_source_id.$dirty = false"
-              >
-              </WbAutoComplete>
-            </div>
-          </div>
-          <div class="flex flex-col gap-4 pb-6 md:flex-row">
-            <div class="flex w-full flex-col">
               <WbDropdown
                 v-model="payload.employment_status"
                 :options="employementStatusOptions"
@@ -506,6 +436,79 @@ const updateButtonSubmission = async () => {
               </WbAutoComplete>
             </div>
           </div>
+          <div class="flex flex-col gap-4 pb-6 md:flex-row">
+            <div class="flex w-full flex-col">
+              <WbCalendar
+                v-model="payload.date_filled_up"
+                label="Date Filled Up  "
+                label-class=" text-sm text-surface-600"
+                dateFormat="MM dd, yy"
+                :maxDate="new Date()"
+                :invalid="validator.date_filled_up.$invalid"
+                :invalid-text="validator.date_filled_up.$errors[0]?.$message"
+                @blur="validator.date_filled_up.$touch"
+              >
+              </WbCalendar>
+            </div>
+            <div class="flex w-full flex-col">
+              <WbCalendar
+                v-model="payload.date_of_creation"
+                label="Date of Creation"
+                label-class="text-sm text-surface-600"
+                dateFormat="MM dd, yy"
+                :maxDate="new Date()"
+                :invalid="validator.date_of_creation.$invalid"
+                :invalid-text="validator.date_of_creation.$errors[0]?.$message"
+                @blur="validator.date_of_creation.$touch"
+                required
+              >
+              </WbCalendar>
+            </div>
+          </div>
+          <div class="flex flex-col gap-4 pb-6 md:flex-row">
+            <div class="flex w-full flex-col">
+              <WbAutoComplete
+                :useApiFilter="true"
+                :apiEndpoint="'/libraries/fund-sources/search'"
+                :suggestions="publicFundSourceStore.fundSourceOptions"
+                :loading="publicFundSourceStore.fundSourceOptionsIsLoading"
+                apiOptionLabel="name"
+                label="Funding"
+                placeholder="Type the Funding"
+                v-model="selectedFundSource"
+                :id="getId('input-funding-sources')"
+                optionLabel="label"
+                optionValue="value"
+                :forceSelection="true"
+                required
+                @on-true-value-computed="
+                  (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
+                    useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'fund_source_id'))
+                "
+                label-class="text-sm text-surface-600 dark:lg:text-surface-200"
+                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                :invalid="validator.fund_source_id.$invalid"
+                :invalid-text="validator.fund_source_id.$errors[0]?.$message"
+                @blur="validator.fund_source_id.$touch"
+                @focusin="validator.fund_source_id.$dirty = false"
+              >
+              </WbAutoComplete>
+            </div>
+            <div class="flex w-full flex-col">
+              <WbInputText
+                v-model="payload.number"
+                label="Item Number"
+                label-class="text-sm text-surface-600"
+                :disabled="!isItemNumberManual"
+                :invalid="validator.number.$invalid || manualInvalidFields.number"
+                :invalid-text="validator.number.$errors[0]?.$message"
+                @blur="validator.number.$touch"
+                v-tooltip.bottom="!payload.employment_status ? 'Please select Employment Status and Position first' : ''"
+                required
+              />
+            </div>
+          </div>
 
           <!-- Other content -->
           <div class="mt-2 flex justify-end gap-2">
@@ -524,7 +527,7 @@ const updateButtonSubmission = async () => {
               :label="buttonLabel"
               @click="handleButtonClick"
               :loading="formIsSubmitting"
-              :disabled="formIsSubmitting"
+              :disabled="formIsSubmitting || isGeneratingNumber"
               size="large"
               class="dark:text-secondary-100 border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
               text
