@@ -283,9 +283,7 @@ const saveButtonSubmission = async () => {
     showErrorAlert.value = true
     errorMessage.value = result.message
     errorDetails.value = result.errors
-
     const targetMessage = 'The number has already been taken.'
-
     const fieldWithDuplicateError = (response.errors || []).find(
       (errorObj) => Array.isArray(errorObj.messages) && errorObj.messages.includes(targetMessage)
     )
