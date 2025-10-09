@@ -392,9 +392,10 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
                 <tr v-for="entry in latestWarmBodyLogs" :key="entry.id">
                   <td class="p-2">
                     <img
-                      :src="entry.captured_image"
-                      alt="Employee Captured Photo"
+                      :src="scannedEmployee?.captureimage || dswdLogoMark"
+                      alt="Employee Profile Photo"
                       class="aspect-[2270/2479] h-auto max-w-full rounded-lg shadow"
+                      @error="(e) => ((e.target as HTMLImageElement).src = dswdLogoMark)"
                     />
                   </td>
 
