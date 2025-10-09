@@ -365,13 +365,51 @@ type pdsDetailsFormProps = {
 }
 const props = defineProps<pdsDetailsFormProps>()
 onMounted(async () => {
-  const id = route.params.id as string
+  const id = (route.params.id as string) || authStore.authenticatedUser?.user_profile?.individual_basic_detail_id
   if (id) {
     const response = await pdsStore.fetchPdsById(id)
 
     if (response && response.success) {
       console.log('Fetched PDS data:', response.data)
-      pdsStore.updatePdsFromPersonnel(response.data as PersonnelResponse)
+      const data = response.data as PersonnelResponse
+      pdsStore.updatePdsFromPersonnel(data)
+
+      /** ------------------
+       * Handle Voluntary Work
+       * --------------------- */
+      const voluntaryRaw = data.individual_voluntary_work
+      payload.individual_voluntary_work = Array.isArray(voluntaryRaw)
+        ? reactive([...voluntaryRaw])
+        : voluntaryRaw
+          ? reactive([voluntaryRaw])
+          : reactive([])
+
+      /** ------------------
+       * Handle L&D
+       * ------------------- */
+      const lndRaw = data.individual_lnd
+      payload.individual_lnd = Array.isArray(lndRaw) ? reactive([...lndRaw]) : lndRaw ? reactive([lndRaw]) : reactive([])
+
+      /** ----------------------------------------
+       * Handle Skills / Recognition / Membership
+       * ----------------------------------------- */
+      payload.individual_skills_hobby = Array.isArray(data.individual_skills_hobby)
+        ? data.individual_skills_hobby
+        : data.individual_skills_hobby
+          ? [data.individual_skills_hobby]
+          : []
+
+      payload.individual_recognition = Array.isArray(data.individual_recognition)
+        ? data.individual_recognition
+        : data.individual_recognition
+          ? [data.individual_recognition]
+          : []
+
+      payload.individual_membership = Array.isArray(data.individual_membership)
+        ? data.individual_membership
+        : data.individual_membership
+          ? [data.individual_membership]
+          : []
     } else {
       console.warn('Failed to fetch PDS by ID or response unsuccessful.')
     }

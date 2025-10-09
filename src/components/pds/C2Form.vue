@@ -410,13 +410,34 @@ type pdsDetailsFormProps = {
 }
 const props = defineProps<pdsDetailsFormProps>()
 onMounted(async () => {
-  const id = route.params.id as string
+  const id = (route.params.id as string) || authStore.authenticatedUser?.user_profile?.individual_basic_detail_id
   if (id) {
     const response = await pdsStore.fetchPdsById(id)
 
     if (response && response.success) {
       console.log('Fetched PDS data:', response.data)
-      pdsStore.updatePdsFromPersonnel(response.data as PersonnelResponse)
+      const data = response.data as PersonnelResponse
+      pdsStore.updatePdsFromPersonnel(data)
+
+      /** --------------------
+       * Handle Eligibility
+       * ------------------- */
+      const eligibilityRaw = data.individual_eligibility
+      payload.individual_eligibility = Array.isArray(eligibilityRaw)
+        ? reactive([...eligibilityRaw])
+        : eligibilityRaw
+          ? reactive([eligibilityRaw])
+          : reactive([])
+
+      /** --------------------
+       * Handle Work Experience
+       * ------------------- */
+      const workRaw = data.individual_work_experience
+      payload.individual_work_experience = Array.isArray(workRaw)
+        ? reactive([...workRaw])
+        : workRaw
+          ? reactive([workRaw])
+          : reactive([])
     } else {
       console.warn('Failed to fetch PDS by ID or response unsuccessful.')
     }
