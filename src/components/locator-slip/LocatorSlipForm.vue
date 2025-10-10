@@ -7,6 +7,7 @@ import { useRoute } from 'vue-router'
 import Button from 'primevue/button'
 import RadioButton from 'primevue/radiobutton'
 import Card from 'primevue/card'
+import { useToast } from 'primevue/usetoast'
 import { useLocatorSlipStore, LocatorSlipPayload } from '@/stores/locator-slip.store'
 import { formatDateSafe, isSameOrAfterDate } from '@/utils/helpers.ts'
 import WbInputText from '@/components/webkit/WbInputText.vue'
@@ -14,11 +15,14 @@ import WbCalendar from '../webkit/WbCalendar.vue'
 
 const locatorSlipStore = useLocatorSlipStore()
 const route = useRoute()
+const toast = useToast()
 
+const isHumanResourceActive = computed(() => route.name === 'locator-slips/editor')
 const addLoggerBtn = ref(true)
 const isLoading = ref(true)
 const formIsSubmitting = ref(false)
 const isFormTypeA = ref(false)
+const defaultApproval = ref('personal_time')
 
 const validateDateNow = (value: string) => {
   if (!value) return false
@@ -35,7 +39,7 @@ const validateMonth = (value: string) => {
 const today = new Date()
 const currentMonth = today.getMonth()
 const currentYear = today.getFullYear()
-const lastDayOfCurrentMonth = new Date(currentYear, currentMonth + 1, 0)
+const lastDayOfCurrentMonth = ref(new Date(currentYear, currentMonth + 1, 0))
 
 onMounted(async () => {
   const id = route.params.id as string
@@ -44,6 +48,16 @@ onMounted(async () => {
     if (response && response.success) {
       const locatorSlipData = response.data
       updatePayloadFromResponse(locatorSlipData as LocatorSlipPayload)
+
+      if (payload.form_type === 'c' && payload.period != null) {
+        if (payload.period === '1st Half') {
+          lastDayOfCurrentMonth.value = new Date(currentYear, currentMonth, 15)
+        }
+      }
+
+      if (payload.form_type === 'a') {
+        defaultApproval.value = 'official_business'
+      }
     }
   }
 
@@ -52,10 +66,10 @@ onMounted(async () => {
 
 const payload = reactive<LocatorSlipPayload>({
   form_type: '',
-  month: '',
+  date: '',
   period: null,
   locator_slip_no: null,
-  ls_logger: [
+  locator_slip_logger: [
     {
       locator_slip_id: null,
       date: '',
@@ -63,8 +77,8 @@ const payload = reactive<LocatorSlipPayload>({
       time_out: null,
       destination: '',
       purpose: '',
-      approve_for: null,
-      duration: null,
+      approved_for: defaultApproval.value,
+      duration: 0,
       remarks: '',
     },
   ],
@@ -72,10 +86,10 @@ const payload = reactive<LocatorSlipPayload>({
 
 const updatePayloadFromResponse = (locatorSlip: LocatorSlipPayload | null) => {
   ;(payload.form_type = locatorSlip?.form_type ?? ''),
-  (payload.month = locatorSlip?.month ?? ''),
+  (payload.date = locatorSlip?.date ?? ''),
   (payload.period = locatorSlip?.period ?? null),
   (payload.locator_slip_no = locatorSlip?.locator_slip_no ?? null),
-  (payload.ls_logger = locatorSlip?.ls_logger ?? [])
+  (payload.locator_slip_logger = locatorSlip?.locator_slip_logger ?? [])
 
   isFormTypeA.value = payload.form_type === 'a' ? true : false
 }
@@ -86,48 +100,50 @@ const globalStringMaxLengthRule = helpers.withMessage(
   `Must not exceed ${globalStringMaxLength} characters`,
   maxLength(globalStringMaxLength)
 )
-const formRules = {
+const formRules = computed(() => ({
   $lazy: true,
-  ls_logger: {
-    $each: helpers.forEach({
-      date: {
-        maxLength: globalStringMaxLengthRule,
-      },
-      destination: {
-        required: helpers.withMessage('Destination is required', required),
-        maxLength: helpers.withMessage('', globalStringMaxLengthRule),
-      },
-      purpose: {
-        required: helpers.withMessage('Purpose is required', required),
-        maxLength: helpers.withMessage('', globalStringMaxLengthRule),
-      },
-      remarks: {
-        maxLength: helpers.withMessage('', globalStringMaxLengthRule),
-      },
-    }),
-  },
-}
+  locator_slip_logger: payload.locator_slip_logger.map(() => ({
+    date: {
+      maxLength: globalStringMaxLengthRule,
+    },
+    destination: {
+      required: helpers.withMessage('Destination is required', required),
+      maxLength: helpers.withMessage('', globalStringMaxLengthRule),
+    },
+    purpose: {
+      required: helpers.withMessage('Purpose is required', required),
+      maxLength: helpers.withMessage('', globalStringMaxLengthRule),
+    },
+    remarks: {
+      maxLength: helpers.withMessage('', globalStringMaxLengthRule),
+    },
+    approved_for: {
+      required: helpers.withMessage('Approval Type is required', required),
+    },
+    duration: {
+      durationFormat: helpers.withMessage(
+        'Invalid format. Please enter valid hours (e.g. 1, 1.5, 0.25).',
+        (value: string | null) => {
+          if (!value) return true
+          return /^\d+(\.\d{1,2})?$/.test(value)
+        }
+      ),
+    },
+  })),
+}))
 
 /** Handle Form Submission */
-const validator = useVuelidate<LocatorSlipPayload>(formRules, payload)
+const validator = useVuelidate<Partial<LocatorSlipPayload>>(formRules, payload)
 
 /* -------------------------------------------------------------------------- */
 /*                             Button Interactions                            */
 /* -------------------------------------------------------------------------- */
 
-const buttonLabel = computed(() => {
-  return route.params.id ? 'Update' : 'Save'
-})
-
 const isButtonVisible = computed(() => true)
 const handleButtonClick = async () => {
   formIsSubmitting.value = true
 
-  if (route.params.id) {
-    await updateButtonSubmission()
-  } else {
-    await saveButtonSubmission()
-  }
+  await saveButtonSubmission()
 
   formIsSubmitting.value = false
 }
@@ -144,37 +160,91 @@ const addLogger = () => {
     time_out: null,
     destination: '',
     purpose: '',
-    approve_for: null,
-    duration: null,
+    approved_for: defaultApproval.value,
+    duration: 0,
     remarks: '',
   }
 
   const newLSLog = { ...defaultLog }
-  payload.ls_logger.push(newLSLog)
-  console.log(validateDateNow(dateNow.toString()))
+  payload.locator_slip_logger.push(newLSLog)
 }
 
 /** Function to remove ls loggers */
 const removeLoggers = (index: number) => {
-  if (index >= 0 && index < payload.ls_logger.length) {
-    payload.ls_logger.splice(index, 1)
+  if (index >= 0 && index < payload.locator_slip_logger.length) {
+    payload.locator_slip_logger.splice(index, 1)
   }
 }
 
+const padToTwoDigits = (num: number) => String(num).padStart(2, '0')
+
 /** Form Submission */
 const saveButtonSubmission = async () => {
-  //@todo Add integration here...
-}
+  validator.value.$touch()
+  const valid = await validator.value.$validate()
 
-/** Handle Updates */
-const updateButtonSubmission = async () => {
-  //@todo Add integration here...
+  if (!valid) {
+    toast.add({
+      severity: 'error',
+      summary: 'Locator Slip not updated.',
+      detail: 'Please see the validation messages.',
+      life: 5000,
+    })
+    return
+  }
+
+  formIsSubmitting.value = true
+
+  payload.locator_slip_logger.forEach((loggerItem) => {
+    if (loggerItem.time_in) {
+      const dateObj = new Date(`2000-01-01T${loggerItem.time_in}`)
+
+      if (!isNaN(dateObj.getTime())) {
+        const hours = padToTwoDigits(dateObj.getHours())
+        const minutes = padToTwoDigits(dateObj.getMinutes())
+
+        loggerItem.time_in = `${hours}:${minutes}`
+      }
+    }
+
+    if (loggerItem.time_out) {
+      const dateObj = new Date(`2000-01-01T${loggerItem.time_out}`)
+
+      if (!isNaN(dateObj.getTime())) {
+        const hours = padToTwoDigits(dateObj.getHours())
+        const minutes = padToTwoDigits(dateObj.getMinutes())
+
+        loggerItem.time_out = `${hours}:${minutes}`
+      }
+    }
+  })
+
+  try {
+    const response = await locatorSlipStore.updateLocatorSlip(payload, route.params.id as string)
+    if (response.success) {
+      toast.add({
+        severity: 'success',
+        summary: 'Success',
+        detail: 'Locator Slip updated successfully.',
+        life: 5000,
+      })
+    } else {
+      toast.add({
+        severity: 'error',
+        summary: 'Locator Slip Not Created',
+        detail: response.error_message,
+        life: 5000,
+      })
+    }
+  } finally {
+    formIsSubmitting.value = false
+  }
 }
 </script>
 <template>
   <div class="flex h-full w-full flex-col shadow-md">
     <Card class="h-full">
-      <template #content>
+      <template #content v-if="!isLoading">
         <div class="flex w-full flex-col items-start md:flex-row">
           <Button
             icon="pi pi-angle-left"
@@ -235,7 +305,7 @@ const updateButtonSubmission = async () => {
 
           <!-- Data row -->
           <div
-            v-for="(row, index) in payload.ls_logger"
+            v-for="(row, index) in payload.locator_slip_logger"
             :key="index"
             class="grid grid-cols-10 items-center justify-items-center gap-2 border-b border-surface-300 px-4 py-2 text-center"
           >
@@ -247,10 +317,10 @@ const updateButtonSubmission = async () => {
                 dateFormat="yy-mm-dd"
                 :minDate="today"
                 :maxDate="lastDayOfCurrentMonth"
-                :invalid="validator.ls_logger?.[index]?.date?.$invalid"
-                :invalid-text="validator.ls_logger?.[index]?.date?.$errors[0]?.$message"
-                @blur="validator.ls_logger?.[index]?.date?.$touch"
-                :disabled="!validateDateNow(row.date)"
+                :invalid="validator.locator_slip_logger?.[index]?.date?.$error"
+                :invalid-text="validator.locator_slip_logger?.[index]?.date?.$errors[0]?.$message"
+                @blur="validator.locator_slip_logger?.[index]?.date?.$touch()"
+                :disabled="!validateDateNow(row.date) || isHumanResourceActive || row.time_out || row.time_in"
               >
               </WbCalendar>
             </div>
@@ -275,10 +345,10 @@ const updateButtonSubmission = async () => {
                   label-class="text-sm text-surface-600"
                   placeholder="e.g. Robinsons, San Fernando, La Union"
                   class="w-full"
-                  :disabled="!validateDateNow(row.date)"
-                  :invalidText="validator.ls_logger?.[index]?.destination?.$errors[0]?.$message"
-                  :invalid="validator.ls_logger?.[index]?.destination?.$error"
-                  @blur="validator.ls_logger?.[index]?.destination?.$touch()"
+                  :disabled="!validateDateNow(row.date) || isHumanResourceActive || row.time_out || row.time_in"
+                  :invalidText="validator.locator_slip_logger?.[index]?.destination?.$errors[0]?.$message"
+                  :invalid="validator.locator_slip_logger?.[index]?.destination?.$error"
+                  @blur="validator.locator_slip_logger?.[index]?.destination?.$touch()"
                 />
               </p>
             </div>
@@ -290,10 +360,10 @@ const updateButtonSubmission = async () => {
                 label-class="text-sm text-surface-600"
                 placeholder="e.g. Wellness Activity"
                 class="w-full"
-                :disabled="!validateDateNow(row.date)"
-                :invalidText="validator.ls_logger?.[index]?.purpose?.$errors[0]?.$message"
-                :invalid="validator.ls_logger?.[index]?.purpose?.$error"
-                @blur="validator.ls_logger?.[index]?.purpose?.$touch()"
+                :disabled="!validateDateNow(row.date) || isHumanResourceActive || row.time_out || row.time_in"
+                :invalidText="validator.locator_slip_logger?.[index]?.purpose?.$errors[0]?.$message"
+                :invalid="validator.locator_slip_logger?.[index]?.purpose?.$error"
+                @blur="validator.locator_slip_logger?.[index]?.purpose?.$touch()"
               />
               <p class="text-base text-surface-600"></p>
             </div>
@@ -301,12 +371,12 @@ const updateButtonSubmission = async () => {
               <div class="col-span-2 flex items-center">
                 <p class="text-xs font-semibold text-surface-500 md:hidden">Official Business</p>
                 <RadioButton
-                  v-model="row.approve_for"
+                  v-model="row.approved_for"
                   name="official_business"
                   inputId="official_business"
                   value="official_business"
                   class="scale-150 transform"
-                  :disabled="!validateDateNow(row.date)"
+                  :disabled="!validateDateNow(row.date) || isHumanResourceActive"
                 />
               </div>
             </template>
@@ -315,30 +385,39 @@ const updateButtonSubmission = async () => {
               <div class="flex items-center">
                 <p class="text-xs font-semibold text-surface-500 md:hidden">Official Time</p>
                 <RadioButton
-                  v-model="row.approve_for"
+                  v-model="row.approved_for"
                   name="official_time"
                   inputId="official_time"
                   value="official_time"
                   class="scale-150 transform"
-                  :disabled="!validateDateNow(row.date)"
+                  :disabled="!validateDateNow(row.date) || isHumanResourceActive"
                 />
               </div>
               <div class="flex items-center">
                 <p class="text-xs font-semibold text-surface-500 md:hidden">Personal Time</p>
                 <RadioButton
-                  v-model="row.approve_for"
-                  name="personal"
-                  inputId="personal"
-                  value="personal"
+                  v-model="row.approved_for"
+                  name="personal_time"
+                  inputId="personal_time"
+                  value="personal_time"
                   class="scale-150 transform"
-                  :disabled="!validateDateNow(row.date)"
+                  :disabled="!validateDateNow(row.date) || isHumanResourceActive"
                 />
               </div>
             </template>
             <div>
               <p class="text-xs font-semibold text-surface-500 md:hidden">No. of Hours</p>
               <p class="text-base text-surface-600">
-                {{ row.duration }}
+                <WbInputText
+                  v-model="row.duration"
+                  label=""
+                  label-class="text-sm text-surface-600"
+                  placeholder="e.g. 0"
+                  :disabled="!isHumanResourceActive"
+                  :invalidText="validator.locator_slip_logger?.[index]?.duration?.$errors[0]?.$message"
+                  :invalid="validator.locator_slip_logger?.[index]?.duration?.$error"
+                  @blur="validator.locator_slip_logger?.[index]?.duration?.$touch()"
+                />
               </p>
             </div>
 
@@ -349,12 +428,12 @@ const updateButtonSubmission = async () => {
                   <WbInputText
                     v-model="row.remarks"
                     label=""
-                    :disabled="!validateDateNow(row.date)"
                     label-class="text-sm text-surface-600"
                     placeholder="e.g. Wellness Activity"
-                    :invalidText="validator.ls_logger?.[index]?.remarks?.$errors[0]?.$message"
-                    :invalid="validator.ls_logger?.[index]?.remarks?.$error"
-                    @blur="validator.ls_logger?.[index]?.remarks?.$touch()"
+                    :disabled="isHumanResourceActive"
+                    :invalidText="validator.locator_slip_logger?.[index]?.remarks?.$errors[0]?.$message"
+                    :invalid="validator.locator_slip_logger?.[index]?.remarks?.$error"
+                    @blur="validator.locator_slip_logger?.[index]?.remarks?.$touch()"
                   />
                 </p>
               </div>
@@ -369,7 +448,7 @@ const updateButtonSubmission = async () => {
           <Button
             v-if="addLoggerBtn"
             label="+ Request New Logger"
-            :disabled="!validateMonth(payload.month)"
+            :disabled="!validateMonth(payload.date) || isHumanResourceActive"
             @click="addLogger"
             class="dark:text-secondary-100 border border-primary-500 text-sm text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
             text
@@ -392,7 +471,7 @@ const updateButtonSubmission = async () => {
           </Button>
           <Button
             v-if="isButtonVisible"
-            :label="buttonLabel"
+            label="Save"
             @click="handleButtonClick"
             :loading="formIsSubmitting"
             :disabled="formIsSubmitting"
@@ -404,6 +483,60 @@ const updateButtonSubmission = async () => {
               <i class="pi pi-save mr-2"></i>
             </template>
           </Button>
+        </div>
+      </template>
+      <template #content v-else-if="isLoading">
+        <div class="animate-pulse">
+          <div class="flex w-full flex-col items-start md:flex-row">
+            <div class="mb-2 ml-4 h-8 w-8 rounded-full bg-gray-200 md:mb-0 md:ml-0"></div>
+          </div>
+
+          <div class="p-4">
+            <div class="mb-4 ml-4 h-7 w-80 rounded bg-gray-200 md:ml-4"></div>
+            <div class="ml-4 h-6 w-48 rounded bg-gray-200 md:ml-4"></div>
+          </div>
+
+          <div class="p-4">
+            <div class="hidden h-12 bg-gray-100 md:grid md:px-10"></div>
+
+            <div v-for="i in 4" :key="i">
+              <div
+                class="grid grid-cols-10 items-center justify-items-center gap-2 border-b border-surface-300 px-4 py-2 text-center"
+              >
+                <div class="h-10 w-full rounded bg-gray-200"></div>
+
+                <div class="h-6 w-full rounded bg-gray-200"></div>
+                <div class="h-6 w-full rounded bg-gray-200"></div>
+
+                <div class="h-10 w-full rounded bg-gray-200"></div>
+                <div class="h-10 w-full rounded bg-gray-200"></div>
+
+                <div class="flex items-center justify-center gap-2">
+                  <div class="h-6 w-6 rounded-full bg-gray-200"></div>
+                </div>
+
+                <div class="h-6 w-full rounded bg-gray-200"></div>
+
+                <div class="col-span-2 flex w-full">
+                  <div class="h-10 w-3/4 rounded bg-gray-200"></div>
+                  <div class="flex w-1/4 justify-end">
+                    <div class="h-8 w-8 rounded-full bg-gray-200"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-4 flex w-full flex-col gap-4 p-4">
+              <div class="h-10 w-full self-start rounded bg-gray-200"></div>
+            </div>
+          </div>
+
+          <br />
+
+          <div class="mt-2 flex justify-end gap-2 p-4">
+            <div class="h-10 w-24 rounded bg-gray-200"></div>
+            <div class="h-10 w-28 rounded bg-primary-300"></div>
+          </div>
         </div>
       </template>
     </Card>
