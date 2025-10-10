@@ -308,7 +308,7 @@ const showToast = (
 
     setTimeout(() => {
       activeToasts.value--
-    }, 5000)
+    }, 10000)
   }
 }
 
@@ -491,12 +491,18 @@ const updateC2Form = async () => {
     )
 
     const errorTabs: string[] = []
-    if (hasEligibilityError) errorTabs.push('Civil Service Eligibility')
-    if (hasWorkExperienceError) errorTabs.push('Work Experience')
+    if (hasEligibilityError) errorTabs.push('C2 - Civil Service Eligibility')
+    if (hasWorkExperienceError) errorTabs.push('C2 - Work Experience')
 
-    const tabList = errorTabs.join(', ')
-    showToast('error', 'Validation Error', `Please check the following tab(s): ${tabList}`)
+    const sectionDescriptions: Record<string, string> = {
+      'C2 - Civil Service Eligibility': 'C2 - Civil Service Eligibility Section',
+      'C2 - Work Experience': 'C2 - Work Experience Section',
+    }
 
+    errorTabs.forEach((field) => {
+      const message = sectionDescriptions[field] ?? field
+      showToast('error', 'Validation Error - Please check the following', message)
+    })
     IsBeingUpdated.value = false
     isC2Loading.value = false
     formIsSubmitting.value = false
@@ -512,14 +518,8 @@ const updateC2Form = async () => {
     isPdsError.value = true
     errorMessage.value = result?.message
     pdsErrors.value = result?.errors
-    showToast('error', 'PDS C2 Error', 'Please see the validation messages')
-  } else {
-    showToast('success', 'Personal Data Sheet (PDS)', 'PDS has been successfully updated.')
+    return { valid: false, errorTabs: ['C1'] }
   }
-
-  IsBeingUpdated.value = false
-  isC2Loading.value = false
-  formIsSubmitting.value = false
 }
 
 // ──────────────────────────────────────────────────────────
@@ -543,8 +543,15 @@ const handleSaveC2Form = async () => {
     if (hasEligibilityError) errorTabs.push('C2 - Civil Service Eligibility')
     if (hasWorkExperienceError) errorTabs.push('C2 - Work Experience')
 
-    const tabList = errorTabs.join(', ')
-    showToast('error', 'Validation Error', `Please check the following tab(s): ${tabList}`)
+    const sectionDescriptions: Record<string, string> = {
+      'C2 - Civil Service Eligibility': 'C2 - Civil Service Eligibility Section',
+      'C2 - Work Experience': 'C2 - Work Experience Section',
+    }
+
+    errorTabs.forEach((field) => {
+      const message = sectionDescriptions[field] ?? field
+      showToast('error', 'Validation Error - Please check the following', message)
+    })
 
     isC2Loading.value = false
     return { valid: false, errorTabs: ['C2'] }

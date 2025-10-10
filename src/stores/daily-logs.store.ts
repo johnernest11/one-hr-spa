@@ -126,6 +126,7 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
         is_in: warmBodyLog.is_in,
         timestamp: warmBodyLog.created_at || new Date().toISOString(),
         photo_url: photoUrl,
+        captured_image: payload.captured_image || null,
       }
 
       const dtrDate = warmBodyLog.daily_time_record?.date || new Date().toISOString().substring(0, 10)

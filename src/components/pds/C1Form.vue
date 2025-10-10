@@ -71,6 +71,7 @@ const selectedSalaryGrade = ref<WbAutoCompleteOption | null>(null)
 const selectedOffice = ref<WbAutoCompleteOption | null>(null)
 const selectedDivision = ref<WbAutoCompleteOption | null>(null)
 const selectedSectionUnit = ref<WbAutoCompleteOption | null>(null)
+const selectedCountry = ref<WbAutoCompleteOption[] | null>(null)
 
 const ppmsCanUpdate = computed(() => {
   return authStore.authHasRequiredRole(['hr_pas_admin'])
@@ -192,6 +193,7 @@ const generateMessage = (fieldName: string): { required: string; maxLength: stri
   maxLength: `${fieldName.replace(/_/g, ' ')} cannot exceed the maximum length`,
 })
 
+const isDualCitizen = () => payload.individual.citizenship === 'Dual Citizenship'
 const globalStringMaxLength = import.meta.env.VITE_GLOBAL_STRING_MAX_LENGTH
 const globalStringMaxLengthRule = helpers.withMessage(
   `Must not exceed ${globalStringMaxLength} characters`,
@@ -295,8 +297,17 @@ const formRules = computed(() => ({
     },
 
     citizenship_acquisition: {
-      required: helpers.withMessage(() => generateMessage('filipino_by').required, required),
+      required: helpers.withMessage(
+        () => generateMessage('filipino_by').required,
+        helpers.withMessage('requiredIfDual', (value: string) => !isDualCitizen() || (value !== null && value !== ''))
+      ),
       maxLength: helpers.withMessage(() => generateMessage('citizenship_acquisition').maxLength, globalStringMaxLengthRule),
+    },
+    country_id: {
+      required: helpers.withMessage(
+        () => generateMessage('country').required,
+        (value: number | null) => !isDualCitizen() || value !== null
+      ),
     },
   },
   /** Personnel Contact Info */
@@ -749,6 +760,21 @@ watch(
 )
 
 watch(
+  () => payload.individual.citizenship,
+  (newValue) => {
+    if (newValue === 'Filipino') {
+      payload.individual.citizenship_acquisition = ''
+      payload.individual.country_id = null
+      selectedCountry.value = null
+      payload.individual.citizenship_acquisition = ''
+    } else if (newValue === 'Dual Citizenship') {
+      payload.individual.citizenship_acquisition = ''
+    }
+  },
+  { immediate: true }
+)
+
+watch(
   () => payload.individual_address_init.residential_region_id,
   (newSelectedItem) => {
     if (!newSelectedItem) {
@@ -915,11 +941,11 @@ const setupSpouseWatch = (immediate: boolean) => {
         spouse.first_name = v
         spouse.middle_name = v
         spouse.last_name = v
-        spouse.ext_name = v
+        spouse.ext_name = null
         spouse.occupation = v
         spouse.employers_business_name = v
         spouse.business_address = v
-        spouse.telephone_no = v
+        spouse.telephone_no = null
       }
 
       if (newStatus === 'Single') fill('N/A')
@@ -1268,7 +1294,7 @@ const showToast = (
 
     setTimeout(() => {
       activeToasts.value--
-    }, 5000)
+    }, 10000)
   }
 }
 
@@ -1462,12 +1488,12 @@ const previousItemNumber = ref<string | null>(null)
 
 watch(selectedItemNo, async (newValueFilled, oldValueUnfilled) => {
   if (oldValueUnfilled && oldValueUnfilled !== newValueFilled) {
-    await itemStore.updateItemStatus(oldValueUnfilled.value.toString())
+    await itemStore.updateItemStatus(oldValueUnfilled.toString())
   }
   if (newValueFilled) {
-    await itemStore.updateItemStatus(newValueFilled.value.toString())
+    await itemStore.updateItemStatus(newValueFilled.toString())
   }
-  previousItemNumber.value = newValueFilled?.value?.toString() ?? null
+  previousItemNumber.value = newValueFilled?.toString() ?? null
 })
 
 const updateC1Form = async () => {
@@ -1491,21 +1517,37 @@ const updateC1Form = async () => {
     const hasEducationError = validator.value.educations?.$error
 
     const errorFields: string[] = []
-    if (hasEmployeeError) errorFields.push('Employee')
-    if (hasIndividualError) errorFields.push('Individual')
-    if (hasContactInfoError) errorFields.push('Contact Info')
-    if (hasAddressError) errorFields.push('Address')
-    if (hasSpouseError) errorFields.push('Spouse')
-    if (hasFatherError) errorFields.push('Father')
-    if (hasMotherError) errorFields.push('Mother')
-    if (hasChildError) errorFields.push('Child')
-    if (hasEducationError) errorFields.push('Education')
+    if (hasEmployeeError) errorFields.push('C1 - Employee')
+    if (hasIndividualError) errorFields.push('C1 - Individual')
+    if (hasContactInfoError) errorFields.push('C1 - Contact Info')
+    if (hasAddressError) errorFields.push('C1 - Address')
+    if (hasSpouseError) errorFields.push('C1 - Spouse')
+    if (hasFatherError) errorFields.push('C1 - Father')
+    if (hasMotherError) errorFields.push('C1 - Mother')
+    if (hasChildError) errorFields.push('C1 - Child')
+    if (hasEducationError) errorFields.push('C1 - Education')
 
-    const tabList = errorFields.join(', ')
-    showToast('error', 'Validation Error', `Please check the following section(s): ${tabList}`)
+    const sectionDescriptions: Record<string, string> = {
+      'C1 - Employee': 'C1 - Personal Information - Employee Section',
+      'C1 - Individual': 'C1 - Personal Information - Individual Section',
+      'C1 - Contact Info': 'C1 - Contact Details - Individual Section',
+      'C1 - Address': 'C1 - Address Details - Individual Section',
+      'C1 - Spouse': 'C1 - Family Background - Spouse Section',
+      'C1 - Father': 'C1 - Family Background - Father Section',
+      'C1 - Mother': 'C1 - Family Background - Mother Section',
+      'C1 - Child': 'C1 - Family Background - Child Section',
+      'C1 - Education': 'C1 - Educational Background Section',
+    }
 
-    isC1Loading.value = false
-    return { valid: false, errorTabs: ['C1'] }
+    if (errorFields.length > 0) {
+      errorFields.forEach((field) => {
+        const message = sectionDescriptions[field] ?? field
+        showToast('error', 'Validation Error - Please check the following', message)
+      })
+
+      isC1Loading.value = false
+      return { valid: false, errorTabs: ['C1'] }
+    }
   }
 
   const familyArray = [
@@ -1542,16 +1584,8 @@ const updateC1Form = async () => {
     errorMessage.value = result.message
     errorDetails.value = result.errors
     IsBeingUpdated.value = false
-    return
+    return { valid: false, errorTabs: ['C1'] }
   }
-
-  formIsSubmitting.value = false
-  toast.add({
-    severity: 'success',
-    summary: 'C1 Form update',
-    detail: `${id || 'The PDS'} was successfully updated`,
-    life: 1000,
-  })
 }
 
 // ──────────────────────────────────────────────────────────
@@ -1572,21 +1606,37 @@ const handleSaveC1Form = async () => {
     const hasEducationError = validator.value.educations?.$error
 
     const errorFields: string[] = []
-    if (hasEmployeeError) errorFields.push('Employee')
-    if (hasIndividualError) errorFields.push('Individual')
-    if (hasContactInfoError) errorFields.push('Contact Info')
-    if (hasAddressError) errorFields.push('Address')
-    if (hasSpouseError) errorFields.push('Spouse')
-    if (hasFatherError) errorFields.push('Father')
-    if (hasMotherError) errorFields.push('Mother')
-    if (hasChildError) errorFields.push('Child')
-    if (hasEducationError) errorFields.push('Education')
+    if (hasEmployeeError) errorFields.push('C1 - Employee')
+    if (hasIndividualError) errorFields.push('C1 - Individual')
+    if (hasContactInfoError) errorFields.push('C1 - Contact Info')
+    if (hasAddressError) errorFields.push('C1 - Address')
+    if (hasSpouseError) errorFields.push('C1 - Spouse')
+    if (hasFatherError) errorFields.push('C1 - Father')
+    if (hasMotherError) errorFields.push('C1 - Mother')
+    if (hasChildError) errorFields.push('C1 - Child')
+    if (hasEducationError) errorFields.push('C1 - Education')
 
-    const tabList = errorFields.join(', ')
-    showToast('error', 'Validation Error', `Please check the following section(s): ${tabList}`)
+    const sectionDescriptions: Record<string, string> = {
+      'C1 - Employee': 'C1 - Personal Information - Employee Section',
+      'C1 - Individual': 'C1 - Personal Information - Individual Section',
+      'C1 - Contact Info': 'C1 - Contact Details - Individual Section',
+      'C1 - Address': 'C1 - Address Details - Individual Section',
+      'C1 - Spouse': 'C1 - Family Background - Spouse Section',
+      'C1 - Father': 'C1 - Family Background - Father Section',
+      'C1 - Mother': 'C1 - Family Background - Mother Section',
+      'C1 - Child': 'C1 - Family Background - Child Section',
+      'C1 - Education': 'C1 - Educational Background Section',
+    }
 
-    isC1Loading.value = false
-    return { valid: false, errorTabs: ['C1'] }
+    if (errorFields.length > 0) {
+      errorFields.forEach((field) => {
+        const message = sectionDescriptions[field] ?? field
+        showToast('error', 'Validation Error - Please check the following', message)
+      })
+
+      isC1Loading.value = false
+      return { valid: false, errorTabs: ['C1'] }
+    }
   }
 
   /** Propagate indiividual family to required payload */
@@ -1640,7 +1690,7 @@ const handleSaveC1Form = async () => {
     pdsErrors.value = result?.errors
     showToast('error', 'PDS Error', 'Pease see the validation messages')
   } else {
-    showToast('success', 'Personal Data Sheet (PDS)', 'PDS has been successfully updated.')
+    showToast('success', 'Personal Data Sheet (PDS)', 'PDS has been successfully uploaded.')
     router.push({ name: 'employment' })
   }
   isC1Loading.value = false
@@ -2068,28 +2118,65 @@ defineExpose({
                           <FontAwesomeIcon icon="fa-solid fa-people-arrows" />
                         </template>
                       </WbDropdown>
-
-                      <WbDropdown
-                        v-model="payload.individual.citizenship_acquisition"
-                        required
-                        :options="libraryStore.citizenshipAcquisitionOptions"
-                        optionLabel="label"
-                        optionValue="value"
-                        label="Filipino by"
-                        label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                        :readonly="pdsStore.isMyPds"
-                        :class="[
-                          'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                          pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
-                        ]"
-                        :invalid="validator.individual.citizenship_acquisition.$invalid"
-                        :invalid-text="validator.individual.citizenship_acquisition.$errors[0]?.$message"
-                        @blur="validator.individual.citizenship_acquisition.$touch"
+                      <div
+                        v-if="payload.individual.citizenship === 'Dual Citizenship'"
+                        class="flex flex-col gap-4 md:flex-row md:gap-6"
                       >
-                        <template #prepend-icon>
-                          <FontAwesomeIcon icon="fa-solid fa-house-flag" />
-                        </template>
-                      </WbDropdown>
+                        <!-- Citizen Type by dropdown -->
+                        <WbDropdown
+                          v-model="payload.individual.citizenship_acquisition"
+                          required
+                          :options="libraryStore.citizenshipAcquisitionOptions"
+                          optionLabel="label"
+                          optionValue="value"
+                          label="Dual Citizen by"
+                          label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                          :readonly="pdsStore.isMyPds"
+                          class="flex-1"
+                          :class="[
+                            'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                            pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                          ]"
+                          :invalid="validator.individual.citizenship_acquisition.$invalid"
+                          :invalid-text="validator.individual.citizenship_acquisition.$errors[0]?.$message"
+                          @blur="validator.individual.citizenship_acquisition.$touch"
+                        >
+                          <template #prepend-icon>
+                            <FontAwesomeIcon icon="fa-solid fa-house-flag" />
+                          </template>
+                        </WbDropdown>
+
+                        <!-- If Dual Citizen, give details (country) -->
+                        <WbAutoComplete
+                          :useApiFilter="true"
+                          :apiEndpoint="'/libraries/countries/search'"
+                          :suggestions="libraryStore.countryOptions"
+                          :loading="libraryStore.countryOptionsLoading"
+                          apiOptionLabel="country_code"
+                          label="If Dual Citizen, Please indicate country:"
+                          :readonly="pdsStore.isMyPds"
+                          placeholder="Type the Country"
+                          v-model="selectedCountry"
+                          :id="getId('input-country')"
+                          optionLabel="label"
+                          optionValue="value"
+                          required
+                          forceSelection
+                          @on-true-value-computed="
+                            (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
+                              useWbAutoCompleteHandleTrueValue(value, toRef(payload.individual, 'country_id'))
+                          "
+                          label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                          class="flex-1"
+                          :class="[
+                            'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                            pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                          ]"
+                          :invalid="validator.individual.country_id.$invalid"
+                          :invalid-text="validator.individual.country_id.$errors[0]?.$message"
+                          @blur="validator.individual.country_id.$touch"
+                        />
+                      </div>
                       <WbInputText
                         v-model="payload.individual.height"
                         label="Height (m)"

@@ -19,6 +19,10 @@ interface Log {
   is_in: boolean
   captured_image?: string
   photo_url?: string
+  profile_picture_url?: string
+
+  name?: string
+  position?: string
 }
 
 const currentDate: Ref<string> = ref('')
@@ -46,11 +50,13 @@ const selectedOffice = ref<WbAutoCompleteOption | null | undefined>(null)
 
 const recentLogs = ref<Log[]>([])
 
-// State for locking the scanner during the API call
 const isScanLocked = ref(false)
 
-// CRITICAL NEW STATE: Controls the momentary pause flicker to reset the scanner cache
 const isScannerResetting = ref(false)
+
+const scannedEmployee = computed(() => {
+  return dailyLogsStore.currentScannedEmployee as Log | null | undefined
+})
 
 function paintOutline(detectedCodes: DetectedBarcode[], ctx: CanvasRenderingContext2D) {
   for (const detectedCode of detectedCodes) {
@@ -83,21 +89,13 @@ const startTimeLogs = async () => {
 const updateDailyLogsState = async (date: string) => {
   await dailyLogsStore.fetchDailyLogs(date)
 
-  const logs: Log[] = dailyLogsStore.getTodayWarmBodies(date) || []
+  let logs: Log[] = dailyLogsStore.getTodayWarmBodies(date) || []
 
-  const sortedLogs = logs.slice().sort((a, b) => {
+  logs.sort((a, b) => {
     return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
   })
 
-  recentLogs.value = sortedLogs.slice(0, 10).map((log) => ({
-    id: log.id,
-    employee_id: log.employee_id,
-    timestamp: log.timestamp,
-    is_in: log.is_in,
-    photo_url: log.photo_url,
-    captured_image: log.captured_image,
-  }))
-  recentLogs.value = dailyLogsStore.getTodayWarmBodies(date).slice(0, 10)
+  recentLogs.value = logs.slice(0, 10)
 }
 
 const updateDateTime = () => {
@@ -168,7 +166,6 @@ onUnmounted(() => {
 const onDetect = (detectedCodes: DetectedBarcode[]) => {
   if (!detectedCodes.length) return
 
-  // Gate the scan only while the previous API request is active
   if (isScanLocked.value) return
 
   const firstCode = detectedCodes[0]
@@ -199,10 +196,8 @@ const handleCloseDialog = () => {
 }
 
 const onDecode = async (result: string) => {
-  // Reset the modal/timer from the previous scan
   handleCloseDialog()
 
-  // 1. Lock the scan during API call
   isScanLocked.value = true
 
   const imageData = capturePhoto()
@@ -221,7 +216,7 @@ const onDecode = async (result: string) => {
       message = errorResponse.error_message ?? 'Time log failed with an unknown error.'
       dailyLogsStore.lastLogMessage = message
     } else if (dailyLogsStore.currentScannedEmployee) {
-      const employee = dailyLogsStore.currentScannedEmployee
+      const employee = dailyLogsStore.currentScannedEmployee as Log
       const is_in = employee.is_in
 
       if (dailyLogsStore.warmBodySummary) {
@@ -239,6 +234,10 @@ const onDecode = async (result: string) => {
         is_in: is_in,
         photo_url: employee.photo_url,
         captured_image: imageData ?? undefined,
+
+        profile_picture_url: employee.profile_picture_url,
+        name: employee.name,
+        position: employee.position,
       }
 
       recentLogs.value = [newLog, ...recentLogs.value]
@@ -262,18 +261,14 @@ const onDecode = async (result: string) => {
   } finally {
     showModal.value = dailyLogsStore.showModal
 
-    // 2. CRITICAL: Clear the internal QR code cache by momentarily pausing the component.
     isScannerResetting.value = true
-    await nextTick() // Ensure the pause state is applied to the component
+    await nextTick()
 
-    // 3. Immediately unpause and unlock the scan logic, ready for the next frame.
-    // The 0ms delay ensures this runs on the next browser cycle, correctly clearing the cache.
     window.setTimeout(() => {
-      isScannerResetting.value = false // Unpause the camera
-      isScanLocked.value = false // Unlock the logic
+      isScannerResetting.value = false
+      isScanLocked.value = false
     }, 0)
 
-    // 4. Start the 10-second timer for the modal dismissal.
     if (scanTimeoutId.value) clearTimeout(scanTimeoutId.value)
     scanTimeoutId.value = window.setTimeout(() => {
       handleCloseDialog()
@@ -396,11 +391,7 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
               <tbody>
                 <tr v-for="entry in latestWarmBodyLogs" :key="entry.id">
                   <td class="p-2">
-                    <img
-                      :src="entry.captured_image"
-                      alt="Employee Captured Photo"
-                      class="aspect-[2270/2479] h-auto max-w-full rounded-lg shadow"
-                    />
+                    <img :src="scannedEmployee?.captured_image" alt="Captured Photo" class="h-32 w-32 border object-cover" />
                   </td>
 
                   <td class="p-2">
@@ -490,9 +481,10 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
 
             <div class="mb-4 flex justify-center">
               <img
-                :src="dswdLogoMark || dailyLogsStore.currentScannedEmployee?.photo_url"
+                :src="scannedEmployee?.photo_url || dswdLogoMark"
                 alt="Employee Profile Photo"
                 class="aspect-[2270/2479] h-auto max-w-full rounded-lg shadow"
+                @error="(e) => ((e.target as HTMLImageElement).src = dswdLogoMark)"
               />
             </div>
 

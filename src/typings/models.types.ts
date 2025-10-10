@@ -264,6 +264,7 @@ export type PersonnelResponse = {
   tin: string
   citizenship: string
   citizenship_acquisition: string
+  country_id: number | null
   individual_address: PersonnelAddress | null
   individual_contact_info: PersonnelContactInfo | null
   individual_family: IndividualFamily | null
@@ -714,5 +715,5 @@ export interface ScannedEmployeeResponse {
   is_in: boolean
   timestamp: string
   photo_url: string
-  captured_image?: string
+  captured_image?: string | null
 }

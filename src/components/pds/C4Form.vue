@@ -210,7 +210,7 @@ const showToast = (
 
     setTimeout(() => {
       activeToasts.value--
-    }, 5000)
+    }, 10000)
   }
 }
 
@@ -339,13 +339,21 @@ const updateC4Form = async () => {
       (entry) => (entry as { $error: boolean })?.$error
     )
 
-    let errorTabs = []
+    const errorTabs: string[] = []
     if (hasIndividualQuestionError) errorTabs.push('C4 - Other Information Continued')
     if (hasIndividualReferenceError) errorTabs.push('C4 - References')
     if (hasIndividualGovermentIdError) errorTabs.push('C4 - Gov`t Issued ID')
 
-    const tabList = errorTabs.join(', ')
-    showToast('error', 'Validation Error', `Please check the following tab(s): ${tabList}`)
+    const sectionDescriptions: Record<string, string> = {
+      'C4 - Other Information Continued': 'C4 - Other Information Continued',
+      'C4 - References': 'C4 - References',
+      'C4 - Gov`t Issued ID': 'C4 - Gov`t Issued ID',
+    }
+
+    errorTabs.forEach((field) => {
+      const message = sectionDescriptions[field] ?? field
+      showToast('error', 'Validation Error - Please check the following', message)
+    })
 
     isC4Loading.value = false
     return { valid: false, errorTabs: ['C4'] }
@@ -360,17 +368,8 @@ const updateC4Form = async () => {
     errorMessage.value = result.message
     errorDetails.value = result.errors
     IsBeingUpdated.value = false
+    return { valid: false, errorTabs: ['C4'] }
   }
-
-  formIsSubmitting.value = false
-  toast.add({
-    severity: 'success',
-    summary: 'Personal Data Sheet (PDS)',
-    detail: 'PDS has been successfully updated.',
-    life: 1000,
-  })
-
-  formIsSubmitting.value = false
 }
 
 // ──────────────────────────────────────────────────────────
@@ -395,11 +394,19 @@ const handleSaveC4Form = async () => {
 
     let errorTabs = []
     if (hasIndividualQuestionError) errorTabs.push('C4 - Other Information Continued')
-    if (hasIndividualReferenceError) errorTabs.push('References & Gov` Issued ID')
-    if (hasIndividualGovermentIDError) errorTabs.push('References & Gov` Issued ID')
+    if (hasIndividualReferenceError) errorTabs.push('C4 - References')
+    if (hasIndividualGovermentIDError) errorTabs.push('C4 - Gov`t Issued ID')
 
-    const tabList = errorTabs.join(', ')
-    showToast('error', 'Validation Error', `Please check the following tab(s): ${tabList}`)
+    const sectionDescriptions: Record<string, string> = {
+      'C4 - Other Information Continued': 'C4 - Other Information Continued',
+      'C4 - References': 'C4 - References',
+      'C4 - Gov`t Issued ID': 'C4 - Gov`t Issued ID',
+    }
+
+    errorTabs.forEach((field) => {
+      const message = sectionDescriptions[field] ?? field
+      showToast('error', 'Validation Error - Please check the following', message)
+    })
 
     isC4Loading.value = false
     return { valid: false, errorTabs: ['C4'] }
@@ -407,7 +414,7 @@ const handleSaveC4Form = async () => {
   console.log('Payload before save:', payload)
   const response = await pdsStore.savePds(payload)
 
-  if (response.success === false) {
+  if (!response.success) {
     const result = parseApiResponseError(response)
 
     isPdsError.value = true
