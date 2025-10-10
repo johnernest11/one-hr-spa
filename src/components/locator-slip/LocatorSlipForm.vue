@@ -196,6 +196,10 @@ const saveButtonSubmission = async () => {
   formIsSubmitting.value = true
 
   payload.locator_slip_logger.forEach((loggerItem) => {
+    if (loggerItem.date) {
+      loggerItem.date = formatDateSafe(loggerItem.date)
+    }
+
     if (loggerItem.time_in) {
       const dateObj = new Date(`2000-01-01T${loggerItem.time_in}`)
 
