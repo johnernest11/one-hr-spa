@@ -17,7 +17,7 @@ interface Log {
   employee_id: string | number
   timestamp: string
   is_in: boolean
-  captured_image?: file
+  captured_image?: string
   photo_url?: string
   profile_picture_url?: string
 
@@ -173,35 +173,18 @@ const onDetect = (detectedCodes: DetectedBarcode[]) => {
   onDecode(decodedString)
 }
 
-const capturePhoto = (): File | null => {
+const capturePhoto = () => {
   if (!qrStreamRef.value) return null
-
   const videoElement = qrStreamRef.value.$el.querySelector('video')
   if (!videoElement) return null
-
   const canvas = document.createElement('canvas')
   canvas.width = videoElement.videoWidth
   canvas.height = videoElement.videoHeight
-
   const context = canvas.getContext('2d')
   if (context) {
     context.drawImage(videoElement, 0, 0, canvas.width, canvas.height)
-
-    const dataURL = canvas.toDataURL('image/jpeg', 0.9)
-    const byteString = atob(dataURL.split(',')[1])
-    const mimeString = dataURL.split(',')[0].match(/:(.*?);/)![1]
-    const arrayBuffer = new ArrayBuffer(byteString.length)
-    const intArray = new Uint8Array(arrayBuffer)
-    for (let i = 0; i < byteString.length; i++) {
-      intArray[i] = byteString.charCodeAt(i)
-    }
-
-    const blob = new Blob([arrayBuffer], { type: mimeString })
-    const file = new File([blob], `capture_${Date.now()}.jpg`, { type: mimeString })
-
-    return file
+    return canvas.toDataURL('image/jpeg', 0.9)
   }
-
   return null
 }
 
@@ -216,36 +199,42 @@ const onDecode = async (result: string) => {
   handleCloseDialog()
 
   isScanLocked.value = true
-  const capturedImageFile = capturePhoto()
+
+  const imageData = capturePhoto()
   const today = getManilaTodayISO()
   let message: string = 'Processing...'
+
+  dailyLogsStore.clearScannedEmployee()
 
   try {
     const errorResponse = await dailyLogsStore.logEmployeeTime({
       scanned_qr: result,
-      captured_image: capturedImageFile,
+      captured_image: imageData,
     })
 
     if (errorResponse) {
       message = errorResponse.error_message ?? 'Time log failed with an unknown error.'
       dailyLogsStore.lastLogMessage = message
-      showModal.value = true
     } else if (dailyLogsStore.currentScannedEmployee) {
       const employee = dailyLogsStore.currentScannedEmployee as Log
       const is_in = employee.is_in
 
       if (dailyLogsStore.warmBodySummary) {
-        if (is_in) dailyLogsStore.warmBodySummary.in_office++
-        else dailyLogsStore.warmBodySummary.out_of_office++
+        if (is_in) {
+          dailyLogsStore.warmBodySummary.in_office++
+        } else {
+          dailyLogsStore.warmBodySummary.out_of_office++
+        }
       }
 
       const newLog: Log = {
         id: employee.id,
         employee_id: employee.id,
         timestamp: new Date().toISOString(),
-        is_in,
-        photo_url: employee.captured_image?.url || imageData, // prefer API saved URL
-        captured_image: payload.captured_image ? URL.createObjectURL(payload.captured_image) : null,
+        is_in: is_in,
+        photo_url: employee.photo_url,
+        captured_image: imageData ?? undefined,
+
         profile_picture_url: employee.profile_picture_url,
         name: employee.name,
         position: employee.position,
@@ -259,23 +248,22 @@ const onDecode = async (result: string) => {
       void updateDailyLogsState(today)
 
       if (imageData) {
-        dailyLogsStore.currentScannedEmployee.captured_image = imageData
+        dailyLogsStore.currentScannedEmployee.captured_image = imageData as string
       }
-
-      showModal.value = true // show modal on success
     } else {
       message = 'Log completed, but state is inconsistent.'
       dailyLogsStore.lastLogMessage = message
-      showModal.value = true // show modal for inconsistent state
     }
   } catch (error) {
     console.error('Time log error:', error)
     message = 'Network or server error during log attempt.'
-    dailyLogsStore.lastLogMessage = message
-    showModal.value = true
+    dailyLogsStore.showScannedEmployeeModal(null, message)
   } finally {
+    showModal.value = dailyLogsStore.showModal
+
     isScannerResetting.value = true
     await nextTick()
+
     window.setTimeout(() => {
       isScannerResetting.value = false
       isScanLocked.value = false
@@ -403,11 +391,7 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
               <tbody>
                 <tr v-for="entry in latestWarmBodyLogs" :key="entry.id">
                   <td class="p-2">
-                    <img
-                      :src="scannedEmployee?.captured_image?.url || scannedEmployee?.captured_image"
-                      alt="Captured Photo"
-                      class="h-32 w-32 border object-cover"
-                    />
+                    <img :src="scannedEmployee?.captured_image" alt="Captured Photo" class="h-32 w-32 border object-cover" />
                   </td>
 
                   <td class="p-2">
@@ -534,9 +518,9 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
 </template>
 
 <style scoped>
-  ::v-deep(.qr-stream video),
-  ::v-deep(.qr-stream canvas) {
-    transform: rotateY(180deg);
-    transform-origin: center center;
-  }
+::v-deep(.qr-stream video),
+::v-deep(.qr-stream canvas) {
+  transform: rotateY(180deg);
+  transform-origin: center center;
+}
 </style>
