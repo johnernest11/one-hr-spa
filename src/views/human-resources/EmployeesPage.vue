@@ -363,7 +363,7 @@ const handleFilterItemNumber = async () => {
     itemNumberIsLoading.value = false
     return
   }
-  const response = await personnelStore.fetchEmployees(payload.division ?? undefined, payload.section ?? undefined)
+  const response = await personnelStore.filterEmployees(payload.division ?? undefined, payload.section ?? undefined)
 
   if (response.success && response.pagination) {
     pagination.value = response.pagination
@@ -1021,7 +1021,6 @@ const downloadQrCode = async () => {
             :id="getId('input-division')"
             optionLabel="label"
             optionValue="value"
-            required
             @on-true-value-computed="
               (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) => {
                 useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'division'))
@@ -1044,7 +1043,6 @@ const downloadQrCode = async () => {
             :id="getId('input-section-unit')"
             optionLabel="label"
             optionValue="value"
-            required
             @on-true-value-computed="
               (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
                 useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'section'))

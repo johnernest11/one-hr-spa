@@ -43,20 +43,25 @@ export const usePersonnelStore = defineStore('personnel', () => {
     return responseBody
   }
 
-  const filterEmployees = async (divisionId?: number | null, sectionOrUnitId?: number | null) => {
-    const params = new URLSearchParams()
+  const filterEmployees = async (
+    divisionId?: number | null,
+    sectionOrUnitId?: number | null,
+    limit: number = 15,
+    page: number | null = null
+  ) => {
+    let uri = `/individual-basic-details?limit=${limit}&sort=desc`
 
-    if (divisionId != null) params.append('division_id', divisionId.toString())
-    if (sectionOrUnitId != null) params.append('section_or_unit_id', sectionOrUnitId.toString())
-
-    const queryString = params.toString()
-    const uri = queryString ? `/individual-basic-details?${queryString}` : '/individual-basic-details'
+    if (page) uri += `&page=${page}`
+    if (divisionId) uri += `&division_id=${divisionId}`
+    if (sectionOrUnitId) uri += `&section_or_unit_id=${sectionOrUnitId}`
+    console.log('Token being sent:', authStore.authenticationToken)
 
     const { data } = await useApiCall(uri, authStore.authenticationToken).get().json()
     const responseBody: ApiResponseBody = data.value
 
     if (responseBody.success) {
-      employees.value = [...(responseBody.data as PersonnelResponse[])]
+      const employeeList = responseBody.data as PersonnelResponse[]
+      employees.value = [...employeeList]
     }
 
     return responseBody
