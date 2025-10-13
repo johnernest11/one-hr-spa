@@ -428,13 +428,13 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
             <qrcode-stream
               ref="qrStreamRef"
               @detect="onDetect"
-              :constraints="{ facingMode: 'environment' }"
+              :constraints="{ facingMode: 'user' }"
               :formats="['qr_code']"
               :track="paintOutline"
               @init="onInit"
               @camera-error="onCameraError"
               :paused="isScannerResetting"
-              class="h-full w-full object-cover"
+              class="qr-stream h-full w-full object-cover"
             />
 
             <img
@@ -516,3 +516,11 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
     </div>
   </div>
 </template>
+
+<style scoped>
+::v-deep(.qr-stream video),
+::v-deep(.qr-stream canvas) {
+  transform: rotateY(180deg);
+  transform-origin: center center;
+}
+</style>
