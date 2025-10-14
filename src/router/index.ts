@@ -72,7 +72,7 @@ const routes = [
       isSidebarMenu: true,
       authType: AuthType.AUTHENTICATED,
       hideNavigation: true,
-      roles: [AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER, AuthRole.SYSTEM_SUPPORT, AuthRole.TIME_LOGGER],
+      roles: [AuthRole.SUPER_USER, AuthRole.TIME_LOGGER],
     },
   },
   /*Request Routes */
