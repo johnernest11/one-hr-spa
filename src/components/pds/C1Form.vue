@@ -697,7 +697,7 @@ const formRules = computed(() => ({
 }))
 
 const validator = useVuelidate<PersonalDataSheetPayload>(formRules, payload)
-
+// Watcher if Permanent Resident is same as Residential
 watch(isSameResidential, (newVal) => {
   const v = validator.value
   if (newVal === true) {
@@ -749,6 +749,25 @@ watch(isSameResidential, (newVal) => {
     payload.individual_address_init.permanent_zip_code = null
   }
 })
+
+// Watcher to auto-check if both addresses are identical ---
+watch(
+  () => payload.individual_address_init,
+  (addr) => {
+    const sameAddress =
+      addr.residential_house_block_lot_no === addr.permanent_house_block_lot_no &&
+      addr.residential_street === addr.permanent_street &&
+      addr.residential_subdivision_village === addr.permanent_subdivision_village &&
+      addr.residential_zip_code === addr.permanent_zip_code &&
+      addr.residential_region_id === addr.permanent_region_id &&
+      addr.residential_province_id === addr.permanent_province_id &&
+      addr.residential_citymun_id === addr.permanent_citymun_id &&
+      addr.residential_brgy_id === addr.permanent_brgy_id
+
+    isSameResidential.value = sameAddress
+  },
+  { deep: true, immediate: true }
+)
 
 watch(
   () => payload.individual.sex,
@@ -897,7 +916,6 @@ watch(
 const isSingle = computed(() => payload.individual.civil_status === 'Single')
 
 const propPosition = async () => {
-  // Wait for the payload to be ready
   if (!payload?.employee?.item_id) return
 
   isPositionLoading.value = true
@@ -1059,39 +1077,31 @@ watch(
   () => payload.employee.item_id,
   async (newId) => {
     isItemsLoading.value = true
-    // 1. Check for a null/undefined ID immediately
     if (!newId) {
       selectedItemNo.value = null
       return
     }
 
-    // 2. Check the local cache of fetched items first
     const existing = libraryStore.itemsOptions.find((opt) => Number(opt.value) === Number(newId))
 
     if (existing) {
-      // If found in local cache, set the value and call propPosition
       selectedItemNo.value = existing
       propPosition()
     } else {
-      // 3. If not found, fetch the item directly from the API by its ID
       const response = await itemStore.fetchItemNumberById(Number(newId))
 
-      // 4. Check if the API call was successful
       if (response && response.success) {
         const itemResponse = response.data as ItemNumberResponse
-        // 5. If successful, use the data to set the selected item
         const foundItem = {
           value: itemResponse.id,
           label: itemResponse.number,
         }
 
-        // 6. Push the new item to the local cache so it's available next time
         libraryStore.itemsOptions.push(foundItem)
 
         selectedItemNo.value = foundItem
         propPosition()
       } else {
-        // Handle case where item is not found or API call fails
         selectedItemNo.value = null
       }
     }
@@ -1778,7 +1788,7 @@ defineExpose({
                           :readonly="pdsStore.isMyPds || ppmsCanUpdate"
                           :class="[
                             'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                            pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            pdsStore.isMyPds || ppmsCanUpdate ? 'pointer-events-none cursor-default select-text' : '',
                           ]"
                           @on-true-value-computed="
                             (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
@@ -1794,7 +1804,7 @@ defineExpose({
                         </WbAutoComplete>
 
                         <RouterLink
-                          v-if="!pdsStore.isMyPds"
+                          v-if="!pdsStore.isMyPds && !ppmsCanUpdate"
                           :to="{ name: 'support', state: { from: 'recruitment' } }"
                           v-tooltip.top="'Add Item Number'"
                         >
@@ -2636,7 +2646,7 @@ defineExpose({
                           :readonly="pdsStore.isMyPds || isSameResidential"
                           :class="[
                             'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                            pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            pdsStore.isMyPds || isSameResidential ? 'pointer-events-none cursor-default select-text' : '',
                           ]"
                           :placeholder="'Select or Type your Region'"
                           forceSelection
@@ -2662,7 +2672,7 @@ defineExpose({
                           :readonly="pdsStore.isMyPds || isSameResidential"
                           :class="[
                             'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                            pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            pdsStore.isMyPds || isSameResidential ? 'pointer-events-none cursor-default select-text' : '',
                           ]"
                           :placeholder="'Select or Type your Province'"
                           forceSelection
@@ -2688,7 +2698,7 @@ defineExpose({
                           :readonly="pdsStore.isMyPds || isSameResidential"
                           :class="[
                             'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                            pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            pdsStore.isMyPds || isSameResidential ? 'pointer-events-none cursor-default select-text' : '',
                           ]"
                           :placeholder="'Select or Type your City/Municipality'"
                           forceSelection
@@ -2715,7 +2725,7 @@ defineExpose({
                           :readonly="pdsStore.isMyPds || isSameResidential"
                           :class="[
                             'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                            pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            pdsStore.isMyPds || isSameResidential ? 'pointer-events-none cursor-default select-text' : '',
                           ]"
                           :placeholder="'Select your Barangay'"
                           forceSelection
@@ -2737,7 +2747,7 @@ defineExpose({
                           :readonly="pdsStore.isMyPds || isSameResidential"
                           :class="[
                             'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                            pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            pdsStore.isMyPds || isSameResidential ? 'pointer-events-none cursor-default select-text' : '',
                           ]"
                           :invalid="validator.individual_address_init.permanent_subdivision_village.$invalid"
                           :invalid-text="validator.individual_address_init.permanent_subdivision_village.$errors[0]?.$message"
@@ -2752,7 +2762,7 @@ defineExpose({
                           :readonly="pdsStore.isMyPds || isSameResidential"
                           :class="[
                             'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                            pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            pdsStore.isMyPds || isSameResidential ? 'pointer-events-none cursor-default select-text' : '',
                           ]"
                           :invalid="validator.individual_address_init.permanent_street.$invalid"
                           :invalid-text="validator.individual_address_init.permanent_street.$errors[0]?.$message"
@@ -2767,7 +2777,7 @@ defineExpose({
                           :readonly="pdsStore.isMyPds || isSameResidential"
                           :class="[
                             'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                            pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            pdsStore.isMyPds || isSameResidential ? 'pointer-events-none cursor-default select-text' : '',
                           ]"
                           :invalid="validator.individual_address_init.permanent_house_block_lot_no.$invalid"
                           :invalid-text="validator.individual_address_init.permanent_house_block_lot_no.$errors[0]?.$message"
@@ -2783,7 +2793,7 @@ defineExpose({
                           :readonly="pdsStore.isMyPds || isSameResidential"
                           :class="[
                             'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                            pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            pdsStore.isMyPds || isSameResidential ? 'pointer-events-none cursor-default select-text' : '',
                           ]"
                           :invalid="validator.individual_address_init.permanent_zip_code.$invalid"
                           :invalid-text="validator.individual_address_init.permanent_zip_code.$errors[0]?.$message"

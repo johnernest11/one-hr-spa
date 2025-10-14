@@ -98,7 +98,7 @@ const handleFilterDailyTimeRecord = async () => {
     dailyTimeRecordIsLoading.value = false
     return
   }
-  const response = await personnelStore.fetchEmployees(payload.division ?? undefined, payload.section ?? undefined)
+  const response = await personnelStore.filterEmployees(payload.division ?? undefined, payload.section ?? undefined)
 
   if (response.success && response.pagination) {
     pagination.value = response.pagination
@@ -153,7 +153,16 @@ const handleSearchEmployee = async () => {
                 </h1>
               </div>
               <div class="flex w-full items-center justify-end gap-4">
-                <div class="flex w-full md:w-auto lg:w-1/2">
+                <div class="flex w-full space-x-2 md:w-auto lg:w-1/2">
+                  <Button
+                    icon="pi pi-filter-fill"
+                    v-tooltip.top="'Filter Item'"
+                    severity="info"
+                    size="large"
+                    class="border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100"
+                    text
+                    @click="showModal = true"
+                  />
                   <InputGroup v-model="searchQuery" class="w-full">
                     <InputText
                       v-model="searchQuery"
@@ -200,8 +209,14 @@ const handleSearchEmployee = async () => {
                 >
                 </Column>
                 <Column
-                  field="individual_contact_info.email_address"
-                  header="EMAIL"
+                  field="employee.division.name"
+                  header="DIVISION"
+                  headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
+                >
+                </Column>
+                <Column
+                  field="employee.section_or_unit.name"
+                  header="SECTION / UNIT"
                   headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
                 >
                 </Column>
@@ -285,7 +300,6 @@ const handleSearchEmployee = async () => {
             :id="getId('input-division')"
             optionLabel="label"
             optionValue="value"
-            required
             @on-true-value-computed="
               (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) => {
                 useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'division'))
@@ -308,7 +322,6 @@ const handleSearchEmployee = async () => {
             :id="getId('input-section-unit')"
             optionLabel="label"
             optionValue="value"
-            required
             @on-true-value-computed="
               (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
                 useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'section'))

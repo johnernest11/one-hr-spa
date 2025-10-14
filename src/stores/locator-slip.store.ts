@@ -3,15 +3,15 @@ import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth.store.ts'
 import { useApiCall } from '@/composables/network'
 import { ApiResponseBody } from '@/typings/http-resources.types.ts'
-import { LocatorSlipResponse } from '@/typings/models.types'
+import { LocatorSlipResponse, PersonnelResponse } from '@/typings/models.types'
 import { locatorslipmockData } from '@/utils/mock-data'
 
 export type LocatorSlipPayload = {
   form_type: string
-  month: string
+  date: string
   period: string | null
   locator_slip_no: string | null
-  ls_logger: LSLoggerPayload[]
+  locator_slip_logger: LSLoggerPayload[]
 }
 
 export type LSLoggerPayload = {
@@ -22,7 +22,7 @@ export type LSLoggerPayload = {
   time_out: string | null
   destination: string | null
   purpose: string | null
-  approve_for: string | null
+  approved_for: string | null
   duration: number | null
   remarks: string | null
 }
@@ -33,86 +33,51 @@ export const useLocatorSlipStore = defineStore('locator-slip', () => {
   const selectedlocatorSlip = ref<LocatorSlipResponse | null>(null)
 
   const fetchLocatorSlip = async (limit = 10, page = 1) => {
-    const start = (page - 1) * limit
-    const paginated = locatorslipmockData.slice(start, start + limit)
-    locatorSlip.value = [...paginated]
-    return {
-      success: true,
-      data: paginated,
-      pagination: {
-        current_page: page,
-        last_page: Math.ceil(locatorslipmockData.length / limit),
-        per_page: limit,
-        total: locatorslipmockData.length,
-        from: start + 1,
-        to: start + paginated.length,
-        first_page_url: '',
-        last_page_url: '',
-        next_page_url: null,
-        previous_page_url: null,
-        path: '',
-      },
+    const individual = auth.authenticatedUser.user_profile?.individual_basic_detail as PersonnelResponse
+    if (!individual?.employee) {
+      throw new Error('No employee data linked to current user')
     }
+    let uri = `/employees/${individual.employee.id}/locator-slips?limit=${limit}&`
+    if (page) uri += `page=${page}`
+    const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
+    const responseBody: ApiResponseBody = data.value
+    if (responseBody.success) {
+      const LocatorSlipList = Array.isArray(responseBody.data) ? (responseBody.data as LocatorSlipResponse[]) : []
+      locatorSlip.value = [...LocatorSlipList]
+    }
+    return responseBody
   }
 
   const fetchGroupedLocatorSlip = async (limit = 10, page = 1) => {
-    const groups = new Map()
-    locatorslipmockData.forEach((slip) => {
-      const employeeId = slip.employee_id.id
-      if (!groups.has(employeeId)) {
-        groups.set(employeeId, {
-          employee: slip.employee_id,
-          locatorSlips: [],
-        })
-      }
-      groups.get(employeeId).locatorSlips.push(slip)
-    })
-
-    const groupedData = Array.from(groups.values())
-    const totalGroups = groupedData.length
-    const start = (page - 1) * limit
-    const paginatedGroups = groupedData.slice(start, start + limit)
-    locatorSlip.value = [...paginatedGroups]
-
-    return {
-      success: true,
-      data: paginatedGroups,
-      pagination: {
-        current_page: page,
-        last_page: Math.ceil(totalGroups / limit),
-        per_page: limit,
-        total: totalGroups,
-        from: start + 1,
-        to: start + paginatedGroups.length,
-        first_page_url: '',
-        last_page_url: '',
-        next_page_url: null,
-        previous_page_url: null,
-        path: '',
-      },
+    let uri = `/employees/locator-slips/grouped?limit=${limit}&`
+    if (page) uri += `page=${page}`
+    const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
+    const responseBody: ApiResponseBody = data.value
+    if (responseBody.success) {
+      const LocatorSlipList = Array.isArray(responseBody.data) ? (responseBody.data as LocatorSlipResponse[]) : []
+      locatorSlip.value = [...LocatorSlipList]
     }
+    return responseBody
   }
 
   const fetchLocatorSlipById = async (id: string) => {
-    await new Promise((resolve) => setTimeout(resolve, 300))
-
-    const foundData = locatorslipmockData.find((item) => item.id === parseInt(id))
-
-    const responseBody = {
-      success: !!foundData,
-      data: foundData || null,
-      message: foundData ? 'Data fetched successfully.' : 'Record not found.',
-    }
-
+    const uri = `/employees/locator-slips/${id}`
+    const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
+    const responseBody: ApiResponseBody = data.value
     if (responseBody.success) {
-      selectedlocatorSlip.value = responseBody.data
+      selectedlocatorSlip.value = responseBody.data as LocatorSlipResponse
     }
-
     return responseBody
   }
 
   const createLocatorSlip = async (locatorslip: Partial<LocatorSlipPayload>) => {
-    const { data } = await useApiCall('/locator-slips/', auth.authenticationToken).post(locatorslip).json()
+    const individual = auth.authenticatedUser.user_profile?.individual_basic_detail as PersonnelResponse
+    if (!individual?.employee) {
+      throw new Error('No employee data linked to current user')
+    }
+    const { data } = await useApiCall(`/employees/${individual.employee.id}/locator-slips`, auth.authenticationToken)
+      .post(locatorslip)
+      .json()
     const responseBody: ApiResponseBody = data.value
     if (responseBody.success) {
       locatorSlip.value.unshift(responseBody.data as LocatorSlipResponse)
@@ -121,7 +86,7 @@ export const useLocatorSlipStore = defineStore('locator-slip', () => {
   }
 
   const updateLocatorSlip = async (locatorslip: Partial<LocatorSlipPayload>, id: string | number) => {
-    const { data } = await useApiCall(`/locator-slips/${id}`, auth.authenticationToken).put(locatorslip).json()
+    const { data } = await useApiCall(`/employees/locator-slips/${id}`, auth.authenticationToken).put(locatorslip).json()
     const responseBody: ApiResponseBody = data.value
     if (responseBody.success) {
       const index = locatorSlip.value.findIndex((locatorslip) => locatorslip?.id === id)

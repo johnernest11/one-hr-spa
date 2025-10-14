@@ -598,15 +598,15 @@ const exportToPDF = async (
           </div>
           <div v-else-if="!isLoading">
             <!-- Header: visible only on md and up -->
-            <div class="hidden grid-cols-6 gap-2 border-b-2 bg-surface-100 px-4 py-4 md:grid md:px-24">
+            <div class="hidden grid-cols-8 gap-2 border-b-2 bg-surface-100 px-4 py-4 md:grid md:px-24">
               <div class="text-center text-sm font-semibold text-surface-500">WORKING</div>
               <div class="text-center text-sm font-semibold text-surface-500">AM</div>
               <div class="text-center text-sm font-semibold text-surface-500">PM</div>
               <div class="ml-32 text-right text-sm font-semibold text-surface-500">HOURS</div>
-              <div class="ml-56 text-right text-sm font-semibold text-surface-500">REMARKS</div>
-              <div class="ml-12 text-center text-sm font-semibold text-surface-500">HR REMARKS</div>
+              <div class="col-span-2 ml-56 text-right text-sm font-semibold text-surface-500">REMARKS</div>
+              <div class="col-span-2 ml-12 text-center text-sm font-semibold text-surface-500">HR REMARKS</div>
             </div>
-            <div class="hidden grid-cols-10 gap-2 border-b-2 bg-surface-100 px-4 py-4 md:grid md:px-24">
+            <div class="hidden grid-cols-12 gap-2 border-b-2 bg-surface-100 px-4 py-4 md:grid md:px-24">
               <div class="text-start text-sm font-semibold text-surface-500">Date</div>
               <div class="text-start text-sm font-semibold text-surface-500">Days</div>
               <div class="text-start text-sm font-semibold text-surface-500">IN 1</div>
@@ -614,15 +614,15 @@ const exportToPDF = async (
               <div class="text-start text-sm font-semibold text-surface-500">IN 2</div>
               <div class="text-start text-sm font-semibold text-surface-500">OUT 2</div>
               <div class="text-start text-sm font-semibold text-surface-500">UT</div>
-              <div class="text-start text-sm font-semibold text-surface-500">OT</div>
-              <div class="text-start text-sm font-semibold text-surface-500"></div>
+              <div class="col-span-2 text-start text-sm font-semibold text-surface-500">OT</div>
+              <div class="col-span-2 text-start text-sm font-semibold text-surface-500"></div>
             </div>
 
             <!-- Data row -->
             <div
               v-for="(dtr, index) in monthDates"
               :key="dtr.date.getTime()"
-              class="grid grid-cols-1 items-center gap-y-2 border-b border-surface-300 px-4 py-4 md:grid-cols-10 md:gap-2 md:px-24"
+              class="grid grid-cols-1 items-center gap-y-2 border-b border-surface-300 px-4 py-4 md:grid-cols-12 md:gap-2 md:px-24"
             >
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">Date</p>
@@ -880,7 +880,7 @@ const exportToPDF = async (
                 </template>
               </div>
 
-              <div>
+              <div class="col-span-2">
                 <p class="text-xs font-semibold text-surface-500 md:hidden">Remarks</p>
                 <WbTextArea
                   v-if="new Date(dtr.date) < new Date(new Date().setHours(0, 0, 0, 0))"
@@ -890,7 +890,7 @@ const exportToPDF = async (
                   placeholder="Enter remarks"
                 />
               </div>
-              <div>
+              <div class="col-span-2">
                 <p class="text-xs font-semibold text-surface-500 md:hidden">HR Remarks</p>
                 <template v-if="!route.params.id">
                   <p class="h-12 text-surface-600 md:h-8 md:w-24">
