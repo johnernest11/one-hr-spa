@@ -391,7 +391,7 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
               <tbody>
                 <tr v-for="entry in latestWarmBodyLogs" :key="entry.id">
                   <td class="p-2">
-                    <img :src="scannedEmployee?.captured_image" alt="Captured Photo" class="h-32 w-32 border object-cover" />
+                    <img :src="entry.captured_image" alt="Captured Photo" class="aspect-[2270/2479] border object-cover" />
                   </td>
 
                   <td class="p-2">
