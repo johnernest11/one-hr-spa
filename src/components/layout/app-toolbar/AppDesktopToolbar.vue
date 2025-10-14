@@ -101,7 +101,7 @@ const handleLogout = async () => {
           :label="!authStore.authenticatedUser.user_profile?.profile_picture_url ? AvatarDisplayNamePlaceholder : undefined"
           shape="circle"
           size="large"
-          class="cursor-pointer transition-transform hover:scale-105 hover:ring-2 hover:ring-blue-500 dark:!bg-blue-500"
+          class="cursor-pointer transition-transform hover:scale-105 hover:ring-2 hover:ring-primary-500 dark:!bg-primary-500"
           @click="toggleAvatarMenu"
           aria-haspopup="true"
           aria-controls="avatar-menu"
