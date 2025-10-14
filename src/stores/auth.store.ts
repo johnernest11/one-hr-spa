@@ -84,17 +84,17 @@ export const useAuthStore = defineStore('auth', () => {
    * We use sessionStorage to hydrate state when the page reloads
    * @see https://vueuse.org/core/useStorage/#custom-serialization on why we need a serializer for `null` defaults
    */
-  const authenticationToken = useStorage<string>('auth-token', null, sessionStorage, {
+  const authenticationToken = useStorage<string>('auth-token', null, localStorage, {
     serializer: StorageSerializers.string,
   })
-  const authenticatedUser = useStorage<UserResponse>('auth-user', null, sessionStorage, {
+  const authenticatedUser = useStorage<UserResponse>('auth-user', null, localStorage, {
     serializer: StorageSerializers.object,
     deep: true,
     mergeDefaults: true,
   })
   const authExpired = ref(false)
 
-  const authenticationTokenExpiration = useStorage<Date>('auth-token-expiration', null, sessionStorage, {
+  const authenticationTokenExpiration = useStorage<Date>('auth-token-expiration', null, localStorage, {
     serializer: StorageSerializers.date,
   })
 

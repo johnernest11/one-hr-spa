@@ -93,7 +93,7 @@ const showRefreshTokenExpiredAlert = computed(() => {
                 enterFrom="opacity-0 translate-y-6"
                 enterTo="opacity-100 translate-y-0"
               >
-                <img src="@/assets/favicon.svg" class="mr-2 h-28 w-auto" />
+                <img src="@/assets/favicon.svg" class="mr-2 h-auto w-28" />
               </TransitionRoot>
 
               <TransitionRoot
