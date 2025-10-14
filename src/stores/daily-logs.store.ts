@@ -105,40 +105,9 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     }
   }
 
-  /**
-   * Logs employee time (QR + image)
-   * Supports both JSON and FormData payloads.
-   */
-  const logEmployeeTime = async (payload: { scanned_qr: string; captured_image?: File | null }) => {
-    const apiCall = useApiCall('employees/log-time', authStore.authenticationToken)
-
-    let data
-
-    // Determine if we should send multipart form data
-    const isFormData = payload.captured_image instanceof File
-
-    if (isFormData) {
-      // ✅ Convert payload to FormData
-      const formData = new FormData()
-      formData.append('scanned_qr', payload.scanned_qr)
-      if (payload.captured_image) {
-        formData.append('captured_image', payload.captured_image)
-      }
-
-      const response = await apiCall
-        .post(formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        })
-        .json()
-      data = response.data
-    } else {
-      // ✅ Send normal JSON if no image
-      const response = await apiCall.post(payload).json()
-      data = response.data
-    }
-
+  const logEmployeeTime = async (payload: { scanned_qr: string; captured_image: string | null }) => {
+    const { data } = await useApiCall('employees/log-time', authStore.authenticationToken).post(payload).json()
     const responseBody: ApiResponseBody = data.value
-
     if (responseBody?.success) {
       const warmBodyLog = responseBody.data as WarmBodyLogEntry
       const employeeDetails = warmBodyLog?.daily_time_record?.employee?.individual_basic_detail
@@ -157,24 +126,23 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
         is_in: warmBodyLog.is_in,
         timestamp: warmBodyLog.created_at || new Date().toISOString(),
         photo_url: photoUrl,
-        captured_image: responseBody.data?.captured_image_path || null,
+        captured_image: payload.captured_image || null,
       }
 
       const dtrDate = warmBodyLog.daily_time_record?.date || new Date().toISOString().substring(0, 10)
       updateDailyLogs(dtrDate, [warmBodyLog])
       showScannedEmployeeModal(scannedEmployee, messageToDisplay)
-    } else {
+    } else if (responseBody) {
       let messageToDisplay = responseBody.message?.trim() || 'Time log failed.'
       if (responseBody.error_code === ApiErrorCode.VALIDATION_ERROR) {
         const apiErrors = responseBody.errors
-        if (apiErrors?.length && apiErrors[0].messages?.length) {
+        if (apiErrors && apiErrors.length > 0 && apiErrors[0].messages && apiErrors[0].messages.length > 0) {
           messageToDisplay = apiErrors[0].messages[0]
         }
       }
       showScannedEmployeeModal(null, messageToDisplay)
+      return responseBody
     }
-
-    return responseBody
   }
 
   const fetchDailyLogs = async (date: string) => {
