@@ -13,6 +13,7 @@ import DataTable from 'primevue/datatable'
 import Dialog from 'primevue/dialog'
 import InputText from 'primevue/inputtext'
 import InputGroup from 'primevue/inputgroup'
+import Skeleton from 'primevue/skeleton'
 import Paginator, { PageState } from 'primevue/paginator'
 import WbDropdown from '@/components/webkit/WbDropdown.vue'
 import WbAutoComplete, { WbAutoCompleteOption, WbAutoCompleteOptionTrueValue } from '@/components/webkit/WbAutoComplete.vue'
@@ -57,12 +58,21 @@ const openLocatorSlip = (slip: LocatorSlipResponse | null = null) => {
     console.error('Cannot navigate to details: Locator Slip or ID is undefined', slip)
     return
   } else {
-    router.push({
-      name: 'my-locator-slips/editor',
-      params: {
-        id: slip.id,
-      },
-    })
+    if (route.name === 'locator-slips') {
+      router.push({
+        name: 'locator-slips/editor',
+        params: {
+          id: slip.id,
+        },
+      })
+    } else {
+      router.push({
+        name: 'my-locator-slips/editor',
+        params: {
+          id: slip.id,
+        },
+      })
+    }
   }
 }
 
@@ -78,10 +88,10 @@ const formTypeOptions = ref([
 
 const payload = reactive<LocatorSlipPayload>({
   form_type: '',
-  month: '',
+  date: '',
   period: null,
   locator_slip_no: null,
-  ls_logger: [
+  locator_slip_logger: [
     {
       locator_slip_id: null,
       date: '',
@@ -89,7 +99,7 @@ const payload = reactive<LocatorSlipPayload>({
       time_out: null,
       destination: '',
       purpose: '',
-      approve_for: null,
+      approved_for: null,
       duration: null,
       remarks: '',
     },
@@ -109,17 +119,34 @@ const formRules = () => ({
 
 const fetchData = async () => {
   locatorSlipsIsLoading.value = true
-
   if (isHumanResourceActive.value) {
-    const response = await locatorSlipsStore.fetchGroupedLocatorSlip(paginationLimit)
-    if (response.success && response.pagination) {
-      employeeGroups.value = response.data
-      pagination.value = response.pagination
+    try {
+      const response = await locatorSlipsStore.fetchGroupedLocatorSlip(paginationLimit)
+      if (response.success && response.pagination) {
+        employeeGroups.value = response.data
+        pagination.value = response.pagination
+      }
+    } catch (e) {
+      toast.add({
+        severity: 'error',
+        summary: 'Cannot view Locator Slips.',
+        detail: e,
+        life: 5000,
+      })
     }
   } else {
-    const response = await locatorSlipsStore.fetchLocatorSlip(paginationLimit)
-    if (response.success && response.pagination) {
-      pagination.value = response.pagination
+    try {
+      const response = await locatorSlipsStore.fetchLocatorSlip(paginationLimit)
+      if (response.success && response.pagination) {
+        pagination.value = response.pagination
+      }
+    } catch (e) {
+      toast.add({
+        severity: 'error',
+        summary: 'Cannot view Locator Slips.',
+        detail: e,
+        life: 5000,
+      })
     }
   }
 
@@ -133,9 +160,9 @@ onBeforeMount(async () => {
 const handlePaginationPageChange = async (event: PageState) => {
   locatorSlipsIsLoading.value = true
   if (isHumanResourceActive.value) {
-    const { data, pagination: paginatorInfo } = await locatorSlipsStore.fetchGroupedLocatorSlip(event.page + 1, event.rows)
+    const data = await locatorSlipsStore.fetchGroupedLocatorSlip(event.page + 1, event.rows)
     employeeGroups.value = data
-    pagination.value = paginatorInfo
+    pagination.value = data.pagination ?? null
   } else {
     const pageSelected = event.page + 1
     const response = await locatorSlipsStore.fetchLocatorSlip(paginationLimit, pageSelected)
@@ -256,19 +283,28 @@ const handleSaveSubmissionif = async () => {
   formIsSubmitting.value = true
 
   try {
-    //@todo add logic here when its time to integrate
+    const response = await locatorSlipsStore.createLocatorSlip(payload)
+    if (response.success) {
+      toast.add({
+        severity: 'success',
+        summary: 'Success',
+        detail: 'Locator Slip created successfully',
+        life: 5000,
+      })
+      emit('locator-created', true)
 
-    toast.add({
-      severity: 'success',
-      summary: 'Success',
-      detail: 'Locator Slip created successfully',
-      life: 5000,
-    })
-    emit('locator-created', true)
-
-    setTimeout(() => {
-      window.location.reload()
-    }, 1000)
+      setTimeout(() => {
+        window.location.reload()
+      }, 1000)
+    } else {
+      toast.add({
+        severity: 'error',
+        summary: 'Locator Slip Not Created',
+        detail: response.error_message,
+        life: 5000,
+      })
+      emit('locator-created', false)
+    }
   } finally {
     formIsSubmitting.value = false
   }
@@ -390,7 +426,7 @@ const handleSaveSubmissionif = async () => {
       <div class="mt-6 flex flex-col">
         <div class="w-full">
           <div
-            v-if="locatorSlipsStore.locatorSlip && locatorSlipsStore.locatorSlip.length > 0"
+            v-if="locatorSlipsStore.locatorSlip && locatorSlipsStore.locatorSlip.length > 0 && !locatorSlipsIsLoading"
             class="mx-auto flex h-full w-full flex-col"
           >
             <DataTable
@@ -423,7 +459,7 @@ const handleSaveSubmissionif = async () => {
                 <template #body="props">
                   <p class="uppercase text-surface-600">
                     {{ props.data.period }}
-                    {{ getLongMonthAndYear(props.data.month) }}
+                    {{ getLongMonthAndYear(props.data.date) }}
                   </p>
                 </template>
               </Column>
@@ -458,28 +494,48 @@ const handleSaveSubmissionif = async () => {
               v-model:expanded-rows="expandedRows"
               :value="employeeGroups"
               :loading="locatorSlipsIsLoading"
-              class="mt-6"
-              dataKey="employee.id"
+              class="main-locator-table mt-6"
+              dataKey="id"
             >
               <Column expander style="width: 5rem" headerClass="bg-surface-100 border-surface-300 opacity-70" />
               <Column
-                field="employee.first_name"
+                field="employee.name"
                 header="Employee"
-                headerClass="w-full bg-surface-100 border-surface-300 opacity-70 font-bold"
+                headerClass="w-1/5 bg-surface-100 border-surface-300 opacity-70 font-bold"
               >
                 <template #body="props">
-                  {{ snakeCaseToTitleCase(props.data.employee.first_name) }}
-                  {{ snakeCaseToTitleCase(props.data.employee.middle_name ?? '') }}
-                  {{ snakeCaseToTitleCase(props.data.employee.last_name) }}
+                  {{ snakeCaseToTitleCase(props.data.individual_basic_detail.first_name) }}
+                  {{ snakeCaseToTitleCase(props.data.individual_basic_detail.middle_name ?? '') }}
+                  {{ snakeCaseToTitleCase(props.data.individual_basic_detail.last_name) }}
                 </template>
               </Column>
+              <Column
+                field="id_number"
+                header="ID Number"
+                headerClass="w-1/5 bg-surface-100 border-surface-300 opacity-70 font-bold"
+              >
+                <template #body="props">{{ props.data.id_number }}</template>
+              </Column>
+              <Column
+                field="section"
+                header="Section or Unit"
+                headerClass="w-1/5 bg-surface-100 border-surface-300 opacity-70 font-bold"
+              >
+                <template #body="props">{{ props.data.section_or_unit.name }}</template>
+              </Column>
+              <Column
+                field="division"
+                header="Division"
+                headerClass="w-1/5 bg-surface-100 border-surface-300 opacity-70 font-bold"
+              >
+                <template #body="props">{{ props.data.division.name }}</template>
+              </Column>
+              <Column field="office" header="Office" headerClass="w-1/5 bg-surface-100 border-surface-300 opacity-70 font-bold">
+                <template #body="props">{{ props.data.office.name }}</template>
+              </Column>
               <template #expansion="slotProps">
-                <DataTable scrollable scroll-height="400px" :value="slotProps.data.locatorSlips" dataKey="id">
-                  <Column
-                    field="form_type"
-                    header="Locator Slip"
-                    headerClass="w-1/3 bg-surface-100 border-surface-300 opacity-100 font-bold"
-                  >
+                <DataTable scrollable scroll-height="400px" :value="slotProps.data.locator_slip" dataKey="id">
+                  <Column field="form_type" header="Locator Slip" headerClass="w-1/3 border-surface-300 opacity-100 font-bold">
                     <template #body="props">
                       <p class="font-semibold uppercase text-surface-600">
                         Locator Slip Form
@@ -490,20 +546,15 @@ const handleSaveSubmissionif = async () => {
                       </p>
                     </template>
                   </Column>
-                  <Column
-                    field="month"
-                    header="Period"
-                    sortable
-                    headerClass="w-80 bg-surface-100 border-surface-300 opacity-100 font-bold"
-                  >
+                  <Column field="date" header="Period" sortable headerClass="w-80 border-surface-300 opacity-100 font-bold">
                     <template #body="props">
                       <p class="uppercase text-surface-600">
                         {{ props.data.period }}
-                        {{ getLongMonthAndYear(props.data.month) }}
+                        {{ getLongMonthAndYear(props.data.date) }}
                       </p>
                     </template>
                   </Column>
-                  <Column field="action" header="Actions" headerClass="w-64 bg-surface-100 opacity-100 font-bold">
+                  <Column field="action" header="Actions" headerClass="w-64 border-surface-300 opacity-100 font-bold">
                     <template #body="props">
                       <div class="flex gap-4 whitespace-nowrap md:w-auto">
                         <Button
@@ -531,6 +582,40 @@ const handleSaveSubmissionif = async () => {
               </template>
             </DataTable>
           </div>
+          <!-- Skeleton Loader -->
+          <div v-else-if="locatorSlipsIsLoading">
+            <div class="flex w-full">
+              <div v-for="i in isHumanResourceActive ? 5 : 3" :key="i" class="mr-1 flex-1 px-2 py-3">
+                <Skeleton height="1.5rem" class="w-full" />
+              </div>
+            </div>
+
+            <div v-for="i in 5" :key="'row-' + i" class="flex w-full border-b border-surface-200 py-2">
+              <template v-if="isHumanResourceActive">
+                <div style="width: 5rem" class="flex flex-none items-center justify-center px-2">
+                  <Skeleton shape="circle" size="1.5rem" />
+                </div>
+                <div v-for="j in 5" :key="`hr-col-${i}-${j}`" class="mr-1 flex flex-1 items-center px-2">
+                  <Skeleton height="1rem" :width="j === 1 ? '70%' : '90%'" />
+                </div>
+              </template>
+
+              <template v-else>
+                <div class="flex w-1/3 flex-col justify-center px-2">
+                  <Skeleton height="1rem" width="60%" class="mb-1" />
+                  <Skeleton height="0.75rem" width="40%" />
+                </div>
+                <div class="flex w-80 flex-none items-center px-2">
+                  <Skeleton height="1rem" width="80%" />
+                </div>
+                <div class="flex w-80 flex-none items-start justify-end px-2">
+                  <Skeleton shape="circle" size="2.5rem" />
+                  <Skeleton shape="circle" size="2.5rem" />
+                </div>
+              </template>
+            </div>
+          </div>
+
           <div class="mt-6 flex w-full justify-center md:mt-10">
             <Paginator
               v-if="pagination && pagination.total > 0"
@@ -572,12 +657,13 @@ const handleSaveSubmissionif = async () => {
                 <div class="mt-4 flex w-full justify-center">
                   <RouterLink :to="{ name: 'my-locator-slips' }">
                     <Button
-                      icon="pi pi-file-excel"
+                      icon="pi pi-plus"
                       label="Request Locator Slip"
                       severity="info"
                       size="large"
                       class="border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100 sm:text-primary-400 md:text-primary-400 lg:text-primary-400 dark:lg:text-primary-400"
                       text
+                      @click="openNewLocatorSlipForm"
                     />
                   </RouterLink>
                 </div>
