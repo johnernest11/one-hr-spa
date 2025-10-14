@@ -10,8 +10,8 @@ const { navLinks, toggleExpanded } = useSidebarNavLinks()
   <div
     class="sticky top-0 h-screen w-64 flex-col overflow-y-auto bg-gradient-to-b from-[#ffffff] to-nav-bar-500/55 px-2 pt-4 dark:border-surface-700 dark:bg-surface-900"
   >
-    <div class="flex flex-col justify-center gap-4 px-4 py-6 dark:border-surface-900">
-      <img src="@/assets/image/dswd-logo.png" class="mx-auto h-auto w-96" />
+    <div class="flex flex-col justify-center gap-6 px-4 py-6 dark:border-surface-900">
+      <img src="@/assets/image/dswd-logo.png" class="mx-auto h-14 w-auto" />
       <img src="@/assets/image/hrcares-logo-cropped.png" class="mx-auto h-auto w-full" />
     </div>
     <div class="flex justify-center px-2 text-2xl font-medium text-surface-600 dark:border-surface-900"></div>
