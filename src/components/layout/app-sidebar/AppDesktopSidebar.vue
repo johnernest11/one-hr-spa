@@ -4,19 +4,17 @@ import { useSidebarNavLinks } from '@/composables/sidebar.ts'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 
 const { navLinks, toggleExpanded } = useSidebarNavLinks()
-const appName = import.meta.env.VITE_APP_NAME
 </script>
 
 <template>
   <div
     class="sticky top-0 h-screen w-64 flex-col overflow-y-auto bg-gradient-to-b from-[#ffffff] to-nav-bar-500/55 px-2 pt-4 dark:border-surface-700 dark:bg-surface-900"
   >
-    <div class="flex justify-center px-4 py-6 dark:border-surface-900">
-      <img src="@/assets/image/dswd-logo.png" class="mx-auto my-1 h-auto w-96" />
+    <div class="flex flex-col justify-center gap-4 px-4 py-6 dark:border-surface-900">
+      <img src="@/assets/image/dswd-logo.png" class="mx-auto h-auto w-96" />
+      <img src="@/assets/image/hrcares-logo-cropped.png" class="mx-auto h-auto w-full" />
     </div>
-    <div class="flex justify-center px-12 text-2xl font-medium text-surface-600 dark:border-surface-900">
-      <h1>{{ appName }}</h1>
-    </div>
+    <div class="flex justify-center px-2 text-2xl font-medium text-surface-600 dark:border-surface-900"></div>
     <aside class="flex flex-grow flex-col overflow-y-auto px-5 pt-4 dark:border-surface-700 dark:bg-surface-900">
       <nav class="-mx-3 space-y-6">
         <div v-for="item in navLinks" :key="item.group" class="space-y-3">
