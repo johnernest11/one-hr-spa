@@ -52,8 +52,8 @@ export const usePersonnelStore = defineStore('personnel', () => {
     let uri = `/individual-basic-details?limit=${limit}&sort=desc`
 
     if (page) uri += `&page=${page}`
-    if (divisionId) uri += `&division_id=${divisionId}`
-    if (sectionOrUnitId) uri += `&section_or_unit_id=${sectionOrUnitId}`
+    if (divisionId) uri += `&division=${divisionId}`
+    if (sectionOrUnitId) uri += `&section=${sectionOrUnitId}`
     console.log('Token being sent:', authStore.authenticationToken)
 
     const { data } = await useApiCall(uri, authStore.authenticationToken).get().json()
