@@ -249,7 +249,7 @@ const saveButtonSubmission = async () => {
   <div class="flex h-full w-full flex-col shadow-md">
     <Card class="h-full">
       <template #content v-if="!isLoading">
-        <div class="flex w-full flex-col items-start md:flex-row">
+        <div class="flex w-full flex-col items-center md:flex-row">
           <Button
             icon="pi pi-angle-left"
             severity="secondary"
@@ -259,14 +259,14 @@ const saveButtonSubmission = async () => {
             size="small"
             class="mb-2 ml-4 md:mb-0 md:ml-0"
           />
-          <h2 class="mb-2 ml-4 pb-6 text-3xl font-semibold text-primary-800 dark:text-primary-100 md:ml-4">
+          <h2 class="ml-4 text-3xl font-semibold text-primary-800 dark:text-primary-100 md:ml-4">
             <FontAwesomeIcon icon="fa-solid fa-location-dot" class="h-5 text-primary-700 sm:h-6 md:h-7" />
             Locator Slip Logger
           </h2>
         </div>
 
         <!-- Content for Locator Slip Logger-->
-        <div class="p-4">
+        <div class="mt-4 p-4">
           <h2 class="mb-4 ml-4 text-2xl italic text-primary-700 dark:text-primary-700 md:ml-4">
             Locator Slip Form {{ payload.form_type.toUpperCase() }}
             <div v-if="payload.locator_slip_no" class="text-xl font-semibold uppercase text-success-600">

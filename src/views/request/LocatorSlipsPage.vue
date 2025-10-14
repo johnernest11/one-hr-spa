@@ -13,6 +13,7 @@ import DataTable from 'primevue/datatable'
 import Dialog from 'primevue/dialog'
 import InputText from 'primevue/inputtext'
 import InputGroup from 'primevue/inputgroup'
+import Skeleton from 'primevue/skeleton'
 import Paginator, { PageState } from 'primevue/paginator'
 import WbDropdown from '@/components/webkit/WbDropdown.vue'
 import WbAutoComplete, { WbAutoCompleteOption, WbAutoCompleteOptionTrueValue } from '@/components/webkit/WbAutoComplete.vue'
@@ -425,7 +426,7 @@ const handleSaveSubmissionif = async () => {
       <div class="mt-6 flex flex-col">
         <div class="w-full">
           <div
-            v-if="locatorSlipsStore.locatorSlip && locatorSlipsStore.locatorSlip.length > 0"
+            v-if="locatorSlipsStore.locatorSlip && locatorSlipsStore.locatorSlip.length > 0 && !locatorSlipsIsLoading"
             class="mx-auto flex h-full w-full flex-col"
           >
             <DataTable
@@ -493,7 +494,7 @@ const handleSaveSubmissionif = async () => {
               v-model:expanded-rows="expandedRows"
               :value="employeeGroups"
               :loading="locatorSlipsIsLoading"
-              class="mt-6"
+              class="main-locator-table mt-6"
               dataKey="id"
             >
               <Column expander style="width: 5rem" headerClass="bg-surface-100 border-surface-300 opacity-70" />
@@ -534,11 +535,7 @@ const handleSaveSubmissionif = async () => {
               </Column>
               <template #expansion="slotProps">
                 <DataTable scrollable scroll-height="400px" :value="slotProps.data.locator_slip" dataKey="id">
-                  <Column
-                    field="form_type"
-                    header="Locator Slip"
-                    headerClass="w-1/3 bg-surface-100 border-surface-300 opacity-100 font-bold"
-                  >
+                  <Column field="form_type" header="Locator Slip" headerClass="w-1/3 border-surface-300 opacity-100 font-bold">
                     <template #body="props">
                       <p class="font-semibold uppercase text-surface-600">
                         Locator Slip Form
@@ -549,12 +546,7 @@ const handleSaveSubmissionif = async () => {
                       </p>
                     </template>
                   </Column>
-                  <Column
-                    field="date"
-                    header="Period"
-                    sortable
-                    headerClass="w-80 bg-surface-100 border-surface-300 opacity-100 font-bold"
-                  >
+                  <Column field="date" header="Period" sortable headerClass="w-80 border-surface-300 opacity-100 font-bold">
                     <template #body="props">
                       <p class="uppercase text-surface-600">
                         {{ props.data.period }}
@@ -562,7 +554,7 @@ const handleSaveSubmissionif = async () => {
                       </p>
                     </template>
                   </Column>
-                  <Column field="action" header="Actions" headerClass="w-64 bg-surface-100 opacity-100 font-bold">
+                  <Column field="action" header="Actions" headerClass="w-64 border-surface-300 opacity-100 font-bold">
                     <template #body="props">
                       <div class="flex gap-4 whitespace-nowrap md:w-auto">
                         <Button
@@ -590,6 +582,40 @@ const handleSaveSubmissionif = async () => {
               </template>
             </DataTable>
           </div>
+          <!-- Skeleton Loader -->
+          <div v-else-if="locatorSlipsIsLoading">
+            <div class="flex w-full">
+              <div v-for="i in isHumanResourceActive ? 5 : 3" :key="i" class="mr-1 flex-1 px-2 py-3">
+                <Skeleton height="1.5rem" class="w-full" />
+              </div>
+            </div>
+
+            <div v-for="i in 5" :key="'row-' + i" class="flex w-full border-b border-surface-200 py-2">
+              <template v-if="isHumanResourceActive">
+                <div style="width: 5rem" class="flex flex-none items-center justify-center px-2">
+                  <Skeleton shape="circle" size="1.5rem" />
+                </div>
+                <div v-for="j in 5" :key="`hr-col-${i}-${j}`" class="mr-1 flex flex-1 items-center px-2">
+                  <Skeleton height="1rem" :width="j === 1 ? '70%' : '90%'" />
+                </div>
+              </template>
+
+              <template v-else>
+                <div class="flex w-1/3 flex-col justify-center px-2">
+                  <Skeleton height="1rem" width="60%" class="mb-1" />
+                  <Skeleton height="0.75rem" width="40%" />
+                </div>
+                <div class="flex w-80 flex-none items-center px-2">
+                  <Skeleton height="1rem" width="80%" />
+                </div>
+                <div class="flex w-80 flex-none items-start justify-end px-2">
+                  <Skeleton shape="circle" size="2.5rem" />
+                  <Skeleton shape="circle" size="2.5rem" />
+                </div>
+              </template>
+            </div>
+          </div>
+
           <div class="mt-6 flex w-full justify-center md:mt-10">
             <Paginator
               v-if="pagination && pagination.total > 0"
