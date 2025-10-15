@@ -21,7 +21,7 @@ import DataTable from 'primevue/datatable'
 import Dialog from 'primevue/dialog'
 import { useToast } from 'primevue/usetoast'
 import Card from 'primevue/card'
-import DSWDLogo from '@/assets/image/DSWD logo_Mark.png'
+import DSWDIcon from '@/assets/image/hrcares-icon.png'
 import FileUpload from 'primevue/fileupload'
 import WbInputText from '@/components/webkit/WbInputText.vue'
 import WbAutoComplete from '@/components/webkit/WbAutoComplete.vue'
@@ -488,7 +488,7 @@ watchEffect(() => {
         height: 350,
         type: 'canvas',
         data: fetchedQrCode.value.qr_code_value,
-        image: DSWDLogo,
+        image: DSWDIcon,
         dotsOptions: { color: '#000000', type: 'square' },
         backgroundOptions: { color: '#FFFFFF' },
         imageOptions: { crossOrigin: 'anonymous', margin: 5 },
@@ -509,7 +509,7 @@ watchEffect(() => {
         height: 500,
         type: 'canvas',
         data: fetchedQrCode.value.qr_code_value,
-        image: DSWDLogo,
+        image: DSWDIcon,
         dotsOptions: { color: '#000000', type: 'square' },
         backgroundOptions: { color: '#FFFFFF' },
         imageOptions: { crossOrigin: 'anonymous', margin: 5 },
