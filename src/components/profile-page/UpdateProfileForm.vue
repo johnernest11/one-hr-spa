@@ -299,12 +299,18 @@ const homeAddress = computed(() => {
       <!-- End City and Barangay -->
       <!-- Start Home Address and Zip Code -->
       <div class="flex flex-col gap-4 md:flex-row">
-        <WbInputText v-model="homeAddress" label="Home Address">
+        <WbInputText v-model="homeAddress" label="Home Address" readonly class="pointer-events-none cursor-default">
           <template #prepend-icon>
             <i class="pi pi-map" />
           </template>
         </WbInputText>
-        <WbInputMask v-model="payload.individual_address_init.residential_zip_code" label="Zip Code" mask="9999">
+        <WbInputMask
+          v-model="payload.individual_address_init.residential_zip_code"
+          label="Zip Code"
+          mask="9999"
+          readonly
+          class="pointer-events-none cursor-default"
+        >
           <template #prepend-icon>
             <i class="pi pi-map" />
           </template>
