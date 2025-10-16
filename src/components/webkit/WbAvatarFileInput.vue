@@ -2,14 +2,40 @@
 import Skeleton from 'primevue/skeleton'
 import Button from 'primevue/button'
 import { useAuthStore } from '@/stores/auth.store.ts'
-import { ref, watch } from 'vue'
+import { ref, watch, reactive, onMounted, computed } from 'vue'
 import { useImage } from '@vueuse/core'
 import { mimeTypeRule, maxFileSizeRule } from '@/utils/custom-validations.ts'
 import { useToast } from 'primevue/usetoast'
 import { useProfileStore } from '@/stores/profile.store.ts'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
+import { usePdsStore, PersonalDataSheetPayload } from '@/stores/pds.store.ts'
+import { PersonnelResponse } from '@/typings/models.types'
 
 const authStore = useAuthStore()
+const pdsStore = usePdsStore()
+
+/** Payload */
+const payload = reactive<PersonalDataSheetPayload>({
+  ...pdsStore.pdsInfo,
+})
+
+const isLoadingAvatar = ref(true)
+onMounted(async () => {
+  const id = authStore.authenticatedUser?.user_profile?.individual_basic_detail_id
+  if (id) {
+    const response = await pdsStore.fetchPdsById(id)
+    if (response?.success) {
+      const data = response.data as PersonnelResponse
+
+      pdsStore.updatePdsFromPersonnel(data)
+      Object.assign(payload, pdsStore.pdsInfo)
+    } else {
+      console.warn('Failed to fetch PDS or response unsuccessful.')
+    }
+  }
+  isLoadingAvatar.value = false
+})
+
 const imageSource = ref<string | undefined | null>(authStore.authenticatedUser?.user_profile?.profile_picture_url)
 const { isLoading } = useImage({ src: imageSource.value || '' })
 
@@ -96,6 +122,23 @@ const handleImageUpload = async () => {
     life: 8000,
   })
 }
+
+// Computed AvatarDisplayNamePlaceholder
+const AvatarDisplayNamePlaceholder = computed(() => {
+  const individual = payload.individual
+  if (!individual) return ''
+
+  const initials = [
+    ...(individual.first_name?.split(' ').map((n) => n[0]?.toUpperCase()) || []),
+    ...(individual.middle_name?.split(' ').map((n) => n[0]?.toUpperCase()) || []),
+    individual.last_name?.[0]?.toUpperCase() ?? '',
+    individual.ext_name?.[0]?.toUpperCase() ?? '',
+  ]
+    .filter(Boolean)
+    .join('')
+
+  return initials || ''
+})
 </script>
 
 <template>
@@ -114,7 +157,7 @@ const handleImageUpload = async () => {
           v-if="!imageSource"
           class="flex h-full w-full items-center justify-center rounded-lg bg-primary-500 text-3xl text-surface-0"
         >
-          {{ authStore.avatarDisplayNamePlaceholder }}
+          {{ AvatarDisplayNamePlaceholder }}
         </div>
         <button
           @click="handleBrowseImages"
