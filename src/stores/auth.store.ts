@@ -269,6 +269,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const logout = async () => {
+    console.log('Logging out...')
     await useApiCall('auth/tokens', authenticationToken.value).delete()
     authenticatedUser.value = null
     authenticationToken.value = null
@@ -278,8 +279,7 @@ export const useAuthStore = defineStore('auth', () => {
     mfaSteps.value = null
 
     if (refreshToken.value) {
-      refreshToken.value = null
-      refreshTokenExpiration.value = null
+      clearRefreshTokenOnStorage()
       refreshTokenExpired.value = false
     }
 
@@ -429,6 +429,7 @@ export const useAuthStore = defineStore('auth', () => {
         }
       } else {
         refreshTokenExpired.value = true
+        clearRefreshTokenOnStorage()
         clearScheduledRefresh()
         throw new Error(responseData.error_message)
       }
@@ -437,9 +438,26 @@ export const useAuthStore = defineStore('auth', () => {
     } catch (err) {
       console.error('Refresh token request failed', err)
       refreshTokenExpired.value = true
+      clearRefreshTokenOnStorage()
       clearScheduledRefresh()
       throw err
     }
+  }
+
+  const clearRefreshTokenOnStorage = () => {
+    console.log('Clearing refresh token from storage...')
+    refreshToken.value = null
+    refreshTokenExpiration.value = undefined
+    refreshTokenExpired.value = false
+  }
+
+  const clearAuthTokenOnStorage = () => {
+    console.log('Clearing authentication token from storage...')
+    authenticatedUser.value = null
+    authenticationToken.value = null
+    authenticationTokenExpiration.value = undefined
+    mfaToken.value = null
+    mfaSteps.value = null
   }
 
   /**
@@ -513,5 +531,6 @@ export const useAuthStore = defineStore('auth', () => {
     refreshCurrentTokens,
     scheduleTokenRefresh,
     clearScheduledRefresh,
+    clearAuthTokenOnStorage,
   }
 })

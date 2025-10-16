@@ -511,6 +511,17 @@ export type ViewDailyTimeRecordResponse = {
   time_log: Array<TimeLogResponse> | null | undefined
 } & Omit<ApiResponseData, 'id'>
 
+export type CalendarDay = {
+  date?: Date
+  day?: number
+  timeLog?: TimeLogResponse[] | null
+  status?: 'Present' | 'Absent' | 'Weekend'
+  isWeekend?: boolean
+  dayOfWeek?: number
+  empty?: boolean
+  dtrRecord?: ViewDailyTimeRecordResponse | null
+}
+
 export type ViewTimeLogsResponse = {
   dtr_date: string
   time_log_id: number
