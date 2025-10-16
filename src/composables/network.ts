@@ -38,7 +38,10 @@ export const useApiCall = (uri: string, authToken: string | null = null) => {
       const authToken = authStore.authenticationToken
       if (authToken && ctx?.data?.error_code === 'UNAUTHORIZED_ERROR' && ctx?.response?.status === 401) {
         const authStore = useAuthStore()
-        if (authStore.authenticatedUser !== null) authStore.authExpired = true
+        if (authStore.authenticatedUser !== null) {
+          authStore.clearAuthTokenOnStorage()
+          authStore.authExpired = true
+        }
       }
 
       // Handle Rate limit
