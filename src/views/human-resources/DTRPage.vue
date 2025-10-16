@@ -13,7 +13,7 @@ import Card from 'primevue/card'
 import WbAutoComplete from '@/components/webkit/WbAutoComplete.vue'
 import { WbAutoCompleteOption, WbAutoCompleteOptionTrueValue } from '@/components/webkit/WbAutoComplete.vue'
 import { useWbAutoCompleteHandleTrueValue } from '@/composables/wb-ui-components.ts'
-import { ApiResponsePagination } from '@/typings/http-resources.types.ts'
+import { ApiResponseBody, ApiResponsePagination } from '@/typings/http-resources.types.ts'
 import Paginator, { PageState } from 'primevue/paginator'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { usePrependOrAppendOnce } from '@/utils/helpers.js'
@@ -76,7 +76,18 @@ onBeforeMount(async () => {
 const handlePaginationPageChange = async (event: PageState) => {
   const pageSelected = event.page + 1
   dailyTimeRecordIsLoading.value = true
-  const response = await personnelStore.fetchEmployees(paginationLimit, pageSelected)
+
+  let response: ApiResponseBody
+  if (searchSubmitted.value) {
+    response = await personnelStore.filterEmployees(
+      payload.division ?? undefined,
+      payload.section ?? undefined,
+      pagination.value?.per_page ?? 5,
+      pageSelected
+    )
+  } else {
+    response = await personnelStore.fetchEmployees(pagination.value?.per_page ?? 5, pageSelected)
+  }
   if (response.success && response.pagination) {
     pagination.value = response.pagination
   }
@@ -98,7 +109,11 @@ const handleFilterDailyTimeRecord = async () => {
     dailyTimeRecordIsLoading.value = false
     return
   }
-  const response = await personnelStore.filterEmployees(payload.division ?? undefined, payload.section ?? undefined)
+  const response = await personnelStore.filterEmployees(
+    payload.division ?? undefined,
+    payload.section ?? undefined,
+    pagination.value?.per_page ?? 5
+  )
 
   if (response.success && response.pagination) {
     pagination.value = response.pagination
