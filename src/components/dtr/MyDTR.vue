@@ -555,14 +555,16 @@ const exportToPDF = async (
             size="small"
             class="mb-2 ml-4 md:mb-0 md:ml-0"
           />
-          <h2 class="mb-2 ml-4 text-3xl text-surface-600 dark:text-primary-100 md:ml-4">
-            <font-awesome-icon :icon="['fas', 'calendar']" class="h-5 text-surface-600 sm:h-6 md:h-7" />
-            {{ route.params.id ? '' : 'My ' }}Daily Time Record (DTR) for
-            {{ getMonthAndYear(monthDate) }}
-            <br />
-            <span v-if="currentEmployee" class="ml-4 text-lg text-surface-600 md:text-xl lg:text-2xl">
-              {{ currentEmployee.last_name }} , {{ currentEmployee.first_name }} {{ currentEmployee.middle_name }}
+          <h2 class="mb-2 ml-4 flex flex-col text-3xl text-surface-600 dark:text-primary-100 md:ml-4">
+            <div class="flex items-center gap-2">
+              <font-awesome-icon :icon="['fas', 'calendar']" class="h-5 text-surface-600 sm:h-6 md:h-7" />
+              <span> {{ route.params.id ? '' : 'My ' }}Daily Time Record (DTR) for {{ getMonthAndYear(monthDate) }} </span>
+            </div>
+
+            <span v-if="!isLoading && currentEmployee" class="ml-4 text-lg text-surface-600 md:text-xl lg:text-2xl">
+              {{ currentEmployee.last_name }}, {{ currentEmployee.first_name }} {{ currentEmployee.middle_name }}
             </span>
+            <span v-else class="ml-4 h-5 w-48 animate-pulse rounded bg-surface-300 dark:bg-surface-700"></span>
           </h2>
         </div>
 
