@@ -713,23 +713,6 @@ watch(isSameResidential, (newVal) => {
     v.individual_address_init.residential_province_id.$touch()
     v.individual_address_init.residential_region_id.$touch()
 
-    // Check if any field is invalid
-    const anyInvalid =
-      v.individual_address_init.residential_house_block_lot_no.$invalid ||
-      v.individual_address_init.residential_street.$invalid ||
-      v.individual_address_init.residential_subdivision_village.$invalid ||
-      v.individual_address_init.residential_zip_code.$invalid ||
-      v.individual_address_init.residential_brgy_id.$invalid ||
-      v.individual_address_init.residential_citymun_id.$invalid ||
-      v.individual_address_init.residential_province_id.$invalid ||
-      v.individual_address_init.residential_region_id.$invalid
-
-    if (anyInvalid) {
-      showToast('error', 'Validation Error', 'Please complete your residential address first.')
-      isSameResidential.value = false
-      return
-    }
-
     selectedPermanentRegion.value = selectedResidentialRegion.value
     selectedPermanentProvince.value = selectedResidentialProvince.value
     selectedPermanentCity.value = selectedResidentialCity.value

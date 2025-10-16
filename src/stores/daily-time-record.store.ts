@@ -78,28 +78,26 @@ export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => 
     dtr: [],
   })
 
-  const fetchDailyTimeRecordsByMonth = async (date: Date, limit = 31) => {
-    const individual = auth.authenticatedUser.user_profile?.individual_basic_detail as PersonnelResponse
-    if (!individual) {
-      throw new Error('The current user has no individual basic detail linked to it.')
-    }
+  const fetchDailyTimeRecordsByMonth = async (date: Date, limit = 31, employeeId?: string | number) => {
+    const auth = useAuthStore()
 
-    if (!individual.employee) {
-      throw new Error('The current user has no employee data linked to it.')
+    // Use passed employeeId, fallback to authenticated user
+    const id = employeeId ?? auth.authenticatedUser.user_profile?.individual_basic_detail?.employee?.id
+
+    if (!id) {
+      throw new Error('No employee ID provided or linked to the current user.')
     }
 
     const year = date.getFullYear()
     const month = String(date.getMonth() + 1).padStart(2, '0')
     const formattedMonthYear = `${year}-${month}`
 
-    let uri = `/employees/${individual.employee?.id}/daily-time-records/view-dtr?limit=${limit}&`
-    if (formattedMonthYear) uri += `month=${formattedMonthYear}&`
+    const uri = `/employees/${id}/daily-time-records/view-dtr?limit=${limit}&month=${formattedMonthYear}`
 
     const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
     const responseBody: ApiResponseBody = data.value
 
     if (responseBody.success && Array.isArray(responseBody.data)) {
-      viewDailyTimeRecords.value = []
       viewDailyTimeRecords.value = responseBody.data as ViewDailyTimeRecordResponse[]
     }
 

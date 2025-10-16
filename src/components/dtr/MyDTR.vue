@@ -68,12 +68,10 @@ onMounted(async () => {
 
   isLoading.value = true
 
-  if (id) {
-    await dailyTimeRecordsStore.fetchDailyTimeRecordsByEmployee(id)
-  }
-  await dailyTimeRecordsStore.fetchDailyTimeRecords()
+  await dailyTimeRecordsStore.fetchDailyTimeRecordsByMonth(monthDate.value, 31, selectedEmployeeId.value || undefined)
 
-  await handleViewDtr()
+  await handleViewDtr(selectedEmployeeId.value || undefined)
+
   isLoading.value = false
 })
 
@@ -124,9 +122,9 @@ const isLocatorSlip = (log: TimeLogResponse, allLogs: TimeLogResponse[]): boolea
 const normalizeTimeKey = (dtrTimeLogs: string, date: Date | string | null) =>
   `${dtrTimeLogs}-${date ? new Date(date).toISOString().slice(0, 10) : 'no-date'}`
 
-const handleViewDtr = async () => {
+const handleViewDtr = async (employeeId?: string | number) => {
   try {
-    const response = await dailyTimeRecordsStore.fetchDailyTimeRecordsByMonth(monthDate.value)
+    const response = await dailyTimeRecordsStore.fetchDailyTimeRecordsByMonth(monthDate.value, 31, employeeId)
     if (response && response.success && Array.isArray(response.data)) {
       allDailyTimeRecordsData.value = dailyTimeRecordsStore.viewDailyTimeRecords
 

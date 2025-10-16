@@ -345,7 +345,18 @@ const toggleAddingList = (event: Event) => {
 const handlePaginationPageChange = async (event: PageState) => {
   const pageSelected = event.page + 1
   itemNumberIsLoading.value = true
-  const response = await personnelStore.fetchEmployees(paginationLimit, pageSelected)
+
+  let response: ApiResponseBody
+  if (searchSubmitted.value) {
+    response = await personnelStore.filterEmployees(
+      payload.division ?? undefined,
+      payload.section ?? undefined,
+      pagination.value?.per_page ?? 5,
+      pageSelected
+    )
+  } else {
+    response = await personnelStore.fetchEmployees(pagination.value?.per_page ?? 5, pageSelected)
+  }
   if (response.success && response.pagination) {
     pagination.value = response.pagination
   }
@@ -367,7 +378,11 @@ const handleFilterItemNumber = async () => {
     itemNumberIsLoading.value = false
     return
   }
-  const response = await personnelStore.filterEmployees(payload.division ?? undefined, payload.section ?? undefined)
+  const response = await personnelStore.filterEmployees(
+    payload.division ?? undefined,
+    payload.section ?? undefined,
+    pagination.value?.per_page ?? 5
+  )
 
   if (response.success && response.pagination) {
     pagination.value = response.pagination
