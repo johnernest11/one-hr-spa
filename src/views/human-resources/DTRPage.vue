@@ -195,49 +195,65 @@ const handleSearchEmployee = async () => {
               v-if="personnelStore.employees && personnelStore.employees.length > 0"
               class="mx-auto flex h-full w-full flex-col"
             >
-              <DataTable
-                :value="personnelStore.employees"
-                stripedRows
-                class="mt-6"
-                dataKey="id"
-                :loading="dailyTimeRecordIsLoading"
-              >
+              <DataTable :value="personnelStore.employees" stripedRows class="mt-6" dataKey="id">
                 <Column
                   field="period"
                   header="EMPLOYEE NAME"
                   headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
                 >
                   <template #body="props">
-                    <p class="font-semibold uppercase text-surface-500">
-                      {{ props.data.first_name }} {{ props.data.middle_name ?? null }} {{ props.data.last_name }}
-                      {{ props.data.ext_name ?? null }}
-                    </p>
-                    <p class="font-semibold uppercase text-surface-500">
-                      {{ props.data.employee?.item?.number ?? '' }}
-                    </p>
+                    <div v-if="!dailyTimeRecordIsLoading">
+                      <p class="font-semibold uppercase text-surface-500">
+                        {{ props.data.first_name }} {{ props.data.middle_name ?? '' }} {{ props.data.last_name }}
+                        {{ props.data.ext_name ?? '' }}
+                      </p>
+                      <p class="font-semibold uppercase text-surface-500">
+                        {{ props.data.employee?.item?.number ?? '' }}
+                      </p>
+                    </div>
+                    <div v-else class="space-y-1">
+                      <div class="h-4 w-32 rounded bg-surface-300 dark:bg-surface-700"></div>
+                      <div class="h-4 w-20 rounded bg-surface-300 dark:bg-surface-700"></div>
+                    </div>
                   </template>
                 </Column>
+
                 <Column
                   field="employee.division.name"
                   header="POSITION / DESIGNATION"
                   headerClass=" w-80 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
                 >
+                  <template #body="props">
+                    <div v-if="!dailyTimeRecordIsLoading">{{ props.data.employee?.division?.name }}</div>
+                    <div v-else class="h-4 w-40 rounded bg-surface-300 dark:bg-surface-700"></div>
+                  </template>
                 </Column>
+
                 <Column
                   field="employee.division.name"
                   header="DIVISION"
                   headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
                 >
+                  <template #body="props">
+                    <div v-if="!dailyTimeRecordIsLoading">{{ props.data.employee?.division?.name }}</div>
+                    <div v-else class="h-4 w-32 rounded bg-surface-300 dark:bg-surface-700"></div>
+                  </template>
                 </Column>
+
                 <Column
                   field="employee.section_or_unit.name"
                   header="SECTION / UNIT"
                   headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
                 >
+                  <template #body="props">
+                    <div v-if="!dailyTimeRecordIsLoading">{{ props.data.employee?.section_or_unit?.name }}</div>
+                    <div v-else class="h-4 w-32 rounded bg-surface-300 dark:bg-surface-700"></div>
+                  </template>
                 </Column>
+
                 <Column field="action" header="ACTION" headerClass="w-64 bg-surface-100 opacity-70 font-bold py-2">
                   <template #body="props">
-                    <div class="flex gap-4 whitespace-nowrap md:w-auto">
+                    <div v-if="!dailyTimeRecordIsLoading" class="flex gap-4 whitespace-nowrap md:w-auto">
                       <Button
                         icon="pi pi-eye"
                         v-tooltip.top="'View Employee Daily Time Records'"
@@ -247,6 +263,7 @@ const handleSearchEmployee = async () => {
                         @click="navigateToDetails(props.data)"
                       />
                     </div>
+                    <div v-else class="h-6 w-10 rounded bg-surface-300 dark:bg-surface-700"></div>
                   </template>
                 </Column>
               </DataTable>

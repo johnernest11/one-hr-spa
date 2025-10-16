@@ -657,37 +657,58 @@ const downloadQrCode = async () => {
               v-if="personnelStore.employees && personnelStore.employees.length > 0"
               class="mx-auto flex h-full w-full flex-col"
             >
-              <DataTable :value="personnelStore.employees" stripedRows class="mt-6" dataKey="id" :loading="itemNumberIsLoading">
+              <DataTable :value="personnelStore.employees" stripedRows class="mt-6" dataKey="id">
+                <!-- Item Numbers Column -->
                 <Column
                   field="period"
                   header="Item Numbers"
                   headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
                 >
                   <template #body="props">
-                    <p class="font-semibold uppercase text-surface-500">
-                      {{ props.data.first_name }} {{ props.data.middle_name ?? null }} {{ props.data.last_name }}
-                      {{ props.data.ext_name ?? null }}
-                    </p>
-                    <p class="font-semibold uppercase text-surface-500">
-                      {{ props.data.employee?.item?.number ?? 'N/A' }}
-                    </p>
+                    <div v-if="!itemNumberIsLoading">
+                      <p class="font-semibold uppercase text-surface-500">
+                        {{ props.data.first_name }} {{ props.data.middle_name ?? '' }} {{ props.data.last_name }}
+                        {{ props.data.ext_name ?? '' }}
+                      </p>
+                      <p class="font-semibold uppercase text-surface-500">
+                        {{ props.data.employee?.item?.number ?? 'N/A' }}
+                      </p>
+                    </div>
+                    <div v-else class="space-y-1">
+                      <div class="h-4 w-32 rounded bg-surface-300 dark:bg-surface-700"></div>
+                      <div class="h-4 w-20 rounded bg-surface-300 dark:bg-surface-700"></div>
+                    </div>
                   </template>
                 </Column>
+
+                <!-- Position / Designation Column -->
                 <Column
                   field="employee.item.position.title"
                   header="Position / Designation"
-                  headerClass=" w-80 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
+                  headerClass="w-80 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
                 >
+                  <template #body="props">
+                    <div v-if="!itemNumberIsLoading">{{ props.data.employee?.item?.position?.title ?? 'N/A' }}</div>
+                    <div v-else class="h-4 w-40 rounded bg-surface-300 dark:bg-surface-700"></div>
+                  </template>
                 </Column>
+
+                <!-- Email Address Column -->
                 <Column
                   field="individual_contact_info.email_address"
                   header="Email Address"
                   headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
                 >
+                  <template #body="props">
+                    <div v-if="!itemNumberIsLoading">{{ props.data.individual_contact_info?.email_address ?? 'N/A' }}</div>
+                    <div v-else class="h-4 w-40 rounded bg-surface-300 dark:bg-surface-700"></div>
+                  </template>
                 </Column>
+
+                <!-- Actions Column -->
                 <Column field="action" header="Actions" headerClass="w-64 bg-surface-100 opacity-70 font-bold py-2">
                   <template #body="props">
-                    <div class="flex gap-4 whitespace-nowrap md:w-auto">
+                    <div v-if="!itemNumberIsLoading" class="flex gap-4 whitespace-nowrap md:w-auto">
                       <Button
                         icon="pi pi-eye"
                         v-tooltip.top="'View Employee'"
@@ -705,6 +726,10 @@ const downloadQrCode = async () => {
                         text
                         @click="openQrModal(props.data)"
                       />
+                    </div>
+                    <div v-else class="flex gap-4">
+                      <div class="h-6 w-10 rounded bg-surface-300 dark:bg-surface-700"></div>
+                      <div v-if="canCreateNewEmployee" class="h-6 w-10 rounded bg-surface-300 dark:bg-surface-700"></div>
                     </div>
                   </template>
                 </Column>
