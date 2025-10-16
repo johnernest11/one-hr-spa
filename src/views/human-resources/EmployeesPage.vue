@@ -10,6 +10,7 @@ import { helpers, required, maxLength } from '@vuelidate/validators'
 import type { PersonnelEmployee, PersonnelResponse, QrCodeResponse, ItemNumberResponse } from '@/typings/models.types'
 
 import QRCodeStyling from 'qr-code-styling'
+import * as domToImage from 'dom-to-image-more'
 import Message from 'primevue/message'
 import Button from 'primevue/button'
 import Menu from 'primevue/menu'
@@ -20,7 +21,7 @@ import DataTable from 'primevue/datatable'
 import Dialog from 'primevue/dialog'
 import { useToast } from 'primevue/usetoast'
 import Card from 'primevue/card'
-import DSWDLogo from '@/assets/image/DSWD logo_Mark.png'
+import DSWDIcon from '@/assets/image/hrcares-icon.png'
 import FileUpload from 'primevue/fileupload'
 import WbInputText from '@/components/webkit/WbInputText.vue'
 import WbAutoComplete from '@/components/webkit/WbAutoComplete.vue'
@@ -48,7 +49,6 @@ const itemNumberIsLoading = ref(false)
 const searchSubmitted = ref(false)
 const showModal = ref(false)
 const showQrModal = ref(false)
-const selectedEmployeeForQr = ref()
 const qrCodeIsLoading = ref(false)
 const isPositionLoading = ref(false)
 const formIsSubmitting = ref(false)
@@ -70,6 +70,13 @@ const paginationLimit = 5
 const fileUploadRef = ref()
 const menu = ref()
 const toast = useToast()
+
+const qrCardRef = ref<HTMLElement | null>(null)
+const qrContainerRef = ref<HTMLElement | null>(null)
+const hiddenQrCardRef = ref<HTMLElement | null>(null)
+const hiddenQrContainerRef = ref<HTMLElement | null>(null)
+const selectedEmployeeForQr = ref<PersonnelResponse | null>(null)
+const canDownload = ref(false)
 
 const items = ref([
   {
@@ -107,13 +114,11 @@ const selectedItemNo = ref<WbAutoCompleteOption[] | null>(null)
 const selectedSalaryGrade = ref<WbAutoCompleteOption[] | null>(null)
 const selectedOffice = ref<WbAutoCompleteOption[] | null>(null)
 
-/** Payload */
 const payload = reactive<FilterEmployeePayload>({
   division: null,
   section: null,
 })
 
-/** import Payload */
 const importPayload = reactive<PersonalDataSheetPayload>({
   ...pdsStore.pdsInfo,
 })
@@ -131,7 +136,6 @@ const globalStringMaxLengthRule = helpers.withMessage(
 
 const formRules = computed(() => ({
   $lazy: true,
-  /** User Profile */
   employee: {
     item_id: {
       required: helpers.withMessage('Please choose the Item Number of this employee', required),
@@ -427,7 +431,6 @@ const employeeHasIdNumber = (response: ApiResponseBody): boolean => {
   return true
 }
 
-const canDownload = ref(false)
 const handleViewQr = async (employee: PersonnelEmployee): Promise<QrCodeResponse> => {
   qrCodeIsLoading.value = true
   canDownload.value = false
@@ -455,8 +458,9 @@ const handleViewQr = async (employee: PersonnelEmployee): Promise<QrCodeResponse
   return response.data as QrCodeResponse
 }
 
-const qrContainerRef = ref<HTMLElement | null>(null)
-let qrCode: QRCodeStyling | null = null
+let qrCodeDisplay: QRCodeStyling | null = null
+let qrCodeDownload: QRCodeStyling | null = null
+
 const closeQrModal = () => {
   showQrModal.value = false
   selectedEmployeeForQr.value = null
@@ -465,80 +469,107 @@ const closeQrModal = () => {
   if (qrContainerRef.value) {
     qrContainerRef.value.innerHTML = ''
   }
-  qrCode = null
+  if (hiddenQrContainerRef.value) {
+    hiddenQrContainerRef.value.innerHTML = ''
+  }
+  qrCodeDisplay = null
+  qrCodeDownload = null
 }
 
 watchEffect(() => {
-  if (showQrModal.value && qrContainerRef.value && fetchedQrCode.value?.qr_code_value) {
-    if (!qrCode) {
-      qrCode = new QRCodeStyling({
+  if (!showQrModal.value || !fetchedQrCode.value?.qr_code_value) {
+    return
+  }
+
+  if (qrContainerRef.value) {
+    if (!qrCodeDisplay) {
+      qrCodeDisplay = new QRCodeStyling({
         width: 350,
         height: 350,
         type: 'canvas',
-        data: fetchedQrCode.value?.qr_code_value,
-        image: DSWDLogo,
-        dotsOptions: {
-          color: '#000000',
-          type: 'square',
-        },
-        backgroundOptions: {
-          color: '#FFFFFF',
-        },
-        imageOptions: {
-          crossOrigin: 'anonymous',
-          margin: 5,
-        },
-        qrOptions: {
-          errorCorrectionLevel: 'H',
-        },
-        cornersSquareOptions: {
-          type: 'square',
-          color: '#000000',
-        },
-        cornersDotOptions: {
-          type: 'square',
-          color: '#000000',
-        },
+        data: fetchedQrCode.value.qr_code_value,
+        image: DSWDIcon,
+        dotsOptions: { color: '#000000', type: 'square' },
+        backgroundOptions: { color: '#FFFFFF' },
+        imageOptions: { crossOrigin: 'anonymous', margin: 5 },
+        qrOptions: { errorCorrectionLevel: 'H' },
+        cornersSquareOptions: { type: 'square', color: '#000000' },
+        cornersDotOptions: { type: 'square', color: '#000000' },
       })
-      qrCode.append(qrContainerRef.value)
+      qrCodeDisplay.append(qrContainerRef.value)
     } else {
-      qrCode.update({
-        data: fetchedQrCode.value?.qr_code_value,
-        image: DSWDLogo,
-        dotsOptions: {
-          type: 'square',
-        },
-        cornersSquareOptions: {
-          type: 'square',
-          color: '#000000',
-        },
-        cornersDotOptions: {
-          type: 'square',
-          color: '#000000',
-        },
+      qrCodeDisplay.update({ data: fetchedQrCode.value.qr_code_value })
+    }
+  }
+
+  if (hiddenQrContainerRef.value) {
+    if (!qrCodeDownload) {
+      qrCodeDownload = new QRCodeStyling({
+        width: 500,
+        height: 500,
+        type: 'canvas',
+        data: fetchedQrCode.value.qr_code_value,
+        image: DSWDIcon,
+        dotsOptions: { color: '#000000', type: 'square' },
+        backgroundOptions: { color: '#FFFFFF' },
+        imageOptions: { crossOrigin: 'anonymous', margin: 5 },
+        qrOptions: { errorCorrectionLevel: 'H' },
+        cornersSquareOptions: { type: 'square', color: '#000000' },
+        cornersDotOptions: { type: 'square', color: '#000000' },
       })
+      qrCodeDownload.append(hiddenQrContainerRef.value)
+    } else {
+      qrCodeDownload.update({ data: fetchedQrCode.value.qr_code_value })
     }
   }
 })
 
-const formatName = (first_name: string, middle_name: string, last_name: string) => {
-  const f = first_name?.charAt(0).toLowerCase() || ''
-  const m = middle_name?.charAt(0).toLowerCase() || ''
-  const l = last_name?.toLowerCase() || ''
-
-  return `${f}${m}${l}`
-}
-
 const downloadQrCode = async () => {
-  if (qrCode && selectedEmployeeForQr.value) {
-    const formattedName = formatName(
-      selectedEmployeeForQr.value.first_name,
-      selectedEmployeeForQr.value.middle_name,
-      selectedEmployeeForQr.value.last_name
-    )
-    await qrCode.download({
-      name: `${formattedName}-QR`,
-      extension: 'png',
+  const node = hiddenQrCardRef.value
+  const employee = selectedEmployeeForQr.value
+
+  if (!node || !employee) {
+    console.error('Node or employee data missing for QR download.')
+    return
+  }
+
+  if (!hiddenQrContainerRef.value?.firstChild) {
+    console.error('Hidden QR code element not yet rendered.')
+    toast.add({
+      severity: 'warn',
+      summary: 'Render Pending',
+      detail: 'QR code not fully generated. Please wait a moment and try again.',
+      life: 3000,
+    })
+    return
+  }
+
+  const filename = `${employee.last_name}_QRCard.png`
+
+  try {
+    const dataUrl = await domToImage.toPng(node, {
+      quality: 0.95,
+      bgcolor: 'white',
+    })
+
+    const link = document.createElement('a')
+    link.download = filename
+    link.href = dataUrl
+    link.click()
+
+    toast.add({
+      severity: 'success',
+      summary: 'Download Successful',
+      detail: `QR Card downloaded as ${filename}.`,
+      life: 3000,
+    })
+  } catch (error) {
+    console.error('Error generating QR card image with dom-to-image:', error)
+    toast.add({
+      severity: 'error',
+      summary: 'Download Failed',
+      detail: 'Could not generate the QR image. The image library failed to capture the element.',
+      life: 7000,
     })
   }
 }
@@ -1084,73 +1115,155 @@ const downloadQrCode = async () => {
         </div>
       </div>
     </Dialog>
+
     <!-- Modal of QR -->
-    <Dialog
-      v-model:visible="showQrModal"
-      modal
-      :draggable="false"
-      :dismissableMask="true"
-      :closable="false"
-      class="w-[90vw] max-w-md rounded-lg bg-surface-0 p-6 shadow-xl dark:bg-surface-800"
-      :pt="{
-        mask: {
-          style: 'backdrop-filter: blur(4px)',
-        },
-      }"
-    >
-      <template #container="{}">
-        <div class="rounded-lg bg-surface-0 p-6 dark:bg-surface-800">
-          <div class="mb-4 flex items-center justify-between">
-            <h2 class="text-xl font-semibold text-surface-500 dark:text-surface-0">
-              <FontAwesomeIcon icon="fa-solid fa-qrcode" /> QR CODE Generation
-            </h2>
-            <button
-              @click="closeQrModal"
-              class="text-surface-400 hover:text-surface-600 dark:text-surface-300 dark:hover:text-surface-500"
-            >
-              <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-              </svg>
-            </button>
+    <template>
+      <Dialog v-model:visible="showQrModal" modal :style="{ width: '50vw' }" @hide="closeQrModal">
+        <template #header>
+          <div class="flex items-center space-x-3 pt-4 sm:px-6 md:px-8">
+            <font-awesome-icon icon="qrcode" class="h-6 text-surface-600 sm:h-7 md:h-8" />
+            <h1 class="font-base text-2xl text-surface-600 sm:text-xl md:text-2xl">Employee QR Code</h1>
+          </div>
+        </template>
+        <hr />
+
+        <div
+          v-if="selectedEmployeeForQr"
+          ref="qrCardRef"
+          class="mx-auto flex w-full max-w-sm flex-col items-center bg-white p-6 text-center sm:max-w-md"
+        >
+          <div class="mb-4 flex w-full flex-col items-center">
+            <img src="@/assets/image/dswd-logo.png" alt="DSWD Logo" class="object-contain" />
           </div>
 
-          <div v-if="selectedEmployeeForQr" class="text-left">
-            <div class="mb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div class="text-center md:w-1/2 md:text-left">
-                <p class="text-lg font-bold uppercase text-surface-500 dark:text-surface-0">
-                  {{ selectedEmployeeForQr.last_name }}, {{ selectedEmployeeForQr.first_name }}
-                  {{ selectedEmployeeForQr.middle_name ? selectedEmployeeForQr.middle_name + ' ' : '' }}
-                  {{ selectedEmployeeForQr.ext_name ? selectedEmployeeForQr.ext_name : '' }}
-                </p>
-                <p class="text-sm text-surface-600 dark:text-surface-300">
-                  {{ selectedEmployeeForQr.employee?.item?.position?.title || '' }}
-                </p>
-                <p class="text-sm text-surface-600 dark:text-surface-300">
-                  {{ selectedEmployeeForQr.employee?.item?.number || '' }}
-                </p>
-              </div>
-              <div class="font-semibold md:w-1/2">
-                <Button
-                  @click="downloadQrCode"
-                  severity="info"
-                  type="button"
-                  size="large"
-                  :disabled="!canDownload"
-                  class="dark:text-secondary-100 bottom-0 right-0 mt-4 w-full border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
-                  text
-                >
-                  <FontAwesomeIcon icon="fa-solid fa-download" class="mr-2" /> Download QR Code
-                </Button>
-              </div>
-            </div>
+          <div class="mb-2 w-full">
+            <p class="text-lg font-extrabold uppercase leading-tight text-gray-900 sm:text-xl">
+              {{ selectedEmployeeForQr.last_name }}, {{ selectedEmployeeForQr.first_name }}
+              {{ selectedEmployeeForQr.middle_name ? selectedEmployeeForQr.middle_name + ' ' : '' }}
+              {{ selectedEmployeeForQr.ext_name ? selectedEmployeeForQr.ext_name : '' }}
+            </p>
+          </div>
+          <div class="mb-4 w-full">
+            <p class="mt-1 text-xs font-medium uppercase text-gray-700 sm:text-sm">
+              {{ selectedEmployeeForQr.employee?.item?.position?.title || '' }}
+            </p>
+          </div>
 
-            <div ref="qrContainerRef" v-if="!qrCodeIsLoading" class="my-6 flex justify-center"></div>
-            <div v-if="qrCodeIsLoading" class="my-6 flex justify-center">
-              <i class="pi pi-spinner animate-spin text-2xl text-surface-400" />
-            </div>
+          <div
+            v-if="!qrCodeIsLoading"
+            ref="qrContainerRef"
+            class="flex h-[250px] w-[250px] justify-center bg-white sm:h-[300px] sm:w-[300px] md:h-[350px] md:w-[350px]"
+          ></div>
+
+          <div v-else class="my-6 flex justify-center">
+            <i class="pi pi-spinner animate-spin text-2xl text-surface-400" />
           </div>
         </div>
-      </template>
-    </Dialog>
+
+        <div class="mx-auto mt-6 w-full max-w-xs" v-if="canDownload && !qrCodeIsLoading">
+          <Button
+            @click="downloadQrCode"
+            severity="info"
+            type="button"
+            size="large"
+            :disabled="!canDownload"
+            class="w-full border-2 border-primary-500 text-base font-semibold transition-colors hover:bg-primary-50"
+            text
+          >
+            <FontAwesomeIcon icon="fa-solid fa-download" class="mr-2" /> Download QR Card
+          </Button>
+        </div>
+      </Dialog>
+
+      <div
+        v-if="selectedEmployeeForQr"
+        ref="hiddenQrCardRef"
+        style="
+          position: absolute;
+          left: -9999px;
+          width: 650px;
+          height: 900px;
+          background-color: white;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+          padding: 40px;
+          box-sizing: border-box;
+          border: 0 !important;
+          box-shadow: none !important;
+          outline: none !important;
+        "
+      >
+        <div
+          style="
+            margin-bottom: 30px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            border: 0 !important;
+            box-shadow: none !important;
+            outline: none !important;
+          "
+        >
+          <img
+            src="@/assets/image/dswd-logo.png"
+            alt="DSWD Logo"
+            style="width: 412.5px; height: auto; object-fit: contain; border: 0 !important; box-shadow: none !important"
+          />
+        </div>
+
+        <div style="margin-bottom: 5px; width: 100%; border: 0 !important; box-shadow: none !important; outline: none !important">
+          <div style="background-color: white !important; padding: 5px 20px; border: 0 !important">
+            <p
+              style="
+                font-size: 32px;
+                font-weight: 900;
+                text-transform: uppercase;
+                color: #1f2937;
+                line-height: 1.2;
+                border: 0 !important;
+              "
+            >
+              {{ selectedEmployeeForQr.last_name }}, {{ selectedEmployeeForQr.first_name }}
+              {{ selectedEmployeeForQr.middle_name ? selectedEmployeeForQr.middle_name + ' ' : '' }}
+              {{ selectedEmployeeForQr.ext_name ? selectedEmployeeForQr.ext_name : '' }}
+            </p>
+          </div>
+        </div>
+
+        <div
+          style="margin-bottom: 30px; width: 100%; border: 0 !important; box-shadow: none !important; outline: none !important"
+        >
+          <div style="background-color: white !important; padding: 5px 20px; border: 0 !important">
+            <p
+              style="
+                font-size: 22px;
+                font-weight: 500;
+                text-transform: uppercase;
+                color: #1f2937;
+                line-height: 1.2;
+                border: 0 !important;
+              "
+            >
+              {{ selectedEmployeeForQr.employee?.item?.position?.title || '' }}
+            </p>
+          </div>
+        </div>
+
+        <div
+          v-if="!qrCodeIsLoading"
+          ref="hiddenQrContainerRef"
+          style="
+            display: flex;
+            justify-content: center;
+            background-color: white;
+            width: 500px;
+            height: 500px;
+            border: 0 !important;
+          "
+        ></div>
+      </div>
+    </template>
   </div>
 </template>
