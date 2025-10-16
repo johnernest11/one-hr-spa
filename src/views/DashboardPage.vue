@@ -26,6 +26,7 @@ import Paginator, { PageState } from 'primevue/paginator'
 import { useAccomplishmentReportStore } from '@/stores/personnel-accomplishment-report.store'
 import { useLocatorSlipStore } from '@/stores/locator-slip.store'
 import WbCalendar from '@/components/webkit/WbCalendar.vue'
+import HappyBirthdayGreetingPage from './misc/HappyBirthdayGreetingPage.vue'
 
 const pdsStore = usePdsStore()
 const accomplishmentReportStore = useAccomplishmentReportStore()
@@ -50,7 +51,7 @@ const intervalId = ref<number | undefined>(undefined)
 
 const updateDateTime = () => {
   const now = new Date()
-  const optionsDate = { timeZone: 'Asia/Manila', weekday: 'long', month: 'long', day: 'numeric' } as const
+  const optionsDate = { timeZone: 'Asia/Manila', weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' } as const
   const optionsTime = { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true } as const
 
   currentDate.value = now.toLocaleDateString('en-PH', optionsDate)
@@ -188,6 +189,22 @@ const fullName = computed(() => {
   return [individual.first_name, individual.middle_name, individual.last_name, individual.ext_name].filter(Boolean).join(' ')
 })
 
+/** Computed Birthday */
+const isMyBirthday = computed(() => {
+  const dateStr = payload.individual?.birthday
+  if (!dateStr) return false // return boolean, not string
+
+  const date = new Date(dateStr)
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const birthMonthDay = `${month}-${day}`
+
+  const today = new Date()
+  const todayMonthDay = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+
+  return birthMonthDay === todayMonthDay
+})
+
 /** Computed property to get greeting based on time */
 const greeting = computed(() => {
   const hour = new Date().getHours()
@@ -282,17 +299,19 @@ onBeforeMount(async () => {
     <h1
       class="mb-4 mt-2 flex items-center justify-between text-lg font-semibold uppercase text-primary-800 dark:text-surface-400 md:mt-1"
     >
-      <!-- Right: Greeting + Full Name -->
-      <span>{{ greeting }} {{ fullName }}</span>
+      <!-- Right: Birthday Greeting + Full Name -->
+      <HappyBirthdayGreetingPage :birthday="isMyBirthday ?? ''" />
+      <span v-if="!isMyBirthday" class="text-4xl md:text-xl">{{ greeting }} {{ fullName }}</span>
+
+      <span v-else class="mt-2 animate-bounce text-2xl text-primary-900 dark:text-primary-400">
+        🎉 Happy Birthday, {{ fullName }}! 🎂
+      </span>
       <!-- Left: Current Time -->
       <div class="flex items-center space-x-4">
-        <!-- Date -->
-        <span class="text-8xl">{{ currentTime }}</span>
-
         <!-- Time Clock -->
         <div class="flex flex-col items-center">
-          <span class="text-4xl">:{{ seconds }}s {{ meridiem }}</span>
-          <span class="text-xs font-bold">{{ currentDate }}</span>
+          <span class="text-6xl md:text-4xl">{{ currentTime }} :{{ seconds }} {{ meridiem }}</span>
+          <span class="text-2xl font-bold md:text-sm">{{ currentDate }}</span>
         </div>
       </div>
     </h1>
@@ -301,10 +320,10 @@ onBeforeMount(async () => {
     <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
       <Card class="col-span-2 h-full">
         <template #content>
-          <div class="w-full p-6 text-left">
+          <div class="w-full p-2 text-left">
             <!-- Month Name -->
             <!-- Month Name -->
-            <div class="mb-4 flex items-center justify-between">
+            <div class="mb-2 flex items-center justify-between">
               <!-- Left side: text -->
               <div class="text-2xl text-primary-700">Attendance for {{ selectedMonthName }} {{ selectedYear }}</div>
 
@@ -335,10 +354,10 @@ onBeforeMount(async () => {
                 :key="day.date?.toISOString() || Math.random()"
                 class="flex flex-col items-center rounded-md border p-2"
                 :class="{
-                  'bg-green-100': day.status === 'Present',
-                  'bg-red-100': day.status === 'Absent',
-                  'bg-yellow-100': day.status === 'Weekend',
-                  'bg-blue-100': day.status === undefined,
+                  'bg-success-100': day.status === 'Present',
+                  'bg-error-100': day.status === 'Absent',
+                  'bg-warn-100': day.status === 'Weekend',
+                  'bg-primary-100': day.status === undefined,
                   invisible: day.empty,
                 }"
               >
@@ -366,7 +385,7 @@ onBeforeMount(async () => {
       <!-- Start Today`s Time Log -->
       <Card class="h-full">
         <template #content>
-          <div class="w-full p-6 text-left">
+          <div class="w-full p-2 text-left">
             <div class="mb-4 text-2xl text-primary-700">Today's Time Log</div>
 
             <div class="flex flex-col gap-4 px-4 py-4">
@@ -434,13 +453,13 @@ onBeforeMount(async () => {
               <!-- Undertime -->
               <div class="flex w-full justify-between border-b pb-2">
                 <span class="text-xl font-semibold text-primary-800">UT:</span>
-                <span class="text-3xl text-red-600">{{ computeUTValue(todayDTR) }}</span>
+                <span class="text-3xl text-error-600">{{ computeUTValue(todayDTR) }}</span>
               </div>
 
               <!-- Overtime -->
               <div class="flex w-full justify-between border-b pb-2">
                 <span class="text-xl font-semibold text-primary-800">OT:</span>
-                <span class="text-3xl text-green-600">{{ computeOTValue(todayDTR) }}</span>
+                <span class="text-3xl text-success-600">{{ computeOTValue(todayDTR) }}</span>
               </div>
             </div>
           </div>
@@ -451,15 +470,12 @@ onBeforeMount(async () => {
     <!-- End Monthly Attandence Calendar -->
 
     <!-- Start Dashboard Report -->
-    <p class="mb-4 mt-8 text-xs font-semibold uppercase text-surface-600 dark:text-surface-400">
-      Accomplishment Report & Locator Slip
-    </p>
-    <div class="flex max-h-96 w-full gap-4">
+    <div class="mt-4 flex max-h-96 w-full gap-4">
       <!-- Start Accomplishment Report -->
       <Card class="h-full flex-1">
         <template #content>
           <div>
-            <div class="h-full w-full rounded-md bg-surface-0 p-6">
+            <div class="h-full w-full rounded-md bg-surface-0 p-2">
               <!-- Router Link -->
               <RouterLink
                 :to="{ name: 'accomplishment-reports' }"
@@ -549,7 +565,7 @@ onBeforeMount(async () => {
       <!-- Start Locator Slip -->
       <Card class="h-full flex-1">
         <template #content>
-          <div class="h-full w-full rounded-md bg-surface-0 p-6">
+          <div class="h-full w-full rounded-md bg-surface-0 p-2">
             <!-- Router Link -->
             <RouterLink
               :to="{ name: 'my-locator-slips' }"
