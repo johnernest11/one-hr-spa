@@ -318,9 +318,9 @@ onBeforeMount(async () => {
 
     <!-- Start Monthly Attandence Calendar -->
     <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-      <Card class="col-span-2 h-full">
+      <Card class="col-span-2 h-full pt-0" :pt="{ content: 'pt-0 pb-2 px-4' }">
         <template #content>
-          <div class="w-full p-2 text-left">
+          <div class="w-full text-left">
             <!-- Month Name -->
             <!-- Month Name -->
             <div class="mb-2 flex items-center justify-between">
@@ -383,7 +383,7 @@ onBeforeMount(async () => {
       </Card>
 
       <!-- Start Today`s Time Log -->
-      <Card class="h-full">
+      <Card class="h-full pt-0" :pt="{ content: 'pt-0 pb-2 px-4' }">
         <template #content>
           <div class="w-full p-2 text-left">
             <div class="mb-4 text-2xl text-primary-700">Today's Time Log</div>
@@ -472,7 +472,7 @@ onBeforeMount(async () => {
     <!-- Start Dashboard Report -->
     <div class="mt-4 flex max-h-96 w-full gap-4">
       <!-- Start Accomplishment Report -->
-      <Card class="h-full flex-1">
+      <Card class="h-full flex-1" :pt="{ content: 'pt-0 pb-2 px-4' }">
         <template #content>
           <div>
             <div class="h-full w-full rounded-md bg-surface-0 p-2">
@@ -563,7 +563,7 @@ onBeforeMount(async () => {
       </Card>
       <!-- End Accomplishment Report -->
       <!-- Start Locator Slip -->
-      <Card class="h-full flex-1">
+      <Card class="h-full flex-1" :pt="{ content: 'pt-0 pb-2 px-4' }">
         <template #content>
           <div class="h-full w-full rounded-md bg-surface-0 p-2">
             <!-- Router Link -->
