@@ -562,6 +562,7 @@ const exportToPDF = async (
             <br />
             <span v-if="!isLoading && currentEmployee" class="ml-4 text-lg text-surface-600 md:text-xl lg:text-2xl">
               {{ currentEmployee.last_name }} , {{ currentEmployee.first_name }} {{ currentEmployee.middle_name }}
+              {{ currentEmployee.ext_name }}
             </span>
           </h2>
         </div>
