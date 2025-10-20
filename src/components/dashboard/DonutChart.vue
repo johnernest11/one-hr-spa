@@ -15,13 +15,27 @@ const options = {
     mode: props.darkMode ? 'dark' : 'light',
   },
   chart: {
+    height: 500,
     background: 'transparent',
   },
-  labels: props.labels,
+  labels: props.labels.map((label, i) => `${label}: ${props.series[i]}`),
   colors: props.colors,
   fill: {
     type: 'solid',
     opacity: 0.85,
+  },
+  dataLabels: {
+    enabled: true,
+    style: {
+      fontSize: '10px',
+      fontWeight: 'bold',
+    },
+  },
+  legend: {
+    position: 'bottom',
+    labels: {
+      useSeriesColors: false,
+    },
   },
   responsive: [
     {
@@ -43,7 +57,7 @@ const options = {
 </script>
 
 <template>
-  <div class="flex h-full w-full items-center justify-center rounded-lg bg-surface-0 py-4 shadow-md dark:bg-surface-700 lg:py-0">
+  <div :class="['flex h-full w-full items-center justify-center py-4 lg:py-0', $attrs.class]">
     <VueApexCharts class="w-full" type="donut" :series="props.series" :options="options" />
   </div>
 </template>
