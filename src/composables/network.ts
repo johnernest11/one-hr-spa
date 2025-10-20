@@ -36,6 +36,23 @@ export const useApiCall = (uri: string, authToken: string | null = null) => {
     onFetchError(ctx) {
       const authStore = useAuthStore()
       const authToken = authStore.authenticationToken
+
+      const baseUrl = import.meta.env.VITE_API_ROOT_URL
+      const isCrossOrigin = !baseUrl.startsWith(window.location.origin)
+
+      if (!ctx.response && ctx.error?.name === 'TypeError') {
+        console.log('Network/CORS issue detected:', ctx.error)
+
+        // Only clear token if cross-origin (likely CORS)
+        if (isCrossOrigin && authStore.authenticationToken) {
+          console.log('CORS issue detected, clearing authentication token.')
+          authStore.clearAuthTokenOnStorage()
+          authStore.authExpired = true
+        }
+
+        return ctx
+      }
+
       if (authToken && ctx?.data?.error_code === 'UNAUTHORIZED_ERROR' && ctx?.response?.status === 401) {
         const authStore = useAuthStore()
         if (authStore.authenticatedUser !== null) {
