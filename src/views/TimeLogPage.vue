@@ -143,7 +143,7 @@ onMounted(async () => {
 watch(
   () => route.name,
   (newName: string | symbol | null | undefined) => {
-    const expiration = sessionStorage.getItem('auth-token-expiration')
+    const expiration = localStorage.getItem('auth-token-expiration')
     const userRoles = authStore.authRoles
 
     if (newName === 'time-logs' && expiration && userRoles.includes('time_logger')) {
