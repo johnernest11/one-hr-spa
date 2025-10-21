@@ -110,19 +110,25 @@ export const resolveDTRSlots = (entries: TimeLogResponse[] = []): DTRSlots => {
   if (slots.out1) {
     const out1Time = toTime(slots.out1).getTime()
     const candidates = sorted.filter((e) => new Date(toTimestamp(e.date, e.scanned_time)).getTime() > out1Time)
-    let nearest: TimeLogResponse | null = null
-    let minDiff = Infinity
+    // let nearest: TimeLogResponse | null = null
     for (const e of candidates) {
       const time = toTime(e)
       const target = new Date(time)
       target.setHours(13, 0, 0, 0)
-      const diff = getHourDiff(time, target)
-      if (diff < minDiff) {
-        minDiff = diff
-        nearest = e
-      }
     }
-    slots.in2 = nearest
+    const in2Candidate = candidates.find((e) => isBetween(toTimestamp(e.date, e.scanned_time), 12, 14))
+    if (in2Candidate) {
+      const in2Time = toTime(in2Candidate).getTime()
+      if (getHourDiff(new Date(in2Time), toTime(slots.out1)) >= 1 * 60 * 1000) {
+        slots.in2 = in2Candidate
+      } else {
+        slots.in2 = null
+      }
+    } else {
+      slots.in2 = null
+    }
+  } else {
+    slots.in2 = null
   }
 
   // OUT 2 → first log ≥ 14 (regardless of is_in/out)
