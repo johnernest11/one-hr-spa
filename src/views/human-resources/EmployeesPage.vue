@@ -35,7 +35,9 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { usePrependOrAppendOnce } from '@/utils/helpers.js'
 import useVuelidate from '@vuelidate/core'
 import { useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 
+const route = useRoute()
 const authStore = useAuthStore()
 const personnelStore = usePersonnelStore()
 const libraryStore = useLibrariesStore()
@@ -622,7 +624,7 @@ const downloadQrCode = async () => {
                     @click="showModal = true"
                   />
                   <Button
-                    v-if="canCreateNewEmployee"
+                    v-if="canCreateNewEmployee && !(route.name === 'employees' && authStore.authHasRequiredRole(['super_user']))"
                     icon="pi pi-plus"
                     v-tooltip.top="'New Employee'"
                     severity="info"

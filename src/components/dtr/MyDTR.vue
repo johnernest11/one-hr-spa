@@ -28,6 +28,8 @@ import { getMonthAndYear } from '@/utils/helpers'
 import { parseApiResponseError } from '@/utils/error-handle'
 import WbTimePicker from '../webkit/WbTimePicker.vue'
 import { usePersonnelStore } from '@/stores/personnel.store'
+import useVuelidate from '@vuelidate/core'
+import { helpers, required } from '@vuelidate/validators'
 
 const dailyTimeRecordsStore = useDailyTimeRecordsStore()
 const route = useRoute()
@@ -62,6 +64,9 @@ const filterMonth = ref(props.month!)
 const personnelStore = usePersonnelStore()
 const selectedEmployeeId = ref<string | null>(null)
 
+/*******************************************************************
+        Initialize and load selected employee's DTR data
+****************************************************************** */
 onMounted(async () => {
   const id = (route.params.id as string) || null
   selectedEmployeeId.value = id
@@ -87,6 +92,9 @@ const emit = defineEmits<{
   (e: 'my-monthy-dtr-updated', value: boolean): void
 }>()
 
+/*******************************************************************
+               Toggle of Time Logs Entries
+****************************************************************** */
 const toggleAccordion = (index: number) => {
   if (activeIndices.value.includes(index)) {
     activeIndices.value = activeIndices.value.filter((i) => i !== index)
@@ -122,6 +130,9 @@ const isLocatorSlip = (log: TimeLogResponse, allLogs: TimeLogResponse[]): boolea
 const normalizeTimeKey = (dtrTimeLogs: string, date: Date | string | null) =>
   `${dtrTimeLogs}-${date ? new Date(date).toISOString().slice(0, 10) : 'no-date'}`
 
+/*******************************************************************
+               Handle on Viewing of Daily Time Record
+****************************************************************** */
 const handleViewDtr = async (employeeId?: string | number) => {
   try {
     const response = await dailyTimeRecordsStore.fetchDailyTimeRecordsByMonth(monthDate.value, 31, employeeId)
@@ -266,11 +277,57 @@ watch(
   },
   { immediate: true, deep: true }
 )
+const getRemarksKey = (prefix: string, date?: Date | null): string => {
+  return `${prefix}-${date ? date.toISOString() : 'no-date'}`
+}
 
-/** _____________________________________________________________
+/*******************************************************************
+                        Validation Form Rules
+****************************************************************** */
+
+interface FormRules {
+  remarksMap: Record<string, { required: (value: unknown) => boolean }>
+}
+
+const formRules = computed<FormRules>(() => {
+  const rules: FormRules = { remarksMap: {} }
+
+  monthDates.value.forEach((dtr) => {
+    if (!dtr.row) return
+    const slots = resolveDTRSlots(dtr.row?.time_log ?? [])
+    const hasMissing = Object.values(slots).some((v) => v === null)
+
+    if (hasMissing) {
+      const key = getRemarksKey('employee_remarks', dtr.date)
+      rules.remarksMap[key] = {
+        required: helpers.withMessage('Required when entries are missing', required) as unknown as (value: unknown) => boolean,
+      }
+    }
+  })
+
+  return rules
+})
+
+const validator = useVuelidate(formRules, { remarksMap }, { $lazy: true })
+
+/*******************************************************************
 Update all DTRs but only send updates for rows that actually changed.
-_________________________________________________________________ */
+********************************************************************* */
+
 const updateDTRTimeLogs = async () => {
+  validator.value.$touch()
+  const valid = await validator.value.$validate()
+
+  if (!valid) {
+    toast.add({
+      severity: 'error',
+      summary: 'Validation Error',
+      detail: 'Please fill all required remarks for missing entries.',
+      life: 3000,
+    })
+    return
+  }
+
   IsBeingUpdated.value = true
   formIsSubmitting.value = true
   let hasValidationError = false
@@ -338,11 +395,11 @@ const updateDTRTimeLogs = async () => {
 
         const diffMinutes = (in2Time.getTime() - out1Time.getTime()) / (1000 * 60)
 
-        if (diffMinutes < 15) {
+        if (diffMinutes <= 1) {
           toast.add({
             severity: 'error',
             summary: 'Invalid Time Entry',
-            detail: 'There must be at least a 15-minute gap between OUT1 and IN2.',
+            detail: 'There must be at least a 1-minute gap between OUT1 and IN2.',
             life: 3000,
           })
           hasValidationError = true
@@ -435,10 +492,6 @@ const updateDTRTimeLogs = async () => {
   formIsSubmitting.value = false
 }
 
-const getRemarksKey = (prefix: string, date?: Date | null): string => {
-  return `${prefix}-${date ? date.toISOString() : 'no-date'}`
-}
-
 const isEditedTimeLog = computed(() => {
   return (slot: 'in1' | 'out1' | 'in2' | 'out2', logs: TimeLogResponse[] = []) => {
     const slotLog = resolveDTRSlots(logs)[slot]
@@ -454,9 +507,9 @@ const isEditedTimeLog = computed(() => {
   }
 })
 
-/** _____________________________________________________________
+/********************************************************************
                            Export to PDF  DTRs .
-_________________________________________________________________ */
+*********************************************************************/
 
 const exportCurrentMonthDTR = () => {
   // Read selected month from route params
@@ -644,9 +697,9 @@ const exportToPDF = async (
                 <p
                   class="text-base text-surface-600"
                   :class="{
-                    'cursor-pointer text-error-900': (dtr.row?.time_log?.length ?? 0) > 4,
+                    'cursor-pointer text-error-900': (dtr.row?.time_log?.length ?? 0) > 0,
                   }"
-                  @click="(dtr.row?.time_log?.length ?? 0) > 4 ? onAccordionClick(dtr, index) : null"
+                  @click="(dtr.row?.time_log?.length ?? 0) > 0 ? onAccordionClick(dtr, index) : null"
                 >
                   {{ getFormattedDTRDate(dtr.date) }}
                 </p>
@@ -662,7 +715,7 @@ const exportToPDF = async (
                           :key="log.id"
                           class="mb-1 flex cursor-pointer flex-row items-center gap-2"
                         >
-                          <span class="mb-2 text-xs font-semibold text-surface-500">#{{ logIDx + 1 }}.</span>
+                          <span class="mb-2 mr-6 text-xs font-semibold text-surface-500">#{{ logIDx + 1 }}.</span>
                           <p
                             v-tooltip="isLocatorSlip(log, dtr.row?.time_log ?? []) ? 'Locator Slip' : ''"
                             :class="[
@@ -881,13 +934,20 @@ const exportToPDF = async (
 
               <div class="col-span-2">
                 <p class="text-xs font-semibold text-surface-500 md:hidden">Remarks</p>
-                <WbTextArea
-                  v-if="new Date(dtr.date) < new Date(new Date().setHours(0, 0, 0, 0))"
-                  v-model="remarksMap[getRemarksKey('employee_remarks', dtr.date)] as string"
-                  label=""
-                  class="md:w-30 h-8 md:h-8"
-                  placeholder="Enter remarks"
+
+                <textarea
+                  v-model="remarksMap[getRemarksKey('employee_remarks', dtr.date)]"
+                  @blur="validator.remarksMap[getRemarksKey('employee_remarks', dtr.date)]?.$touch()"
+                  placeholder="Enter Remarks..."
+                  rows="2"
                 />
+
+                <p
+                  v-if="validator.remarksMap?.[getRemarksKey('employee_remarks', dtr.date)]?.$error"
+                  class="mt-1 text-xs text-error-500"
+                >
+                  {{ validator.remarksMap?.[getRemarksKey('employee_remarks', dtr.date)]?.$errors[0]?.$message }}
+                </p>
               </div>
               <div class="col-span-2">
                 <p class="text-xs font-semibold text-surface-500 md:hidden">HR Remarks</p>

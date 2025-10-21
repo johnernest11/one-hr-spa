@@ -76,6 +76,24 @@ export const resolveDTRSlots = (entries: TimeLogResponse[] = []): DTRSlots => {
   )
 
   const slots: DTRSlots = { in1: null, out1: null, in2: null, out2: null }
+  const toTime = (entry: TimeLogResponse) => new Date(toTimestamp(entry.date, entry.scanned_time))
+  const getHourDiff = (t1: Date, t2: Date) => Math.abs(t1.getTime() - t2.getTime())
+
+  const findNearestToHour = (targetHour: number): TimeLogResponse | null => {
+    let nearest: TimeLogResponse | null = null
+    let minDiff = Infinity
+    for (const e of sorted) {
+      const time = toTime(e)
+      const target = new Date(time)
+      target.setHours(targetHour, 0, 0, 0)
+      const diff = getHourDiff(time, target)
+      if (diff < minDiff) {
+        minDiff = diff
+        nearest = e
+      }
+    }
+    return nearest
+  }
 
   const isBetween = (timestamp: string, startHour: number, endHour: number) => {
     const hours = new Date(timestamp).getHours()
@@ -86,21 +104,29 @@ export const resolveDTRSlots = (entries: TimeLogResponse[] = []): DTRSlots => {
   slots.in1 = sorted.find((e) => isBetween(toTimestamp(e.date, e.scanned_time), 6, 12)) ?? null
 
   // OUT 1 → first log between 12–13 (regardless of is_in/out)
-  slots.out1 = sorted.find((e) => isBetween(toTimestamp(e.date, e.scanned_time), 12, 13)) ?? null
+  slots.out1 = findNearestToHour(12)
 
   // IN 2 → first log after OUT1 that’s between 12–14
   if (slots.out1) {
-    const out1Time = new Date(toTimestamp(slots.out1.date, slots.out1.scanned_time)).getTime()
-    slots.in2 =
-      sorted.find((e) => {
-        const timestamp = toTimestamp(e.date, e.scanned_time)
-        const time = new Date(timestamp).getTime()
-        return isBetween(timestamp, 12, 14) && time >= out1Time + 15 * 60 * 1000
-      }) ?? null
+    const out1Time = toTime(slots.out1).getTime()
+    const candidates = sorted.filter((e) => new Date(toTimestamp(e.date, e.scanned_time)).getTime() > out1Time)
+    let nearest: TimeLogResponse | null = null
+    let minDiff = Infinity
+    for (const e of candidates) {
+      const time = toTime(e)
+      const target = new Date(time)
+      target.setHours(13, 0, 0, 0)
+      const diff = getHourDiff(time, target)
+      if (diff < minDiff) {
+        minDiff = diff
+        nearest = e
+      }
+    }
+    slots.in2 = nearest
   }
 
   // OUT 2 → first log ≥ 14 (regardless of is_in/out)
-  slots.out2 = sorted.find((e) => new Date(toTimestamp(e.date, e.scanned_time)).getHours() >= 14) ?? null
+  slots.out2 = findNearestToHour(24)
 
   return slots
 }
