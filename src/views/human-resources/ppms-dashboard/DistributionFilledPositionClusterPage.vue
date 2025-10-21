@@ -94,7 +94,7 @@ const grandTotal = computed(() => clusters.value.reduce((sum, c) => sum + (c.tot
 </script>
 <template>
   <div class="flex h-full w-full flex-col shadow-md">
-    <div class="p-4">
+    <div class="flex-grow overflow-auto p-4">
       <!-- Page title -->
       <h2 class="mb-4 ml-4 text-2xl italic text-primary-700 dark:text-primary-600 md:ml-4">
         Distribution of Filled Position per Cluster
@@ -114,7 +114,7 @@ const grandTotal = computed(() => clusters.value.reduce((sum, c) => sum + (c.tot
       </div>
 
       <!-- Cluster sections -->
-      <div v-for="(cluster, i) in clusters" :key="i" class="px-4 py-3 md:px-24">
+      <div v-for="(cluster, i) in clusters" :key="i">
         <!-- Cluster total row -->
         <div
           class="grid grid-cols-6 items-center border-b-2 border-surface-300 bg-surface-50 px-4 py-2 font-semibold uppercase text-primary-700"
@@ -132,7 +132,7 @@ const grandTotal = computed(() => clusters.value.reduce((sum, c) => sum + (c.tot
           :key="j"
           class="grid grid-cols-6 items-center border-b border-surface-200 px-4 py-2 md:px-4"
         >
-          <div class="col-span-2 list-inside list-disc text-base text-surface-700">• {{ office.name }}</div>
+          <div class="col-span-2 text-base text-surface-700">• {{ office.name }}</div>
           <div class="text-center text-base text-surface-700">{{ office.male }}</div>
           <div class="text-center text-base text-surface-700">{{ office.female }}</div>
           <div class="text-center text-base text-surface-700">{{ office.total }}</div>

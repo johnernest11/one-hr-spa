@@ -149,7 +149,7 @@ watch(
               :key="filledSeries.join('-')"
               :series="filledSeries"
               :labels="['Filled', 'Unfilled']"
-              :colors="['#22c55e', '#f87171']"
+              :colors="['#22C55E', '#EF4444']"
               :dark-mode="chartsInDarkMode"
             />
           </div>
@@ -163,7 +163,7 @@ watch(
             :key="genderSeries.join('-')"
             :series="genderSeries"
             :labels="['Male', 'Female']"
-            :colors="['#3b82f6', '#ec4899']"
+            :colors="['#22C55E', '#EF4444']"
             :dark-mode="chartsInDarkMode"
           />
         </div>
@@ -189,7 +189,7 @@ watch(
             :key="statusSeries.join('-')"
             :series="statusSeries"
             :labels="['Permanent', 'Coterminous', 'Contractual', 'Contract of Service', 'Job Order']"
-            :colors="['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']"
+            :colors="['#3b82f6', '#10b981', '#22C55E', '#EF4444', '#8b5cf6']"
             :dark-mode="chartsInDarkMode"
           />
         </div>

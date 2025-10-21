@@ -24,7 +24,7 @@ const distributionManagementLevel = ref()
         <div class="flex flex-row items-center space-x-4">
           <FontAwesomeIcon :icon="['fas', 'users']" class="text-2xl md:text-4xl" />
           <span class="flex flex-col justify-center">
-            <p class="text-xl md:text-3xl">Distribution Reports</p>
+            <p class="text-xl md:text-3xl">Staffs Distribution</p>
           </span>
         </div>
       </div>
@@ -36,7 +36,7 @@ const distributionManagementLevel = ref()
               <Tab v-slot="{ selected }" as="template">
                 <button
                   :class="[
-                    'w-full border-b-2 border-solid py-4 text-sm font-medium leading-5 ring-transparent transition-all duration-300 ease-in-out focus:outline-none md:text-base',
+                    'w-full border-b-2 border-solid py-2 text-sm font-medium leading-5 ring-transparent transition-all duration-300 ease-in-out focus:outline-none md:text-base',
                     selected
                       ? 'border-b-2 border-solid border-primary-600 bg-primary-100 text-primary-600'
                       : 'border-surface-300 text-surface-400 hover:bg-surface-0/[0.12]',
