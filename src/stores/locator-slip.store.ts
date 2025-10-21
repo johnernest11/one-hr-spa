@@ -161,6 +161,19 @@ export const useLocatorSlipStore = defineStore('locator-slip', () => {
     }
   }
 
+  const checkActiveLog = async () => {
+    const individual = auth.authenticatedUser.user_profile?.individual_basic_detail as PersonnelResponse
+    if (!individual?.employee) {
+      throw new Error('No employee data linked to current user')
+    }
+    const { data } = await useApiCall(`/employees/${individual.employee.id}/locator-slips/active`, auth.authenticationToken)
+      .get()
+      .json()
+    const responseBody: ApiResponseBody = data.value
+
+    return responseBody
+  }
+
   return {
     locatorSlip,
     createLocatorSlip,
@@ -172,5 +185,6 @@ export const useLocatorSlipStore = defineStore('locator-slip', () => {
     searchLocatorSlip,
     filterLocatorSlip,
     generateLocatorSlip,
+    checkActiveLog,
   }
 })
