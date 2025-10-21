@@ -1,282 +1,208 @@
 <script setup lang="ts">
-import { ref, reactive, toRef, computed } from 'vue'
-import Dialog from 'primevue/dialog'
-import VueApexCharts from 'vue3-apexcharts'
-import Button from 'primevue/button'
-import WbAutoComplete, { WbAutoCompleteOption, WbAutoCompleteOptionTrueValue } from '@/components/webkit/WbAutoComplete.vue'
-import { useWbAutoCompleteHandleTrueValue } from '@/composables/wb-ui-components.ts'
-import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-import { useLibrariesStore } from '@/stores/libraries.store'
-import { SexType, EmploymentStatusType } from '@/typings/employee-entry.types'
-import { monthOptions, getYearOptions } from '@/typings/dashboard.types'
-import { usePrependOrAppendOnce } from '@/utils/helpers'
+import { ref, watch, onMounted, type Ref, onBeforeMount } from 'vue'
+import Card from 'primevue/card'
+import { useGlobalUiStore } from '@/stores/ui.store.ts'
+import { sleep, getManilaTodayISO } from '@/utils/helpers.ts'
+import { useThemeConfig } from '@/composables/theme.ts'
+import { useItemNumberStore } from '@/stores/item-number.store'
+import { ItemNumberResponse, PersonnelResponse } from '@/typings/models.types'
+import { usePersonnelStore } from '@/stores/personnel.store'
+import PPMSDashboardReportsPage from './ppms-dashboard/PPMSDashboardReportsPage.vue'
+import DonutChart from '@/components/dashboard/DonutChart.vue'
 
-export interface Employee {
-  id: string
-  firstName: string
-  lastName: string
-  sex: SexType
-  employmentStatus: EmploymentStatusType
-  division: string
-  section: string
-  year: number
-  month: number
-  status: 'Filled' | 'Unfilled'
-  male: number
-  female: number
-  filledTotal: number
-  unfilled: number
-  totalPositions: number
+/** Date + Time Logic **/
+const todayISO = ref(new Date().toISOString().slice(0, 10))
+const currentDate: Ref<string> = ref('')
+const currentTime: Ref<string> = ref('')
+const meridiem: Ref<string> = ref('')
+const seconds: Ref<string> = ref('')
+const intervalId = ref<number | undefined>(undefined)
+
+const updateDateTime = () => {
+  const now = new Date()
+  const optionsDate = {
+    timeZone: 'Asia/Manila',
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  } as const
+  const optionsTime = {
+    timeZone: 'Asia/Manila',
+    hour: 'numeric',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+  } as const
+
+  currentDate.value = now.toLocaleDateString('en-PH', optionsDate)
+  const timeString = now.toLocaleTimeString('en-PH', optionsTime)
+  const [time, ampm] = timeString.split(/\s+/)
+  const [hours, minutes, newSeconds] = time.split(':')
+
+  currentTime.value = `${hours}:${minutes}`
+  meridiem.value = ampm
+  seconds.value = newSeconds
 }
 
-const isSubmitting = ref(false)
-const getId = usePrependOrAppendOnce('dashboard')
-const libraryStore = useLibrariesStore()
-const showSidebar = ref(false)
-const selectedDivision = ref<WbAutoCompleteOption | null>(null)
-const selectedSectionUnit = ref<WbAutoCompleteOption | null>(null)
-const selectedDivisionLabel = ref<string | null>(null)
-const selectedSectionLabel = ref<string | null>(null)
-
-const currentYear = new Date().getFullYear()
-const currentMonth = new Date().getMonth() + 1
-
-const employees = ref<Employee[]>([])
-const selectedYear = ref<number | null>(currentYear)
-const selectedMonth = ref<number | null>(currentMonth)
-const yearList = computed(() => getYearOptions(currentYear, 6))
-const payload = reactive({
-  division: null as string | null,
-  section: null as string | null,
+onMounted(() => {
+  todayISO.value = getManilaTodayISO()
+  updateDateTime()
+  intervalId.value = window.setInterval(updateDateTime, 1000)
 })
 
-const filteredEmployees = computed(() => {
-  return employees.value.filter((e) => {
-    const divisionMatch = !selectedDivisionLabel.value || e.division === selectedDivisionLabel.value
-    const sectionMatch = !selectedSectionLabel.value || e.section === selectedSectionLabel.value
-    const yearMatch = !selectedYear.value || e.year === selectedYear.value
-    const monthMatch = !selectedMonth.value || e.month === selectedMonth.value
-    return divisionMatch && sectionMatch && yearMatch && monthMatch
-  })
+/****************************
+  Cards Reports
+  *****************************/
+const itemNumberStore = useItemNumberStore()
+const personnelStore = usePersonnelStore()
+
+const statusSeries = ref<number[]>([])
+const totalEmployees = ref(0)
+const genderSeries = ref<number[]>([])
+const filledSeries = ref<number[]>([])
+const paginationLimit = 1000
+
+onBeforeMount(async () => {
+  try {
+    const itemResponse = await itemNumberStore.fetchItemNumber()
+    const employeeResponse = await personnelStore.fetchEmployees(paginationLimit)
+
+    /** Filled & Unfilled positions **/
+    if (itemResponse.success && Array.isArray(itemResponse.data)) {
+      const itemNumbers = itemResponse.data as ItemNumberResponse[]
+      const filled = itemNumbers.filter((i) => i.status === 'Filled').length
+      const unfilled = itemNumbers.filter((i) => i.status === 'Unfilled').length
+      filledSeries.value = [filled, unfilled]
+    }
+
+    /** Employee stats (gender + employment status) **/
+    if (employeeResponse.success && Array.isArray(employeeResponse.data)) {
+      const personnel = employeeResponse.data as PersonnelResponse[]
+
+      const male = personnel.filter((p) => p.sex?.toLowerCase() === 'male').length
+      const female = personnel.filter((p) => p.sex?.toLowerCase() === 'female').length
+      genderSeries.value = [male, female]
+
+      const permanent = personnel.filter((p) => p.employee?.item?.employment_status?.toLowerCase() === 'permanent').length
+      const coterminous = personnel.filter((p) => p.employee?.item?.employment_status?.toLowerCase() === 'coterminous').length
+      const contractual = personnel.filter((p) => p.employee?.item?.employment_status?.toLowerCase() === 'contractual').length
+      const cos = personnel.filter((p) => p.employee?.item?.employment_status?.toLowerCase() === 'contract of service').length
+      const jo = personnel.filter((p) => p.employee?.item?.employment_status?.toLowerCase() === 'job order').length
+      statusSeries.value = [permanent, coterminous, contractual, cos, jo]
+      totalEmployees.value = personnel.length
+    }
+  } catch (error) {
+    console.error('Failed to load data:', error)
+  }
 })
 
-const totalMale = computed(() => filteredEmployees.value.reduce((sum, e) => sum + e.male, 0))
-const totalFemale = computed(() => filteredEmployees.value.reduce((sum, e) => sum + e.female, 0))
-const totalFilled = computed(() => filteredEmployees.value.reduce((sum, e) => sum + (e.filledTotal || 0), 0))
-const totalUnfilled = computed(() => filteredEmployees.value.reduce((sum, e) => sum + (e.unfilled || 0), 0))
-const totalPositions = computed(() => filteredEmployees.value.reduce((sum, e) => sum + (e.totalPositions || 0), 0))
+const uiStore = useGlobalUiStore()
+const mountCharts = ref(true)
+watch(
+  () => uiStore.sidebarMinimized,
+  async (isMinimized) => {
+    if (!isMinimized) {
+      mountCharts.value = false
+      await sleep(0.2)
+      mountCharts.value = true
+    }
+  }
+)
 
-const employmentChartSeries = computed(() => [
-  { name: 'Male', data: filteredEmployees.value.map((d) => d.male) },
-  { name: 'Female', data: filteredEmployees.value.map((d) => d.female) },
-])
-
-const employmentChartOptions = computed(() => ({
-  chart: { type: 'bar', stacked: true },
-  plotOptions: { bar: { horizontal: false, columnWidth: '55%', endingShape: 'rounded' } },
-  dataLabels: { enabled: true },
-  stroke: { show: true, width: 2, colors: ['transparent'] },
-  xaxis: { categories: filteredEmployees.value.map((d) => d.status) },
-  yaxis: { title: { text: 'Number of Employees' } },
-  fill: { opacity: 1 },
-  legend: { position: 'top' },
-  colors: ['#155dfc', '#f0b100'],
-}))
-
-const genderChartSeries = computed(() => [totalMale.value, totalFemale.value])
-const genderChartOptions = {
-  chart: { type: 'donut' },
-  labels: ['Male', 'Female'],
-  colors: ['#155dfc', '#f0b100'],
-  legend: { position: 'bottom' },
-}
-
-const handleFilterEmployees = () => {
-  selectedDivisionLabel.value = selectedDivision.value ? selectedDivision.value.label : null
-  selectedSectionLabel.value = selectedSectionUnit.value ? selectedSectionUnit.value.label : null
-  showSidebar.value = false
-}
+const { selectedTheme } = useThemeConfig()
+const chartsInDarkMode = ref(selectedTheme.value?.value === 'dark')
+watch(
+  () => selectedTheme.value,
+  (theme) => {
+    chartsInDarkMode.value = theme?.value === 'dark'
+  }
+)
 </script>
 
 <template>
-  <div class="h-full w-full rounded-md bg-surface-0 p-6">
-    <div class="p-6">
-      <div class="mb-6 flex items-center justify-between">
-        <h1 class="mb-2 mr-4 whitespace-nowrap text-xl text-surface-600 dark:text-primary-100 md:text-xl lg:text-4xl">
-          PPMS Dashboard
-        </h1>
-        <div class="flex items-center gap-2 p-2">
-          <Button
-            label="Filter"
-            @click="showSidebar = true"
-            :loading="isSubmitting"
-            :disabled="isSubmitting"
-            type="button"
-            size="large"
-            class="dark:text-secondary-100 mt-4 w-full border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
-            text
-          >
-            <template #icon>
-              <font-awesome-icon :icon="['fas', 'filter']" class="mr-2" />
-            </template>
-          </Button>
+  <!-- Make full dashboard scrollable -->
+  <div class="flex h-[100vh] flex-col overflow-hidden">
+    <!-- Header (Fixed at top) -->
+    <h1
+      class="mb-4 mt-2 flex items-center justify-between text-lg font-semibold uppercase text-primary-800 dark:text-surface-400 md:mt-1"
+    >
+      <span class="text-4xl md:text-xl">HRPPMS DASHBOARD</span>
+      <div class="flex items-center space-x-4">
+        <div class="flex flex-col items-center">
+          <span class="text-6xl md:text-4xl">{{ currentTime }} :{{ seconds }} {{ meridiem }}</span>
+          <span class="text-2xl font-bold md:text-sm">{{ currentDate }}</span>
         </div>
       </div>
+    </h1>
 
-      <!-- Counters -->
-      <div class="mb-6 grid grid-cols-1 gap-6 md:grid-cols-3">
-        <div class="flex items-center rounded-xl bg-white p-4 shadow">
-          <div class="flex-1 text-center md:text-left">
-            <font-awesome-icon :icon="['fas', 'users']" class="text-3xl text-primary-600" />
-          </div>
-          <div class="flex-1 text-center md:text-left">
-            <h2 class="text-lg font-semibold text-gray-600">Total Positions</h2>
-            <p class="text-xl font-bold text-primary-600">{{ totalPositions }}</p>
-          </div>
-        </div>
-
-        <div class="flex items-center rounded-xl bg-white p-4 shadow">
-          <div class="flex-1 text-center md:text-left">
-            <font-awesome-icon :icon="['fas', 'sitemap']" class="text-3xl text-success-600" />
-          </div>
-          <div class="flex-1 text-center md:text-left">
-            <h2 class="text-lg font-semibold text-gray-600">Filled Positions</h2>
-            <p class="text-2xl font-bold text-success-600">{{ totalFilled }}</p>
-          </div>
-        </div>
-
-        <div class="flex items-center rounded-xl bg-white p-4 shadow">
-          <div class="flex-1 text-center md:text-left">
-            <font-awesome-icon :icon="['fas', 'users-slash']" class="text-3xl text-red-600" />
-          </div>
-          <div class="flex-1 text-center md:text-left">
-            <h2 class="text-lg font-semibold text-gray-600">Unfilled Positions</h2>
-            <p class="text-2xl font-bold text-red-600">{{ totalUnfilled }}</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <div class="rounded-xl bg-white p-4 shadow">
-          <h2 class="mb-4 text-lg font-semibold">Number of Employees</h2>
-          <VueApexCharts type="donut" height="300" :options="genderChartOptions" :series="genderChartSeries" />
-        </div>
-
-        <div class="rounded-xl bg-white p-4 shadow">
-          <h2 class="mb-4 text-lg font-semibold">Distribution of Staff Per Position Level</h2>
-          <VueApexCharts type="bar" height="350" :options="employmentChartOptions" :series="employmentChartSeries" />
-        </div>
-      </div>
-
-      <Dialog
-        v-model:visible="showSidebar"
-        :modal="false"
-        closable
-        :dismissableMask="false"
-        :position="'right'"
-        :style="{ width: '25vw', maxWidth: '450px', minWidth: '320px' }"
-        :breakpoints="{ '1199px': '50vw', '575px': '90vw' }"
-        :pt="{
-          root: {
-            class: 'relative w-full h-full flex flex-col bg-white shadow-lg',
-          },
-        }"
-      >
-        <template #header>
-          <div class="flex w-full items-center justify-between p-4 pb-0">
-            <h1 class="text-xl font-semibold text-surface-600">
-              <font-awesome-icon :icon="['fas', 'bars-staggered']" class="mr-2" />
-              Filter and Field Options
-            </h1>
-          </div>
-        </template>
-
-        <div class="flex-1 px-4 pb-24">
-          <h2 class="mb-2 mt-4 text-lg font-semibold text-surface-500">Filters</h2>
-
-          <div class="mt-4">
-            <label class="text-md mb-2 block text-surface-600">Year</label>
-            <select v-model="selectedYear" class="w-full rounded border p-2">
-              <option :value="null">All Years</option>
-              <option v-for="y in yearList" :key="y" :value="y">{{ y }}</option>
-            </select>
-          </div>
-
-          <div class="mt-4">
-            <label class="text-md mb-2 block text-surface-600">Month</label>
-            <select v-model="selectedMonth" class="w-full rounded border p-2">
-              <option :value="null">All Months</option>
-              <option v-for="m in monthOptions" :key="m.value" :value="m.value">
-                {{ m.label }}
-              </option>
-            </select>
-          </div>
-
-          <div class="mt-4">
-            <WbAutoComplete
-              :useApiFilter="true"
-              :apiEndpoint="'/libraries/divisions/search'"
-              :suggestions="libraryStore.divisionOptions"
-              :loading="libraryStore.divisionOptionsLoading"
-              apiOptionLabel="name"
-              label="Division"
-              placeholder="Type the Division"
-              v-model="selectedDivision"
-              :id="getId('input-division')"
-              optionLabel="label"
-              optionValue="value"
-              required
-              @on-true-value-computed="
-                (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) => {
-                  useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'division'))
-                }
-              "
-              class="w-full text-sm"
-            />
-          </div>
-          <div class="mt-4">
-            <WbAutoComplete
-              :useApiFilter="true"
-              :apiEndpoint="'/libraries/section-or-units/search'"
-              :suggestions="libraryStore.sectionUnitOptions"
-              :loading="libraryStore.sectionUnitOptionsLoading"
-              apiOptionLabel="name"
-              label="Section/Unit"
-              placeholder="Type the Section / Unit"
-              v-model="selectedSectionUnit"
-              :id="getId('input-section-unit')"
-              optionLabel="label"
-              optionValue="value"
-              required
-              @on-true-value-computed="
-                (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
-                  useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'section'))
-              "
-              class="w-full text-sm"
+    <!-- Scrollable content (Cards not removed) -->
+    <div v-if="mountCharts" class="flex-1 overflow-y-auto px-2 md:px-0">
+      <!-- Cards -->
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <!-- Filled & Unfilled -->
+        <div class="flex flex-col items-center justify-center rounded-xl bg-surface-0 p-4 shadow-md dark:bg-surface-700">
+          <h2 class="mb-2 text-center text-sm font-semibold text-primary-700 dark:text-primary-100">Item Filled vs Unfilled</h2>
+          <div class="h-64 w-full">
+            <DonutChart
+              v-if="filledSeries.length"
+              :key="filledSeries.join('-')"
+              :series="filledSeries"
+              :labels="['Filled', 'Unfilled']"
+              :colors="['#22C55E', '#EF4444']"
+              :dark-mode="chartsInDarkMode"
             />
           </div>
         </div>
 
-        <div class="absolute bottom-0 left-0 right-0 border-t border-surface-300 bg-surface-0 px-4 py-3">
-          <div class="flex flex-col items-center justify-center gap-2 sm:flex-row">
-            <Button
-              label="Cancel"
-              class="w-full border border-surface-400 px-4 py-2 text-surface-500"
-              @click="showSidebar = false"
-              text
-            />
-            <Button
-              label="Apply"
-              class="w-full border border-primary-500 px-4 py-3 text-primary-600"
-              @click="handleFilterEmployees"
-            >
-              <template #icon>
-                <font-awesome-icon :icon="['fas', 'check']" class="mr-2 text-lg" />
-              </template>
-            </Button>
+        <!-- Male & Female -->
+        <div class="flex flex-col items-center justify-center rounded-xl bg-surface-0 p-4 shadow-md dark:bg-surface-700">
+          <h2 class="mb-2 text-center text-sm font-semibold text-primary-700 dark:text-primary-100">Gender Distribution</h2>
+          <DonutChart
+            v-if="genderSeries.length"
+            :key="genderSeries.join('-')"
+            :series="genderSeries"
+            :labels="['Male', 'Female']"
+            :colors="['#22C55E', '#EF4444']"
+            :dark-mode="chartsInDarkMode"
+          />
+        </div>
+
+        <!-- Total Employees -->
+        <div class="flex flex-col items-center justify-center rounded-xl bg-surface-0 p-4 shadow-md dark:bg-surface-700">
+          <h2 class="mb-2 text-center text-sm font-semibold text-primary-700 dark:text-primary-100">Total Employees</h2>
+          <div class="flex h-56 w-full flex-col items-center justify-center">
+            <span class="text-5xl font-bold text-primary-700 dark:text-primary-100 md:text-6xl">{{ totalEmployees }}</span>
+            <span class="mt-2 text-sm text-surface-500 dark:text-surface-300">Active Staff</span>
           </div>
         </div>
-      </Dialog>
+
+        <!-- HR Metrics -->
+        <!-- HR Metrics -->
+        <div class="flex flex-col items-center justify-center rounded-xl bg-surface-0 p-4 shadow-md dark:bg-surface-700">
+          <h2 class="mb-2 text-center text-sm font-semibold text-primary-700 dark:text-primary-100">
+            Employment Status Distribution
+          </h2>
+
+          <DonutChart
+            v-if="statusSeries.length"
+            :key="statusSeries.join('-')"
+            :series="statusSeries"
+            :labels="['Permanent', 'Coterminous', 'Contractual', 'Contract of Service', 'Job Order']"
+            :colors="['#3b82f6', '#10b981', '#22C55E', '#EF4444', '#8b5cf6']"
+            :dark-mode="chartsInDarkMode"
+          />
+        </div>
+      </div>
+
+      <!-- Distribution Reports -->
+      <div class="mt-6 flex max-h-96 w-full gap-4">
+        <Card class="h-full flex-1 border-none bg-surface-0 shadow-none dark:bg-surface-700" :pt="{ content: 'pt-0 pb-2 px-4' }">
+          <template #content>
+            <PPMSDashboardReportsPage />
+          </template>
+        </Card>
+      </div>
     </div>
   </div>
 </template>
