@@ -110,7 +110,6 @@ export const resolveDTRSlots = (entries: TimeLogResponse[] = []): DTRSlots => {
   if (slots.out1) {
     const out1Time = toTime(slots.out1).getTime()
     const candidates = sorted.filter((e) => new Date(toTimestamp(e.date, e.scanned_time)).getTime() > out1Time)
-    // let nearest: TimeLogResponse | null = null
     for (const e of candidates) {
       const time = toTime(e)
       const target = new Date(time)
