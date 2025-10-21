@@ -219,12 +219,12 @@ const handleSearchEmployee = async () => {
                 </Column>
 
                 <Column
-                  field="employee.division.name"
+                  field="employee.item.position.title"
                   header="POSITION / DESIGNATION"
                   headerClass=" w-80 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
                 >
                   <template #body="props">
-                    <div v-if="!dailyTimeRecordIsLoading">{{ props.data.employee?.division?.name }}</div>
+                    <div v-if="!dailyTimeRecordIsLoading">{{ props.data.employee?.item?.position?.title }}</div>
                     <div v-else class="h-4 w-40 rounded bg-surface-300 dark:bg-surface-700"></div>
                   </template>
                 </Column>
