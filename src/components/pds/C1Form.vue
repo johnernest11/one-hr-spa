@@ -761,6 +761,23 @@ watch(
   }
 )
 
+/** Computed property to format the height with 2 decimals (1.56m) **/
+const formattedHeight = computed({
+  get: () => {
+    const val = payload.individual.height
+    return val != null ? `${val}${' m'}` : ''
+  },
+  set: (value: string) => {
+    let [whole, decimal] = value.replace(/[^\d.]/g, '').split('.')
+    if (!decimal && whole?.length > 1) {
+      decimal = whole.slice(1)
+      whole = whole[0]
+    }
+    if (decimal) decimal = decimal.slice(0, 2)
+    payload.individual.height = parseFloat([whole, decimal].filter(Boolean).join('.')) || null
+  },
+})
+
 watch(
   () => payload.individual.citizenship,
   (newValue) => {
@@ -2171,7 +2188,7 @@ defineExpose({
                         />
                       </div>
                       <WbInputText
-                        v-model="payload.individual.height"
+                        v-model="formattedHeight"
                         label="Height (m)"
                         placeholder="Height in meters"
                         suffix="m"

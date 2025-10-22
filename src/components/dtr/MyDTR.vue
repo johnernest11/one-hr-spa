@@ -189,7 +189,9 @@ watch(
     filterMonth.value = month
     monthDate.value = new Date(year, month)
 
-    handleViewDtr()
+    if (selectedEmployeeId.value) {
+      handleViewDtr(selectedEmployeeId.value)
+    }
   },
   { immediate: true }
 )
@@ -241,13 +243,9 @@ watch(
         const slots = resolveDTRSlots(dtr.row.time_log)
 
         const dateKey = dtr.date ? new Date(dtr.date).toISOString() : 'no-date'
-
         remarksMap[`in1-${dateKey}`] = slots.in1 ? formatDTRTime(toTimestamp(slots.in1.date, slots.in1.scanned_time)) : ''
-
         remarksMap[`out1-${dateKey}`] = slots.out1 ? formatDTRTime(toTimestamp(slots.out1.date, slots.out1.scanned_time)) : ''
-
         remarksMap[`in2-${dateKey}`] = slots.in2 ? formatDTRTime(toTimestamp(slots.in2.date, slots.in2.scanned_time)) : ''
-
         remarksMap[`out2-${dateKey}`] = slots.out2 ? formatDTRTime(toTimestamp(slots.out2.date, slots.out2.scanned_time)) : ''
 
         const utKey = `ut-${dateKey}`

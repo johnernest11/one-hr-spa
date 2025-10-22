@@ -71,67 +71,58 @@ export type DTRSlots = {
 }
 
 export const resolveDTRSlots = (entries: TimeLogResponse[] = []): DTRSlots => {
+  if (!entries.length) return { in1: null, out1: null, in2: null, out2: null }
+
   const sorted = [...entries].sort(
     (a, b) => new Date(toTimestamp(a.date, a.scanned_time)).getTime() - new Date(toTimestamp(b.date, b.scanned_time)).getTime()
   )
 
   const slots: DTRSlots = { in1: null, out1: null, in2: null, out2: null }
-  const toTime = (entry: TimeLogResponse) => new Date(toTimestamp(entry.date, entry.scanned_time))
-  const getHourDiff = (t1: Date, t2: Date) => Math.abs(t1.getTime() - t2.getTime())
 
-  const findNearestToHour = (targetHour: number): TimeLogResponse | null => {
-    let nearest: TimeLogResponse | null = null
-    let minDiff = Infinity
-    for (const e of sorted) {
-      const time = toTime(e)
-      const target = new Date(time)
-      target.setHours(targetHour, 0, 0, 0)
-      const diff = getHourDiff(time, target)
+  const toTime = (entry: TimeLogResponse) => new Date(toTimestamp(entry.date, entry.scanned_time))
+
+  // Helper: check if entry is within a given hour range
+  const isBetweenHours = (entry: TimeLogResponse, startHour: number, endHour: number) => {
+    const h = toTime(entry).getHours()
+    return h >= startHour && h < endHour
+  }
+
+  // Helper: find entry nearest to a target hour
+  const findNearestToHour = (entries: TimeLogResponse[], targetHour: number): TimeLogResponse | null => {
+    if (!entries.length) return null
+    const target = new Date(toTime(entries[0]))
+    target.setHours(targetHour, 0, 0, 0)
+
+    let nearest = entries[0]
+    let minDiff = Math.abs(toTime(nearest).getTime() - target.getTime())
+
+    for (const e of entries) {
+      const diff = Math.abs(toTime(e).getTime() - target.getTime())
       if (diff < minDiff) {
-        minDiff = diff
         nearest = e
+        minDiff = diff
       }
     }
+
     return nearest
   }
 
-  const isBetween = (timestamp: string, startHour: number, endHour: number) => {
-    const hours = new Date(timestamp).getHours()
-    return hours >= startHour && hours < endHour
-  }
+  // IN1 → earliest log between 6–12
+  slots.in1 = sorted.find((e) => isBetweenHours(e, 6, 12)) ?? null
 
-  // IN 1 → earliest log between 6–12
-  slots.in1 = sorted.find((e) => isBetween(toTimestamp(e.date, e.scanned_time), 6, 12)) ?? null
+  // OUT1 → nearest log to 12 PM
+  slots.out1 = findNearestToHour(sorted, 12)
 
-  // OUT 1 → first log between 12–13 (regardless of is_in/out)
-  slots.out1 = findNearestToHour(12)
-
-  // IN 2 → first log after OUT1 that’s between 12–14
+  // IN2 → first log after OUT1 that is between 12–14
   if (slots.out1) {
     const out1Time = toTime(slots.out1).getTime()
-    const candidates = sorted.filter((e) => new Date(toTimestamp(e.date, e.scanned_time)).getTime() > out1Time)
-    for (const e of candidates) {
-      const time = toTime(e)
-      const target = new Date(time)
-      target.setHours(13, 0, 0, 0)
-    }
-    const in2Candidate = candidates.find((e) => isBetween(toTimestamp(e.date, e.scanned_time), 12, 14))
-    if (in2Candidate) {
-      const in2Time = toTime(in2Candidate).getTime()
-      if (getHourDiff(new Date(in2Time), toTime(slots.out1)) >= 1 * 60 * 1000) {
-        slots.in2 = in2Candidate
-      } else {
-        slots.in2 = null
-      }
-    } else {
-      slots.in2 = null
-    }
-  } else {
-    slots.in2 = null
+    const candidates = sorted.filter((e) => toTime(e).getTime() > out1Time && isBetweenHours(e, 12, 14))
+    slots.in2 = candidates.length ? candidates[0] : null
   }
 
-  // OUT 2 → first log ≥ 14 (regardless of is_in/out)
-  slots.out2 = findNearestToHour(24)
+  // OUT2 → first log between 14–24, nearest to 12 AM (23:59)
+  const out2Candidates = sorted.filter((e) => isBetweenHours(e, 14, 24))
+  slots.out2 = findNearestToHour(out2Candidates, 24) // internally, setHours(24) → JS treats as next day 00:00, so we use it safely
 
   return slots
 }

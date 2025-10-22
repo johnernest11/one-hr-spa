@@ -144,16 +144,63 @@ export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => 
     return responseBody
   }
 
-  const searchDailyTimeRecords = async (query: string | null) => {
-    let uri = '/daily-time-records/search?'
-    if (query) uri += `query=${query}`
-    const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
-    const responseBody: ApiResponseBody = data.value
-    if (responseBody.success) {
-      const leaveCreditsList = responseBody.data as DailyTimeRecordResponse[]
-      dailyTimeRecords.value = [...leaveCreditsList]
+  const searchDailyTimeRecordsByMonthQuery = async (query: string | null) => {
+    const now = new Date()
+
+    if (!query?.trim()) {
+      throw new Error('Please enter a valid month or format (e.g. "2025-10" or "October 2025").')
     }
-    return responseBody
+
+    const q = query.toLowerCase().trim()
+    const months = [
+      'january',
+      'february',
+      'march',
+      'april',
+      'may',
+      'june',
+      'july',
+      'august',
+      'september',
+      'october',
+      'november',
+      'december',
+    ]
+
+    let year = now.getFullYear()
+    let month = now.getMonth()
+    let matched = false
+
+    const iso = q.match(/^(19|20)\d{2}-(0[1-9]|1[0-2])$/)
+    if (iso) {
+      const [y, m] = q.split('-')
+      matched = true
+      return fetchDailyTimeRecordsByMonth(new Date(+y, +m - 1))
+    }
+
+    const y = q.match(/\b(19|20)\d{2}\b/)
+    if (y) {
+      year = +y[0]
+      matched = true
+    }
+
+    const mi = months.findIndex((m) => q.includes(m))
+    if (mi !== -1) {
+      month = mi
+      matched = true
+    } else {
+      const num = q.match(/(?:^|\D)(0?[1-9]|1[0-2])(?:\D|$)/)
+      if (num) {
+        month = +num[1] - 1
+        matched = true
+      }
+    }
+
+    if (!matched) {
+      throw new Error('Invalid search query. Please use "YYYY-MM" or a month name (e.g., "October 2025").')
+    }
+
+    return fetchDailyTimeRecordsByMonth(new Date(year, month))
   }
 
   const updateDailyTimeRecords = async (payload: UpdateDTRPayload) => {
@@ -253,7 +300,7 @@ export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => 
     fetchDailyTimeRecords,
     fetchDailyTimeRecordsByMonth,
     fetchDailyTimeRecordsByEmployee,
-    searchDailyTimeRecords,
+    searchDailyTimeRecordsByMonthQuery,
     updateDailyTimeRecords,
     generateDailyTimeRecords,
     viewTimeLogs,

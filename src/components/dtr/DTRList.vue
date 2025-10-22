@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeMount, ref, watch, computed, onMounted } from 'vue'
+import { onBeforeMount, ref, watch, computed, onMounted, toRaw } from 'vue'
 import Button from 'primevue/button'
 import Chip from 'primevue/chip'
 import Card from 'primevue/card'
@@ -85,11 +85,12 @@ const navigateToDetails = (monthlyGroup: { month: string; records: DailyTimeReco
 const dailyTimeRecordStore = useDailyTimeRecordsStore()
 
 const monthlyRecords = computed(() => {
-  let records = dailyTimeRecordStore.dailyTimeRecords as unknown as ViewDailyTimeRecordResponse[]
+  const rawRecords = toRaw(dailyTimeRecordsStore.dailyTimeRecords)
+  const records = [...rawRecords]
 
   if (route.params.id) {
     const employeeId = Number(route.params.id)
-    records = records.filter((dtr) => dtr.employee_id === employeeId)
+    return collapseDtrByMonth(records.filter((dtr) => dtr.id === employeeId))
   }
 
   return collapseDtrByMonth(records)
@@ -104,10 +105,10 @@ onBeforeMount(async () => {
   let response
   if (employeeId) {
     // Fetch DTR for specific employee
-    response = await dailyTimeRecordStore.fetchDailyTimeRecordsByEmployee(employeeId)
+    response = await dailyTimeRecordsStore.fetchDailyTimeRecordsByEmployee(employeeId)
   } else {
     // Fetch current user DTR
-    response = await dailyTimeRecordStore.fetchDailyTimeRecords()
+    response = await dailyTimeRecordsStore.fetchDailyTimeRecords()
   }
 
   if (response.success && response.pagination) {
@@ -119,11 +120,13 @@ onBeforeMount(async () => {
 const pagination = ref<ApiResponsePagination | null>(null)
 const currentPage = ref(1)
 const rowsPerPage = 5
+const searchResults = ref<{ month: string; records: DailyTimeRecordResponse[] }[]>([])
 
 const paginatedMonthlyRecords = computed(() => {
+  const baseRecords = searchSubmitted.value ? searchResults.value : monthlyRecords.value
   const start = (currentPage.value - 1) * rowsPerPage
   const end = start + rowsPerPage
-  return monthlyRecords.value.slice(start, end)
+  return baseRecords.slice(start, end)
 })
 
 const handlePaginationPageChange = (event: PageState) => {
@@ -140,7 +143,7 @@ watch(
     dailyTimeRecordIsLoading.value = true
     searchQuery.value = null
     isSearching.value = false
-    const response = await dailyTimeRecordStore.fetchDailyTimeRecords()
+    const response = await dailyTimeRecordsStore.fetchDailyTimeRecords()
     if (response.success && response.pagination) {
       pagination.value = response.pagination
     }
@@ -148,35 +151,37 @@ watch(
   }
 )
 
+/****************************************************************
+                  Search for Monthly  DTRs .
+*****************************************************************/
 const searchSubmitted = ref(false)
 
 const handleSearchDailyTimeRecord = async () => {
   dailyTimeRecordIsLoading.value = true
   searchSubmitted.value = true
 
-  if (!searchQuery.value) {
-    const response = await dailyTimeRecordStore.fetchDailyTimeRecords()
+  try {
+    const response = await dailyTimeRecordsStore.searchDailyTimeRecordsByMonthQuery(searchQuery.value)
+
+    const rawData = JSON.parse(JSON.stringify(response.data ?? []))
+    searchResults.value = collapseDtrByMonth(rawData) as { month: string; records: DailyTimeRecordResponse[] }[]
+
     if (response.success && response.pagination) {
       pagination.value = response.pagination
+      searchQuery.value = null
     }
+  } catch (error: unknown) {
+    console.error('Failed to fetch DTRs by month:', error)
+  } finally {
     dailyTimeRecordIsLoading.value = false
-    return
   }
-
-  const response = await dailyTimeRecordStore.searchDailyTimeRecords(searchQuery.value)
-  if (response.success && response.pagination) {
-    pagination.value = response.pagination
-
-    searchQuery.value = null
-  }
-  dailyTimeRecordIsLoading.value = false
 }
 
 const toast = useToast()
 
-/** _____________________________________________________________
+/****************************************************************
                            Export to PDF  DTRs .
-_________________________________________________________________ */
+*****************************************************************/
 const exportCurrentMonthDTR = (monthlyRecord: { month: string; records: DailyTimeRecordResponse[] }) => {
   if (!monthlyRecord.month) {
     console.error('Month not available in record')
@@ -289,15 +294,20 @@ const getMonthlyStatus = (records: ViewDailyTimeRecordResponse[]): string => {
                 :disabled="dailyTimeRecordIsLoading"
                 @keyup.enter="handleSearchDailyTimeRecord"
               />
-              <Button icon="pi pi-search" @click="handleSearchDailyTimeRecord" />
+              <Button
+                icon="pi pi-search"
+                :loading="dailyTimeRecordIsLoading"
+                :disabled="dailyTimeRecordIsLoading"
+                @click="handleSearchDailyTimeRecord"
+              />
             </InputGroup>
           </div>
         </div>
       </div>
       <div class="mt-6 flex flex-col">
         <div class="w-full">
-          <div class="mx-auto flex h-full w-full flex-col">
-            <DataTable :value="paginatedMonthlyRecords" class="mt-6" dataKey="month">
+          <div v-if="paginatedMonthlyRecords && paginatedMonthlyRecords.length > 0" class="mx-auto flex h-full w-full flex-col">
+            <DataTable :value="paginatedMonthlyRecords" :loading="dailyTimeRecordIsLoading" class="mt-6" dataKey="month">
               <Column field="period" headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2">
                 <template #header>
                   <div class="flex flex-col">
@@ -306,9 +316,9 @@ const getMonthlyStatus = (records: ViewDailyTimeRecordResponse[]): string => {
                   </div>
                 </template>
                 <template #body="props">
-                  <p class="uppercase text-surface-600">
-                    {{ props.data.month }}
-                  </p>
+                  <div v-if="!dailyTimeRecordIsLoading">
+                    <p class="uppercase text-surface-600">{{ props.data.month }}</p>
+                  </div>
                 </template>
               </Column>
 
@@ -363,49 +373,48 @@ const getMonthlyStatus = (records: ViewDailyTimeRecordResponse[]): string => {
               </Column>
             </DataTable>
           </div>
+          <!-- PAGINATION -->
           <div class="mt-6 flex w-full justify-center md:mt-10">
             <Paginator
-              v-if="monthlyRecords.length"
+              v-if="paginatedMonthlyRecords.length"
               :rows="rowsPerPage"
-              :total-records="monthlyRecords.length"
+              :total-records="paginatedMonthlyRecords.length"
               template="CurrentPageReport FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink"
               currentPageReportTemplate="Showing {first} to {last} of {totalRecords}"
               @page="handlePaginationPageChange"
               class="text-s md:text-sm"
             />
           </div>
-        </div>
-        <div
-          v-if="searchSubmitted && !dailyTimeRecordIsLoading && !dailyTimeRecordStore.dailyTimeRecords.length"
-          class="flex h-full w-full flex-col items-center justify-center font-menu text-lg dark:text-surface-300"
-        >
-          <i class="pi pi-exclamation-triangle mb-2 text-2xl"></i>
-          <p>No Daily Time Record found</p>
-        </div>
-        <div
-          v-if="!dailyTimeRecordIsLoading && !dailyTimeRecordStore.dailyTimeRecords.length && !searchSubmitted"
-          class="mx-auto flex h-full w-full flex-col"
-        >
-          <Card class="w-full p-0 shadow-none">
-            <template #content>
-              <div class="flex flex-col items-center">
-                <div
-                  class="my-6 flex w-full flex-col items-center justify-between gap-4 rounded-lg bg-surface-0 px-6 py-6 dark:bg-surface-800 md:my-4 md:flex-row md:px-4 md:py-4"
-                ></div>
-                <div class="flex justify-center">
+
+          <!-- NO DTR FOUND FOR SELECTED MONTH -->
+          <div
+            v-if="searchSubmitted && !dailyTimeRecordIsLoading && paginatedMonthlyRecords.length === 0"
+            class="flex h-full w-full flex-col items-center justify-center font-menu text-lg dark:text-surface-300"
+          >
+            <i class="pi pi-calendar-times mb-2 text-2xl"></i>
+            <p>No Daily Time Record found for this month</p>
+          </div>
+
+          <div
+            v-if="!dailyTimeRecordIsLoading && !dailyTimeRecordStore.dailyTimeRecords.length && !searchSubmitted"
+            class="mx-auto flex h-full w-full flex-col"
+          >
+            <Card class="w-full p-0 shadow-none">
+              <template #content>
+                <div class="flex flex-col items-center">
                   <img src="@/assets/image/undraw_filing-system.svg" class="w-96 pt-36" />
+                  <h2
+                    class="mb-2 mt-4 flex w-full justify-center text-center text-xl font-semibold text-surface-800 dark:text-primary-100 sm:text-2xl"
+                  >
+                    You have no Daily Time Record
+                  </h2>
+                  <h1 class="mb-4 text-center text-base text-surface-600 dark:text-surface-400 sm:text-lg">
+                    Daily Time Records created by you shall appear here
+                  </h1>
                 </div>
-                <h2
-                  class="mb-2 mt-4 flex w-full justify-center text-center text-xl font-semibold text-surface-800 dark:text-primary-100 sm:text-2xl"
-                >
-                  You have no Daily Time Record
-                </h2>
-                <h1 class="mb-4 text-center text-base text-surface-600 dark:text-surface-400 sm:text-lg">
-                  Daily Time Record created by you shall appear here
-                </h1>
-              </div>
-            </template>
-          </Card>
+              </template>
+            </Card>
+          </div>
         </div>
       </div>
     </div>
