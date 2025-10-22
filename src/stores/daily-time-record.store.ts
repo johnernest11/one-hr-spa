@@ -234,6 +234,16 @@ export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => 
     return responseBody
   }
 
+  const getLastTimeLog = async () => {
+    const individual = auth.authenticatedUser.user_profile?.individual_basic_detail as PersonnelResponse
+    if (!individual?.employee) throw new Error('No employee linked')
+
+    const uri = `/employees/${individual.employee.id}/daily-time-records/last-time-log`
+    const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
+    const responseBody: ApiResponseBody = data.value
+    return responseBody
+  }
+
   return {
     dailyTimeRecords,
     dailyTimeRecordInfo,
@@ -251,5 +261,6 @@ export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => 
     fetchTimeLogsForToday,
     fetchCountWarmBodies,
     searchTimeLogs,
+    getLastTimeLog,
   }
 })
