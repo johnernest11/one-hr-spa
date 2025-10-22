@@ -191,7 +191,7 @@ const handleSearchLocatorSlip = async () => {
     return
   }
 
-  const response = await locatorSlipsStore.searchLocatorSlip(searchQuery.value, isHumanResourceActive.value)
+  const response = await locatorSlipsStore.searchLocatorSlip(searchQuery.value, isHumanResourceActive.value, paginationLimit)
   if (response.success && response.pagination) {
     employeeGroups.value = response.data
     pagination.value = response.pagination
@@ -218,7 +218,8 @@ const handleFilterLocatorSlip = async () => {
       secId,
       formType,
       dateFilter,
-      isHumanResourceActive.value
+      isHumanResourceActive.value,
+      paginationLimit
     )
 
     if (response.success && response.pagination) {
