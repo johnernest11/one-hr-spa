@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeMount, ref, watch, computed, onMounted, toRaw } from 'vue'
+import { onBeforeMount, ref, watch, computed, onMounted } from 'vue'
 import Button from 'primevue/button'
 import Chip from 'primevue/chip'
 import Card from 'primevue/card'
@@ -24,19 +24,22 @@ const dailyTimeRecordsStore = useDailyTimeRecordsStore()
 const isLoading = ref(true)
 const personnelStore = usePersonnelStore()
 const selectedEmployeeId = ref<string | null>(null)
-
+const monthlyRecords = ref<{ month: string; records: DailyTimeRecordResponse[] }[]>([])
 onMounted(async () => {
   const id = (route.params.id as string) || null
   selectedEmployeeId.value = id
 
   isLoading.value = true
 
+  let response
   if (id) {
-    // Fetch another user's DTR by their employee ID
-    await dailyTimeRecordsStore.fetchDailyTimeRecordsByEmployee(id)
+    response = await dailyTimeRecordsStore.fetchDailyTimeRecordsByEmployee(id)
   } else {
-    // Fetch current user's DTR
-    await dailyTimeRecordsStore.fetchDailyTimeRecords()
+    response = await dailyTimeRecordsStore.fetchDailyTimeRecords()
+  }
+
+  if (response.success && response.data) {
+    monthlyRecords.value = collapseDtrByMonth(response.data as DailyTimeRecordResponse[])
   }
 
   isLoading.value = false
@@ -84,17 +87,6 @@ const navigateToDetails = (monthlyGroup: { month: string; records: DailyTimeReco
 
 const dailyTimeRecordStore = useDailyTimeRecordsStore()
 
-const monthlyRecords = computed(() => {
-  const rawRecords = toRaw(dailyTimeRecordsStore.dailyTimeRecords)
-  const records = [...rawRecords]
-
-  if (route.params.id) {
-    const employeeId = Number(route.params.id)
-    return collapseDtrByMonth(records.filter((dtr) => dtr.id === employeeId))
-  }
-
-  return collapseDtrByMonth(records)
-})
 const dailyTimeRecordIsLoading = ref(false)
 
 onBeforeMount(async () => {
@@ -306,7 +298,7 @@ const getMonthlyStatus = (records: ViewDailyTimeRecordResponse[]): string => {
       </div>
       <div class="mt-6 flex flex-col">
         <div class="w-full">
-          <div v-if="paginatedMonthlyRecords && paginatedMonthlyRecords.length > 0" class="mx-auto flex h-full w-full flex-col">
+          <div class="mx-auto flex h-full w-full flex-col">
             <DataTable :value="paginatedMonthlyRecords" :loading="dailyTimeRecordIsLoading" class="mt-6" dataKey="month">
               <Column field="period" headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2">
                 <template #header>

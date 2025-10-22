@@ -1,4 +1,4 @@
-import { TimeLogResponse } from '@/typings/models.types.ts'
+import { DailyTimeRecordResponse, TimeLogResponse } from '@/typings/models.types.ts'
 
 /**
  * Converts a date string into a formatted 12-hour time string.
@@ -231,10 +231,10 @@ export const computeOT = (worked: number, weekend = false): number => {
  *   { month: "August 2025", records: [...] }
  * ]
  */
-export const collapseDtrByMonth = (dtrs: { date: string }[]) => {
+export const collapseDtrByMonth = (dtrs: DailyTimeRecordResponse[]) => {
   if (!dtrs.length) return []
 
-  const grouped: Record<string, { month: string; records: typeof dtrs }> = {}
+  const grouped: Record<string, { month: string; records: DailyTimeRecordResponse[] }> = {}
 
   dtrs.forEach((dtr) => {
     const d = new Date(dtr.date)
