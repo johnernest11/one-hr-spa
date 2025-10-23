@@ -26,6 +26,18 @@ const c2FormRef = ref()
 const c3FormRef = ref()
 const c4FormRef = ref()
 
+const c1Key = ref(0)
+const c2Key = ref(0)
+const c3Key = ref(0)
+const c4Key = ref(0)
+
+const refreshTabs = () => {
+  c1Key.value++
+  c2Key.value++
+  c3Key.value++
+  c4Key.value++
+}
+
 onBeforeMount(async () => {
   isImporting.value = false
   if (route.query.mode === 'via-manual-input') {
@@ -107,6 +119,7 @@ const handleUpdate = async () => {
       detail: 'All forms have been successfully updated.',
       life: 1500,
     })
+    refreshTabs()
   } finally {
     isSubmitting.value = false
   }
@@ -224,16 +237,16 @@ const handleUpdate = async () => {
             </TabList>
 
             <TabPanels>
-              <TabPanel :static="true" v-slot="{ selected }">
+              <TabPanel :key="c1Key" :static="true" v-slot="{ selected }">
                 <div v-show="selected"><C1Form ref="c1FormRef" /></div>
               </TabPanel>
-              <TabPanel :static="true" v-slot="{ selected }">
+              <TabPanel :key="c2Key" :static="true" v-slot="{ selected }">
                 <div v-show="selected"><C2Form ref="c2FormRef" /></div>
               </TabPanel>
-              <TabPanel :static="true" v-slot="{ selected }">
+              <TabPanel :key="c3Key" :static="true" v-slot="{ selected }">
                 <div v-show="selected"><C3Form ref="c3FormRef" /></div>
               </TabPanel>
-              <TabPanel :static="true" v-slot="{ selected }">
+              <TabPanel :key="c4Key" :static="true" v-slot="{ selected }">
                 <div v-show="selected"><C4Form ref="c4FormRef" /></div>
               </TabPanel>
             </TabPanels>

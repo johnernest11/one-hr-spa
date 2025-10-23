@@ -109,7 +109,13 @@ export const resolveDTRSlots = (entries: TimeLogResponse[] = []): DTRSlots => {
 
   // IN1 → earliest log between 6–12
   slots.in1 = sorted.find((e) => isBetweenHours(e, 6, 12)) ?? null
-
+  // OUT1 → first log between 12–13 if IN1 exists
+  if (slots.in1) {
+    const noonCandidates = sorted.filter((e) => isBetweenHours(e, 12, 13))
+    if (noonCandidates.length) {
+      slots.out1 = noonCandidates[0]
+    }
+  }
   // OUT1 → first log >= 12:00, between 12–13, pick earliest among them
   const noonCandidates = sorted.filter((e) => isBetweenHours(e, 12, 13))
   if (noonCandidates.length) {
@@ -121,6 +127,10 @@ export const resolveDTRSlots = (entries: TimeLogResponse[] = []): DTRSlots => {
   if (slots.out1) {
     const out1Time = toTime(slots.out1).getTime()
     const in2Candidates = sorted.filter((e) => toTime(e).getTime() > out1Time && isBetweenHours(e, 12, 14))
+    slots.in2 = in2Candidates[0] ?? null
+  } else if (!slots.in1) {
+    // No morning log → first log in 12–14 becomes IN2
+    const in2Candidates = sorted.filter((e) => isBetweenHours(e, 12, 14))
     slots.in2 = in2Candidates[0] ?? null
   }
 
