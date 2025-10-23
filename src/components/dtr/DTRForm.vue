@@ -323,9 +323,9 @@ const computeOTValue = computed(() => {
                 <p
                   class="text-base text-surface-600"
                   :class="{
-                    'cursor-pointer text-error-900': (dtr.row?.time_log?.length ?? 0) > 4,
+                    'cursor-pointer text-error-900': (dtr.row?.time_log?.length ?? 0) > 0,
                   }"
-                  @click="(dtr.row?.time_log?.length ?? 0) > 4 ? onAccordionClick(dtr, index) : null"
+                  @click="(dtr.row?.time_log?.length ?? 0) > 0 ? onAccordionClick(dtr, index) : null"
                 >
                   {{ dtr.date ? getFormattedDTRDate(dtr.date) : '-' }}
                 </p>

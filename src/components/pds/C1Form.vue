@@ -2170,10 +2170,13 @@ defineExpose({
                           @blur="validator.individual.country_id.$touch"
                         />
                       </div>
-                      <WbInputText
+                      <WbInputNumber
                         v-model="payload.individual.height"
                         label="Height (m)"
                         placeholder="Height in meters"
+                        mode="decimal"
+                        minFractionDigits="2"
+                        maxFractionDigits="2"
                         suffix="m"
                         required
                         :readonly="pdsStore.isMyPds"
@@ -2190,7 +2193,7 @@ defineExpose({
                         <template #prepend-icon>
                           <FontAwesomeIcon icon="fa-solid fa-ruler-vertical" />
                         </template>
-                      </WbInputText>
+                      </WbInputNumber>
 
                       <WbDropdown
                         v-model="payload.individual.blood_type"
