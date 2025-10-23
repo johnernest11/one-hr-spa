@@ -167,13 +167,13 @@ const formRules = computed(() => ({
       maxLength: globalStringMaxLengthRule,
     },
   })),
-  individual_recognition: payload.individual_skills_hobby.map(() => ({
+  individual_recognition: payload.individual_recognition.map(() => ({
     recognition: {
       required: helpers.withMessage('Recognition is required.', (val, vm) => hasAnyValue(vm) || helpers.req(val)),
       maxLength: globalStringMaxLengthRule,
     },
   })),
-  individual_membership: payload.individual_skills_hobby.map(() => ({
+  individual_membership: payload.individual_membership.map(() => ({
     association_organization: {
       required: helpers.withMessage('Association / organization is required.', (val, vm) => hasAnyValue(vm) || helpers.req(val)),
       maxLength: globalStringMaxLengthRule,

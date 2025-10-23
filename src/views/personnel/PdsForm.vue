@@ -89,6 +89,9 @@ const handleSubmit = async () => {
   isSubmitting.value = false
 }
 
+/**************************************************
+               Handle Update C1-C4
+************************************************* */
 const handleUpdate = async () => {
   isSubmitting.value = true
   try {
@@ -100,25 +103,16 @@ const handleUpdate = async () => {
         c4FormRef.value?.updateC4Form?.(),
       ].filter(Boolean)
     )
+    const hasInvalid = results.some((r) => r?.valid === false)
+    if (hasInvalid) return
 
-    const failedTabs = results.filter((r) => r?.valid === false).flatMap((r) => r.errorTabs || [])
-
-    if (failedTabs.length > 0) {
-      console.warn('Validation failed for tabs:', failedTabs)
-      toast.add({
-        severity: 'error',
-        summary: 'Validation Error',
-        detail: 'Please check the following tabs',
-        life: 10000,
-      })
-      return
-    }
     toast.add({
       severity: 'success',
-      summary: 'PDS Update',
-      detail: 'All forms have been successfully updated.',
-      life: 1500,
+      summary: 'Validation Successful',
+      detail: 'All forms have passed validation and were updated successfully.',
+      life: 2000,
     })
+
     refreshTabs()
   } finally {
     isSubmitting.value = false
