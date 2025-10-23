@@ -163,16 +163,19 @@ const formRules = computed(() => ({
   })),
   individual_skills_hobby: payload.individual_skills_hobby.map(() => ({
     skill_hobby: {
+      required: helpers.withMessage('Skill or hobby is required.', (val, vm) => hasAnyValue(vm) || helpers.req(val)),
       maxLength: globalStringMaxLengthRule,
     },
   })),
-  individual_recognition: payload.individual_skills_hobby.map(() => ({
+  individual_recognition: payload.individual_recognition.map(() => ({
     recognition: {
+      required: helpers.withMessage('Recognition is required.', (val, vm) => hasAnyValue(vm) || helpers.req(val)),
       maxLength: globalStringMaxLengthRule,
     },
   })),
-  individual_membership: payload.individual_skills_hobby.map(() => ({
+  individual_membership: payload.individual_membership.map(() => ({
     association_organization: {
+      required: helpers.withMessage('Association / organization is required.', (val, vm) => hasAnyValue(vm) || helpers.req(val)),
       maxLength: globalStringMaxLengthRule,
     },
   })),
@@ -1054,16 +1057,15 @@ defineExpose({
                                 :readonly="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 :class="[
-                                  'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
                                   pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
-                                  validator.individual_skills_hobby[skillHobbiesIndex - 1].skill_hobby.$error ? 'mb-8' : 'mb-2',
                                 ]"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalidText="
-                                  validator.individual_skills_hobby[skillHobbiesIndex - 1].skill_hobby.$errors[0]?.$message
+                                  validator.individual_skills_hobby[skillHobbiesIndex - 1]?.skill_hobby.$errors[0]?.$message
                                 "
-                                :invalid="validator.individual_skills_hobby[skillHobbiesIndex - 1].skill_hobby.$error"
-                                @blur="validator.individual_skills_hobby[skillHobbiesIndex - 1].skill_hobby.$touch()"
+                                :invalid="validator.individual_skills_hobby[skillHobbiesIndex - 1]?.skill_hobby.$error"
+                                @blur="validator.individual_skills_hobby[skillHobbiesIndex - 1]?.skill_hobby.$touch()"
                               />
                               <!-- Delete button aligned right, below label -->
                               <Button
@@ -1076,7 +1078,7 @@ defineExpose({
                                 severity="danger"
                                 :class="[
                                   'text-lg font-semibold dark:text-primary-100',
-                                  validator.individual_skills_hobby[skillHobbiesIndex - 1].skill_hobby.$error ? 'mb-4' : 'mb-2',
+                                  validator.individual_skills_hobby[skillHobbiesIndex - 1].skill_hobby.$error ? 'mb-8' : 'mb-2',
                                 ]"
                                 text
                               />
@@ -1137,10 +1139,10 @@ defineExpose({
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalidText="
-                                  validator.individual_recognition[recognitionIndex - 1].recognition.$errors[0]?.$message
+                                  validator.individual_recognition[recognitionIndex - 1]?.recognition.$errors[0]?.$message
                                 "
-                                :invalid="validator.individual_recognition[recognitionIndex - 1].recognition.$error"
-                                @blur="validator.individual_recognition[recognitionIndex - 1].recognition.$touch()"
+                                :invalid="validator.individual_recognition[recognitionIndex - 1]?.recognition.$error"
+                                @blur="validator.individual_recognition[recognitionIndex - 1]?.recognition.$touch()"
                               />
                               <!-- Delete button aligned right, below label -->
                               <Button
@@ -1153,7 +1155,7 @@ defineExpose({
                                 severity="danger"
                                 :class="[
                                   'text-lg font-semibold dark:text-primary-100',
-                                  validator.individual_recognition[recognitionIndex - 1].recognition.$error ? 'mb-8' : 'mb-2',
+                                  validator.individual_recognition[recognitionIndex - 1]?.recognition.$error ? 'mb-8' : 'mb-2',
                                 ]"
                                 text
                               />
@@ -1164,7 +1166,7 @@ defineExpose({
                       </TransitionRoot>
                     </template>
                     <Button
-                      v-if="payload.individual_work_experience.length < 7 && !pdsStore.isMyPds"
+                      v-if="payload.individual_recognition.length < 7 && !pdsStore.isMyPds"
                       label="Add additional Non-Academic Distinctions / Recognition field"
                       @click="handleAdditionalRecognition"
                       size="large"
@@ -1215,11 +1217,11 @@ defineExpose({
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalidText="
-                                  validator.individual_membership[membershipIndex - 1].association_organization.$errors[0]
+                                  validator.individual_membership[membershipIndex - 1]?.association_organization.$errors[0]
                                     ?.$message
                                 "
-                                :invalid="validator.individual_membership[membershipIndex - 1].association_organization.$error"
-                                @blur="validator.individual_membership[membershipIndex - 1].association_organization.$touch()"
+                                :invalid="validator.individual_membership[membershipIndex - 1]?.association_organization.$error"
+                                @blur="validator.individual_membership[membershipIndex - 1]?.association_organization.$touch()"
                               />
                               <!-- Delete button aligned right, below label -->
                               <Button
@@ -1232,7 +1234,7 @@ defineExpose({
                                 severity="danger"
                                 :class="[
                                   'text-lg font-semibold dark:text-primary-100',
-                                  validator.individual_membership[membershipIndex - 1].association_organization.$error
+                                  validator.individual_membership[membershipIndex - 1]?.association_organization.$error
                                     ? 'mb-8'
                                     : 'mb-2',
                                 ]"
@@ -1245,7 +1247,7 @@ defineExpose({
                       </TransitionRoot>
                     </template>
                     <Button
-                      v-if="payload.individual_work_experience.length < 28 && !pdsStore.isMyPds"
+                      v-if="payload.individual_membership.length < 7 && !pdsStore.isMyPds"
                       label="Add additional Membership in Association / Organization field"
                       @click="handleAdditionalMembership"
                       size="large"

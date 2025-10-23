@@ -102,7 +102,7 @@ const handleFilterDailyTimeRecord = async () => {
   selectedSectionLabel.value = selectedSectionUnit.value?.[0]?.label ?? null
 
   if (!selectedDivision.value && !selectedSectionUnit.value) {
-    const response = await personnelStore.fetchEmployees()
+    const response = await personnelStore.fetchEmployees(paginationLimit)
     if (response.success && response.pagination) {
       pagination.value = response.pagination
     }
