@@ -110,35 +110,18 @@ export const resolveDTRSlots = (entries: TimeLogResponse[] = []): DTRSlots => {
   // IN1 → earliest log between 6–12
   slots.in1 = sorted.find((e) => isBetweenHours(e, 6, 12)) ?? null
 
-  // OUT1 → nearest log to 12 PM, only logs at 12 or later
-  const noon = new Date()
-  noon.setHours(12, 0, 0, 0)
+  // OUT1 → first log >= 12:00, between 12–13, pick earliest among them
+  const noonCandidates = sorted.filter((e) => isBetweenHours(e, 12, 13))
+  if (noonCandidates.length) {
+    // Pick the **earliest log in the candidates**, not absolute difference
+    slots.out1 = noonCandidates[0]
+  }
 
-  const out1Candidates = sorted.filter((e) => toTime(e).getTime() >= noon.getTime())
-
-  slots.out1 = out1Candidates.length
-    ? out1Candidates.reduce((prev, curr) => {
-      const prevDiff = Math.abs(toTime(prev).getTime() - noon.getTime())
-      const currDiff = Math.abs(toTime(curr).getTime() - noon.getTime())
-      return currDiff < prevDiff ? curr : prev
-    })
-    : null
-
-  // IN2 → nearest log to 1 PM, only after OUT1 and between 12–14
+  // IN2 → first log after OUT1 in 12–13:59
   if (slots.out1) {
     const out1Time = toTime(slots.out1).getTime()
-    const onePM = new Date()
-    onePM.setHours(13, 0, 0, 0)
-
     const in2Candidates = sorted.filter((e) => toTime(e).getTime() > out1Time && isBetweenHours(e, 12, 14))
-
-    slots.in2 = in2Candidates.length
-      ? in2Candidates.reduce((prev, curr) => {
-        const prevDiff = Math.abs(toTime(prev).getTime() - onePM.getTime())
-        const currDiff = Math.abs(toTime(curr).getTime() - onePM.getTime())
-        return currDiff < prevDiff ? curr : prev
-      })
-      : null
+    slots.in2 = in2Candidates[0] ?? null
   }
 
   // OUT2 → first log between 14–24, nearest to 12 AM (23:59)
