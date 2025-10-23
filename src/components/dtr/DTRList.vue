@@ -153,15 +153,11 @@ const handleSearchDailyTimeRecord = async () => {
   searchSubmitted.value = true
 
   try {
-    const response = await dailyTimeRecordsStore.searchDailyTimeRecordsByMonthQuery(searchQuery.value)
+    const rawData = await dailyTimeRecordsStore.searchDailyTimeRecordsByMonthQuery(searchQuery.value)
 
-    const rawData = JSON.parse(JSON.stringify(response.data ?? []))
     searchResults.value = collapseDtrByMonth(rawData) as { month: string; records: DailyTimeRecordResponse[] }[]
 
-    if (response.success && response.pagination) {
-      pagination.value = response.pagination
-      searchQuery.value = null
-    }
+    searchQuery.value = null
   } catch (error: unknown) {
     console.error('Failed to fetch DTRs by month:', error)
   } finally {

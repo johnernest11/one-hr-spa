@@ -761,23 +761,6 @@ watch(
   }
 )
 
-/** Computed property to format the height with 2 decimals (1.56m) **/
-const formattedHeight = computed({
-  get: () => {
-    const val = payload.individual.height
-    return val != null ? `${val}${' m'}` : ''
-  },
-  set: (value: string) => {
-    let [whole, decimal] = value.replace(/[^\d.]/g, '').split('.')
-    if (!decimal && whole?.length > 1) {
-      decimal = whole.slice(1)
-      whole = whole[0]
-    }
-    if (decimal) decimal = decimal.slice(0, 2)
-    payload.individual.height = parseFloat([whole, decimal].filter(Boolean).join('.')) || null
-  },
-})
-
 watch(
   () => payload.individual.citizenship,
   (newValue) => {
@@ -2187,10 +2170,13 @@ defineExpose({
                           @blur="validator.individual.country_id.$touch"
                         />
                       </div>
-                      <WbInputText
-                        v-model="formattedHeight"
+                      <WbInputNumber
+                        v-model="payload.individual.height"
                         label="Height (m)"
                         placeholder="Height in meters"
+                        mode="decimal"
+                        minFractionDigits="2"
+                        maxFractionDigits="2"
                         suffix="m"
                         required
                         :readonly="pdsStore.isMyPds"
@@ -2207,7 +2193,7 @@ defineExpose({
                         <template #prepend-icon>
                           <FontAwesomeIcon icon="fa-solid fa-ruler-vertical" />
                         </template>
-                      </WbInputText>
+                      </WbInputNumber>
 
                       <WbDropdown
                         v-model="payload.individual.blood_type"

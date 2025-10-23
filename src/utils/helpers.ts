@@ -224,6 +224,31 @@ export const formatDate = (dateString: string | null | undefined): string => {
 }
 
 /**
+ * @description Formats a date string into "d MM yy" format.
+ * @example "04 October 2025"
+ */
+export const formatDateLong = (dateString: string | null | undefined): string => {
+  if (!dateString) return ''
+  try {
+    const date = new Date(dateString)
+    if (isNaN(date.getTime())) {
+      console.error('Invalid date string:', dateString)
+      return 'Invalid Date'
+    }
+    const options: Intl.DateTimeFormatOptions = {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+    }
+    const formattedDate = date.toLocaleDateString(undefined, options)
+    return formattedDate.replace(/^(\w+)\s(\d+),\s(\d+)$/, '$2 $1 $3')
+  } catch (error) {
+    console.error('Error formatting date:', error)
+    return 'Invalid Date'
+  }
+}
+
+/**
  * @description Formats a single date range into a readable string.
  * @example// "01 - 15 June 2025"
  */

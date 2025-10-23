@@ -11,7 +11,7 @@ import Message from 'primevue/message'
 import { useToast } from 'primevue/usetoast'
 import { useLocatorSlipStore, LocatorSlipPayload } from '@/stores/locator-slip.store'
 import { useDailyTimeRecordsStore } from '@/stores/daily-time-record.store'
-import { formatDateSafe, isSameOrAfterDate } from '@/utils/helpers.ts'
+import { formatDateSafe, isSameOrAfterDate, formatDateLong } from '@/utils/helpers.ts'
 import WbInputText from '@/components/webkit/WbInputText.vue'
 import WbCalendar from '../webkit/WbCalendar.vue'
 import { LSLoggerResponse, TimeLogResponse } from '@/typings/models.types'
@@ -29,6 +29,9 @@ const isFormTypeA = ref(false)
 const isThereActiveLog = ref(false)
 const isInOffice = ref(false)
 const displayLocatorWarning = ref(false)
+const warningMessage = ref(
+  "Heads Up! You are currently out of the office. This slip's Time Out will be linked to your next physical Time Out."
+)
 const defaultApproval = ref('personal_time')
 
 const validateDateNow = (value: string) => {
@@ -40,7 +43,21 @@ const validateMonth = (value: string) => {
   if (!value) return false
   const now = new Date()
   const compareDate = new Date(value)
-  return now.getFullYear() === compareDate.getFullYear() && now.getMonth() === compareDate.getMonth()
+
+  if (payload.period === '1st Half') {
+    const monthValid =
+      now.getFullYear() === compareDate.getFullYear() && now.getMonth() === compareDate.getMonth() && now.getDate() <= 15
+    if (!monthValid) {
+      warningMessage.value = 'The period of this locator slip has already passed. Please generate a new one.'
+    }
+    return monthValid
+  }
+
+  const monthValid = now.getFullYear() === compareDate.getFullYear() && now.getMonth() === compareDate.getMonth()
+  if (!monthValid) {
+    warningMessage.value = 'The period of this locator slip has already passed. Please generate a new one.'
+  }
+  return monthValid
 }
 
 const today = new Date()
@@ -101,6 +118,12 @@ const updatePayloadFromResponse = (locatorSlip: LocatorSlipPayload | null) => {
   (payload.locator_slip_no = locatorSlip?.locator_slip_no ?? null),
   (payload.locator_slip_logger = locatorSlip?.locator_slip_logger ?? [])
 
+  if (payload.locator_slip_logger) {
+    payload.locator_slip_logger.forEach((log) => {
+      const formattedDate = formatDateLong(log.date)
+      log.date = formattedDate
+    })
+  }
   isFormTypeA.value = payload.form_type === 'a' ? true : false
 }
 
@@ -189,7 +212,7 @@ const addLogger = () => {
 
   const defaultLog = {
     locator_slip_id: id ?? null,
-    date: formatDateSafe(dateNow),
+    date: formatDateLong(dateNow.toDateString()),
     time_in: null,
     time_out: null,
     destination: '',
@@ -231,7 +254,12 @@ const saveButtonSubmission = async () => {
 
   payload.locator_slip_logger.forEach((loggerItem) => {
     if (loggerItem.date) {
-      loggerItem.date = formatDateSafe(loggerItem.date)
+      const dateToCheck = loggerItem.date as unknown as Date | string
+
+      if (typeof dateToCheck === 'object' && dateToCheck !== null && dateToCheck instanceof Date) {
+        loggerItem.date = formatDateLong(dateToCheck.toISOString())
+      }
+      loggerItem.date = formatDateSafe(loggerItem.date, true)
     }
 
     if (loggerItem.time_in) {
@@ -313,10 +341,9 @@ const saveButtonSubmission = async () => {
             </div>
             <br />
 
-            <Message :closable="false" v-if="displayLocatorWarning"
-              >Heads Up! You are currently out of the office. This slip's Time Out will be linked to your next physical Time
-              Out.</Message
-            >
+            <Message :closable="false" v-if="displayLocatorWarning">
+              {{ warningMessage }}
+            </Message>
           </h2>
           <!-- Header: visible only on md and up -->
           <div class="grid-rows-2">
@@ -362,7 +389,7 @@ const saveButtonSubmission = async () => {
               <WbCalendar
                 v-model="row.date"
                 label=""
-                dateFormat="yy-mm-dd"
+                dateFormat="d MM yy"
                 :minDate="today"
                 :maxDate="lastDayOfCurrentMonth"
                 :invalid="validator.locator_slip_logger?.[index]?.date?.$error"

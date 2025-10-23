@@ -11,6 +11,7 @@ import {
   ViewDailyTimeRecordResponse,
   ViewTimeLogsResponse,
 } from '@/typings/models.types'
+import { parseYear, parseMonth } from '@/utils/dtr-helpers'
 
 export type DailyTimeRecordPayload = {
   id: number
@@ -144,63 +145,19 @@ export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => 
     return responseBody
   }
 
-  const searchDailyTimeRecordsByMonthQuery = async (query: string | null) => {
+  const searchDailyTimeRecordsByMonthQuery = async (query: string | null): Promise<DailyTimeRecordResponse[]> => {
+    if (!query?.trim()) throw new Error('Enter a valid month (e.g., "October 2025").')
+
     const now = new Date()
-
-    if (!query?.trim()) {
-      throw new Error('Please enter a valid month or format (e.g. "2025-10" or "October 2025").')
-    }
-
     const q = query.toLowerCase().trim()
-    const months = [
-      'january',
-      'february',
-      'march',
-      'april',
-      'may',
-      'june',
-      'july',
-      'august',
-      'september',
-      'october',
-      'november',
-      'december',
-    ]
+    const year = +(parseYear(q) ?? now.getFullYear())
+    const month = parseMonth(q)
 
-    let year = now.getFullYear()
-    let month = now.getMonth()
-    let matched = false
+    if (month === null) throw new Error('Invalid month. Use a month name or number (e.g., "October 2025").')
 
-    const iso = q.match(/^(19|20)\d{2}-(0[1-9]|1[0-2])$/)
-    if (iso) {
-      const [y, m] = q.split('-')
-      matched = true
-      return fetchDailyTimeRecordsByMonth(new Date(+y, +m - 1))
-    }
-
-    const y = q.match(/\b(19|20)\d{2}\b/)
-    if (y) {
-      year = +y[0]
-      matched = true
-    }
-
-    const mi = months.findIndex((m) => q.includes(m))
-    if (mi !== -1) {
-      month = mi
-      matched = true
-    } else {
-      const num = q.match(/(?:^|\D)(0?[1-9]|1[0-2])(?:\D|$)/)
-      if (num) {
-        month = +num[1] - 1
-        matched = true
-      }
-    }
-
-    if (!matched) {
-      throw new Error('Invalid search query. Please use "YYYY-MM" or a month name (e.g., "October 2025").')
-    }
-
-    return fetchDailyTimeRecordsByMonth(new Date(year, month))
+    return fetchDailyTimeRecordsByMonth(new Date(year, month)).then(
+      (res) => structuredClone(res.data ?? []) as DailyTimeRecordResponse[]
+    )
   }
 
   const updateDailyTimeRecords = async (payload: UpdateDTRPayload) => {
