@@ -79,6 +79,8 @@ export type VerifyEmailPayload = {
 
 export const useAuthStore = defineStore('auth', () => {
   const refreshTimer = ref<number | null>(null)
+  const CHECK_INTERVAL_MS = 60 * 1000 // 60 seconds
+  const REFRESH_BEFORE_EXPIRY_MS = 10 * 1000 // 10 seconds
   /**
    * States
    * We use sessionStorage to hydrate state when the page reloads
@@ -464,33 +466,39 @@ export const useAuthStore = defineStore('auth', () => {
    * Schedule proactive refresh
    */
   const scheduleTokenRefresh = (expiresAt: Date | null): void => {
-    if (!expiresAt) return
-    if (refreshTokenExpired.value) return
-
     if (refreshTimer.value) {
       clearScheduledRefresh()
     }
 
-    const refreshIn = expiresAt.getTime() - Date.now() - 5000
-    if (refreshIn <= 0) return
+    if (!expiresAt || refreshTokenExpired.value) {
+      return
+    }
 
-    console.log('Initializing token refresh scheduler...')
-    refreshTimer.value = window.setTimeout(async () => {
-      try {
+    console.log('Initializing token refresh scheduler with interval...')
+
+    refreshTimer.value = window.setInterval(async () => {
+      const expirationTime = expiresAt.getTime()
+      const timeUntilExpiry = expirationTime - Date.now()
+
+      if (timeUntilExpiry <= REFRESH_BEFORE_EXPIRY_MS) {
         console.log('Token is nearing expiration. Refreshing...')
-        await refreshCurrentTokens()
-      } catch (err) {
-        console.error('Auto refresh failed', err)
-        refreshTokenExpired.value = true
+
         clearScheduledRefresh()
+
+        try {
+          await refreshCurrentTokens()
+        } catch (err) {
+          console.error('Auto refresh failed', err)
+          refreshTokenExpired.value = true
+          clearScheduledRefresh()
+        }
       }
-    }, refreshIn)
+    }, CHECK_INTERVAL_MS)
   }
 
   const clearScheduledRefresh = () => {
-    if (refreshTimer.value !== null) {
-      console.log('Token refresh scheduler cleared.')
-      clearTimeout(refreshTimer.value)
+    if (refreshTimer.value) {
+      window.clearInterval(refreshTimer.value as number)
       refreshTimer.value = null
     }
   }
