@@ -33,10 +33,15 @@ export type ApiResponseData = {
 export interface WarmBodyLogEntry {
   id: number
   employee_id: string
-  timestamp: string
+  date: string
+  scanned_time: string
+  captured_image_url?: string
   is_in: boolean
   created_at?: string
   updated_at?: string
+  photo_url?: string
+  captured_image?: string | null
+
   daily_time_record?: {
     id: number
     date: string
@@ -95,4 +100,15 @@ export interface ApiValidationErrorResponse {
 
 export interface ObservedErrorDetails {
   messages: string[]
+}
+
+export interface ScannedEmployeeResponse {
+  id: string
+  name: string
+  position: string
+  is_in: boolean
+  timestamp: string
+  photo_url?: string | null
+  captured_image?: string | null
+  backend_photo_url?: string | null
 }

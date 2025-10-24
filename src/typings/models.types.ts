@@ -720,11 +720,12 @@ export type SettingsResponse = {
 } & ApiResponseData
 
 export interface ScannedEmployeeResponse {
-  id: string | number
+  id: string
   name: string
   position: string
   is_in: boolean
   timestamp: string
-  photo_url: string
+  photo_url?: string | null
   captured_image?: string | null
+  backend_photo_url?: string | null // ✅ add this field
 }
