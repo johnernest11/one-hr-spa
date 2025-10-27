@@ -1215,14 +1215,6 @@ router.beforeEach(async (to, from) => {
   // Ex. Login, Sign-up, Forgot Password
   const authStore = useAuthStore()
 
-  if (authStore.authenticationTokenExpiration) {
-    if (new Date() > authStore.authenticationTokenExpiration) {
-      console.log('It is now beyond the expiration of the token. Logging out.')
-      authStore.clearAuthTokenOnStorage()
-      return { name: 'login' }
-    }
-  }
-
   if (authStore.isAuthenticated && !authStore.authExpired && to.meta.authType === AuthType.UNAUTHENTICATED) {
     return from
   }
