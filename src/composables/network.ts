@@ -28,6 +28,7 @@ export const useApiCall = (uri: string, authToken: string | null = null) => {
       options.headers = {
         ...options.headers,
         Authorization: `Bearer ${authToken}`,
+        'Access-Control-Allow-Origin': '*',
       }
 
       return { options, url }
