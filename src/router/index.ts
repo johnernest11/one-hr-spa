@@ -1214,10 +1214,13 @@ router.beforeEach(async (to, from) => {
   // Block authenticated users to routes that require them to be unauthenticated
   // Ex. Login, Sign-up, Forgot Password
   const authStore = useAuthStore()
-  if (new Date() > authStore.authenticationTokenExpiration) {
-    console.log('It is now beyond the expiration token. Logging out.')
-    authStore.clearAuthTokenOnStorage()
-    return { name: 'login' }
+
+  if (authStore.authenticationTokenExpiration) {
+    if (new Date() > authStore.authenticationTokenExpiration) {
+      console.log('It is now beyond the expiration of the token. Logging out.')
+      authStore.clearAuthTokenOnStorage()
+      return { name: 'login' }
+    }
   }
 
   if (authStore.isAuthenticated && !authStore.authExpired && to.meta.authType === AuthType.UNAUTHENTICATED) {
