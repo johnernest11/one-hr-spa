@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth.store.ts'
+import { useFetchBlob } from '@/composables/fetch.blob'
 import { useApiCall } from '@/composables/network'
 import { ApiResponseBody } from '@/typings/http-resources.types.ts'
 import { LocatorSlipResponse, PersonnelResponse } from '@/typings/models.types'
@@ -151,14 +152,14 @@ export const useLocatorSlipStore = defineStore('locator-slip', () => {
   }
 
   const generateLocatorSlip = async (id: string) => {
-    const response = await fetch('/mock/Locator-Slip-Form.docx')
-    const blob = await response.blob()
-    const fileNameHeader = `locator-slip-${id}.docx`
-
-    return {
-      data: ref(blob),
-      fileNameHeader: ref(fileNameHeader),
+    const individual = auth.authenticatedUser.user_profile?.individual_basic_detail as PersonnelResponse
+    if (!individual?.employee) {
+      throw new Error('No employee data linked to current user')
     }
+    const api_url = `/employees/${individual.employee.id}/locator-slips/${id}/generate`
+
+    const { data, fileNameHeader } = await useFetchBlob(api_url, auth.authenticationToken)
+    return { data, fileNameHeader }
   }
 
   const checkActiveLog = async () => {

@@ -239,12 +239,13 @@ const handleFilterLocatorSlip = async () => {
   showModal.value = false
 }
 
-const exportPdf = async (locatorSlips: LocatorSlipResponse) => {
-  const { period, month, id } = locatorSlips
+const exportDocx = async (locatorSlips: LocatorSlipResponse) => {
+  const { period, date, id } = locatorSlips
+  const monthYear = getLongMonthAndYear(date)
 
   const message = period
-    ? `Exporting locator slip for the ${period} of ${month}.`
-    : `Exporting locator slip for the month of ${month}.`
+    ? `Exporting locator slip for the ${period} of ${monthYear}.`
+    : `Exporting locator slip for the month of ${monthYear}.`
 
   toast.add({
     severity: 'info',
@@ -257,21 +258,20 @@ const exportPdf = async (locatorSlips: LocatorSlipResponse) => {
     const reportResponse = await locatorSlipsStore.generateLocatorSlip(String(id))
 
     const blob = reportResponse.data.value
-    const fileName = reportResponse.fileNameHeader?.value || `locator-slip-${id}.pdf`
 
     if (blob) {
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = fileName
+      a.download = `${reportResponse.fileNameHeader.value}`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
       window.URL.revokeObjectURL(url)
 
       const successMessage = period
-        ? `Locator Slip for the ${period} of ${month} was exported successfully.`
-        : `Locator Slip for the month of ${month} was exported successfully.`
+        ? `Locator Slip for the ${period} of ${monthYear} was exported successfully.`
+        : `Locator Slip for the month of ${monthYear} was exported successfully.`
 
       toast.add({
         severity: 'success',
@@ -509,7 +509,7 @@ const handleSaveSubmissionif = async () => {
                       severity="info"
                       class="border-none text-lg font-semibold text-primary-600 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
                       text
-                      @click="exportPdf(props.data)"
+                      @click="exportDocx(props.data)"
                     />
                   </div>
                 </template>
@@ -593,14 +593,6 @@ const handleSaveSubmissionif = async () => {
                           text
                           :disabled="props.data.status === 'released'"
                           @click="openLocatorSlip(props.data)"
-                        />
-                        <Button
-                          icon="pi pi-download"
-                          v-tooltip.top="'Download Locator Slip'"
-                          severity="info"
-                          class="border-none text-lg font-semibold text-primary-600 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
-                          text
-                          @click="exportPdf(props.data)"
                         />
                       </div>
                     </template>
