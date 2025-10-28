@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch, nextTick, type Ref } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { QrcodeStream, DetectedBarcode } from 'vue-qrcode-reader'
 import { useDailyLogsStore } from '@/stores/daily-logs.store'
 import { useLibrariesStore } from '@/stores/libraries.store'
@@ -17,13 +17,13 @@ interface Log {
   employee_id: string | number
   timestamp: string
   is_in: boolean
-  captured_image?: string | null
-  backend_photo_url?: string | null
   photo_url?: string | null
   profile_picture_url?: string | null
   name?: string | null
   position?: string | null
   captured_image_url?: string | null
+  backend_photo_url?: string | null
+  captured_image?: string | null
 }
 
 interface BackendLog {
@@ -34,17 +34,16 @@ interface BackendLog {
   scanned_time: string
   captured_image_url?: string | null
   captured_image?: string | null
-  photo_url?: string | null
   backend_photo_url?: string | null
   profile_picture_url?: string | null
   name?: string | null
   position?: string | null
 }
 
-const currentDate: Ref<string> = ref('')
-const currentTime: Ref<string> = ref('')
-const meridiem: Ref<string> = ref('')
-const seconds: Ref<string> = ref('')
+const currentDate = ref('')
+const currentTime = ref('')
+const meridiem = ref('')
+const seconds = ref('')
 const showModal = ref(false)
 const showOfficeSelectionModal = ref(true)
 const dailyLogsStore = useDailyLogsStore()
@@ -64,59 +63,45 @@ const recentLogs = ref<Log[]>([])
 const isScanLocked = ref(false)
 const isScannerResetting = ref(false)
 
-const scannedEmployee = computed(() => {
-  return dailyLogsStore.currentScannedEmployee as Log | null | undefined
-})
+const scannedEmployee = computed(() => dailyLogsStore.currentScannedEmployee as Log | null | undefined)
 
 function paintOutline(detectedCodes: DetectedBarcode[], ctx: CanvasRenderingContext2D) {
   for (const detectedCode of detectedCodes) {
     const [firstPoint, ...otherPoints] = detectedCode.cornerPoints
-
     ctx.strokeStyle = 'red'
     ctx.lineWidth = 4
-
     ctx.beginPath()
     ctx.moveTo(firstPoint.x, firstPoint.y)
-    for (const { x, y } of otherPoints) {
-      ctx.lineTo(x, y)
-    }
-    ctx.lineTo(firstPoint.x, firstPoint.y)
+    for (const { x, y } of otherPoints) ctx.lineTo(x, y)
     ctx.closePath()
     ctx.stroke()
   }
 }
 
 const startTimeLogs = async () => {
-  if (selectedOffice.value) {
-    dailyLogsStore.setOffice(selectedOffice.value)
-    showOfficeSelectionModal.value = false
-    const today = getManilaTodayISO()
-    await dailyLogsStore.fetchWarmBodySummary(today)
-    await updateDailyLogsState(today)
-  }
+  if (!selectedOffice.value) return
+  dailyLogsStore.setOffice(selectedOffice.value)
+  showOfficeSelectionModal.value = false
+
+  const today = getManilaTodayISO()
+  await dailyLogsStore.fetchWarmBodySummary(today)
+  await updateDailyLogsState(today)
 }
 
 const updateDailyLogsState = async (date: string) => {
   await dailyLogsStore.fetchDailyLogs(date)
   const backendLogs = dailyLogsStore.getTodayWarmBodies(date) || []
 
-  const newLogs: Log[] = backendLogs.map((log: BackendLog) => {
-    const permanentCapturedUrl = log.captured_image_url || log.backend_photo_url || log.captured_image || null
-
-    return {
-      id: log.id,
-      employee_id: log.employee_id,
-      is_in: log.is_in,
-      timestamp: log.scanned_time ? `${log.date}T${log.scanned_time}` : new Date().toISOString(),
-      captured_image: permanentCapturedUrl,
-      backend_photo_url: permanentCapturedUrl,
-      captured_image_url: permanentCapturedUrl,
-      photo_url: log.photo_url || null,
-      profile_picture_url: log.profile_picture_url || null,
-      name: log.name || null,
-      position: log.position || null,
-    }
-  })
+  const newLogs: Log[] = backendLogs.map((log: BackendLog) => ({
+    id: log.id,
+    employee_id: log.employee_id,
+    is_in: log.is_in,
+    timestamp: log.scanned_time ? `${log.date}T${log.scanned_time}` : new Date().toISOString(),
+    captured_image_url: log.captured_image_url || log.backend_photo_url || log.captured_image || null,
+    profile_picture_url: log.profile_picture_url || null,
+    name: log.name || null,
+    position: log.position || null,
+  }))
 
   recentLogs.value = [...newLogs, ...recentLogs.value]
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
@@ -132,7 +117,6 @@ const updateDateTime = () => {
   const timeString = now.toLocaleTimeString('en-PH', optionsTime)
   const [time, ampm] = timeString.split(/\s+/)
   const [hours, minutes, newSeconds] = time.split(':')
-
   currentTime.value = `${hours}:${minutes}`
   meridiem.value = ampm
   seconds.value = newSeconds
@@ -147,12 +131,11 @@ const updateDateTime = () => {
 
 onMounted(async () => {
   await librariesStore.fetchOffices()
+
   if (dailyLogsStore.timelogOfficeId) {
     showOfficeSelectionModal.value = false
-    selectedOffice.value = librariesStore.officeOptions.find((office) => office.value === dailyLogsStore.timelogOfficeId)
-  } else {
-    showOfficeSelectionModal.value = true
-  }
+    selectedOffice.value = librariesStore.officeOptions.find((o) => o.value === dailyLogsStore.timelogOfficeId)
+  } else showOfficeSelectionModal.value = true
 
   const today = getManilaTodayISO()
   todayISO.value = today
@@ -167,14 +150,12 @@ onMounted(async () => {
 
 watch(
   () => route.name,
-  (newName: string | symbol | null | undefined) => {
+  (newName) => {
     const expiration = sessionStorage.getItem('auth-token-expiration')
     const userRoles = authStore.authRoles
-
     if (newName === 'time-logs' && expiration && userRoles.includes('time_logger')) {
       authStore.clearScheduledRefresh()
       authStore.scheduleTokenRefresh(new Date(expiration))
-      console.log('Token refresh scheduler is now active...')
     } else {
       authStore.clearScheduledRefresh()
     }
@@ -189,18 +170,12 @@ onUnmounted(() => {
 })
 
 const onDetect = (detectedCodes: DetectedBarcode[]) => {
-  if (!detectedCodes.length) return
-
-  if (isScanLocked.value) return
-
-  const firstCode = detectedCodes[0]
-  const decodedString = firstCode.rawValue
-  onDecode(decodedString)
+  if (!detectedCodes.length || isScanLocked.value) return
+  onDecode(detectedCodes[0].rawValue)
 }
 
 const capturePhoto = async (): Promise<File | null> => {
-  if (!qrStreamRef.value) return null
-  const videoElement = qrStreamRef.value.$el.querySelector('video')
+  const videoElement = qrStreamRef.value?.$el.querySelector('video')
   if (!videoElement) return null
 
   const canvas = document.createElement('canvas')
@@ -212,10 +187,7 @@ const capturePhoto = async (): Promise<File | null> => {
   context.drawImage(videoElement, 0, 0, canvas.width, canvas.height)
   return new Promise<File | null>((resolve) => {
     canvas.toBlob(
-      (blob) => {
-        if (!blob) return resolve(null)
-        resolve(new File([blob], `capture_${Date.now()}.jpg`, { type: 'image/jpeg' }))
-      },
+      (blob) => (blob ? resolve(new File([blob], `capture_${Date.now()}.jpg`, { type: 'image/jpeg' })) : resolve(null)),
       'image/jpeg',
       0.9
     )
@@ -223,81 +195,87 @@ const capturePhoto = async (): Promise<File | null> => {
 }
 
 const onDecode = async (result: string) => {
-  const capturedFile = await capturePhoto()
-  let message = 'Processing...'
-  dailyLogsStore.clearScannedEmployee()
-
   if (isScanLocked.value) return
   isScanLocked.value = true
 
   try {
+    const capturedFile = await capturePhoto()
+
+    if (!capturedFile) {
+      dailyLogsStore.lastLogMessage = 'No camera detected or photo capture failed.'
+      isScanLocked.value = false
+      return
+    }
+
     const formData = new FormData()
     formData.append('scanned_qr', result)
+    formData.append('captured_image', capturedFile)
 
-    if (capturedFile) {
-      formData.append('captured_image', capturedFile)
-    }
     const errorResponse = await dailyLogsStore.logEmployeeTime(formData)
 
     if (errorResponse) {
-      message = errorResponse.error_message ?? 'Time log failed with an unknown error.'
-      dailyLogsStore.lastLogMessage = message
-      dailyLogsStore.showModal = true
+      dailyLogsStore.lastLogMessage = errorResponse.error_message ?? 'Time log failed.'
       showModal.value = true
-
-      console.warn('Duplicate or error response:', message)
-    } else if (dailyLogsStore.currentScannedEmployee) {
-      const employee = dailyLogsStore.currentScannedEmployee as Log
-
-      const permanentCloudUrl = employee.captured_image_url || employee.backend_photo_url || employee.captured_image || null
-
-      const tempCapturedImageUrl = capturedFile ? URL.createObjectURL(capturedFile) : permanentCloudUrl
-
-      const newLog: Log = {
-        id: employee.id,
-        employee_id: employee.id,
-        timestamp: new Date().toISOString(),
-        is_in: employee.is_in,
-        captured_image: tempCapturedImageUrl,
-        backend_photo_url: permanentCloudUrl,
-        captured_image_url: permanentCloudUrl,
-        name: employee.name,
-        position: employee.position,
-        profile_picture_url: employee.profile_picture_url,
-      }
-
-      recentLogs.value = [newLog, ...recentLogs.value]
-        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-        .slice(0, 10)
-
-      message = employee.is_in ? 'Timed In!' : 'Timed Out!'
-      dailyLogsStore.lastLogMessage = message
-    } else {
-      message = 'Log completed, but state is inconsistent.'
-      dailyLogsStore.lastLogMessage = message
+      return
     }
+
+    type CurrentScannedEmployee = {
+      id: string | number
+      name: string
+      position: string
+      is_in: boolean
+      timestamp: string
+      photo_url: string
+      captured_photo_url?: string | null
+      employee_id?: string | number
+      profile_picture_url?: string | null
+    }
+
+    const emp = dailyLogsStore.currentScannedEmployee as CurrentScannedEmployee
+
+    if (!emp) {
+      dailyLogsStore.lastLogMessage = 'Employee data missing.'
+      return
+    }
+
+    const tempPhotoUrl = URL.createObjectURL(capturedFile)
+
+    const newLog: Log = {
+      id: emp.id,
+      employee_id: emp.employee_id ?? emp.id,
+      timestamp: new Date().toISOString(),
+      is_in: emp.is_in,
+      profile_picture_url: emp.profile_picture_url ?? null,
+      photo_url: tempPhotoUrl,
+      name: emp.name,
+      position: emp.position,
+    }
+
+    recentLogs.value = [newLog, ...recentLogs.value]
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, 10)
+
+    dailyLogsStore.lastLogMessage = emp.is_in ? 'Timed In!' : 'Timed Out!'
   } catch (error) {
-    console.error('Time log error:', error)
-    message = 'Network or server error during log attempt.'
-    dailyLogsStore.lastLogMessage = message
+    console.error(error)
+    dailyLogsStore.lastLogMessage = 'Network or camera error.'
   } finally {
     showModal.value = true
 
     isScannerResetting.value = true
     await nextTick()
-    window.setTimeout(() => {
-      isScannerResetting.value = false
-    }, 0)
+    window.setTimeout(() => (isScannerResetting.value = false), 0)
+
+    setTimeout(() => {
+      isScanLocked.value = false
+    }, 10)
 
     if (scanTimeoutId.value) clearTimeout(scanTimeoutId.value)
     scanTimeoutId.value = window.setTimeout(() => {
       showModal.value = false
-      isScanLocked.value = false
       dailyLogsStore.clearScannedEmployee()
       dailyLogsStore.lastLogMessage = null
-    }, MODAL_DISPLAY_DURATION_MS) as unknown as number
-
-    isScanLocked.value = false
+    }, MODAL_DISPLAY_DURATION_MS)
   }
 }
 
@@ -305,38 +283,37 @@ const onInit = (promise: Promise<void>) => {
   promise
     .then(() => (cameraError.value = null))
     .catch((err) => {
-      if (err.name === 'NotAllowedError') cameraError.value = 'Camera access denied. Please grant permission.'
-      else if (err.name === 'NotFoundError') cameraError.value = 'No camera found. Please ensure a camera is connected.'
-      else if (err.name === 'NotReadableError') cameraError.value = 'Camera is in use or not accessible.'
-      else if (err.name === 'OverconstrainedError') cameraError.value = 'Camera does not support requested constraints.'
-      else if (err.name === 'StreamApiNotSupportedError') cameraError.value = 'Browser does not support camera API.'
-      else cameraError.value = 'An unknown camera error occurred.'
+      const errorMap: Record<string, string> = {
+        NotAllowedError: 'Camera access denied.',
+        NotFoundError: 'No camera found.',
+        NotReadableError: 'Camera in use.',
+        OverconstrainedError: 'Unsupported camera constraints.',
+        StreamApiNotSupportedError: 'Browser does not support camera API.',
+      }
+      cameraError.value = errorMap[err.name] || 'Unknown camera error.'
     })
 }
 
 const onCameraError = (error: unknown) => {
-  if (error instanceof Error) cameraError.value = `Camera stream error: ${error.message}`
-  else cameraError.value = 'An unexpected camera stream error occurred.'
+  cameraError.value = error instanceof Error ? error.message : 'Camera stream error.'
 }
 
 const countInToday = computed(() => dailyLogsStore.warmBodySummary?.in_office || 0)
 const countOutToday = computed(() => dailyLogsStore.warmBodySummary?.out_of_office || 0)
-
 const checkScreenSize = () => (isMobile.value = window.innerWidth <= 575)
 
 const dialogDynamicStyle = computed(() =>
-  isMobile.value ? { width: '100vw', height: '100vh', maxWidth: 'unset', maxHeight: 'unset' } : { width: '25vw' }
+  isMobile.value ? { width: '100vw', height: '100vh', maxWidth: 'unset' } : { width: '25vw' }
 )
-
 const dialogDynamicPosition = computed(() => (isMobile.value ? 'center' : 'right'))
 
-const dynamicSuccessMessage = computed(() => {
-  if (dailyLogsStore.currentScannedEmployee) {
-    return dailyLogsStore.currentScannedEmployee.is_in ? 'Timed In!' : 'Timed Out!'
-  }
-  if (dailyLogsStore.lastLogMessage) return dailyLogsStore.lastLogMessage
-  return 'Processing...'
-})
+const dynamicSuccessMessage = computed(() =>
+  dailyLogsStore.currentScannedEmployee
+    ? dailyLogsStore.currentScannedEmployee.is_in
+      ? 'Timed In!'
+      : 'Timed Out!'
+    : dailyLogsStore.lastLogMessage || 'Processing...'
+)
 
 const latestWarmBodyLogs = computed(() => recentLogs.value)
 </script>
@@ -417,7 +394,13 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
                 <tr v-for="entry in latestWarmBodyLogs" :key="entry.id">
                   <td class="p-2">
                     <img
-                      :src="entry.captured_image_url || entry.backend_photo_url || entry.captured_image || ''"
+                      :src="
+                        entry.captured_image_url ||
+                        entry.photo_url ||
+                        entry.backend_photo_url ||
+                        entry.captured_image ||
+                        dswdLogoMark
+                      "
                       alt="Captured Photo"
                       class="aspect-[2270/2479] border object-cover"
                     />

@@ -725,7 +725,6 @@ export interface ScannedEmployeeResponse {
   position: string
   is_in: boolean
   timestamp: string
-  photo_url?: string | null
-  captured_image?: string | null
-  backend_photo_url?: string | null // ✅ add this field
+  photo_url: string
+  captured_photo_url?: string | null
 }

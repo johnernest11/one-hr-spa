@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useStorage } from '@vueuse/core'
 import { useApiCall } from '@/composables/network.ts'
 import { useAuthStore } from '@/stores/auth.store'
@@ -37,40 +37,35 @@ interface TimeLogEntry {
   ext_name: string | null
   division_name: string
   section_name: string
-  captured_image?: string
-  captured_image_url?: string
+  captured_image_url?: string | null
+  employee?: {
+    user_profile?: {
+      profile_picture_url?: string | null
+    }
+  }
 }
 
 export const useDailyLogsStore = defineStore('dailyLogs', () => {
   const authStore = useAuthStore()
+
   const timelogOfficeId = useStorage<string | null>('timelogOfficeId', null)
-  const dailyLogs = ref<DailyLogEntry[]>([])
+  const recentLogs = useStorage<ScannedEmployeeResponse[]>('recentLogs', [])
+  const dailyLogs = useStorage<DailyLogEntry[]>('dailyLogs', [])
   const currentScannedEmployee = ref<ScannedEmployeeResponse | null>(null)
   const lastLogMessage = ref<string | null>(null)
   const warmBodySummary = ref<WarmBodySummary | null>(null)
   const showModal = ref(false)
-
   let modalTimer: ReturnType<typeof setTimeout> | null = null
 
-  // 🔹 Persist scanned employee + logs in localStorage so captured image stays
-  const recentLogs = useStorage<ScannedEmployeeResponse[]>('recentLogs', [])
+  // ✅ Add to top of recent logs
+  const addRecentLog = (employee: ScannedEmployeeResponse) => {
+    recentLogs.value.unshift(employee)
+    if (recentLogs.value.length > 20) recentLogs.value.pop()
+  }
 
-  // --- WATCHER: Store changes persist automatically ---
-  watch(
-    recentLogs,
-    (logs) => {
-      localStorage.setItem('recentLogs', JSON.stringify(logs))
-    },
-    { deep: true }
-  )
-
-  // --- ON MOUNT: Restore logs on reload ---
-  onMounted(() => {
-    const cachedLogs = localStorage.getItem('recentLogs')
-    if (cachedLogs) {
-      recentLogs.value = JSON.parse(cachedLogs)
-    }
-  })
+  const clearRecentLogs = () => {
+    recentLogs.value = []
+  }
 
   const countIn = computed(
     () => (date: string) => dailyLogs.value.find((l) => l.date === date)?.warm_bodies.filter((wb) => wb.is_in).length ?? 0
@@ -83,19 +78,14 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
   const getTodayWarmBodies = computed(() => (date: string) => {
     const dailyLog = dailyLogs.value.find((l) => l.date === date)
     if (!dailyLog) return []
-
-    const logsWithTimestamp = dailyLog.warm_bodies.map((log) => ({
-      ...log,
-      timestamp: `${log.date}T${log.scanned_time}`,
-    }))
-
-    return logsWithTimestamp.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    return dailyLog.warm_bodies
+      .map((log) => ({ ...log, timestamp: `${log.date}T${log.scanned_time}` }))
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
   })
 
   const setOffice = (office: WbAutoCompleteOption) => {
     timelogOfficeId.value = office.value as string
   }
-
   const clearOffice = () => {
     timelogOfficeId.value = null
   }
@@ -105,13 +95,9 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     lastLogMessage.value = message
     showModal.value = true
 
-    if (employee) {
-      recentLogs.value.unshift(employee) // Store captured image info persistently
-      if (recentLogs.value.length > 20) recentLogs.value.pop()
-    }
+    if (employee) addRecentLog(employee)
 
     if (modalTimer) clearTimeout(modalTimer)
-
     modalTimer = setTimeout(() => {
       showModal.value = false
       currentScannedEmployee.value = null
@@ -127,50 +113,43 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
   }
 
   const updateDailyLogs = (date: string, logs: WarmBodyLogEntry[]) => {
-    const logEntry = dailyLogs.value.find((l) => l.date === date)
-    if (logEntry) {
-      logEntry.warm_bodies = logs
-    } else {
-      dailyLogs.value.push({ date, warm_bodies: logs })
-    }
+    const index = dailyLogs.value.findIndex((l) => l.date === date)
+    if (index !== -1) dailyLogs.value[index].warm_bodies = logs
+    else dailyLogs.value.push({ date, warm_bodies: logs })
   }
 
   const logEmployeeTime = async (payload: { scanned_qr: string; captured_image: string | null } | FormData) => {
-    const response = await useApiCall('employees/log-time', authStore.authenticationToken).post(payload).json()
+    const { data } = await useApiCall('employees/log-time', authStore.authenticationToken).post(payload).json()
 
-    const responseBody: ApiResponseBody = response.data.value
+    const responseBody: ApiResponseBody = data.value
+
     if (responseBody?.success) {
       const warmBodyLog = responseBody.data as WarmBodyLogEntry
-      const employeeDetails = warmBodyLog?.daily_time_record?.employee?.individual_basic_detail
-      const employeeItem = warmBodyLog?.daily_time_record?.employee?.item
+      const emp = warmBodyLog?.daily_time_record?.employee
+      const details = emp?.individual_basic_detail
+      const item = emp?.item
       const messageToDisplay = responseBody.message || 'Time log successful!'
 
-      const photoUrl =
-        employeeDetails?.user_profile?.profile_picture_url && employeeDetails.user_profile.profile_picture_url.trim() !== ''
-          ? employeeDetails.user_profile.profile_picture_url
-          : '@/assets/image/DSWD logo_Mark.png'
-
-      const permanentCapturedImageUrl = warmBodyLog.captured_image_url || warmBodyLog.captured_image || null
+      const photoUrl = details?.user_profile?.profile_picture_url?.trim() || '@/assets/image/DSWD logo_Mark.png'
 
       const scannedEmployee: ScannedEmployeeResponse = {
-        id: warmBodyLog.daily_time_record?.employee?.id_number || 'N/A',
-        name: `${employeeDetails?.first_name || ''} ${employeeDetails?.last_name || ''}`.trim() || 'N/A',
-        position: employeeItem?.position?.title || 'N/A',
+        id: emp?.id_number || 'N/A',
+        name: `${details?.first_name || ''} ${details?.last_name || ''}`.trim() || 'N/A',
+        position: item?.position?.title || 'N/A',
         is_in: warmBodyLog.is_in,
         timestamp: warmBodyLog.created_at || new Date().toISOString(),
         photo_url: photoUrl,
-        captured_image: permanentCapturedImageUrl,
-        backend_photo_url: permanentCapturedImageUrl,
+        captured_photo_url: warmBodyLog.captured_image_url || '',
       }
 
-      const dtrDate = warmBodyLog.daily_time_record?.date || new Date().toISOString().substring(0, 10)
+      const dtrDate = warmBodyLog.daily_time_record?.date || new Date().toISOString().slice(0, 10)
       updateDailyLogs(dtrDate, [warmBodyLog])
       showScannedEmployeeModal(scannedEmployee, messageToDisplay)
-    } else if (responseBody) {
-      let messageToDisplay = responseBody.message?.trim() || 'Time log failed.'
-      if (responseBody.error_code === ApiErrorCode.VALIDATION_ERROR) {
+    } else {
+      let messageToDisplay = responseBody?.message?.trim() || 'Time log failed.'
+      if (responseBody?.error_code === ApiErrorCode.VALIDATION_ERROR) {
         const apiErrors = responseBody.errors
-        if (apiErrors && apiErrors.length > 0 && apiErrors[0].messages && apiErrors[0].messages.length > 0) {
+        if (apiErrors?.length && apiErrors[0].messages?.length) {
           messageToDisplay = apiErrors[0].messages[0]
         }
       }
@@ -179,10 +158,12 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     }
   }
 
+  // ✅ Fetch daily logs (with profile photo fallback)
   const fetchDailyLogs = async (date: string) => {
     const officeId = timelogOfficeId.value
     let url = `employees/daily-time-records/time-logs?date=${date}`
     if (officeId) url += `&office_id=${officeId}`
+
     const { data } = await useApiCall(url, authStore.authenticationToken).get().json()
     const responseBody: ApiResponseBody = data.value
 
@@ -194,16 +175,16 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
         scanned_time: log.scanned_time,
         timestamp: `${log.time_log_date}T${log.scanned_time}`,
         is_in: log.is_in,
-        captured_image: log.captured_image_url || log.captured_image || null,
-        backend_photo_url: log.captured_image_url || log.captured_image || null,
+        photo_url: log.employee?.user_profile?.profile_picture_url || '/assets/image/DSWD_logo_Mark.png',
+        captured_photo_url: log.captured_image_url || null,
       }))
       updateDailyLogs(date, mappedLogs as WarmBodyLogEntry[])
-    } else if (responseBody) {
-      updateDailyLogs(date, [])
-    }
+    } else updateDailyLogs(date, [])
+
     return responseBody
   }
 
+  // ✅ Fetch warm body summary
   const fetchWarmBodySummary = async (date: string) => {
     const url = `/employees/daily-time-records/warm-bodies/count?date=${date}`
     const { data } = await useApiCall(url, authStore.authenticationToken).get().json()
@@ -214,21 +195,23 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
 
   return {
     timelogOfficeId,
+    recentLogs,
     dailyLogs,
     currentScannedEmployee,
     lastLogMessage,
     warmBodySummary,
     showModal,
-    recentLogs, // expose persisted logs
     countIn,
     countOut,
     getTodayWarmBodies,
     logEmployeeTime,
-    clearScannedEmployee,
-    updateDailyLogs,
-    showScannedEmployeeModal,
     fetchDailyLogs,
     fetchWarmBodySummary,
+    showScannedEmployeeModal,
+    clearScannedEmployee,
+    updateDailyLogs,
+    addRecentLog,
+    clearRecentLogs,
     setOffice,
     clearOffice,
   }

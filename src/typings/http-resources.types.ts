@@ -35,12 +35,13 @@ export interface WarmBodyLogEntry {
   employee_id: string
   date: string
   scanned_time: string
-  captured_image_url?: string
   is_in: boolean
+  captured_photo_url?: string | null
+  captured_image_url?: string | null
+  profile_picture_url?: string | null
+  photo_url?: string | null
   created_at?: string
   updated_at?: string
-  photo_url?: string
-  captured_image?: string | null
 
   daily_time_record?: {
     id: number
@@ -100,15 +101,4 @@ export interface ApiValidationErrorResponse {
 
 export interface ObservedErrorDetails {
   messages: string[]
-}
-
-export interface ScannedEmployeeResponse {
-  id: string
-  name: string
-  position: string
-  is_in: boolean
-  timestamp: string
-  photo_url?: string | null
-  captured_image?: string | null
-  backend_photo_url?: string | null
 }
