@@ -48,6 +48,7 @@ const individual_basic_details = [
     individual_membership: null,
     individual_question: null,
     individual_reference: null,
+    individual_government_id: null,
     employee: null,
   },
   {
@@ -84,6 +85,7 @@ const individual_basic_details = [
     individual_membership: null,
     individual_question: null,
     individual_reference: null,
+    individual_government_id: null,
     employee: null,
   },
   {
@@ -120,6 +122,7 @@ const individual_basic_details = [
     individual_membership: null,
     individual_question: null,
     individual_reference: null,
+    individual_government_id: null,
     employee: null,
   },
   {
@@ -156,6 +159,7 @@ const individual_basic_details = [
     individual_membership: null,
     individual_question: null,
     individual_reference: null,
+    individual_government_id: null,
     employee: null,
   },
   {
@@ -192,6 +196,7 @@ const individual_basic_details = [
     individual_membership: null,
     individual_question: null,
     individual_reference: null,
+    individual_government_id: null,
     employee: null,
   },
 ]

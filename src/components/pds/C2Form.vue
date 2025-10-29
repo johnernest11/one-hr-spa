@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { reactive, ref, computed, onMounted, watch, toRef } from 'vue'
+import { reactive, ref, computed, onMounted, watch } from 'vue'
 import { usePdsStore, PersonalDataSheetPayload } from '@/stores/pds.store.ts'
 import { useSalaryGradesStore } from '@/stores/salary-grades.store.ts'
 import { useAuthStore } from '@/stores/auth.store.ts'
 import { isGovServiceYesNoOptions, EmploymentStatusOptions } from '@/typings/employee-entry.types'
-import { useRouter } from 'vue-router'
 import { useRoute } from 'vue-router'
 
 import useVuelidate from '@vuelidate/core'
@@ -13,13 +12,11 @@ import WbCalendar from '@/components/webkit/WbCalendar.vue'
 import WbDropdown from '@/components/webkit/WbDropdown.vue'
 import Button from 'primevue/button'
 import Checkbox from 'primevue/checkbox'
-import WbAutoComplete from '@/components/webkit/WbAutoComplete.vue'
-import { WbAutoCompleteOption, WbAutoCompleteOptionTrueValue } from '@/components/webkit/WbAutoComplete.vue'
-import { useWbAutoCompleteHandleTrueValue } from '@/composables/wb-ui-components.ts'
+import { WbAutoCompleteOption } from '@/components/webkit/WbAutoComplete.vue'
 
 import { useToast } from 'primevue/usetoast'
 import { parseApiResponseError } from '@/utils/error-handle.ts'
-import { helpers, maxLength, required, numeric } from '@vuelidate/validators'
+import { helpers, maxLength, required } from '@vuelidate/validators'
 import { TabGroup, TabList, Tab, TabPanels, TabPanel } from '@headlessui/vue'
 import { isAfterOrEqualFromDate, usePrependOrAppendOnce } from '@/utils/helpers.js'
 import { TransitionRoot } from '@headlessui/vue'
@@ -30,7 +27,6 @@ const sgStore = useSalaryGradesStore()
 const pdsStore = usePdsStore()
 const authStore = useAuthStore()
 const toast = useToast()
-const router = useRouter()
 const route = useRoute()
 
 const maxToasts = 5
@@ -195,29 +191,6 @@ const formRules = computed(() => ({
       required: helpers.withMessage('Department/Agency is required.', required),
       maxLength: globalStringMaxLengthRule,
     },
-    monthly_salary: {
-      required: helpers.withMessage('Monthly salary is required.', required),
-      numeric: helpers.withMessage('Monthly salary must be a number.', numeric),
-    },
-    salary_grade_id: {
-      required: helpers.withMessage('Salary grade ID is required .', (val, vm) => {
-        const hasCustom = helpers.req(vm.custom_salary_grade)
-        return hasCustom ? true : helpers.req(val)
-      }),
-      maxLength: globalStringMaxLengthRule,
-    },
-    custom_salary_grade: {
-      required: helpers.withMessage('Custom salary grade is required.', (val, vm) => {
-        const hasSalaryGrade = helpers.req(vm.salary_grade_id)
-        return hasSalaryGrade ? true : helpers.req(val)
-      }),
-      maxLength: globalStringMaxLengthRule,
-      matchesFormat: helpers.withMessage('Custom salary grade format must be like "01-1".', (val, vm) => {
-        const hasSalaryGrade = helpers.req(vm.salary_grade_id)
-        if (hasSalaryGrade || !val) return true // skip if other SG is used or empty
-        return /^[0-9]{2}-[0-9]{1}$/.test(String(val))
-      }),
-    },
     status_of_appointment: {
       required: helpers.withMessage('Status of appointment is required.', required),
     },
@@ -234,22 +207,6 @@ watch(isCurrentlyEmployed, (newVal) => {
       entry.inclusive_date_to = newVal ? null : entry.inclusive_date_to
     } else {
       entry.is_current_work = false
-    }
-  })
-})
-
-watch(useCustomSalaryGrade, (newVal) => {
-  payload.individual_work_experience.forEach((entry) => {
-    if (newVal) {
-      // Using custom salary grade, so clear salary_grade_id
-      entry.salary_grade_id = null
-    } else {
-      // Using system-defined salary grade, so clear custom_salary_grade
-      entry.custom_salary_grade = null
-    }
-    // Clear monthly_salary only for new entries (no id)
-    if (!entry.id && !entry.salary_grade_id && !entry.custom_salary_grade) {
-      entry.monthly_salary = null
     }
   })
 })
@@ -410,7 +367,10 @@ type pdsDetailsFormProps = {
 }
 const props = defineProps<pdsDetailsFormProps>()
 onMounted(async () => {
-  const id = (route.params.id as string) || authStore.authenticatedUser?.user_profile?.individual_basic_detail_id
+  const isManualInput = route.query.mode === 'via-manual-input'
+  const id = !isManualInput
+    ? (route.params.id as string) || authStore.authenticatedUser?.user_profile?.individual_basic_detail_id
+    : null
   if (id) {
     const response = await pdsStore.fetchPdsById(id)
 
@@ -441,6 +401,10 @@ onMounted(async () => {
     } else {
       console.warn('Failed to fetch PDS by ID or response unsuccessful.')
     }
+  } else if (isManualInput) {
+    // Clear payload fields for manual input
+    payload.individual_eligibility.length = 0
+    payload.individual_work_experience.length = 0
   }
 
   isLoading.value = false
@@ -459,27 +423,10 @@ watch(
   },
   { immediate: true }
 )
-
-// ──────────────────────────────────────────────────────────
-//          PDS Details Form - Update Handler
-// ──────────────────────────────────────────────────────────
-const updateC2Form = async () => {
-  IsBeingUpdated.value = true
-  isC2Loading.value = true
-  formIsSubmitting.value = true
-
-  const id = pdsStore.isMyPds
-    ? authStore.authenticatedUser?.user_profile?.individual_basic_detail?.id?.toString()
-    : (route.params.id as string)
-
-  if (!id) {
-    showToast('error', 'PDS Error', 'No ID found for updating.')
-    IsBeingUpdated.value = false
-    isC2Loading.value = false
-    formIsSubmitting.value = false
-    return { valid: false, errorTabs: ['C2'] }
-  }
-
+/**************************************************
+      Validations of C2 with Toast Message
+***************************************************/
+const validateForm = async () => {
   const valid = await validator.value.$validate()
   if (!valid) {
     const hasEligibilityError = Object.values(validator.value.individual_eligibility ?? {}).some(
@@ -509,6 +456,26 @@ const updateC2Form = async () => {
 
     return { valid: false, errorTabs: ['C2'] }
   }
+  return { valid: true }
+}
+/**************************************************
+             PDS C2 - UPDATE SERVICE 
+***************************************************/
+const updateC2Form = async () => {
+  IsBeingUpdated.value = true
+  isC2Loading.value = true
+  formIsSubmitting.value = true
+
+  const id = pdsStore.isMyPds
+    ? authStore.authenticatedUser?.user_profile?.individual_basic_detail?.id?.toString()
+    : (route.params.id as string)
+
+  if (!id) {
+    IsBeingUpdated.value = false
+    isC2Loading.value = false
+    formIsSubmitting.value = false
+    return { valid: false, errorTabs: ['C2'] }
+  }
 
   const response = await pdsStore.updatePds({ ...payload }, id, 'C2')
 
@@ -518,65 +485,31 @@ const updateC2Form = async () => {
     isPdsError.value = true
     errorMessage.value = result?.message
     pdsErrors.value = result?.errors
-    return { valid: false, errorTabs: ['C1'] }
+    return { valid: false, errorTabs: ['C2'] }
   }
 }
-
-// ──────────────────────────────────────────────────────────
-//          PDS Details Form - Save Handler
-// ──────────────────────────────────────────────────────────
-
+/**************************************************
+            PDS C2 - STORE SERVICE 
+***************************************************/
 const handleSaveC2Form = async () => {
   isC2Loading.value = true
 
-  const valid = await validator.value.$validate()
-  if (!valid) {
-    const hasEligibilityError = Object.values(validator.value.individual_eligibility).some(
-      (entry) => (entry as { $error: boolean })?.$error
-    )
-
-    const hasWorkExperienceError = Object.values(validator.value.individual_work_experience).some(
-      (entry) => (entry as { $error: boolean })?.$error
-    )
-
-    let errorTabs = []
-    if (hasEligibilityError) errorTabs.push('C2 - Civil Service Eligibility')
-    if (hasWorkExperienceError) errorTabs.push('C2 - Work Experience')
-
-    const sectionDescriptions: Record<string, string> = {
-      'C2 - Civil Service Eligibility': 'C2 - Civil Service Eligibility Section',
-      'C2 - Work Experience': 'C2 - Work Experience Section',
-    }
-
-    errorTabs.forEach((field) => {
-      const message = sectionDescriptions[field] ?? field
-      showToast('error', 'Validation Error - Please check the following', message)
-    })
-
-    isC2Loading.value = false
-    return { valid: false, errorTabs: ['C2'] }
-  }
-
   const response = await pdsStore.savePds(payload)
 
-  if (response.success === false) {
+  if (!response.success) {
     const result = parseApiResponseError(response)
 
     isPdsError.value = true
     errorMessage.value = result?.message
     pdsErrors.value = result?.errors
-    showToast('error', 'PDS C2 Error', 'PLease see the validation messages')
-  } else {
-    showToast('success', 'PDS', 'PDS has been saved')
-    router.push({ name: 'employment' })
+    return { valid: false, errorTabs: ['C2'] }
   }
-
-  isC2Loading.value = false
 }
 
 defineExpose({
   handleSaveC2Form,
   updateC2Form,
+  validateForm,
 })
 </script>
 <template>
@@ -747,7 +680,7 @@ defineExpose({
                               <!-- WbInputText takes most of the space -->
                               <WbCalendar
                                 v-model="payload.individual_eligibility[eligibilityIndex - 1].license_date_of_validity"
-                                label="License Validity"
+                                label="License Valid Until"
                                 :readonly="pdsStore.isMyPds"
                                 :class="[
                                   'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
@@ -945,7 +878,7 @@ defineExpose({
                               />
                             </div>
 
-                            <div class="md:col-span-2">
+                            <div class="md:col-span-4">
                               <WbInputText
                                 v-model="payload.individual_work_experience[workExperienceIndex - 1].position_title"
                                 label="Position Title"
@@ -965,6 +898,8 @@ defineExpose({
                                 required
                               />
                             </div>
+                          </div>
+                          <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
                             <div class="md:col-span-2">
                               <WbInputText
                                 v-model="
@@ -993,103 +928,6 @@ defineExpose({
                                 "
                                 required
                               />
-                            </div>
-                          </div>
-                          <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
-                            <div>
-                              <WbInputText
-                                v-model="payload.individual_work_experience[workExperienceIndex - 1].monthly_salary"
-                                label="Monthly Salary"
-                                :readonly="pdsStore.isMyPds"
-                                :class="[
-                                  'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
-                                ]"
-                                required
-                                label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                                :invalidText="
-                                  validator.individual_work_experience[workExperienceIndex - 1].monthly_salary.$errors[0]
-                                    ?.$message
-                                "
-                                :invalid="validator.individual_work_experience[workExperienceIndex - 1].monthly_salary.$error"
-                                @blur="validator.individual_work_experience[workExperienceIndex - 1].monthly_salary.$touch()"
-                              />
-                            </div>
-                            <div>
-                              <!-- WbAutoComplete shown only when NOT using custom SG -->
-                              <WbAutoComplete
-                                v-if="!useCustomSalaryGrade[workExperienceIndex - 1]"
-                                :useApiFilter="true"
-                                :readonly="pdsStore.isMyPds"
-                                :class="[
-                                  'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
-                                ]"
-                                :apiEndpoint="'libraries/salary-grades/search'"
-                                :suggestions="sgStore.salaryGradesOptions"
-                                apiOptionLabel="work_experience_salary_grade"
-                                label="Salary Grade"
-                                placeholder="Type Salary Grade with its tranche here"
-                                v-model="selectedWorkExperienceSG[workExperienceIndex - 1]"
-                                :id="getId('input-salary-grade')"
-                                optionLabel="label"
-                                optionValue="value"
-                                required
-                                @on-true-value-computed="
-                                  (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
-                                    useWbAutoCompleteHandleTrueValue(
-                                      value,
-                                      toRef(payload.individual_work_experience[workExperienceIndex - 1], 'salary_grade_id')
-                                    )
-                                "
-                                label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                                :invalidText="
-                                  validator.individual_work_experience[workExperienceIndex - 1].salary_grade_id.$errors[0]
-                                    ?.$message
-                                "
-                                :invalid="validator.individual_work_experience[workExperienceIndex - 1].salary_grade_id.$error"
-                                @blur="validator.individual_work_experience[workExperienceIndex - 1].salary_grade_id.$touch()"
-                              />
-
-                              <!-- WbInputText shown only when using custom SG -->
-                              <WbInputText
-                                v-else
-                                v-model="payload.individual_work_experience[workExperienceIndex - 1].custom_salary_grade"
-                                label="Salary Grade"
-                                :readonly="pdsStore.isMyPds"
-                                :class="[
-                                  'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
-                                ]"
-                                required
-                                placeholder="e.g 01-0 ,01-1 ,02-0"
-                                label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                                :invalidText="
-                                  validator.individual_work_experience[workExperienceIndex - 1].custom_salary_grade.$errors[0]
-                                    ?.$message
-                                "
-                                :invalid="
-                                  validator.individual_work_experience[workExperienceIndex - 1].custom_salary_grade.$error
-                                "
-                                @blur="validator.individual_work_experience[workExperienceIndex - 1].custom_salary_grade.$touch()"
-                              />
-                              <!-- Toggle Link -->
-                              <p
-                                class="mb-2 ml-2 cursor-pointer text-sm text-primary-500 hover:underline md:text-xs"
-                                v-if="!pdsStore.isMyPds"
-                                @click="
-                                  useCustomSalaryGrade[workExperienceIndex - 1] = !useCustomSalaryGrade[workExperienceIndex - 1]
-                                "
-                              >
-                                {{
-                                  useCustomSalaryGrade[workExperienceIndex - 1]
-                                    ? 'Use Salary Grade from list'
-                                    : 'Use custom salary grade'
-                                }}
-                              </p>
                             </div>
 
                             <div>
@@ -1233,7 +1071,7 @@ defineExpose({
                           <div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-6">
                             <div>
                               <WbCalendar
-                                v-model="payload.individual_work_experience[workExperienceIndex - 1].inclusive_date_from"
+                                v-model="work.inclusive_date_from"
                                 label="From"
                                 required
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
@@ -1252,7 +1090,7 @@ defineExpose({
                             </div>
                             <div>
                               <WbCalendar
-                                v-model="payload.individual_work_experience[workExperienceIndex - 1].inclusive_date_to"
+                                v-model="work.inclusive_date_to"
                                 label="To"
                                 :dateFormat="'yy-mm-dd'"
                                 class="w-full text-sm"
@@ -1267,9 +1105,9 @@ defineExpose({
                                 required
                               />
                             </div>
-                            <div class="md:col-span-2">
+                            <div class="md:col-span-4">
                               <WbInputText
-                                v-model="payload.individual_work_experience[workExperienceIndex - 1].position_title"
+                                v-model="work.position_title"
                                 label="Position Title"
                                 required
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
@@ -1282,36 +1120,34 @@ defineExpose({
                                 @blur="validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].position_title.$touch()"
                               />
                             </div>
-                            <div class="md:col-span-2">
-                              <WbInputText
-                                v-model="
-                                  payload.individual_work_experience[workExperienceIndex - 1].department_agency_office_company
-                                "
-                                label="Department/Agency/Company"
-                                required
-                                label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="w-full text-sm"
-                                :invalidText="
-                                  validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].department_agency_office_company
-                                    .$errors[0]?.$message
-                                "
-                                :invalid="
-                                  validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].department_agency_office_company
-                                    .$error
-                                "
-                                @blur="
-                                  validator.individual_work_experience[
-                                    i + MAX_ENTRIES_PER_TAB
-                                  ].department_agency_office_company.$touch()
-                                "
-                              />
-                            </div>
                           </div>
 
                           <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
                             <div>
+                              <div class="md:col-span-2">
+                                <WbInputText
+                                  v-model="work.department_agency_office_company"
+                                  label="Department/Agency/Company"
+                                  required
+                                  label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                                  class="w-full text-sm"
+                                  :invalidText="
+                                    validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].department_agency_office_company
+                                      .$errors[0]?.$message
+                                  "
+                                  :invalid="
+                                    validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].department_agency_office_company
+                                      .$error
+                                  "
+                                  @blur="
+                                    validator.individual_work_experience[
+                                      i + MAX_ENTRIES_PER_TAB
+                                    ].department_agency_office_company.$touch()
+                                  "
+                                />
+                              </div>
                               <WbInputText
-                                v-model="payload.individual_work_experience[workExperienceIndex - 1].monthly_salary"
+                                v-model="work.monthly_salary"
                                 label="Monthly Salary"
                                 required
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
@@ -1326,66 +1162,8 @@ defineExpose({
                             </div>
 
                             <div>
-                              <WbAutoComplete
-                                v-if="!useCustomSalaryGrade[i + MAX_ENTRIES_PER_TAB]"
-                                :useApiFilter="true"
-                                :apiEndpoint="'libraries/salary-grades/search'"
-                                :suggestions="sgStore.salaryGradesOptions"
-                                apiOptionLabel="work_experience_salary_grade"
-                                label="Salary Grade"
-                                placeholder="Type Salary Grade with its tranche here"
-                                v-model="selectedWorkExperienceSG[i + MAX_ENTRIES_PER_TAB]"
-                                :id="getId('input-salary-grade')"
-                                optionLabel="label"
-                                optionValue="value"
-                                required
-                                @on-true-value-computed="
-                                  (value) => useWbAutoCompleteHandleTrueValue(value, toRef(work, 'salary_grade_id'))
-                                "
-                                label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="w-full text-sm"
-                                :invalidText="
-                                  validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].salary_grade_id.$errors[0]
-                                    ?.$message
-                                "
-                                :invalid="validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].salary_grade_id.$error"
-                                @blur="validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].salary_grade_id.$touch()"
-                              />
-
-                              <WbInputText
-                                v-else
-                                v-model="payload.individual_work_experience[workExperienceIndex - 1].custom_salary_grade"
-                                label="Salary Grade"
-                                required
-                                placeholder="e.g 01-0 ,01-1 ,02-0"
-                                label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="w-full text-sm"
-                                :invalidText="
-                                  validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].custom_salary_grade.$errors[0]
-                                    ?.$message
-                                "
-                                :invalid="
-                                  validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].custom_salary_grade.$error
-                                "
-                                @blur="validator.individual_work_experience[i + MAX_ENTRIES_PER_TAB].custom_salary_grade.$touch()"
-                              />
-                              <p
-                                class="mb-2 ml-2 cursor-pointer text-sm text-primary-500 hover:underline md:text-xs"
-                                @click="
-                                  useCustomSalaryGrade[i + MAX_ENTRIES_PER_TAB] = !useCustomSalaryGrade[i + MAX_ENTRIES_PER_TAB]
-                                "
-                              >
-                                {{
-                                  useCustomSalaryGrade[i + MAX_ENTRIES_PER_TAB]
-                                    ? 'Use Salary Grade from list'
-                                    : 'Use custom salary grade'
-                                }}
-                              </p>
-                            </div>
-
-                            <div>
                               <WbDropdown
-                                v-model="payload.individual_work_experience[workExperienceIndex - 1].status_of_appointment"
+                                v-model="work.status_of_appointment"
                                 :options="EmploymentStatusOptions"
                                 optionLabel="label"
                                 optionValue="value"
@@ -1408,7 +1186,7 @@ defineExpose({
 
                             <div class="mb-12 flex items-end gap-2">
                               <WbDropdown
-                                v-model="payload.individual_work_experience[workExperienceIndex - 1].is_gov_service"
+                                v-model="work.is_gov_service"
                                 :options="isGovServiceYesNoOptions"
                                 optionLabel="label"
                                 optionValue="value"

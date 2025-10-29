@@ -3,7 +3,6 @@ import { reactive, ref, computed, onMounted, toRef, watch } from 'vue'
 import { usePdsStore, PersonalDataSheetPayload } from '@/stores/pds.store.ts'
 import { useAuthStore } from '@/stores/auth.store.ts'
 import { useLibrariesStore } from '@/stores/libraries.store.ts'
-import { useRouter } from 'vue-router'
 import { useRoute } from 'vue-router'
 import { IndividualQuestion } from '@/typings/models.types.ts'
 
@@ -30,7 +29,6 @@ const pdsStore = usePdsStore()
 const libraryStore = useLibrariesStore()
 const authStore = useAuthStore()
 const toast = useToast()
-const router = useRouter()
 const route = useRoute()
 
 const formIsSubmitting = ref(false)
@@ -46,7 +44,8 @@ const isC4Loading = ref(false)
 const isMyPds = route.name === 'my-pds'
 const isPdsError = ref(false)
 const activeToasts = ref<number>(0)
-const selectedCountry = ref<WbAutoCompleteOption[] | null>(null)
+const selectedCountry = ref<WbAutoCompleteOption | null>(null)
+
 const c4Tabs = ref([
   { name: ' Other Information Continued', index: 0 },
   { name: ' References & Gov` Issued ID', index: 1 },
@@ -177,21 +176,17 @@ const formRules = computed(() => ({
     },
   })),
   individual_government_id: {
-    gov_id_name: {
-      required: helpers.withMessage('Goverment Id is required.', required),
+    gov_issued_id: {
+      required: helpers.withMessage('Government Id is required.', required),
       maxLength: globalStringMaxLengthRule,
     },
-    gov_id_no: {
-      required: helpers.withMessage('ID No is required.', required),
-      maxLength: globalStringMaxLengthRule,
-    },
-    gov_id_issuance: {
-      required: helpers.withMessage('Date/Place of Issuance Sponsor is required.', required),
+    gov_id_no: { required: helpers.withMessage('ID No is required.', required), maxLength: globalStringMaxLengthRule },
+    gov_issuance: {
+      required: helpers.withMessage('Date/Place of Issuance is required.', required),
       maxLength: globalStringMaxLengthRule,
     },
   },
 }))
-
 const validator = useVuelidate<PersonalDataSheetPayload>(formRules, payload)
 
 const showToast = (
@@ -212,19 +207,6 @@ const showToast = (
       activeToasts.value--
     }, 10000)
   }
-}
-
-// Ensure at least one reference exists by default
-if (!payload.individual_reference || payload.individual_reference.length === 0) {
-  payload.individual_reference = [
-    {
-      id: null,
-      name: '',
-      address: '',
-      tel_no: '',
-      _delete: false,
-    },
-  ]
 }
 
 const handleAdditionalReference = () => {
@@ -262,15 +244,13 @@ const handleRemoveReference = (referenceIndex: number) => {
     }
   }
 }
-// ──────────────────────────────────────────────────────────
-//          PDS Details Form - Fetching by ID & Update
-// ──────────────────────────────────────────────────────────
-type pdsDetailsFormProps = {
-  personnelPds?: PersonnelResponse | null
-}
-const props = defineProps<pdsDetailsFormProps>()
+
+/**************************************************
+     PDS Details Form - Fetching by ID & Update
+************************************************* */
 onMounted(async () => {
-  const id = route.params.id as string
+  const id = (route.params.id as string) || authStore.authenticatedUser?.user_profile?.individual_basic_detail_id
+
   if (id) {
     const response = await pdsStore.fetchPdsById(id)
 
@@ -280,13 +260,13 @@ onMounted(async () => {
       pdsStore.updatePdsFromPersonnel(data)
 
       /** --------------------
-       *  Questions & Reference
+       * Handle Questions & Reference
        * ------------------- */
       payload.individual_reference = Array.isArray(data.individual_reference)
-        ? data.individual_reference
-        : data.individual_reference
-          ? [data.individual_reference]
-          : []
+        ? data.individual_reference.length
+          ? data.individual_reference
+          : [{ id: null, name: null, address: null, tel_no: null, _delete: null }]
+        : [{ id: null, name: null, address: null, tel_no: null, _delete: null }]
 
       payload.individual_question = Array.isArray(data.individual_question)
         ? data.individual_question
@@ -321,6 +301,27 @@ onMounted(async () => {
               q40_c_details: null,
             },
           ]
+
+      /** --------------------
+       * Handle Government ID
+       * ------------------- */
+      payload.individual_government_id = data.individual_government_id
+        ? Array.isArray(data.individual_government_id)
+          ? data.individual_government_id.length
+            ? {
+              id: data.individual_government_id[0].id ?? null,
+              gov_issued_id: data.individual_government_id[0].gov_issued_id ?? '',
+              gov_id_no: data.individual_government_id[0].gov_id_no ?? '',
+              gov_issuance: data.individual_government_id[0].gov_issuance ?? '',
+            }
+            : { id: null, gov_issued_id: '', gov_id_no: '', gov_issuance: '' }
+          : {
+            id: data.individual_government_id.id ?? null,
+            gov_issued_id: data.individual_government_id.gov_issued_id ?? '',
+            gov_id_no: data.individual_government_id.gov_id_no ?? '',
+            gov_issuance: data.individual_government_id.gov_issuance ?? '',
+          }
+        : { id: null, gov_issued_id: '', gov_id_no: '', gov_issuance: '' }
     } else {
       console.warn('Failed to fetch PDS by ID or response unsuccessful.')
     }
@@ -329,30 +330,70 @@ onMounted(async () => {
   isLoading.value = false
 })
 
+/***************************************************
+     Watcher Show the Country ID Label
+****************************************************/
 watch(
-  () => props.personnelPds,
-  (newPersonnel) => {
-    if (newPersonnel) {
-      pdsStore.updatePdsFromPersonnel(newPersonnel)
-    } else {
-      for (const key in payload.individual) {
-        payload.individual[key as keyof typeof payload.individual] = null
+  () => payload.individual_question[0].country_id,
+  async (newVal) => {
+    if (newVal) {
+      if (!libraryStore.countryOptions.length) {
+        await libraryStore.fetchCountry?.()
       }
+
+      const found = libraryStore.countryOptions.find((opt) => opt.value === newVal)
+      selectedCountry.value = found || null
+    } else {
+      selectedCountry.value = null
     }
   },
   { immediate: true }
 )
 
-// ──────────────────────────────────────────────────────────
-//          PDS Details Form - Update Handler
-// ──────────────────────────────────────────────────────────
-const updateC4Form = async () => {
-  IsBeingUpdated.value = true
-  const id = isMyPds
-    ? authStore.authenticatedUser?.user_profile?.individual_basic_detail?.id?.toString() ?? ''
-    : (route.params.id as string)
+/***************************************************
+     Watcher Clear field when radio set to "No"
+****************************************************/
+const allQuestionsFlags = computed(() => [
+  payload.individual_question[0].q34_a,
+  payload.individual_question[0].q34_b,
+  payload.individual_question[0].q35_a,
+  payload.individual_question[0].q35_b,
+  payload.individual_question[0].q36,
+  payload.individual_question[0].q37,
+  payload.individual_question[0].q38_a,
+  payload.individual_question[0].q38_b,
+  payload.individual_question[0].q39,
+  payload.individual_question[0].q40_a_indigenous_group,
+  payload.individual_question[0].q40_b_pwd,
+  payload.individual_question[0].q40_c_solo_parent,
+])
 
-  formIsSubmitting.value = true
+// Watch the computed array of flags
+watch(allQuestionsFlags, (newFlags) => {
+  // For each question, check if the new value is false, and clear related fields
+  if (newFlags[0] === false) payload.individual_question[0].q34_details = null
+  if (newFlags[1] === false) payload.individual_question[0].q34_details = null
+
+  if (newFlags[2] === false) payload.individual_question[0].q35_a_details = null
+  if (newFlags[3] === false) {
+    payload.individual_question[0].q35_b_date_filed = null
+    payload.individual_question[0].q35_b_status = null
+  }
+
+  if (newFlags[4] === false) payload.individual_question[0].q36_details = null
+  if (newFlags[5] === false) payload.individual_question[0].q37_details = null
+  if (newFlags[6] === false) payload.individual_question[0].q38_a_details = null
+  if (newFlags[7] === false) payload.individual_question[0].q38_b_details = null
+  if (newFlags[8] === false) payload.individual_question[0].country_id = null
+  if (newFlags[9] === false) payload.individual_question[0].q40_a_details = null
+  if (newFlags[10] === false) payload.individual_question[0].q40_b_details = null
+  if (newFlags[11] === false) payload.individual_question[0].q40_c_details = null
+})
+
+/**************************************************
+      Validations of C4 with Toast Message
+***************************************************/
+const validateForm = async () => {
   const valid = await validator.value.$validate()
   if (!valid) {
     const hasIndividualQuestionError = Object.values(validator.value.individual_question).some(
@@ -386,6 +427,19 @@ const updateC4Form = async () => {
     isC4Loading.value = false
     return { valid: false, errorTabs: ['C4'] }
   }
+  return { valid: true }
+}
+/**************************************************
+             PDS C4 - UPDATE SERVICE 
+***************************************************/
+const updateC4Form = async () => {
+  IsBeingUpdated.value = true
+  const id = isMyPds
+    ? authStore.authenticatedUser?.user_profile?.individual_basic_detail?.id?.toString() ?? ''
+    : (route.params.id as string)
+
+  formIsSubmitting.value = true
+
   const response = await pdsStore.updatePds({ ...payload }, id, 'C4')
 
   if (!response.success) {
@@ -399,47 +453,12 @@ const updateC4Form = async () => {
     return { valid: false, errorTabs: ['C4'] }
   }
 }
-
-// ──────────────────────────────────────────────────────────
-//          PDS Details Form - Save Handler
-// ──────────────────────────────────────────────────────────
+/**************************************************
+            PDS C4 - STORE SERVICE 
+***************************************************/
 const handleSaveC4Form = async () => {
   isC4Loading.value = true
 
-  const valid = await validator.value.$validate()
-  if (!valid) {
-    const hasIndividualQuestionError = Object.values(validator.value.individual_question).some(
-      (entry) => (entry as { $error: boolean })?.$error
-    )
-
-    const hasIndividualReferenceError = Object.values(validator.value.individual_reference).some(
-      (entry) => (entry as { $error: boolean })?.$error
-    )
-
-    const hasIndividualGovermentIDError = Object.values(validator.value.individual_government_id).some(
-      (entry) => (entry as { $error: boolean })?.$error
-    )
-
-    let errorTabs = []
-    if (hasIndividualQuestionError) errorTabs.push('C4 - Other Information Continued')
-    if (hasIndividualReferenceError) errorTabs.push('C4 - References')
-    if (hasIndividualGovermentIDError) errorTabs.push('C4 - Gov`t Issued ID')
-
-    const sectionDescriptions: Record<string, string> = {
-      'C4 - Other Information Continued': 'C4 - Other Information Continued',
-      'C4 - References': 'C4 - References',
-      'C4 - Gov`t Issued ID': 'C4 - Gov`t Issued ID',
-    }
-
-    errorTabs.forEach((field) => {
-      const message = sectionDescriptions[field] ?? field
-      showToast('error', 'Validation Error - Please check the following', message)
-    })
-
-    isC4Loading.value = false
-    return { valid: false, errorTabs: ['C4'] }
-  }
-  console.log('Payload before save:', payload)
   const response = await pdsStore.savePds(payload)
 
   if (!response.success) {
@@ -448,18 +467,14 @@ const handleSaveC4Form = async () => {
     isPdsError.value = true
     errorMessage.value = result?.message
     pdsErrors.value = result?.errors
-    showToast('error', 'PDS C4 Error', 'Please see the validation messages')
-  } else {
-    showToast('success', 'PDS', 'PDS has been saved')
-    router.push({ name: 'employment' })
+    return { valid: false, errorTabs: ['C4'] }
   }
-
-  isC4Loading.value = false
 }
 
 defineExpose({
   handleSaveC4Form,
   updateC4Form,
+  validateForm,
 })
 </script>
 
@@ -1328,6 +1343,7 @@ defineExpose({
                                   :readonly="pdsStore.isMyPds"
                                   label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-xs md:mb-1"
                                   :class="[
+                                    pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
                                     'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
                                     validator.individual_reference[referenceIndex - 1].name.$error ? 'mb-0' : 'mb-6',
                                   ]"
@@ -1341,10 +1357,11 @@ defineExpose({
                               <div class="md:col-span-2">
                                 <WbInputText
                                   v-model="payload.individual_reference[referenceIndex - 1].address"
-                                  label="Address"
+                                  label="Office / Residential Address"
                                   :readonly="pdsStore.isMyPds"
                                   label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                   :class="[
+                                    pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
                                     'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
                                     validator.individual_reference[referenceIndex - 1].address.$error ? 'mb-0' : 'mb-6',
                                   ]"
@@ -1359,10 +1376,11 @@ defineExpose({
                                 <!-- WbInputText takes most of the space -->
                                 <WbInputText
                                   v-model="payload.individual_reference[referenceIndex - 1].tel_no"
-                                  label="Tel. No"
+                                  label="Contact No. and/or Email"
                                   :readonly="pdsStore.isMyPds"
                                   label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                   :class="[
+                                    pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
                                     'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
                                     validator.individual_reference[referenceIndex - 1].tel_no.$error ? 'mb-0' : 'mb-10',
                                   ]"
@@ -1423,72 +1441,82 @@ defineExpose({
                         Date of Issuance
                       </p>
                     </span>
-
                     <template v-if="true">
                       <TransitionRoot
                         appear
                         :show="true"
-                        enter="transition-all ease-in-out duration-500 "
+                        enter="transition-all ease-in-out duration-500"
                         enterFrom="opacity-0 translate-y-6"
                         enterTo="opacity-100 translate-y-0"
                         leave="transition-all ease-in-out duration-800"
                         leaveFrom="opacity-100"
                         leaveTo="opacity-0"
                       >
-                        <div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-5">
-                          <div class="md:col-span-2">
-                            <WbInputText
-                              v-model="payload.individual_government_id.gov_id_name"
-                              label="Government Issued ID"
-                              :readonly="pdsStore.isMyPds"
-                              label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm md:mb-1"
-                              :class="[
-                                'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
-                                pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
-                              ]"
-                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                              :invalid="validator.individual_government_id.gov_id_name.$error"
-                              :invalid-text="validator.individual_government_id.gov_id_name.$errors[0]?.$message"
-                              @blur="validator.individual_government_id.gov_id_name.$touch"
-                              required
-                            />
+                        <div>
+                          <div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-5">
+                            <!-- Government Issued ID -->
+                            <div class="md:col-span-2">
+                              <WbInputText
+                                v-model="payload.individual_government_id.gov_issued_id"
+                                label="Government Issued ID"
+                                :readonly="pdsStore.isMyPds"
+                                label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm md:mb-1"
+                                :class="[
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                  'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  validator.individual_government_id.gov_issued_id.$error ? 'mb-0' : 'mb-6',
+                                ]"
+                                validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                                :invalid="validator.individual_government_id.gov_issued_id.$error"
+                                :invalidText="validator.individual_government_id.gov_issued_id.$errors[0]?.$message"
+                                @blur="validator.individual_government_id.gov_issued_id.$touch()"
+                                required
+                              />
+                            </div>
+
+                            <!-- ID / License / Passport No -->
+                            <div class="md:col-span-2">
+                              <WbInputText
+                                v-model="payload.individual_government_id.gov_id_no"
+                                label="ID / License / Passport No."
+                                :readonly="pdsStore.isMyPds"
+                                label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                                :class="[
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                  'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  validator.individual_government_id.gov_id_no.$error ? 'mb-0' : 'mb-6',
+                                ]"
+                                validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                                :invalid="validator.individual_government_id.gov_id_no.$error"
+                                :invalidText="validator.individual_government_id.gov_id_no.$errors[0]?.$message"
+                                @blur="validator.individual_government_id.gov_id_no.$touch()"
+                                required
+                              />
+                            </div>
+
+                            <!-- Date / Place of Issuance -->
+                            <div class="flex items-end gap-2">
+                              <WbInputText
+                                v-model="payload.individual_government_id.gov_issuance"
+                                label="Date / Place of Issuance"
+                                :readonly="pdsStore.isMyPds"
+                                label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                                :class="[
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                  'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  validator.individual_government_id.gov_issuance.$error ? 'mb-0' : 'mb-10',
+                                ]"
+                                validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                                :invalid="validator.individual_government_id.gov_issuance.$error"
+                                :invalidText="validator.individual_government_id.gov_issuance.$errors[0]?.$message"
+                                @blur="validator.individual_government_id.gov_issuance.$touch()"
+                                required
+                              />
+                            </div>
                           </div>
-                          <div class="md:col-span-2">
-                            <WbInputText
-                              v-model="payload.individual_government_id.gov_id_no"
-                              label="ID/License/Passport No."
-                              :readonly="pdsStore.isMyPds"
-                              label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                              :class="[
-                                'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
-                                pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
-                              ]"
-                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                              :invalid="validator.individual_government_id.gov_id_no.$error"
-                              :invalid-text="validator.individual_government_id.gov_id_no.$errors[0]?.$message"
-                              @blur="validator.individual_government_id.gov_id_no.$touch"
-                              required
-                            />
-                          </div>
-                          <div class="flex items-end gap-2">
-                            <WbInputText
-                              v-model="payload.individual_government_id.gov_id_issuance"
-                              label="Date/Place of Issuance"
-                              :readonly="pdsStore.isMyPds"
-                              label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                              :class="[
-                                'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
-                                pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
-                              ]"
-                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                              :invalid="validator.individual_government_id.gov_id_issuance.$error"
-                              :invalid-text="validator.individual_government_id.gov_id_issuance.$errors[0]?.$message"
-                              @blur="validator.individual_government_id.gov_id_issuance.$touch"
-                              required
-                            />
-                          </div>
+
+                          <hr />
                         </div>
-                        <hr />
                       </TransitionRoot>
                     </template>
                   </div>

@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { onBeforeMount, ref, computed } from 'vue'
+import { onBeforeMount, ref, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
+// import { useRouter } from 'vue-router'
+
 import { usePdsStore } from '@/stores/pds.store'
 
 import C1Form from '@/components/pds/C1Form.vue'
@@ -15,6 +17,8 @@ import Button from 'primevue/button'
 import { useToast } from 'primevue/usetoast'
 const toast = useToast()
 const route = useRoute()
+// const router = useRouter()
+
 const isMyPds = route.name === 'my-pds'
 const isEditMode = computed(() => !!route.params.id)
 const pdsStore = usePdsStore()
@@ -31,12 +35,22 @@ const c2Key = ref(0)
 const c3Key = ref(0)
 const c4Key = ref(0)
 
+/**************************************************
+              Refresh/Reload the Tab
+************************************************* */
 const refreshTabs = () => {
   c1Key.value++
   c2Key.value++
   c3Key.value++
   c4Key.value++
 }
+
+watch(
+  () => route.fullPath,
+  () => {
+    refreshTabs()
+  }
+)
 
 onBeforeMount(async () => {
   isImporting.value = false
@@ -49,53 +63,76 @@ onBeforeMount(async () => {
   }
 })
 
+/**************************************************
+        Handle Store Creation C1-C4
+************************************************* */
 const handleSubmit = async () => {
   isSubmitting.value = true
+  try {
+    // Validate all forms first (before saving anything)
+    const validations = await Promise.all(
+      [
+        c1FormRef.value?.validateForm?.(),
+        c2FormRef.value?.validateForm?.(),
+        c3FormRef.value?.validateForm?.(),
+        c4FormRef.value?.validateForm?.(),
+      ].filter(Boolean)
+    )
 
-  // Gather all tab save promises
-  const promises = [
-    c1FormRef.value?.handleSaveC1Form?.(),
-    c2FormRef.value?.handleSaveC2Form?.(),
-    c3FormRef.value?.handleSaveC3Form?.(),
-    c4FormRef.value?.handleSaveC4Form?.(),
-  ].filter(Boolean)
+    const hasInvalid = validations.some((r) => r?.valid === false)
+    if (hasInvalid) {
+      return
+    }
 
-  // Run all in parallel
-  const results = await Promise.all(promises)
+    // Proceed only if all forms are valid
+    await Promise.all(
+      [
+        c1FormRef.value?.handleSaveC1Form?.(),
+        c2FormRef.value?.handleSaveC2Form?.(),
+        c3FormRef.value?.handleSaveC3Form?.(),
+        c4FormRef.value?.handleSaveC4Form?.(),
+      ].filter(Boolean)
+    )
 
-  // Check for any failed validations
-  const failedTabs = results.filter((r) => r?.valid === false).flatMap((r) => r.errorTabs || [])
-
-  if (failedTabs.length > 0) {
-    // Stop: at least one tab failed
-
+    toast.add({
+      severity: 'success',
+      summary: 'Success',
+      detail: 'All forms have passed validation and were updated successfully.',
+      life: 3000,
+    })
+  } finally {
     isSubmitting.value = false
-    return
   }
-
-  // All tabs passed
-  toast.add({
-    severity: 'success',
-    summary: 'PDS Update',
-    detail: 'All forms have been successfully updated.',
-    life: 1500,
-  })
-
-  // Optional reload
-  if (route.query.mode !== 'via-pds-importation') {
-    window.location.reload()
-  }
-
-  isSubmitting.value = false
 }
-
 /**************************************************
-               Handle Update C1-C4
+            Handle Update C1-C4
 ************************************************* */
 const handleUpdate = async () => {
   isSubmitting.value = true
   try {
-    const results = await Promise.all(
+    // Validate all forms before proceeding
+    const validations = await Promise.all(
+      [
+        c1FormRef.value?.validateForm?.(),
+        c2FormRef.value?.validateForm?.(),
+        c3FormRef.value?.validateForm?.(),
+        c4FormRef.value?.validateForm?.(),
+      ].filter(Boolean)
+    )
+
+    const hasValidationError = validations.some((r) => r?.valid === false)
+    if (hasValidationError) {
+      toast.add({
+        severity: 'error',
+        summary: 'Validation Error',
+        detail: 'Please check all tabs and fix validation errors before submitting.',
+        life: 4000,
+      })
+      return
+    }
+
+    // Proceed with updates after successful validation
+    await Promise.all(
       [
         c1FormRef.value?.updateC1Form?.(),
         c2FormRef.value?.updateC2Form?.(),
@@ -103,16 +140,13 @@ const handleUpdate = async () => {
         c4FormRef.value?.updateC4Form?.(),
       ].filter(Boolean)
     )
-    const hasInvalid = results.some((r) => r?.valid === false)
-    if (hasInvalid) return
 
     toast.add({
       severity: 'success',
-      summary: 'Validation Successful',
+      summary: 'Success',
       detail: 'All forms have passed validation and were updated successfully.',
-      life: 2000,
+      life: 3000,
     })
-
     refreshTabs()
   } finally {
     isSubmitting.value = false

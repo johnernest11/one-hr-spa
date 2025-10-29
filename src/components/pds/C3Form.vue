@@ -2,7 +2,6 @@
 import { reactive, ref, onMounted, computed, watch } from 'vue'
 import { usePdsStore, PersonalDataSheetPayload } from '@/stores/pds.store.ts'
 import { useAuthStore } from '@/stores/auth.store.ts'
-import { useRouter } from 'vue-router'
 import { useRoute } from 'vue-router'
 
 import useVuelidate from '@vuelidate/core'
@@ -23,7 +22,6 @@ const getId = usePrependOrAppendOnce('pds-c3-section-form')
 const pdsStore = usePdsStore()
 const authStore = useAuthStore()
 const toast = useToast()
-const router = useRouter()
 const route = useRoute()
 
 const maxToasts = 5
@@ -368,7 +366,10 @@ type pdsDetailsFormProps = {
 }
 const props = defineProps<pdsDetailsFormProps>()
 onMounted(async () => {
-  const id = (route.params.id as string) || authStore.authenticatedUser?.user_profile?.individual_basic_detail_id
+  const isManualInput = route.query.mode === 'via-manual-input'
+  const id = !isManualInput
+    ? (route.params.id as string) || authStore.authenticatedUser?.user_profile?.individual_basic_detail_id
+    : null
   if (id) {
     const response = await pdsStore.fetchPdsById(id)
 
@@ -416,6 +417,13 @@ onMounted(async () => {
     } else {
       console.warn('Failed to fetch PDS by ID or response unsuccessful.')
     }
+  } else if (isManualInput) {
+    // Clear payload fields for manual input
+    payload.individual_voluntary_work.length = 0
+    payload.individual_lnd.length = 0
+    payload.individual_skills_hobby.length = 0
+    payload.individual_recognition.length = 0
+    payload.individual_membership.length = 0
   }
 
   isLoading.value = false
@@ -435,27 +443,38 @@ watch(
   { immediate: true }
 )
 
-const updateC3Form = async () => {
-  IsBeingUpdated.value = true
-  const id = pdsStore.isMyPds
-    ? authStore.authenticatedUser?.user_profile?.individual_basic_detail?.id?.toString() ?? ''
-    : (route.params.id as string)
-
-  formIsSubmitting.value = true
-
+/**************************************************
+      Validations of C3 with Toast Message
+***************************************************/
+const validateForm = async () => {
   const valid = await validator.value.$validate()
   if (!valid) {
+    const hasVoluntaryWork = Object.values(validator.value.individual_voluntary_work).some(
+      (entry) => (entry as { $error: boolean })?.$error
+    )
+
     const hasLearningDevelopmentError = Object.values(validator.value.individual_lnd).some(
       (entry) => (entry as { $error: boolean })?.$error
     )
 
+    const hasOtherInformationError =
+      Object.values(validator.value.individual_skills_hobby ?? {}).some((entry) => (entry as { $error: boolean })?.$error) ||
+      Object.values(validator.value.individual_recognition ?? {}).some((entry) => (entry as { $error: boolean })?.$error) ||
+      Object.values(validator.value.individual_memebership ?? {}).some((entry) => (entry as { $error: boolean })?.$error)
+
     const errorTabs: string[] = []
+    if (hasVoluntaryWork)
+      errorTabs.push('C3 - Voluntary Work or Involvement in Civic / Non-Goverment/People/Voluntary Organization/s')
     if (hasLearningDevelopmentError)
       errorTabs.push('C3 - Learning and Development (L&D) Interventions / Training Programs Attended')
+    if (hasOtherInformationError) errorTabs.push('C4 - Other Information (Skills, Recognition, Membership)')
 
     const sectionDescriptions: Record<string, string> = {
+      'C3 - Voluntary Work or Involvement in Civic / Non-Goverment/People/Voluntary Organization/s':
+        'C3 - Voluntary Work or Involvement in Civic / Non-Goverment/People/Voluntary Organization/s',
       'C3 - Learning and Development (L&D) Interventions / Training Programs Attended':
         'C3 - Learning and Development (L&D) Interventions / Training Programs Attended',
+      'C4 - Other Information (Skills, Recognition, Membership)': 'C4 - Other Information (Skills, Recognition, Membership)',
     }
 
     errorTabs.forEach((field) => {
@@ -466,6 +485,20 @@ const updateC3Form = async () => {
     isC3Loading.value = false
     return { valid: false, errorTabs: ['C3'] }
   }
+
+  return { valid: true }
+}
+
+/**************************************************
+             PDS C3 - UPDATE SERVICE 
+***************************************************/
+const updateC3Form = async () => {
+  IsBeingUpdated.value = true
+  const id = pdsStore.isMyPds
+    ? authStore.authenticatedUser?.user_profile?.individual_basic_detail?.id?.toString() ?? ''
+    : (route.params.id as string)
+
+  formIsSubmitting.value = true
 
   const response = await pdsStore.updatePds(
     { ...payload }, // only payload properties
@@ -479,40 +512,14 @@ const updateC3Form = async () => {
     isPdsError.value = true
     errorMessage.value = result?.message
     pdsErrors.value = result?.errors
-    return { valid: false, errorTabs: ['C1'] }
-  }
-}
-
-// ──────────────────────────────────────────────────────────
-//          PDS Details Form - Save Handler
-// ──────────────────────────────────────────────────────────
-
-const handleSaveC3Form = async () => {
-  isC3Loading.value = true
-
-  const valid = await validator.value.$validate()
-  if (!valid) {
-    const hasLearningDevelopmentError = Object.values(validator.value.individual_lnd).some(
-      (entry) => (entry as { $error: boolean })?.$error
-    )
-
-    const errorTabs = []
-    if (hasLearningDevelopmentError)
-      errorTabs.push('C3 - Learning and Development (L&D) Interventions / Training Programs Attended')
-
-    const sectionDescriptions: Record<string, string> = {
-      'C3 - Learning and Development (L&D) Interventions / Training Programs Attended':
-        'C3 - Learning and Development (L&D) Interventions / Training Programs Attended',
-    }
-
-    errorTabs.forEach((field) => {
-      const message = sectionDescriptions[field] ?? field
-      showToast('error', 'Validation Error - Please check the following', message)
-    })
-
-    isC3Loading.value = false
     return { valid: false, errorTabs: ['C3'] }
   }
+}
+/**************************************************
+            PDS C3 - STORE SERVICE 
+***************************************************/
+const handleSaveC3Form = async () => {
+  isC3Loading.value = true
 
   const response = await pdsStore.savePds(payload)
 
@@ -522,18 +529,14 @@ const handleSaveC3Form = async () => {
     isPdsError.value = true
     errorMessage.value = result?.message
     pdsErrors.value = result?.errors
-    showToast('error', 'PDS C3 Error', 'Please see the validation messages')
-  } else {
-    showToast('success', 'PDS', 'PDS has been saved')
-    router.push({ name: 'employment' })
+    return { valid: false, errorTabs: ['C3'] }
   }
-
-  isC3Loading.value = false
 }
 
 defineExpose({
   handleSaveC3Form,
   updateC3Form,
+  validateForm,
 })
 </script>
 
@@ -605,8 +608,8 @@ defineExpose({
                         leaveTo="opacity-0"
                       >
                         <div v-if="!payload.individual_voluntary_work[voluntaryWorkIndex - 1]?._delete">
-                          <div class="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-                            <div>
+                          <div class="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4">
+                            <div class="md:col-span-2">
                               <WbInputText
                                 v-model="payload.individual_voluntary_work[voluntaryWorkIndex - 1].org_name"
                                 label="Name of Organization"
@@ -625,29 +628,6 @@ defineExpose({
                                 @blur="validator.individual_voluntary_work[voluntaryWorkIndex - 1].org_name.$touch()"
                               />
                             </div>
-                            <div>
-                              <WbInputText
-                                v-model="payload.individual_voluntary_work[voluntaryWorkIndex - 1].org_address"
-                                label="Address of Organization"
-                                :readonly="pdsStore.isMyPds"
-                                label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                :class="[
-                                  'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
-                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
-                                  validator.individual_voluntary_work[voluntaryWorkIndex - 1].org_address.$error
-                                    ? 'mb-0'
-                                    : 'mb-6',
-                                ]"
-                                validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                                :invalidText="
-                                  validator.individual_voluntary_work[voluntaryWorkIndex - 1].org_address.$errors[0]?.$message
-                                "
-                                :invalid="validator.individual_voluntary_work[voluntaryWorkIndex - 1].org_address.$error"
-                                @blur="validator.individual_voluntary_work[voluntaryWorkIndex - 1].org_address.$touch()"
-                              />
-                            </div>
-                          </div>
-                          <div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-6">
                             <div>
                               <WbCalendar
                                 v-model="payload.individual_voluntary_work[voluntaryWorkIndex - 1].from"
@@ -721,7 +701,8 @@ defineExpose({
                                 @blur="validator.individual_voluntary_work[voluntaryWorkIndex - 1].to.$touch()"
                               />
                             </div>
-
+                          </div>
+                          <div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-6">
                             <div>
                               <WbInputText
                                 v-model="payload.individual_voluntary_work[voluntaryWorkIndex - 1].number_of_hours"
@@ -743,7 +724,7 @@ defineExpose({
                                 @blur="validator.individual_voluntary_work[voluntaryWorkIndex - 1].number_of_hours.$touch()"
                               />
                             </div>
-                            <div class="flex items-end gap-2 md:col-span-3">
+                            <div class="flex items-end gap-2 md:col-span-5">
                               <WbInputText
                                 v-model="payload.individual_voluntary_work[voluntaryWorkIndex - 1].position_nature_of_work"
                                 label="Position / Nature of Work"
