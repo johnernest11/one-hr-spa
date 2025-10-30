@@ -9,15 +9,9 @@ import type { ScannedEmployeeResponse } from '@/typings/models.types'
 import type { WbAutoCompleteOption } from '@/components/webkit/WbAutoComplete.vue'
 import dswdLogoMark from '@/assets/image/DSWD logo_Mark.png'
 
-// --- START: Type Update ---
-// Ensure ScannedEmployeeResponse type (or wherever you define it) includes the 'captured_image' property
-// Assuming it's in '@/typings/models.types', you should update it there, but we'll add it here for clarity
-// and assume it's merged with the imported type.
-// If you cannot update '@/typings/models.types', add the property here directly:
 interface CustomScannedEmployeeResponse extends ScannedEmployeeResponse {
   captured_image?: string | null
 }
-// --- END: Type Update ---
 
 interface DivisionSectionSummary {
   name: string
@@ -38,27 +32,22 @@ interface WarmBodySummary {
 export const useDailyLogsStore = defineStore('dailyLogs', () => {
   const authStore = useAuthStore()
 
-  // 🧩 Persistent states
   const timelogOfficeId = useStorage<string | null>('timelogOfficeId', null)
   const recentLogs = useStorage<CustomScannedEmployeeResponse[]>('recentLogs', [])
   const dailyLogs = useStorage<DailyLogEntry[]>('dailyLogs', [])
-  const currentScannedEmployee = ref<CustomScannedEmployeeResponse | null>(null) // Use updated type
+  const currentScannedEmployee = ref<CustomScannedEmployeeResponse | null>(null)
   const lastLogMessage = ref<string | null>(null)
   const warmBodySummary = ref<WarmBodySummary | null>(null)
   const showModal = ref(false)
   let modalTimer: ReturnType<typeof setTimeout> | null = null
 
-  /** 🧩 Helper to build fallback S3 URL if only path is given */
   const getCapturedPhotoUrl = (path?: string | null, fallback?: string) => {
-    // Check for local Blob URL first (which starts with 'blob:')
     if (path?.startsWith('blob:')) return path
     if (!path) return fallback || dswdLogoMark
     if (path.startsWith('http')) return path
     return `https://hr-cares-assets.s3.ap-southeast-1.amazonaws.com/${path}`
   }
 
-  /** ✅ Add recent log with cap limit */
-  // Update addRecentLog to use the custom type
   const addRecentLog = (employee: CustomScannedEmployeeResponse) => {
     recentLogs.value.unshift(employee)
     if (recentLogs.value.length > 20) recentLogs.value.pop()
@@ -68,7 +57,6 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     recentLogs.value = []
   }
 
-  /** ✅ Computed counters */
   const countIn = computed(
     () => (date: string) => dailyLogs.value.find((l) => l.date === date)?.warm_bodies.filter((wb) => wb.is_in).length ?? 0
   )
@@ -77,7 +65,6 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     () => (date: string) => dailyLogs.value.find((l) => l.date === date)?.warm_bodies.filter((wb) => !wb.is_in).length ?? 0
   )
 
-  /** ✅ Safely build warm body logs (prevents invalid date errors) */
   const getTodayWarmBodies = computed(() => (date: string) => {
     const dailyLog = dailyLogs.value.find((l) => l.date === date)
     if (!dailyLog) return []
@@ -92,7 +79,6 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
   })
 
-  /** 🏢 Office helpers */
   const setOffice = (office: WbAutoCompleteOption) => {
     timelogOfficeId.value = office.value as string
   }
@@ -101,15 +87,10 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     timelogOfficeId.value = null
   }
 
-  /** 🪟 Modal handling */
-  // Update showScannedEmployeeModal to use the custom type
   const showScannedEmployeeModal = (employee: CustomScannedEmployeeResponse | null, message: string) => {
     currentScannedEmployee.value = employee
     lastLogMessage.value = message
     showModal.value = true
-
-    // The view component handles recentLogs update now, so this is commented out.
-    // if (employee) addRecentLog(employee)
 
     if (modalTimer) clearTimeout(modalTimer)
     modalTimer = setTimeout(() => {
@@ -126,7 +107,6 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     if (modalTimer) clearTimeout(modalTimer)
   }
 
-  /** 🔁 Merge daily logs without duplication */
   const updateDailyLogs = (date: string, logs: WarmBodyLogEntry[]) => {
     const existingIndex = dailyLogs.value.findIndex((l) => l.date === date)
 
@@ -139,11 +119,9 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     }
   }
 
-  /** 🕒 Log employee time */
-  // CRITICAL FIX: Add localCapturedImageUrl parameter to pass the Blob URL
   const logEmployeeTime = async (
     payload: FormData | { scanned_qr: string; captured_image: string | null },
-    localCapturedImageUrl: string | null = null // New optional parameter for Blob URL
+    localCapturedImageUrl: string | null = null
   ) => {
     const { data } = await useApiCall('employees/log-time', authStore.authenticationToken).post(payload).json()
     const responseBody: ApiResponseBody = data.value
@@ -151,39 +129,32 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     if (responseBody?.success) {
       const warmBodyLog = responseBody.data as WarmBodyLogEntry
 
-      // Extract employee info
       const emp = warmBodyLog.daily_time_record?.employee
       const empDetails = emp?.individual_basic_detail
       const employeeDetails = warmBodyLog?.daily_time_record?.employee?.individual_basic_detail
 
       const messageToDisplay = responseBody.message || 'Time log successful!'
 
-      // FIX: Use the localCapturedImageUrl (Blob) if provided, otherwise fall back to S3/default
       const profilePhotoUrl = getCapturedPhotoUrl(employeeDetails?.user_profile?.profile_picture_url, dswdLogoMark)
       const capturedImageUrl = localCapturedImageUrl || getCapturedPhotoUrl(warmBodyLog?.captured_image_url, dswdLogoMark)
 
-      // Use CustomScannedEmployeeResponse type
       const scannedEmployee: CustomScannedEmployeeResponse = {
         id: emp?.id_number || 'N/A',
         name: `${empDetails?.first_name || ''} ${empDetails?.last_name || ''}`.trim() || 'N/A',
         position: emp?.item?.position?.title || 'N/A',
         is_in: warmBodyLog.is_in,
         timestamp: warmBodyLog.scanned_time || new Date().toISOString(),
-        photo_url: profilePhotoUrl, // Employee's static profile photo
-        captured_image: capturedImageUrl, // The captured photo (Blob or S3)
-        captured_photo_url: capturedImageUrl, // Keeping this field for backward compatibility
+        photo_url: profilePhotoUrl,
+        captured_image: capturedImageUrl,
+        captured_photo_url: capturedImageUrl,
       }
 
       const dtrDate = warmBodyLog.daily_time_record?.date || new Date().toISOString().slice(0, 10)
       updateDailyLogs(dtrDate, [warmBodyLog])
-      // FIX: The view component handles the recentLogs update based on currentScannedEmployee,
-      // but we still call showScannedEmployeeModal which uses currentScannedEmployee
       showScannedEmployeeModal(scannedEmployee, messageToDisplay)
 
-      // FIX: Attach the scanned employee object for the View component to access
       currentScannedEmployee.value = scannedEmployee
     } else {
-      // Handle error messages
       let messageToDisplay = responseBody?.message?.trim() || 'Time log failed.'
       if (responseBody?.error_code === ApiErrorCode.VALIDATION_ERROR) {
         const apiErrors = responseBody.errors
@@ -197,7 +168,6 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     return responseBody
   }
 
-  /** 📅 Fetch logs once (no auto-refresh after page reload) */
   const fetchDailyLogs = async (date: string) => {
     try {
       const url = `/employees/daily-time-records/time-logs?date=${date}`
@@ -217,7 +187,6 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     }
   }
 
-  /** 🧮 Fetch warm body summary */
   const fetchWarmBodySummary = async (date: string) => {
     const url = `/employees/daily-time-records/warm-bodies/count?date=${date}`
     const { data } = await useApiCall(url, authStore.authenticationToken).get().json()
