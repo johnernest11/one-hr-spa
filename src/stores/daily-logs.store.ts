@@ -39,7 +39,8 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
   const lastLogMessage = ref<string | null>(null)
   const warmBodySummary = ref<WarmBodySummary | null>(null)
   const showModal = ref(false)
-  let modalTimer: ReturnType<typeof setTimeout> | null = null
+  const modalTimer: { current: ReturnType<typeof setTimeout> | null } = { current: null }
+  const MODAL_DISPLAY_DURATION_MS = 10000
 
   const getCapturedPhotoUrl = (path?: string | null, fallback?: string) => {
     if (path?.startsWith('blob:')) return path
@@ -92,19 +93,19 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     lastLogMessage.value = message
     showModal.value = true
 
-    if (modalTimer) clearTimeout(modalTimer)
-    modalTimer = setTimeout(() => {
+    if (modalTimer.current) clearTimeout(modalTimer.current)
+    modalTimer.current = setTimeout(() => {
       showModal.value = false
-      currentScannedEmployee.value = null
-      lastLogMessage.value = null
-    }, 10000)
+      clearScannedEmployee()
+      modalTimer.current = null
+    }, MODAL_DISPLAY_DURATION_MS)
   }
 
   const clearScannedEmployee = () => {
     currentScannedEmployee.value = null
     lastLogMessage.value = null
     showModal.value = false
-    if (modalTimer) clearTimeout(modalTimer)
+    if (modalTimer.current) clearTimeout(modalTimer.current)
   }
 
   const updateDailyLogs = (date: string, logs: WarmBodyLogEntry[]) => {

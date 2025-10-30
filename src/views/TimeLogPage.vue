@@ -63,7 +63,7 @@ const isScanLocked = ref(false)
 const isScannerResetting = ref(false)
 const scannedEmployee = computed(() => dailyLogsStore.currentScannedEmployee as Log | null | undefined)
 
-function paintOutline(detectedCodes: DetectedBarcode[], ctx: CanvasRenderingContext2D) {
+const paintOutline = (detectedCodes: DetectedBarcode[], ctx: CanvasRenderingContext2D) => {
   for (const detectedCode of detectedCodes) {
     const [firstPoint, ...otherPoints] = detectedCode.cornerPoints
     ctx.strokeStyle = 'red'
@@ -334,10 +334,6 @@ const countInToday = computed(() => dailyLogsStore.warmBodySummary?.in_office ||
 const countOutToday = computed(() => dailyLogsStore.warmBodySummary?.out_of_office || 0)
 
 const checkScreenSize = () => (isMobile.value = window.innerWidth <= 575)
-const dialogDynamicStyle = computed(() =>
-  isMobile.value ? { width: '100vw', height: '100vh', maxWidth: 'unset' } : { width: '25vw' }
-)
-const dialogDynamicPosition = computed(() => (isMobile.value ? 'center' : 'right'))
 
 const dynamicSuccessMessage = computed(() =>
   dailyLogsStore.currentScannedEmployee
@@ -489,8 +485,7 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
         :modal="false"
         :closable="true"
         :dismissableMask="true"
-        :position="dialogDynamicPosition"
-        :style="dialogDynamicStyle"
+        class="xs:w-full h-auto w-1/4 max-w-none sm:w-3/4 md:h-auto md:w-1/4"
         :breakpoints="{ '1199px': '75vw', '575px': '90vw' }"
         :pt="{
           root: 'flex flex-col h-full bg-white shadow-lg p-4 md:p-12',
