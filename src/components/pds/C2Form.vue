@@ -467,7 +467,7 @@ const updateC2Form = async () => {
   formIsSubmitting.value = true
 
   const id = pdsStore.isMyPds
-    ? authStore.authenticatedUser?.user_profile?.individual_basic_detail?.id?.toString()
+    ? authStore.authenticatedUser?.user_profile?.individual_basic_detail?.id?.toString() ?? 0
     : (route.params.id as string)
 
   if (!id) {

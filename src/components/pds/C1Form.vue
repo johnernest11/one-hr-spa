@@ -737,9 +737,9 @@ watch(isSameResidential, (newVal) => {
   }
 })
 
-/*****************************************************
-  Watcher to auto-check if both addresses are identical
-******************************************************/
+/*********************************************************************
+  Watcher if Permanent Resident is same as Residential
+***********************************************************************/
 watch(
   () => payload.individual_address_init,
   (addr) => {
@@ -754,6 +754,23 @@ watch(
       addr.residential_brgy_id === addr.permanent_brgy_id
 
     isSameResidential.value = sameAddress
+  },
+  { deep: true, immediate: true }
+)
+
+const isResidentialComplete = ref(false)
+watch(
+  () => payload.individual_address_init,
+  (res) => {
+    if (!res) return
+
+    isResidentialComplete.value = Boolean(
+      res.residential_brgy_id &&
+        res.residential_citymun_id &&
+        res.residential_province_id &&
+        res.residential_region_id &&
+        res.residential_zip_code
+    )
   },
   { deep: true, immediate: true }
 )
@@ -929,7 +946,7 @@ const isSingle = computed(() => payload.individual.civil_status === 'Single')
 const propPosition = async () => {
   const isManualInput = route.query.mode === 'via-manual-input'
   if (isManualInput && !payload.employee.item_id) {
-    payload.employee.position = null
+    payload.employee.position = ''
     return
   }
   if (!payload?.employee?.item_id) return
@@ -943,11 +960,11 @@ const propPosition = async () => {
       const itemRespData = itemResp.data as ItemNumberResponse
       payload.employee.position = itemRespData.position?.title ?? null
     } else {
-      payload.employee.position = null
+      payload.employee.position = ''
     }
   } catch (error) {
     console.error('[propPosition] Failed to fetch item:', error)
-    payload.employee.position = null
+    payload.employee.position = ''
   } finally {
     isPositionLoading.value = false
   }
@@ -956,7 +973,11 @@ const propPosition = async () => {
 watch(
   () => payload.employee.item_id,
   (newId) => {
-    if (newId) propPosition()
+    if (newId) {
+      propPosition()
+    } else {
+      payload.employee.position = ''
+    }
   },
   { immediate: true }
 )
@@ -1355,15 +1376,192 @@ const handleRemoveChild = (childIndex: number) => {
   }
 }
 
+/***Clear the payload to default when manual input mode is detected***/
+const resetPdsPayload = () => {
+  Object.assign(payload, {
+    individual: {
+      id: null,
+      firstname: '',
+      middlename: '',
+      lastname: '',
+      name_extension: '',
+      birthdate: '',
+      birthplace: '',
+      sex: '',
+      civil_status: '',
+      height: '',
+      weight: '',
+      blood_type: '',
+      gsis_id_no: '',
+      pagibig_id_no: '',
+      philhealth_no: '',
+      sss_no: '',
+      tin_no: '',
+      citizenship: '',
+      citizenship_by: '',
+      dual_country: '',
+    },
+
+    employee: {
+      id: null,
+      item_id: null,
+      position_id: null,
+      employment_status_id: null,
+      salary_grade_id: null,
+      position: '',
+      agency_employee_no: null,
+    },
+
+    educations: {
+      elementary: {
+        id: null,
+        level: 'Elementary',
+        name_of_school: '',
+        basic_edu_degree_course: '',
+        period_from: '',
+        period_to: '',
+        highest_level_units_earned: '',
+        year_graduated: '',
+        scholarship_academic_honors: '',
+      },
+      high_school: {
+        id: null,
+        level: 'Secondary',
+        name_of_school: '',
+        basic_edu_degree_course: '',
+        period_from: '',
+        period_to: '',
+        highest_level_units_earned: '',
+        year_graduated: '',
+        scholarship_academic_honors: '',
+      },
+      vocational: {
+        id: null,
+        level: 'Vocational',
+        name_of_school: '',
+        basic_edu_degree_course: '',
+        period_from: '',
+        period_to: '',
+        highest_level_units_earned: '',
+        year_graduated: '',
+        scholarship_academic_honors: '',
+      },
+      college: {
+        id: null,
+        level: 'College',
+        name_of_school: '',
+        basic_edu_degree_course: '',
+        period_from: '',
+        period_to: '',
+        highest_level_units_earned: '',
+        year_graduated: '',
+        scholarship_academic_honors: '',
+      },
+      graduate: {
+        id: null,
+        level: 'Graduate',
+        name_of_school: '',
+        basic_edu_degree_course: '',
+        period_from: '',
+        period_to: '',
+        highest_level_units_earned: '',
+        year_graduated: '',
+        scholarship_academic_honors: '',
+      },
+    },
+
+    /** Force empty arrays so Vue detects change */
+    contact_info: [
+      {
+        tel_no: null,
+        mobile_no: null,
+        email_address: null,
+      },
+    ],
+    individual_family_children: [],
+
+    individual_family_spouse: {
+      id: null,
+      class: 'Spouse',
+      lastname: '',
+      firstname: '',
+      middlename: '',
+      occupation: '',
+      employer_business_name: '',
+      business_address: '',
+      telephone_no: '',
+      _delete: null,
+    },
+
+    individual_family_father: {
+      id: null,
+      class: 'Father',
+      lastname: '',
+      firstname: '',
+      middlename: '',
+      _delete: null,
+    },
+
+    individual_family_mothers_maiden: {
+      id: null,
+      class: 'Mother',
+      lastname: '',
+      firstname: '',
+      middlename: '',
+      _delete: null,
+    },
+
+    individual_address_init: {
+      residential_house_block_lot_no: null,
+      residential_street: null,
+      residential_subdivision_village: null,
+      residential_brgy_id: null,
+      residential_citymun_id: null,
+      residential_province_id: null,
+      residential_region_id: null,
+      residential_zip_code: null,
+      permanent_house_block_lot_no: null,
+      permanent_street: null,
+      permanent_subdivision_village: null,
+      permanent_brgy_id: null,
+      permanent_citymun_id: null,
+      permanent_province_id: null,
+      permanent_region_id: null,
+      permanent_zip_code: null,
+    },
+  })
+
+  /** Reset dropdown selections */
+  selectedResidentialRegion.value = null
+  selectedResidentialProvince.value = null
+  selectedResidentialCity.value = null
+  selectedResidentialBarangay.value = null
+  selectedPermanentRegion.value = null
+  selectedPermanentProvince.value = null
+  selectedPermanentCity.value = null
+  selectedPermanentBarangay.value = null
+}
+
 /**************************************************
      PDS Details Form - Fetching by ID & Update
 ************************************************* */
 type pdsDetailsFormProps = {
   personnelPds?: PersonnelResponse
 }
+const formKey = ref(0)
 const props = defineProps<pdsDetailsFormProps>()
 onMounted(async () => {
-  // Normal mode: fetch existing PDS by ID or auth user
+  /*********Manual Input Mode*********/
+  if (route.query.mode === 'via-manual-input') {
+    console.info('Manual input detected on mount → resetting payload.')
+    resetPdsPayload()
+    formKey.value++
+    isLoading.value = false
+    return
+  }
+
+  /*********Fetch Existing PDS*********/
+  isLoading.value = true
   const id = (route.params.id as string) || authStore.authenticatedUser?.user_profile?.individual_basic_detail_id
 
   if (id) {
@@ -1372,10 +1570,7 @@ onMounted(async () => {
     if (response && response.success) {
       const data = response.data as PersonnelResponse
       pdsStore.updatePdsFromPersonnel(data)
-
-      // --------------------
-      // Handle Educations
-      // --------------------
+      /*********Handle Educations*********/
       const educationsRaw = data.individual_educational_background
       const educationsArray: IndividualEducBg[] = Array.isArray(educationsRaw)
         ? educationsRaw
@@ -1402,10 +1597,7 @@ onMounted(async () => {
             break
         }
       })
-
-      // --------------------
-      // Handle Family
-      // --------------------
+      /*********Handle Family*********/
       const familyRaw = data.individual_family
       const familyArray: IndividualFamily[] = Array.isArray(familyRaw) ? familyRaw : familyRaw ? [familyRaw] : []
 
@@ -1426,10 +1618,7 @@ onMounted(async () => {
       payload.individual_family_children = familyArray
         .filter((fam) => fam.class === 'Children')
         .map((child) => ({ ...child, _delete: null }))
-
-      // --------------------
-      // Contact & Address
-      // --------------------
+      /*********Contact & Address*********/
       payload.individual_contact_info = Array.isArray(data.individual_contact_info)
         ? [...data.individual_contact_info]
         : data.individual_contact_info
@@ -1455,23 +1644,6 @@ onMounted(async () => {
         selectedPermanentBarangay.value =
           publicStore.barangayOptions.find((b) => b.value === addressRaw.permanent_brgy_id) ?? null
       }
-
-      // --------------------
-      // Reference & Government ID
-      // --------------------
-      payload.individual_reference = Array.isArray(data.individual_reference)
-        ? data.individual_reference.length
-          ? data.individual_reference
-          : [{ id: null, name: '', address: '', tel_no: '', _delete: null }]
-        : [{ id: null, name: '', address: '', tel_no: '', _delete: null }]
-
-      payload.individual_government_id = data.individual_government_id
-        ? Array.isArray(data.individual_government_id)
-          ? data.individual_government_id.length
-            ? { ...data.individual_government_id[0] }
-            : { id: null, gov_issued_id: '', gov_id_no: '', gov_issuance: '' }
-          : { ...data.individual_government_id }
-        : { id: null, gov_issued_id: '', gov_id_no: '', gov_issuance: '' }
     } else {
       console.warn('Failed to fetch PDS by ID or response unsuccessful.')
     }
@@ -2595,7 +2767,7 @@ defineExpose({
                         <div class="col-span-2 my-4 ml-4">
                           <div class="align-items-center flex items-center">
                             <Checkbox
-                              :disabled="pdsStore.isMyPds"
+                              :disabled="pdsStore.isMyPds || !isResidentialComplete"
                               v-model="isSameResidential"
                               :id="getId('input-same-residential')"
                               :inputId="getId('input-same-residential')"
@@ -2606,6 +2778,9 @@ defineExpose({
                               My permanent address is the same with residential address
                             </label>
                           </div>
+                          <small v-if="!isResidentialComplete" class="ml-6 text-error-500">
+                            Please complete your residential address before enabling this option.
+                          </small>
                         </div>
                         <WbAutoComplete
                           v-model="selectedPermanentRegion"

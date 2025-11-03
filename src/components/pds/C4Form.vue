@@ -245,87 +245,142 @@ const handleRemoveReference = (referenceIndex: number) => {
   }
 }
 
+/***Clear the payload to default when manual input mode is detected***/
+const formKey = ref(0)
+const resetPdsPayload = () => {
+  // Government ID
+  payload.individual_government_id.id = null
+  payload.individual_government_id.gov_issued_id = ''
+  payload.individual_government_id.gov_id_no = ''
+  payload.individual_government_id.gov_issuance = ''
+
+  // Questions
+  payload.individual_question.splice(0, payload.individual_question.length, {
+    id: null,
+    q34_a: false,
+    q34_b: false,
+    q34_details: null,
+    q35_a: false,
+    q35_a_details: null,
+    q35_b: false,
+    q35_b_date_filed: null,
+    q35_b_status: null,
+    q36: false,
+    q36_details: null,
+    q37: false,
+    q37_details: null,
+    q38_a: false,
+    q38_a_details: null,
+    q38_b: false,
+    q38_b_details: null,
+    q39: false,
+    country_id: null,
+    q40_a_indigenous_group: false,
+    q40_a_details: null,
+    q40_b_pwd: false,
+    q40_b_details: null,
+    q40_c_solo_parent: false,
+    q40_c_details: null,
+  })
+
+  // References
+  payload.individual_reference.splice(0, payload.individual_reference.length, {
+    id: null,
+    name: '',
+    address: '',
+    tel_no: '',
+    _delete: null,
+  })
+}
+
 /**************************************************
      PDS Details Form - Fetching by ID & Update
 ************************************************* */
 onMounted(async () => {
-  const id = (route.params.id as string) || authStore.authenticatedUser?.user_profile?.individual_basic_detail_id
-
-  if (id) {
-    const response = await pdsStore.fetchPdsById(id)
-
-    if (response && response.success) {
-      console.log('Fetched PDS data:', response.data)
-      const data = response.data as PersonnelResponse
-      pdsStore.updatePdsFromPersonnel(data)
-
-      /** --------------------
-       * Handle Questions & Reference
-       * ------------------- */
-      payload.individual_reference = Array.isArray(data.individual_reference)
-        ? data.individual_reference.length
-          ? data.individual_reference
-          : [{ id: null, name: null, address: null, tel_no: null, _delete: null }]
-        : [{ id: null, name: null, address: null, tel_no: null, _delete: null }]
-
-      payload.individual_question = Array.isArray(data.individual_question)
-        ? data.individual_question
-        : data.individual_question
-          ? [data.individual_question]
-          : [
-            {
-              id: null,
-              q34_a: false,
-              q34_b: false,
-              q34_details: null,
-              q35_a: false,
-              q35_a_details: null,
-              q35_b: false,
-              q35_b_date_filed: null,
-              q35_b_status: null,
-              q36: false,
-              q36_details: null,
-              q37: false,
-              q37_details: null,
-              q38_a: false,
-              q38_a_details: null,
-              q38_b: false,
-              q38_b_details: null,
-              q39: false,
-              country_id: null,
-              q40_a_indigenous_group: false,
-              q40_a_details: null,
-              q40_b_pwd: false,
-              q40_b_details: null,
-              q40_c_solo_parent: false,
-              q40_c_details: null,
-            },
-          ]
-
-      /** --------------------
-       * Handle Government ID
-       * ------------------- */
-      payload.individual_government_id = data.individual_government_id
-        ? Array.isArray(data.individual_government_id)
-          ? data.individual_government_id.length
-            ? {
-              id: data.individual_government_id[0].id ?? null,
-              gov_issued_id: data.individual_government_id[0].gov_issued_id ?? '',
-              gov_id_no: data.individual_government_id[0].gov_id_no ?? '',
-              gov_issuance: data.individual_government_id[0].gov_issuance ?? '',
-            }
-            : { id: null, gov_issued_id: '', gov_id_no: '', gov_issuance: '' }
-          : {
-            id: data.individual_government_id.id ?? null,
-            gov_issued_id: data.individual_government_id.gov_issued_id ?? '',
-            gov_id_no: data.individual_government_id.gov_id_no ?? '',
-            gov_issuance: data.individual_government_id.gov_issuance ?? '',
-          }
-        : { id: null, gov_issued_id: '', gov_id_no: '', gov_issuance: '' }
-    } else {
-      console.warn('Failed to fetch PDS by ID or response unsuccessful.')
-    }
+  /*********Manual Input Mode*********/
+  if (route.query.mode === 'via-manual-input') {
+    console.info('Manual input detected on mount → resetting payload.')
+    resetPdsPayload()
+    formKey.value++
+    isLoading.value = false
+    return
   }
+
+  /*********Fetch Existing PDS*********/
+  const id = route.params.id as string
+  if (!id) {
+    console.log('No ID in route, skipping fetch.')
+    isLoading.value = false
+    return
+  }
+
+  const response = await pdsStore.fetchPdsById(id)
+  if (!response?.success) {
+    console.warn('Failed to fetch PDS by ID or response unsuccessful.')
+    isLoading.value = false
+    return
+  }
+
+  console.log('Fetched PDS data:', response.data)
+  const data = response.data as PersonnelResponse
+  pdsStore.updatePdsFromPersonnel(data)
+
+  // -------------------------
+  // Government ID
+  // -------------------------
+  payload.individual_government_id = data.individual_government_id
+    ? Array.isArray(data.individual_government_id)
+      ? data.individual_government_id.length
+        ? { ...data.individual_government_id[0] }
+        : { id: null, gov_issued_id: '', gov_id_no: '', gov_issuance: '' }
+      : { ...data.individual_government_id }
+    : { id: null, gov_issued_id: '', gov_id_no: '', gov_issuance: '' }
+
+  // -------------------------
+  // Questions
+  // -------------------------
+  payload.individual_question = Array.isArray(data.individual_question)
+    ? JSON.parse(JSON.stringify(data.individual_question))
+    : data.individual_question
+      ? [JSON.parse(JSON.stringify(data.individual_question))]
+      : [
+        {
+          id: null,
+          q34_a: false,
+          q34_b: false,
+          q34_details: null,
+          q35_a: false,
+          q35_a_details: null,
+          q35_b: false,
+          q35_b_date_filed: null,
+          q35_b_status: null,
+          q36: false,
+          q36_details: null,
+          q37: false,
+          q37_details: null,
+          q38_a: false,
+          q38_a_details: null,
+          q38_b: false,
+          q38_b_details: null,
+          q39: false,
+          country_id: null,
+          q40_a_indigenous_group: false,
+          q40_a_details: null,
+          q40_b_pwd: false,
+          q40_b_details: null,
+          q40_c_solo_parent: false,
+          q40_c_details: null,
+        },
+      ]
+
+  // -------------------------
+  // References
+  // -------------------------
+  payload.individual_reference = Array.isArray(data.individual_reference)
+    ? data.individual_reference.length
+      ? JSON.parse(JSON.stringify(data.individual_reference))
+      : [{ id: null, name: '', address: '', tel_no: '', _delete: null }]
+    : [{ id: null, name: '', address: '', tel_no: '', _delete: null }]
 
   isLoading.value = false
 })
@@ -353,42 +408,47 @@ watch(
 /***************************************************
      Watcher Clear field when radio set to "No"
 ****************************************************/
-const allQuestionsFlags = computed(() => [
-  payload.individual_question[0].q34_a,
-  payload.individual_question[0].q34_b,
-  payload.individual_question[0].q35_a,
-  payload.individual_question[0].q35_b,
-  payload.individual_question[0].q36,
-  payload.individual_question[0].q37,
-  payload.individual_question[0].q38_a,
-  payload.individual_question[0].q38_b,
-  payload.individual_question[0].q39,
-  payload.individual_question[0].q40_a_indigenous_group,
-  payload.individual_question[0].q40_b_pwd,
-  payload.individual_question[0].q40_c_solo_parent,
-])
-
-// Watch the computed array of flags
-watch(allQuestionsFlags, (newFlags) => {
-  // For each question, check if the new value is false, and clear related fields
-  if (newFlags[0] === false) payload.individual_question[0].q34_details = null
-  if (newFlags[1] === false) payload.individual_question[0].q34_details = null
-
-  if (newFlags[2] === false) payload.individual_question[0].q35_a_details = null
-  if (newFlags[3] === false) {
-    payload.individual_question[0].q35_b_date_filed = null
-    payload.individual_question[0].q35_b_status = null
-  }
-
-  if (newFlags[4] === false) payload.individual_question[0].q36_details = null
-  if (newFlags[5] === false) payload.individual_question[0].q37_details = null
-  if (newFlags[6] === false) payload.individual_question[0].q38_a_details = null
-  if (newFlags[7] === false) payload.individual_question[0].q38_b_details = null
-  if (newFlags[8] === false) payload.individual_question[0].country_id = null
-  if (newFlags[9] === false) payload.individual_question[0].q40_a_details = null
-  if (newFlags[10] === false) payload.individual_question[0].q40_b_details = null
-  if (newFlags[11] === false) payload.individual_question[0].q40_c_details = null
+const allQuestionsFlags = computed(() => {
+  const q = payload.individual_question?.[0]
+  return [
+    q?.q34_a ?? null,
+    q?.q34_b ?? null,
+    q?.q35_a ?? null,
+    q?.q35_b ?? null,
+    q?.q36 ?? null,
+    q?.q37 ?? null,
+    q?.q38_a ?? null,
+    q?.q38_b ?? null,
+    q?.q39 ?? null,
+    q?.q40_a_indigenous_group ?? null,
+    q?.q40_b_pwd ?? null,
+    q?.q40_c_solo_parent ?? null,
+  ]
 })
+
+watch(
+  allQuestionsFlags,
+  (newFlags) => {
+    const q = payload.individual_question?.[0]
+    if (!q) return // safety guard — nothing to clear yet
+
+    if (newFlags[0] === false || newFlags[1] === false) q.q34_details = null
+    if (newFlags[2] === false) q.q35_a_details = null
+    if (newFlags[3] === false) {
+      q.q35_b_date_filed = null
+      q.q35_b_status = null
+    }
+    if (newFlags[4] === false) q.q36_details = null
+    if (newFlags[5] === false) q.q37_details = null
+    if (newFlags[6] === false) q.q38_a_details = null
+    if (newFlags[7] === false) q.q38_b_details = null
+    if (newFlags[8] === false) q.country_id = null
+    if (newFlags[9] === false) q.q40_a_details = null
+    if (newFlags[10] === false) q.q40_b_details = null
+    if (newFlags[11] === false) q.q40_c_details = null
+  },
+  { deep: true }
+)
 
 /**************************************************
       Validations of C4 with Toast Message
@@ -435,17 +495,24 @@ const validateForm = async () => {
 const updateC4Form = async () => {
   IsBeingUpdated.value = true
   const id = isMyPds
-    ? authStore.authenticatedUser?.user_profile?.individual_basic_detail?.id?.toString() ?? ''
+    ? authStore.authenticatedUser?.user_profile?.individual_basic_detail?.id?.toString() ?? 0
     : (route.params.id as string)
 
-  formIsSubmitting.value = true
+  if (!id) {
+    IsBeingUpdated.value = false
+    isC4Loading.value = false
+    formIsSubmitting.value = false
+    return { valid: false, errorTabs: ['C4'] }
+  }
 
   const response = await pdsStore.updatePds({ ...payload }, id, 'C4')
 
   if (!response.success) {
     const result = parseApiResponseError(response)
-    if (!result) return (formIsSubmitting.value = false)
-
+    if (!result) {
+      formIsSubmitting.value = false
+      return
+    }
     showErrorAlert.value = true
     errorMessage.value = result.message
     errorDetails.value = result.errors
@@ -460,7 +527,6 @@ const handleSaveC4Form = async () => {
   isC4Loading.value = true
 
   const response = await pdsStore.savePds(payload)
-
   if (!response.success) {
     const result = parseApiResponseError(response)
 

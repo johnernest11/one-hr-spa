@@ -452,15 +452,14 @@ export const usePdsStore = defineStore('pds', () => {
       }))
       : [],
 
-    individual_government_id:
-      Array.isArray(individual?.individual_government_id) && individual.individual_government_id.length
-        ? {
-          ...individual.individual_government_id[0],
-          gov_issued_id: individual.individual_government_id[0].gov_issued_id ?? '',
-          gov_id_no: individual.individual_government_id[0].gov_id_no ?? '',
-          gov_issuance: individual.individual_government_id[0].gov_issuance ?? '',
-        }
-        : { id: null, gov_issued_id: '', gov_id_no: '', gov_issuance: '' },
+    individual_government_id: individual?.individual_government_id
+      ? {
+        id: individual.individual_government_id.id ?? null,
+        gov_issued_id: individual.individual_government_id.gov_issued_id ?? '',
+        gov_id_no: individual.individual_government_id.gov_id_no ?? '',
+        gov_issuance: individual.individual_government_id.gov_issuance ?? '',
+      }
+      : { id: null, gov_issued_id: '', gov_id_no: '', gov_issuance: '' },
 
     employee: {
       id: employee?.id ?? 0,
@@ -845,6 +844,21 @@ export const usePdsStore = defineStore('pds', () => {
         _delete: r._delete ?? '',
       }))
       : []
+
+    // === Individual Goverment Id ===
+    pdsInfo.individual_government_id = personnel.individual_government_id
+      ? {
+        id: personnel.individual_government_id.id ?? null,
+        gov_issued_id: personnel.individual_government_id.gov_issued_id ?? '',
+        gov_id_no: personnel.individual_government_id.gov_id_no ?? '',
+        gov_issuance: personnel.individual_government_id.gov_issuance ?? '',
+      }
+      : {
+        id: null,
+        gov_issued_id: '',
+        gov_id_no: '',
+        gov_issuance: '',
+      }
   }
 
   const savePds = async (payload: PersonalDataSheetPayload) => {

@@ -114,12 +114,6 @@ const formRules = computed(() => ({
       ),
       maxLength: globalStringMaxLengthRule,
     },
-    org_address: {
-      required: helpers.withMessage('Fill up Address of Organization since other information is provided.', (val, vm) =>
-        hasAnyValue(vm) ? helpers.req(val) : true
-      ),
-      maxLength: globalStringMaxLengthRule,
-    },
     from: {
       isAfterOrEqualTo: helpers.withMessage(
         'Inclusive "From" date must not be after "To" date.',
@@ -495,7 +489,7 @@ const validateForm = async () => {
 const updateC3Form = async () => {
   IsBeingUpdated.value = true
   const id = pdsStore.isMyPds
-    ? authStore.authenticatedUser?.user_profile?.individual_basic_detail?.id?.toString() ?? ''
+    ? authStore.authenticatedUser?.user_profile?.individual_basic_detail?.id?.toString() ?? 0
     : (route.params.id as string)
 
   formIsSubmitting.value = true
