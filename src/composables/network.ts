@@ -36,6 +36,7 @@ export const useApiCall = (uri: string, authToken: string | null = null) => {
     onFetchError(ctx) {
       const authStore = useAuthStore()
       const authToken = authStore.authenticationToken
+
       if (authToken && ctx?.data?.error_code === 'UNAUTHORIZED_ERROR' && ctx?.response?.status === 401) {
         const authStore = useAuthStore()
         if (authStore.authenticatedUser !== null) {

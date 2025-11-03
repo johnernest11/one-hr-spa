@@ -155,7 +155,7 @@ const positionCode = computed(() => getPositionCode(selectedPosition.value?.labe
 
 const generateItemNumber = (employment_status: string, position: string | number | null | undefined): string => {
   const current = itemNumberStore.lastNumbers[employment_status] ?? 0
-  const paddedNumber = String(current + 1).padStart(4, '0')
+  const paddedNumber = String(current + 1).padStart(7, '0')
   const pos = position ? String(position).toUpperCase() : 'UNKNOWN'
 
   return employment_status === 'Contract of Service'

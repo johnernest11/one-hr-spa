@@ -11,6 +11,7 @@ import {
   ViewDailyTimeRecordResponse,
   ViewTimeLogsResponse,
 } from '@/typings/models.types'
+import { parseYear, parseMonth } from '@/utils/dtr-helpers'
 
 export type DailyTimeRecordPayload = {
   id: number
@@ -78,28 +79,26 @@ export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => 
     dtr: [],
   })
 
-  const fetchDailyTimeRecordsByMonth = async (date: Date, limit = 31) => {
-    const individual = auth.authenticatedUser.user_profile?.individual_basic_detail as PersonnelResponse
-    if (!individual) {
-      throw new Error('The current user has no individual basic detail linked to it.')
-    }
+  const fetchDailyTimeRecordsByMonth = async (date: Date, limit = 31, employeeId?: string | number) => {
+    const auth = useAuthStore()
 
-    if (!individual.employee) {
-      throw new Error('The current user has no employee data linked to it.')
+    // Use passed employeeId, fallback to authenticated user
+    const id = employeeId ?? auth.authenticatedUser.user_profile?.individual_basic_detail?.employee?.id
+
+    if (!id) {
+      throw new Error('No employee ID provided or linked to the current user.')
     }
 
     const year = date.getFullYear()
     const month = String(date.getMonth() + 1).padStart(2, '0')
     const formattedMonthYear = `${year}-${month}`
 
-    let uri = `/employees/${individual.employee?.id}/daily-time-records/view-dtr?limit=${limit}&`
-    if (formattedMonthYear) uri += `month=${formattedMonthYear}&`
+    const uri = `/employees/${id}/daily-time-records/view-dtr?limit=${limit}&month=${formattedMonthYear}`
 
     const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
     const responseBody: ApiResponseBody = data.value
 
     if (responseBody.success && Array.isArray(responseBody.data)) {
-      viewDailyTimeRecords.value = []
       viewDailyTimeRecords.value = responseBody.data as ViewDailyTimeRecordResponse[]
     }
 
@@ -146,16 +145,19 @@ export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => 
     return responseBody
   }
 
-  const searchDailyTimeRecords = async (query: string | null) => {
-    let uri = '/daily-time-records/search?'
-    if (query) uri += `query=${query}`
-    const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
-    const responseBody: ApiResponseBody = data.value
-    if (responseBody.success) {
-      const leaveCreditsList = responseBody.data as DailyTimeRecordResponse[]
-      dailyTimeRecords.value = [...leaveCreditsList]
-    }
-    return responseBody
+  const searchDailyTimeRecordsByMonthQuery = async (query: string | null): Promise<DailyTimeRecordResponse[]> => {
+    if (!query?.trim()) throw new Error('Enter a valid month (e.g., "October 2025").')
+
+    const now = new Date()
+    const q = query.toLowerCase().trim()
+    const year = +(parseYear(q) ?? now.getFullYear())
+    const month = parseMonth(q)
+
+    if (month === null) throw new Error('Invalid month. Use a month name or number (e.g., "October 2025").')
+
+    return fetchDailyTimeRecordsByMonth(new Date(year, month)).then(
+      (res) => structuredClone(res.data ?? []) as DailyTimeRecordResponse[]
+    )
   }
 
   const updateDailyTimeRecords = async (payload: UpdateDTRPayload) => {
@@ -236,6 +238,16 @@ export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => 
     return responseBody
   }
 
+  const getLastTimeLog = async () => {
+    const individual = auth.authenticatedUser.user_profile?.individual_basic_detail as PersonnelResponse
+    if (!individual?.employee) throw new Error('No employee linked')
+
+    const uri = `/employees/${individual.employee.id}/daily-time-records/last-time-log`
+    const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
+    const responseBody: ApiResponseBody = data.value
+    return responseBody
+  }
+
   return {
     dailyTimeRecords,
     dailyTimeRecordInfo,
@@ -245,7 +257,7 @@ export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => 
     fetchDailyTimeRecords,
     fetchDailyTimeRecordsByMonth,
     fetchDailyTimeRecordsByEmployee,
-    searchDailyTimeRecords,
+    searchDailyTimeRecordsByMonthQuery,
     updateDailyTimeRecords,
     generateDailyTimeRecords,
     viewTimeLogs,
@@ -253,5 +265,6 @@ export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => 
     fetchTimeLogsForToday,
     fetchCountWarmBodies,
     searchTimeLogs,
+    getLastTimeLog,
   }
 })

@@ -658,7 +658,7 @@ export type LocatorSlipResponse = {
   employee_id: PersonnelResponse
   status: string | null
   form_type: string
-  month: string
+  date: string
   period: string | null
   ls_logger: LSLoggerResponse[] | null
 } & ApiResponseData

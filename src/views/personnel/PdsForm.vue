@@ -26,6 +26,18 @@ const c2FormRef = ref()
 const c3FormRef = ref()
 const c4FormRef = ref()
 
+const c1Key = ref(0)
+const c2Key = ref(0)
+const c3Key = ref(0)
+const c4Key = ref(0)
+
+const refreshTabs = () => {
+  c1Key.value++
+  c2Key.value++
+  c3Key.value++
+  c4Key.value++
+}
+
 onBeforeMount(async () => {
   isImporting.value = false
   if (route.query.mode === 'via-manual-input') {
@@ -77,6 +89,9 @@ const handleSubmit = async () => {
   isSubmitting.value = false
 }
 
+/**************************************************
+               Handle Update C1-C4
+************************************************* */
 const handleUpdate = async () => {
   isSubmitting.value = true
   try {
@@ -88,25 +103,17 @@ const handleUpdate = async () => {
         c4FormRef.value?.updateC4Form?.(),
       ].filter(Boolean)
     )
+    const hasInvalid = results.some((r) => r?.valid === false)
+    if (hasInvalid) return
 
-    const failedTabs = results.filter((r) => r?.valid === false).flatMap((r) => r.errorTabs || [])
-
-    if (failedTabs.length > 0) {
-      console.warn('Validation failed for tabs:', failedTabs)
-      toast.add({
-        severity: 'error',
-        summary: 'Validation Error',
-        detail: 'Please check the following tabs',
-        life: 10000,
-      })
-      return
-    }
     toast.add({
       severity: 'success',
-      summary: 'PDS Update',
-      detail: 'All forms have been successfully updated.',
-      life: 1500,
+      summary: 'Validation Successful',
+      detail: 'All forms have passed validation and were updated successfully.',
+      life: 2000,
     })
+
+    refreshTabs()
   } finally {
     isSubmitting.value = false
   }
@@ -224,16 +231,16 @@ const handleUpdate = async () => {
             </TabList>
 
             <TabPanels>
-              <TabPanel :static="true" v-slot="{ selected }">
+              <TabPanel :key="c1Key" :static="true" v-slot="{ selected }">
                 <div v-show="selected"><C1Form ref="c1FormRef" /></div>
               </TabPanel>
-              <TabPanel :static="true" v-slot="{ selected }">
+              <TabPanel :key="c2Key" :static="true" v-slot="{ selected }">
                 <div v-show="selected"><C2Form ref="c2FormRef" /></div>
               </TabPanel>
-              <TabPanel :static="true" v-slot="{ selected }">
+              <TabPanel :key="c3Key" :static="true" v-slot="{ selected }">
                 <div v-show="selected"><C3Form ref="c3FormRef" /></div>
               </TabPanel>
-              <TabPanel :static="true" v-slot="{ selected }">
+              <TabPanel :key="c4Key" :static="true" v-slot="{ selected }">
                 <div v-show="selected"><C4Form ref="c4FormRef" /></div>
               </TabPanel>
             </TabPanels>

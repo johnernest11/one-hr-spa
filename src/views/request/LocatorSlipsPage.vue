@@ -16,13 +16,14 @@ import InputGroup from 'primevue/inputgroup'
 import Skeleton from 'primevue/skeleton'
 import Paginator, { PageState } from 'primevue/paginator'
 import WbDropdown from '@/components/webkit/WbDropdown.vue'
+import WbCalendar from '@/components/webkit/WbCalendar.vue'
 import WbAutoComplete, { WbAutoCompleteOption, WbAutoCompleteOptionTrueValue } from '@/components/webkit/WbAutoComplete.vue'
 import { useWbAutoCompleteHandleTrueValue } from '@/composables/wb-ui-components'
 
 import useVuelidate from '@vuelidate/core'
 import { ApiResponsePagination } from '@/typings/http-resources.types.ts'
 import { helpers, required } from '@vuelidate/validators'
-import { getLongMonthAndYear, snakeCaseToTitleCase, usePrependOrAppendOnce } from '@/utils/helpers.ts'
+import { getLongMonthAndYear, snakeCaseToTitleCase, usePrependOrAppendOnce, formatDateSafe } from '@/utils/helpers.ts'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 
 const locatorSlipsStore = useLocatorSlipStore()
@@ -31,6 +32,9 @@ const route = useRoute()
 const router = useRouter()
 const toast = useToast()
 const isHumanResourceActive = computed(() => route.name === 'locator-slips')
+const searchBarPlaceholder = computed(() =>
+  isHumanResourceActive.value ? 'Search via Employee Name/LS No.' : 'Search via LS No.'
+)
 const getId = usePrependOrAppendOnce('generate-payroll')
 
 const RequestLocatorSlip = ref(false)
@@ -43,10 +47,11 @@ const employeeGroups = ref()
 const expandedRows = ref()
 
 const searchQuery = ref<string | null>(null)
-const selectedStatus = ref<string | null>(null)
-const selectedDivision = ref<WbAutoCompleteOption[] | null>(null)
-const selectedSectionUnit = ref<WbAutoCompleteOption[] | null>(null)
-const selectedFundingSources = ref<WbAutoCompleteOption[] | null>(null)
+const selectedDivision = ref<WbAutoCompleteOption | null>(null)
+const selectedOffice = ref<WbAutoCompleteOption | null>(null)
+const selectedSectionUnit = ref<WbAutoCompleteOption | null>(null)
+const selectedFormType = ref<string | null>(null)
+const selectedDateFilter = ref<Date | null>(null)
 const pagination = ref<ApiResponsePagination | null>(null)
 
 const emit = defineEmits<{
@@ -84,6 +89,7 @@ const openNewLocatorSlipForm = () => {
 const formTypeOptions = ref([
   { label: 'Locator Slip Form A', value: 'a' },
   { label: 'Locator Slip Form C', value: 'c' },
+  { label: 'N/A', value: '' },
 ])
 
 const payload = reactive<LocatorSlipPayload>({
@@ -159,12 +165,15 @@ onBeforeMount(async () => {
 
 const handlePaginationPageChange = async (event: PageState) => {
   locatorSlipsIsLoading.value = true
+  const pageSelected = event.page + 1
+
   if (isHumanResourceActive.value) {
-    const data = await locatorSlipsStore.fetchGroupedLocatorSlip(event.page + 1, event.rows)
-    employeeGroups.value = data
-    pagination.value = data.pagination ?? null
+    const response = await locatorSlipsStore.fetchGroupedLocatorSlip(paginationLimit, pageSelected)
+    if (response.success && response.pagination) {
+      employeeGroups.value = response.data
+      pagination.value = response.pagination
+    }
   } else {
-    const pageSelected = event.page + 1
     const response = await locatorSlipsStore.fetchLocatorSlip(paginationLimit, pageSelected)
     if (response.success && response.pagination) {
       pagination.value = response.pagination
@@ -182,42 +191,61 @@ const handleSearchLocatorSlip = async () => {
     return
   }
 
-  const response = await locatorSlipsStore.searchLocatorSlip(searchQuery.value)
+  const response = await locatorSlipsStore.searchLocatorSlip(searchQuery.value, isHumanResourceActive.value, paginationLimit)
   if (response.success && response.pagination) {
+    employeeGroups.value = response.data
     pagination.value = response.pagination
-
     searchQuery.value = null
   }
+
   locatorSlipsIsLoading.value = false
 }
 
 const handleFilterLocatorSlip = async () => {
   locatorSlipsIsLoading.value = true
   searchSubmitted.value = true
-  if (!selectedStatus.value) {
-    const response = await locatorSlipsStore.fetchLocatorSlip(paginationLimit) // 5 = pagination limit
+
+  try {
+    const officeId = selectedOffice.value?.value as number | null
+    const divId = selectedDivision.value?.value as number | null
+    const secId = selectedSectionUnit.value?.value as number | null
+    const formType = selectedFormType.value as string | null
+    const dateFilter = selectedDateFilter.value ? formatDateSafe(selectedDateFilter.value) : null
+
+    const response = await locatorSlipsStore.filterLocatorSlip(
+      officeId,
+      divId,
+      secId,
+      formType,
+      dateFilter,
+      isHumanResourceActive.value,
+      paginationLimit
+    )
+
     if (response.success && response.pagination) {
+      employeeGroups.value = response.data
       pagination.value = response.pagination
     }
-    return (locatorSlipsIsLoading.value = false)
-  }
-
-  const response = await locatorSlipsStore.filterLocatorSlip(selectedStatus.value)
-  if (response.success && response.pagination) {
-    pagination.value = response.pagination
-    searchQuery.value = null
+  } catch (e) {
+    toast.add({
+      severity: 'error',
+      summary: 'Cannot filter Locator Slips.',
+      detail: e,
+      life: 5000,
+    })
   }
 
   locatorSlipsIsLoading.value = false
   showModal.value = false
 }
 
-const exportPdf = async (locatorSlips: LocatorSlipResponse) => {
-  const { period, month, id } = locatorSlips
+const exportDocx = async (locatorSlips: LocatorSlipResponse) => {
+  const { period, date, id } = locatorSlips
+  const monthYear = getLongMonthAndYear(date)
 
   const message = period
-    ? `Exporting locator slip for the ${period} of ${month}.`
-    : `Exporting locator slip for the month of ${month}.`
+    ? `Exporting locator slip for the ${period} of ${monthYear}.`
+    : `Exporting locator slip for the month of ${monthYear}.`
 
   toast.add({
     severity: 'info',
@@ -230,21 +258,20 @@ const exportPdf = async (locatorSlips: LocatorSlipResponse) => {
     const reportResponse = await locatorSlipsStore.generateLocatorSlip(String(id))
 
     const blob = reportResponse.data.value
-    const fileName = reportResponse.fileNameHeader?.value || `locator-slip-${id}.pdf`
 
     if (blob) {
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = fileName
+      a.download = `${reportResponse.fileNameHeader.value}`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
       window.URL.revokeObjectURL(url)
 
       const successMessage = period
-        ? `Locator Slip for the ${period} of ${month} was exported successfully.`
-        : `Locator Slip for the month of ${month} was exported successfully.`
+        ? `Locator Slip for the ${period} of ${monthYear} was exported successfully.`
+        : `Locator Slip for the month of ${monthYear} was exported successfully.`
 
       toast.add({
         severity: 'success',
@@ -407,7 +434,7 @@ const handleSaveSubmissionif = async () => {
             <InputGroup v-model="searchQuery" class="w-full">
               <InputText
                 v-model="searchQuery"
-                placeholder="Search via Employee Name/LS No."
+                :placeholder="searchBarPlaceholder"
                 class="w-full"
                 :disabled="locatorSlipsIsLoading"
                 @keyup.enter="handleSearchLocatorSlip"
@@ -482,7 +509,7 @@ const handleSaveSubmissionif = async () => {
                       severity="info"
                       class="border-none text-lg font-semibold text-primary-600 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
                       text
-                      @click="exportPdf(props.data)"
+                      @click="exportDocx(props.data)"
                     />
                   </div>
                 </template>
@@ -516,12 +543,8 @@ const handleSaveSubmissionif = async () => {
               >
                 <template #body="props">{{ props.data.id_number }}</template>
               </Column>
-              <Column
-                field="section"
-                header="Section or Unit"
-                headerClass="w-1/5 bg-surface-100 border-surface-300 opacity-70 font-bold"
-              >
-                <template #body="props">{{ props.data.section_or_unit.name }}</template>
+              <Column field="office" header="Office" headerClass="w-1/5 bg-surface-100 border-surface-300 opacity-70 font-bold">
+                <template #body="props">{{ props.data.office.name }}</template>
               </Column>
               <Column
                 field="division"
@@ -530,8 +553,12 @@ const handleSaveSubmissionif = async () => {
               >
                 <template #body="props">{{ props.data.division.name }}</template>
               </Column>
-              <Column field="office" header="Office" headerClass="w-1/5 bg-surface-100 border-surface-300 opacity-70 font-bold">
-                <template #body="props">{{ props.data.office.name }}</template>
+              <Column
+                field="section"
+                header="Section or Unit"
+                headerClass="w-1/5 bg-surface-100 border-surface-300 opacity-70 font-bold"
+              >
+                <template #body="props">{{ props.data.section_or_unit.name }}</template>
               </Column>
               <template #expansion="slotProps">
                 <DataTable scrollable scroll-height="400px" :value="slotProps.data.locator_slip" dataKey="id">
@@ -566,14 +593,6 @@ const handleSaveSubmissionif = async () => {
                           text
                           :disabled="props.data.status === 'released'"
                           @click="openLocatorSlip(props.data)"
-                        />
-                        <Button
-                          icon="pi pi-download"
-                          v-tooltip.top="'Download Locator Slip'"
-                          severity="info"
-                          class="border-none text-lg font-semibold text-primary-600 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
-                          text
-                          @click="exportPdf(props.data)"
                         />
                       </div>
                     </template>
@@ -704,6 +723,28 @@ const handleSaveSubmissionif = async () => {
       <div class="mb-4" v-if="isHumanResourceActive">
         <WbAutoComplete
           :useApiFilter="true"
+          :apiEndpoint="'/libraries/offices/search'"
+          :suggestions="libraryStore.officeOptions"
+          :loading="libraryStore.officeOptionsLoading"
+          apiOptionLabel="name"
+          label="Office"
+          placeholder="Type the Office"
+          v-model="selectedOffice"
+          :id="getId('input-office')"
+          optionLabel="label"
+          optionValue="value"
+          @on-true-value-computed="
+            (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
+              useWbAutoCompleteHandleTrueValue(value, toRef('office_id'))
+          "
+          label-class="text-sm text-start text-surface-600 dark:lg:text-surface-200"
+          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+          validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+        />
+      </div>
+      <div class="mb-4" v-if="isHumanResourceActive">
+        <WbAutoComplete
+          :useApiFilter="true"
           :apiEndpoint="'/libraries/divisions/search'"
           :suggestions="libraryStore.divisionOptions"
           :loading="libraryStore.divisionOptionsLoading"
@@ -745,26 +786,25 @@ const handleSaveSubmissionif = async () => {
           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
         />
       </div>
-      <div class="mb-4" v-if="isHumanResourceActive">
-        <WbAutoComplete
-          :useApiFilter="true"
-          :apiEndpoint="'/libraries/fund-sources/search'"
-          :suggestions="libraryStore.fundingSourcesOptions"
-          :loading="libraryStore.fundingSourcesOptionsLoading"
-          apiOptionLabel="name"
-          label="Funding"
-          placeholder="Type the Funding"
-          v-model="selectedFundingSources"
-          :id="getId('input-funding-sources')"
+      <div class="mb-4">
+        <WbDropdown
+          v-model="selectedFormType"
+          :options="formTypeOptions"
           optionLabel="label"
           optionValue="value"
-          @on-true-value-computed="
-            (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
-              useWbAutoCompleteHandleTrueValue(value, toRef('fund_source'))
-          "
-          label-class="text-sm text-start text-surface-600 dark:lg:text-surface-200"
-          class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-          validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+          label="Form Type"
+          placeholder="Select Form Type"
+          label-class="text-sm text-start text-surface-600"
+        />
+      </div>
+      <div class="mb-4">
+        <WbCalendar
+          view="month"
+          v-model="selectedDateFilter"
+          label="Month and Year"
+          label-class=" text-sm text-surface-600"
+          dateFormat="MM, yy"
+          :maxDate="new Date()"
         />
       </div>
     </div>

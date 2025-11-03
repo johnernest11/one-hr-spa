@@ -1,10 +1,10 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth.store.ts'
+import { useFetchBlob } from '@/composables/fetch.blob'
 import { useApiCall } from '@/composables/network'
 import { ApiResponseBody } from '@/typings/http-resources.types.ts'
 import { LocatorSlipResponse, PersonnelResponse } from '@/typings/models.types'
-import { locatorslipmockData } from '@/utils/mock-data'
 
 export type LocatorSlipPayload = {
   form_type: string
@@ -96,78 +96,83 @@ export const useLocatorSlipStore = defineStore('locator-slip', () => {
     return responseBody
   }
 
-  const searchLocatorSlip = async (query: string | null, limit = 10, page = 1) => {
-    const start = (page - 1) * limit
-
-    const filtered = locatorslipmockData.filter((item) => {
-      if (!query) return true
-      const q = query.toLowerCase()
-
-      return (
-        item.locator_slip_no?.toLowerCase().includes(q) ||
-        item.status.toLowerCase().includes(q) ||
-        item.employee_id.first_name.toLowerCase().includes(q) ||
-        item.employee_id.last_name.toLowerCase().includes(q)
-      )
-    })
-
-    const paginated = filtered.slice(start, start + limit)
-    locatorSlip.value = [...paginated]
-
-    return {
-      success: true,
-      data: paginated,
-      pagination: {
-        current_page: page,
-        last_page: Math.ceil(filtered.length / limit),
-        per_page: limit,
-        total: filtered.length,
-        from: start + 1,
-        to: start + paginated.length,
-        first_page_url: '',
-        last_page_url: '',
-        next_page_url: null,
-        previous_page_url: null,
-        path: '',
-      },
+  const searchLocatorSlip = async (query: string | null, is_pas: boolean = false, limit = 10) => {
+    const individual = auth.authenticatedUser.user_profile?.individual_basic_detail as PersonnelResponse
+    if (!individual?.employee) {
+      throw new Error('No employee data linked to current user')
     }
+
+    const myLocUri = `/employees/${individual.employee.id}/locator-slips/search?limit=${limit}&`
+    const pasUri = `/employees/locator-slips/search-all?limit=${limit}&`
+
+    let uri = is_pas ? pasUri : myLocUri
+    if (query) uri += `query=${query}`
+
+    const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
+
+    const responseBody: ApiResponseBody = data.value
+    if (responseBody.success) {
+      const LocatorSlipList = Array.isArray(responseBody.data) ? (responseBody.data as LocatorSlipResponse[]) : []
+      locatorSlip.value = [...LocatorSlipList]
+    }
+    return responseBody
   }
 
-  const filterLocatorSlip = async (status: string | null, limit = 10, page = 1) => {
-    const start = (page - 1) * limit
-    const filtered = locatorslipmockData.filter((item) => item.status === status)
-    const paginated = filtered.slice(start, start + limit)
-
-    locatorSlip.value = [...paginated]
-
-    return {
-      success: true,
-      data: paginated,
-      pagination: {
-        current_page: page,
-        last_page: Math.ceil(filtered.length / limit),
-        per_page: limit,
-        total: filtered.length,
-        from: start + 1,
-        to: start + paginated.length,
-        first_page_url: '',
-        last_page_url: '',
-        next_page_url: null,
-        previous_page_url: null,
-        path: '',
-      },
+  const filterLocatorSlip = async (
+    office_id?: number | null,
+    division_id?: number | null,
+    section_id?: number | null,
+    form_type?: string | null,
+    dateFilter?: string | null,
+    is_pas: boolean = false,
+    limit = 10
+  ) => {
+    const individual = auth.authenticatedUser.user_profile?.individual_basic_detail as PersonnelResponse
+    if (!individual?.employee) {
+      throw new Error('No employee data linked to current user')
     }
+    const myLocUri = `/employees/${individual.employee.id}/locator-slips?limit=${limit}&`
+    const pasUri = `/employees/locator-slips/grouped?limit=${limit}&`
+
+    let uri = is_pas ? pasUri : myLocUri
+    if (form_type) uri += `form-type=${encodeURIComponent(form_type)}&`
+    if (office_id && is_pas) uri += `office=${office_id}&`
+    if (division_id && is_pas) uri += `division=${division_id}&`
+    if (section_id && is_pas) uri += `section=${section_id}&`
+    if (dateFilter) uri += `date-filter=${dateFilter}&`
+
+    const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
+    const responseBody: ApiResponseBody = data.value
+
+    if (responseBody.success) {
+      const LocatorSlipList = Array.isArray(responseBody.data) ? (responseBody.data as LocatorSlipResponse[]) : []
+      locatorSlip.value = [...LocatorSlipList]
+    }
+    return responseBody
   }
 
   const generateLocatorSlip = async (id: string) => {
-    const response = await fetch('/mock/Locator-Slip-Form.docx')
-    const blob = await response.blob()
-    const fileNameHeader = `locator-slip-${id}.docx`
-
-    return {
-      data: ref(blob),
-      fileNameHeader: ref(fileNameHeader),
+    const individual = auth.authenticatedUser.user_profile?.individual_basic_detail as PersonnelResponse
+    if (!individual?.employee) {
+      throw new Error('No employee data linked to current user')
     }
+    const api_url = `/employees/${individual.employee.id}/locator-slips/${id}/generate`
+
+    const { data, fileNameHeader } = await useFetchBlob(api_url, auth.authenticationToken)
+    return { data, fileNameHeader }
+  }
+
+  const checkActiveLog = async () => {
+    const individual = auth.authenticatedUser.user_profile?.individual_basic_detail as PersonnelResponse
+    if (!individual?.employee) {
+      throw new Error('No employee data linked to current user')
+    }
+    const { data } = await useApiCall(`/employees/${individual.employee.id}/locator-slips/active`, auth.authenticationToken)
+      .get()
+      .json()
+    const responseBody: ApiResponseBody = data.value
+
+    return responseBody
   }
 
   return {
@@ -181,5 +186,6 @@ export const useLocatorSlipStore = defineStore('locator-slip', () => {
     searchLocatorSlip,
     filterLocatorSlip,
     generateLocatorSlip,
+    checkActiveLog,
   }
 })

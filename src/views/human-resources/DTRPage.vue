@@ -13,7 +13,7 @@ import Card from 'primevue/card'
 import WbAutoComplete from '@/components/webkit/WbAutoComplete.vue'
 import { WbAutoCompleteOption, WbAutoCompleteOptionTrueValue } from '@/components/webkit/WbAutoComplete.vue'
 import { useWbAutoCompleteHandleTrueValue } from '@/composables/wb-ui-components.ts'
-import { ApiResponsePagination } from '@/typings/http-resources.types.ts'
+import { ApiResponseBody, ApiResponsePagination } from '@/typings/http-resources.types.ts'
 import Paginator, { PageState } from 'primevue/paginator'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { usePrependOrAppendOnce } from '@/utils/helpers.js'
@@ -76,7 +76,18 @@ onBeforeMount(async () => {
 const handlePaginationPageChange = async (event: PageState) => {
   const pageSelected = event.page + 1
   dailyTimeRecordIsLoading.value = true
-  const response = await personnelStore.fetchEmployees(paginationLimit, pageSelected)
+
+  let response: ApiResponseBody
+  if (searchSubmitted.value) {
+    response = await personnelStore.filterEmployees(
+      payload.division ?? undefined,
+      payload.section ?? undefined,
+      pagination.value?.per_page ?? 5,
+      pageSelected
+    )
+  } else {
+    response = await personnelStore.fetchEmployees(pagination.value?.per_page ?? 5, pageSelected)
+  }
   if (response.success && response.pagination) {
     pagination.value = response.pagination
   }
@@ -91,14 +102,18 @@ const handleFilterDailyTimeRecord = async () => {
   selectedSectionLabel.value = selectedSectionUnit.value?.[0]?.label ?? null
 
   if (!selectedDivision.value && !selectedSectionUnit.value) {
-    const response = await personnelStore.fetchEmployees()
+    const response = await personnelStore.fetchEmployees(paginationLimit)
     if (response.success && response.pagination) {
       pagination.value = response.pagination
     }
     dailyTimeRecordIsLoading.value = false
     return
   }
-  const response = await personnelStore.filterEmployees(payload.division ?? undefined, payload.section ?? undefined)
+  const response = await personnelStore.filterEmployees(
+    payload.division ?? undefined,
+    payload.section ?? undefined,
+    pagination.value?.per_page ?? 5
+  )
 
   if (response.success && response.pagination) {
     pagination.value = response.pagination
@@ -180,49 +195,65 @@ const handleSearchEmployee = async () => {
               v-if="personnelStore.employees && personnelStore.employees.length > 0"
               class="mx-auto flex h-full w-full flex-col"
             >
-              <DataTable
-                :value="personnelStore.employees"
-                stripedRows
-                class="mt-6"
-                dataKey="id"
-                :loading="dailyTimeRecordIsLoading"
-              >
+              <DataTable :value="personnelStore.employees" stripedRows class="mt-6" dataKey="id">
                 <Column
                   field="period"
                   header="EMPLOYEE NAME"
                   headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
                 >
                   <template #body="props">
-                    <p class="font-semibold uppercase text-surface-500">
-                      {{ props.data.first_name }} {{ props.data.middle_name ?? null }} {{ props.data.last_name }}
-                      {{ props.data.ext_name ?? null }}
-                    </p>
-                    <p class="font-semibold uppercase text-surface-500">
-                      {{ props.data.employee?.item?.number ?? '' }}
-                    </p>
+                    <div v-if="!dailyTimeRecordIsLoading">
+                      <p class="font-semibold uppercase text-surface-500">
+                        {{ props.data.first_name }} {{ props.data.middle_name ?? '' }} {{ props.data.last_name }}
+                        {{ props.data.ext_name ?? '' }}
+                      </p>
+                      <p class="font-semibold uppercase text-surface-500">
+                        {{ props.data.employee?.item?.number ?? '' }}
+                      </p>
+                    </div>
+                    <div v-else class="space-y-1">
+                      <div class="h-4 w-32 rounded bg-surface-300 dark:bg-surface-700"></div>
+                      <div class="h-4 w-20 rounded bg-surface-300 dark:bg-surface-700"></div>
+                    </div>
                   </template>
                 </Column>
+
                 <Column
-                  field="employee.division.name"
+                  field="employee.item.position.title"
                   header="POSITION / DESIGNATION"
                   headerClass=" w-80 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
                 >
+                  <template #body="props">
+                    <div v-if="!dailyTimeRecordIsLoading">{{ props.data.employee?.item?.position?.title }}</div>
+                    <div v-else class="h-4 w-40 rounded bg-surface-300 dark:bg-surface-700"></div>
+                  </template>
                 </Column>
+
                 <Column
                   field="employee.division.name"
                   header="DIVISION"
                   headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
                 >
+                  <template #body="props">
+                    <div v-if="!dailyTimeRecordIsLoading">{{ props.data.employee?.division?.name }}</div>
+                    <div v-else class="h-4 w-32 rounded bg-surface-300 dark:bg-surface-700"></div>
+                  </template>
                 </Column>
+
                 <Column
                   field="employee.section_or_unit.name"
                   header="SECTION / UNIT"
                   headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
                 >
+                  <template #body="props">
+                    <div v-if="!dailyTimeRecordIsLoading">{{ props.data.employee?.section_or_unit?.name }}</div>
+                    <div v-else class="h-4 w-32 rounded bg-surface-300 dark:bg-surface-700"></div>
+                  </template>
                 </Column>
+
                 <Column field="action" header="ACTION" headerClass="w-64 bg-surface-100 opacity-70 font-bold py-2">
                   <template #body="props">
-                    <div class="flex gap-4 whitespace-nowrap md:w-auto">
+                    <div v-if="!dailyTimeRecordIsLoading" class="flex gap-4 whitespace-nowrap md:w-auto">
                       <Button
                         icon="pi pi-eye"
                         v-tooltip.top="'View Employee Daily Time Records'"
@@ -232,6 +263,7 @@ const handleSearchEmployee = async () => {
                         @click="navigateToDetails(props.data)"
                       />
                     </div>
+                    <div v-else class="h-6 w-10 rounded bg-surface-300 dark:bg-surface-700"></div>
                   </template>
                 </Column>
               </DataTable>

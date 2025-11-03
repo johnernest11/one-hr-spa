@@ -1214,6 +1214,7 @@ router.beforeEach(async (to, from) => {
   // Block authenticated users to routes that require them to be unauthenticated
   // Ex. Login, Sign-up, Forgot Password
   const authStore = useAuthStore()
+
   if (authStore.isAuthenticated && !authStore.authExpired && to.meta.authType === AuthType.UNAUTHENTICATED) {
     return from
   }

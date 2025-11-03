@@ -7,13 +7,17 @@ import { useRoute } from 'vue-router'
 import Button from 'primevue/button'
 import RadioButton from 'primevue/radiobutton'
 import Card from 'primevue/card'
+import Message from 'primevue/message'
 import { useToast } from 'primevue/usetoast'
 import { useLocatorSlipStore, LocatorSlipPayload } from '@/stores/locator-slip.store'
-import { formatDateSafe, isSameOrAfterDate } from '@/utils/helpers.ts'
+import { useDailyTimeRecordsStore } from '@/stores/daily-time-record.store'
+import { formatDateSafe, isSameOrAfterDate, formatDateLong } from '@/utils/helpers.ts'
 import WbInputText from '@/components/webkit/WbInputText.vue'
 import WbCalendar from '../webkit/WbCalendar.vue'
+import { LSLoggerResponse, TimeLogResponse } from '@/typings/models.types'
 
 const locatorSlipStore = useLocatorSlipStore()
+const warmBodiesStore = useDailyTimeRecordsStore()
 const route = useRoute()
 const toast = useToast()
 
@@ -22,6 +26,12 @@ const addLoggerBtn = ref(true)
 const isLoading = ref(true)
 const formIsSubmitting = ref(false)
 const isFormTypeA = ref(false)
+const isThereActiveLog = ref(false)
+const isInOffice = ref(false)
+const displayLocatorWarning = ref(false)
+const warningMessage = ref(
+  "Heads Up! You are currently out of the office. This slip's Time Out will be linked to your next physical Time Out."
+)
 const defaultApproval = ref('personal_time')
 
 const validateDateNow = (value: string) => {
@@ -33,7 +43,21 @@ const validateMonth = (value: string) => {
   if (!value) return false
   const now = new Date()
   const compareDate = new Date(value)
-  return now.getFullYear() === compareDate.getFullYear() && now.getMonth() === compareDate.getMonth()
+
+  if (payload.period === '1st Half') {
+    const monthValid =
+      now.getFullYear() === compareDate.getFullYear() && now.getMonth() === compareDate.getMonth() && now.getDate() <= 15
+    if (!monthValid) {
+      warningMessage.value = 'The period of this locator slip has already passed. Please generate a new one.'
+    }
+    return monthValid
+  }
+
+  const monthValid = now.getFullYear() === compareDate.getFullYear() && now.getMonth() === compareDate.getMonth()
+  if (!monthValid) {
+    warningMessage.value = 'The period of this locator slip has already passed. Please generate a new one.'
+  }
+  return monthValid
 }
 
 const today = new Date()
@@ -44,6 +68,9 @@ const lastDayOfCurrentMonth = ref(new Date(currentYear, currentMonth + 1, 0))
 onMounted(async () => {
   const id = route.params.id as string
   if (id) {
+    await checkCurrentEmployeeStatus()
+    await checkActiveLog()
+
     const response = await locatorSlipStore.fetchLocatorSlipById(id)
     if (response && response.success) {
       const locatorSlipData = response.data
@@ -91,7 +118,37 @@ const updatePayloadFromResponse = (locatorSlip: LocatorSlipPayload | null) => {
   (payload.locator_slip_no = locatorSlip?.locator_slip_no ?? null),
   (payload.locator_slip_logger = locatorSlip?.locator_slip_logger ?? [])
 
+  if (payload.locator_slip_logger) {
+    payload.locator_slip_logger.forEach((log) => {
+      const formattedDate = formatDateLong(log.date)
+      log.date = formattedDate
+    })
+  }
   isFormTypeA.value = payload.form_type === 'a' ? true : false
+}
+
+const checkActiveLog = async () => {
+  const response = await locatorSlipStore.checkActiveLog()
+  if (response && response.success) {
+    if (response.data) {
+      isThereActiveLog.value = true
+
+      const activeLog = response.data as LSLoggerResponse
+      if (!activeLog.time_out && !isInOffice.value) displayLocatorWarning.value = true
+    } else {
+      if (!isInOffice.value) displayLocatorWarning.value = true
+    }
+  }
+}
+
+const checkCurrentEmployeeStatus = async () => {
+  const response = await warmBodiesStore.getLastTimeLog()
+  if (response && response.success) {
+    if (response.data) {
+      const lastLog = response.data as TimeLogResponse
+      if (lastLog.is_in) isInOffice.value = true
+    }
+  }
 }
 
 /** Validation */
@@ -155,7 +212,7 @@ const addLogger = () => {
 
   const defaultLog = {
     locator_slip_id: id ?? null,
-    date: formatDateSafe(dateNow),
+    date: formatDateLong(dateNow.toDateString()),
     time_in: null,
     time_out: null,
     destination: '',
@@ -197,7 +254,12 @@ const saveButtonSubmission = async () => {
 
   payload.locator_slip_logger.forEach((loggerItem) => {
     if (loggerItem.date) {
-      loggerItem.date = formatDateSafe(loggerItem.date)
+      const dateToCheck = loggerItem.date as unknown as Date | string
+
+      if (typeof dateToCheck === 'object' && dateToCheck !== null && dateToCheck instanceof Date) {
+        loggerItem.date = formatDateLong(dateToCheck.toISOString())
+      }
+      loggerItem.date = formatDateSafe(loggerItem.date, true)
     }
 
     if (loggerItem.time_in) {
@@ -226,6 +288,11 @@ const saveButtonSubmission = async () => {
   try {
     const response = await locatorSlipStore.updateLocatorSlip(payload, route.params.id as string)
     if (response.success) {
+      isThereActiveLog.value = true
+
+      const locatorSlipData = response.data
+      updatePayloadFromResponse(locatorSlipData as LocatorSlipPayload)
+
       toast.add({
         severity: 'success',
         summary: 'Success',
@@ -273,6 +340,10 @@ const saveButtonSubmission = async () => {
               LS No: {{ payload.locator_slip_no }}
             </div>
             <br />
+
+            <Message :closable="false" v-if="displayLocatorWarning">
+              {{ warningMessage }}
+            </Message>
           </h2>
           <!-- Header: visible only on md and up -->
           <div class="grid-rows-2">
@@ -318,7 +389,7 @@ const saveButtonSubmission = async () => {
               <WbCalendar
                 v-model="row.date"
                 label=""
-                dateFormat="yy-mm-dd"
+                dateFormat="d MM yy"
                 :minDate="today"
                 :maxDate="lastDayOfCurrentMonth"
                 :invalid="validator.locator_slip_logger?.[index]?.date?.$error"
@@ -452,7 +523,7 @@ const saveButtonSubmission = async () => {
           <Button
             v-if="addLoggerBtn"
             label="+ Request New Logger"
-            :disabled="!validateMonth(payload.date) || isHumanResourceActive"
+            :disabled="!validateMonth(payload.date) || isHumanResourceActive || isThereActiveLog"
             @click="addLogger"
             class="dark:text-secondary-100 border border-primary-500 text-sm text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
             text

@@ -35,7 +35,9 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { usePrependOrAppendOnce } from '@/utils/helpers.js'
 import useVuelidate from '@vuelidate/core'
 import { useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 
+const route = useRoute()
 const authStore = useAuthStore()
 const personnelStore = usePersonnelStore()
 const libraryStore = useLibrariesStore()
@@ -345,7 +347,18 @@ const toggleAddingList = (event: Event) => {
 const handlePaginationPageChange = async (event: PageState) => {
   const pageSelected = event.page + 1
   itemNumberIsLoading.value = true
-  const response = await personnelStore.fetchEmployees(paginationLimit, pageSelected)
+
+  let response: ApiResponseBody
+  if (searchSubmitted.value) {
+    response = await personnelStore.filterEmployees(
+      payload.division ?? undefined,
+      payload.section ?? undefined,
+      pagination.value?.per_page ?? 5,
+      pageSelected
+    )
+  } else {
+    response = await personnelStore.fetchEmployees(pagination.value?.per_page ?? 5, pageSelected)
+  }
   if (response.success && response.pagination) {
     pagination.value = response.pagination
   }
@@ -360,14 +373,18 @@ const handleFilterItemNumber = async () => {
   selectedSectionLabel.value = selectedSectionUnit.value?.[0]?.label ?? null
 
   if (!selectedDivision.value && !selectedSectionUnit.value) {
-    const response = await personnelStore.fetchEmployees()
+    const response = await personnelStore.fetchEmployees(paginationLimit)
     if (response.success && response.pagination) {
       pagination.value = response.pagination
     }
     itemNumberIsLoading.value = false
     return
   }
-  const response = await personnelStore.filterEmployees(payload.division ?? undefined, payload.section ?? undefined)
+  const response = await personnelStore.filterEmployees(
+    payload.division ?? undefined,
+    payload.section ?? undefined,
+    pagination.value?.per_page ?? 5
+  )
 
   if (response.success && response.pagination) {
     pagination.value = response.pagination
@@ -607,7 +624,7 @@ const downloadQrCode = async () => {
                     @click="showModal = true"
                   />
                   <Button
-                    v-if="canCreateNewEmployee"
+                    v-if="canCreateNewEmployee && !(route.name === 'employees' && authStore.authHasRequiredRole(['super_user']))"
                     icon="pi pi-plus"
                     v-tooltip.top="'New Employee'"
                     severity="info"
@@ -642,37 +659,58 @@ const downloadQrCode = async () => {
               v-if="personnelStore.employees && personnelStore.employees.length > 0"
               class="mx-auto flex h-full w-full flex-col"
             >
-              <DataTable :value="personnelStore.employees" stripedRows class="mt-6" dataKey="id" :loading="itemNumberIsLoading">
+              <DataTable :value="personnelStore.employees" stripedRows class="mt-6" dataKey="id">
+                <!-- Item Numbers Column -->
                 <Column
                   field="period"
                   header="Item Numbers"
                   headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
                 >
                   <template #body="props">
-                    <p class="font-semibold uppercase text-surface-500">
-                      {{ props.data.first_name }} {{ props.data.middle_name ?? null }} {{ props.data.last_name }}
-                      {{ props.data.ext_name ?? null }}
-                    </p>
-                    <p class="font-semibold uppercase text-surface-500">
-                      {{ props.data.employee?.item?.number ?? 'N/A' }}
-                    </p>
+                    <div v-if="!itemNumberIsLoading">
+                      <p class="font-semibold uppercase text-surface-500">
+                        {{ props.data.first_name }} {{ props.data.middle_name ?? '' }} {{ props.data.last_name }}
+                        {{ props.data.ext_name ?? '' }}
+                      </p>
+                      <p class="font-semibold uppercase text-surface-500">
+                        {{ props.data.employee?.item?.number ?? 'N/A' }}
+                      </p>
+                    </div>
+                    <div v-else class="space-y-1">
+                      <div class="h-4 w-32 rounded bg-surface-300 dark:bg-surface-700"></div>
+                      <div class="h-4 w-20 rounded bg-surface-300 dark:bg-surface-700"></div>
+                    </div>
                   </template>
                 </Column>
+
+                <!-- Position / Designation Column -->
                 <Column
                   field="employee.item.position.title"
                   header="Position / Designation"
-                  headerClass=" w-80 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
+                  headerClass="w-80 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
                 >
+                  <template #body="props">
+                    <div v-if="!itemNumberIsLoading">{{ props.data.employee?.item?.position?.title ?? 'N/A' }}</div>
+                    <div v-else class="h-4 w-40 rounded bg-surface-300 dark:bg-surface-700"></div>
+                  </template>
                 </Column>
+
+                <!-- Email Address Column -->
                 <Column
                   field="individual_contact_info.email_address"
                   header="Email Address"
                   headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
                 >
+                  <template #body="props">
+                    <div v-if="!itemNumberIsLoading">{{ props.data.individual_contact_info?.email_address ?? 'N/A' }}</div>
+                    <div v-else class="h-4 w-40 rounded bg-surface-300 dark:bg-surface-700"></div>
+                  </template>
                 </Column>
+
+                <!-- Actions Column -->
                 <Column field="action" header="Actions" headerClass="w-64 bg-surface-100 opacity-70 font-bold py-2">
                   <template #body="props">
-                    <div class="flex gap-4 whitespace-nowrap md:w-auto">
+                    <div v-if="!itemNumberIsLoading" class="flex gap-4 whitespace-nowrap md:w-auto">
                       <Button
                         icon="pi pi-eye"
                         v-tooltip.top="'View Employee'"
@@ -690,6 +728,10 @@ const downloadQrCode = async () => {
                         text
                         @click="openQrModal(props.data)"
                       />
+                    </div>
+                    <div v-else class="flex gap-4">
+                      <div class="h-6 w-10 rounded bg-surface-300 dark:bg-surface-700"></div>
+                      <div v-if="canCreateNewEmployee" class="h-6 w-10 rounded bg-surface-300 dark:bg-surface-700"></div>
                     </div>
                   </template>
                 </Column>
