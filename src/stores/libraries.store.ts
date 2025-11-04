@@ -7,6 +7,7 @@ import {
   OfficesResponse,
   SectionorUnitResponse,
   ProgramResponse,
+  CountriesResponse,
 } from '@/typings/models.types'
 import { ApiResponseBody } from '@/typings/http-resources.types'
 import { useApiCall } from '@/composables/network'
@@ -105,6 +106,26 @@ export const useLibrariesStore = defineStore('libraries', () => {
     }
 
     itemsOptionsLoading.value = false
+    return res
+  }
+
+  const fetchCountry = async () => {
+    if (countryOptions.value.length > 0) return
+
+    countryOptionsLoading.value = true
+
+    const { data } = await useApiCall('/libraries/countries?limit=1000', authStore.authenticationToken).get().json()
+    const res: ApiResponseBody = data.value
+
+    if (res.success && Array.isArray(res.data)) {
+      const countryList = res.data as CountriesResponse[]
+      countryOptions.value = countryList.map((country) => ({
+        value: country.id,
+        label: country.official_name ?? '',
+      }))
+    }
+
+    countryOptionsLoading.value = false
     return res
   }
 
@@ -358,6 +379,7 @@ export const useLibrariesStore = defineStore('libraries', () => {
     itemsOptions,
     itemsOptionsLoading,
     offices,
+    fetchCountry,
     createOffices,
     fetchOffices,
     fetchListOffices,

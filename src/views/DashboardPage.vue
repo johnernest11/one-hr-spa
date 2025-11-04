@@ -115,14 +115,20 @@ const calendarDays = computed<CalendarDay[]>(() => {
   const today = new Date()
   const daysInMonth = new Date(year, month + 1, 0).getDate()
 
+  // Filter DTRs for the selected month and year
+  const filteredDtrData = allDailyTimeRecordsData.value.filter((record) => {
+    const recordDate = new Date(record.date)
+    return recordDate.getFullYear() === year && recordDate.getMonth() === month
+  })
+
   const days: CalendarDay[] = []
 
   for (let d = 1; d <= daysInMonth; d++) {
     const date = new Date(year, month, d)
-    const dtr = allDailyTimeRecordsData.value.find((record) => new Date(record.date).toDateString() === date.toDateString())
+    const dtr = filteredDtrData.find((record) => new Date(record.date).getDate() === d)
     const isWeekend = date.getDay() === 0 || date.getDay() === 6
     const isPresent = dtr && dtr.time_log && dtr.time_log.length > 0
-    const isFuture = date > today
+    const isFuture = year === today.getFullYear() && month === today.getMonth() && date > today
 
     days.push({
       date,
@@ -135,9 +141,9 @@ const calendarDays = computed<CalendarDay[]>(() => {
     })
   }
 
-  // Fill empty slots at the start to align first day of the week
-  const firstDay = new Date(year, month, 1).getDay() // Sunday=0
-  const emptySlots = (firstDay + 6) % 7 // Monday=0
+  // Align first day of the week
+  const firstDay = new Date(year, month, 1).getDay()
+  const emptySlots = (firstDay + 6) % 7
   for (let i = 0; i < emptySlots; i++) {
     days.unshift({ empty: true })
   }
