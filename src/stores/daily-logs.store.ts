@@ -10,6 +10,7 @@ import type { WbAutoCompleteOption } from '@/components/webkit/WbAutoComplete.vu
 import dswdLogoMark from '@/assets/image/DSWD logo_Mark.png'
 
 interface CustomScannedEmployeeResponse extends ScannedEmployeeResponse {
+  employee_id?: string
   captured_image?: string | null
 }
 
@@ -27,6 +28,18 @@ interface WarmBodySummary {
   out_of_office: number
   per_division: DivisionSectionSummary[]
   per_section: DivisionSectionSummary[]
+}
+
+interface DailyLogDisplayEntry {
+  id: number
+  employee_id: string
+  employee_name: string
+  position: string
+  scanned_time: string
+  is_in: boolean
+  date: string
+  captured_image_url: string
+  daily_time_record?: WarmBodyLogEntry['daily_time_record']
 }
 
 export const useDailyLogsStore = defineStore('dailyLogs', () => {
@@ -125,6 +138,7 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     localCapturedImageUrl: string | null = null
   ) => {
     const { data } = await useApiCall('employees/log-time', authStore.authenticationToken).post(payload).json()
+
     const responseBody: ApiResponseBody = data.value
 
     if (responseBody?.success) {
@@ -132,15 +146,17 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
 
       const emp = warmBodyLog.daily_time_record?.employee
       const empDetails = emp?.individual_basic_detail
-      const employeeDetails = warmBodyLog?.daily_time_record?.employee?.individual_basic_detail
 
       const messageToDisplay = responseBody.message || 'Time log successful!'
 
-      const profilePhotoUrl = getCapturedPhotoUrl(employeeDetails?.user_profile?.profile_picture_url, dswdLogoMark)
+      const profilePhotoUrl = getCapturedPhotoUrl(empDetails?.user_profile?.profile_picture_url, dswdLogoMark)
       const capturedImageUrl = localCapturedImageUrl || getCapturedPhotoUrl(warmBodyLog?.captured_image_url, dswdLogoMark)
 
+      const employeeIdString = warmBodyLog.daily_time_record?.employee_id ?? emp?.id_number ?? 'N/A'
+
       const scannedEmployee: CustomScannedEmployeeResponse = {
-        id: emp?.id_number || 'N/A',
+        id: employeeIdString,
+        employee_id: employeeIdString,
         name: `${empDetails?.first_name || ''} ${empDetails?.last_name || ''}`.trim() || 'N/A',
         position: emp?.item?.position?.title || 'N/A',
         is_in: warmBodyLog.is_in,
@@ -175,9 +191,27 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
       const { data } = await useApiCall(url, authStore.authenticationToken).get().json()
       const responseBody: ApiResponseBody = data.value
 
-      if (responseBody?.success) {
-        const logs = responseBody.data as WarmBodyLogEntry[]
-        if (logs?.length) updateDailyLogs(date, logs)
+      if (responseBody?.success && Array.isArray(responseBody.data)) {
+        const logs: DailyLogDisplayEntry[] = (responseBody.data as WarmBodyLogEntry[]).map((log) => {
+          const emp = log.daily_time_record?.employee
+          const empDetails = emp?.individual_basic_detail
+
+          const employeeId = emp?.id_number ?? 'N/A'
+
+          return {
+            id: log.id,
+            employee_id: employeeId,
+            employee_name: `${empDetails?.first_name || ''} ${empDetails?.last_name || ''}`.trim() || 'N/A',
+            position: emp?.item?.position?.title || 'N/A',
+            scanned_time: log.scanned_time || '',
+            is_in: log.is_in,
+            date: log.date || '',
+            captured_image_url: log.captured_image_url || log.captured_photo_url || '',
+            daily_time_record: log.daily_time_record,
+          }
+        })
+
+        if (logs.length) updateDailyLogs(date, logs)
       } else {
         console.warn('Failed to fetch daily logs:', responseBody?.message)
       }

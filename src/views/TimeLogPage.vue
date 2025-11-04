@@ -38,6 +38,15 @@ interface BackendLog {
   profile_picture_url?: string | null
   name?: string | null
   position?: string | null
+  daily_time_record?: {
+    employee?: {
+      id?: number | string
+      id_number?: string
+      user_profile?: { profile_picture_url?: string | null }
+      individual_basic_detail?: { first_name?: string; last_name?: string }
+      item?: { position?: { title?: string } }
+    }
+  }
 }
 
 const currentDate = ref('')
@@ -59,7 +68,6 @@ const intervalId = ref<number | undefined>(undefined)
 const qrStreamRef = ref<InstanceType<typeof QrcodeStream> | null>(null)
 const selectedOffice = ref<WbAutoCompleteOption | null | undefined>(null)
 const recentLogs = ref<Log[]>([])
-const isScanLocked = ref(false)
 const isScannerResetting = ref(false)
 const scannedEmployee = computed(() => dailyLogsStore.currentScannedEmployee as Log | null | undefined)
 
@@ -90,17 +98,21 @@ const updateDailyLogsState = async (date: string) => {
 
   const newLogs: Log[] = backendLogs
     .filter((log) => log.scanned_time && log.date)
-    .map((log: BackendLog) => ({
-      id: log.id,
-      employee_id: log.employee_id || log.id,
-      is_in: log.is_in,
-      timestamp: `${log.date}T${log.scanned_time}`,
-      captured_image: log.captured_image || log.captured_image_url || log.backend_photo_url || null,
-      photo_url: log.backend_photo_url || null,
-      profile_picture_url: log.profile_picture_url || null,
-      name: log.name || 'N/A',
-      position: log.position || 'N/A',
-    }))
+    .map((log: BackendLog) => {
+      const emp = log.daily_time_record?.employee
+      return {
+        id: log.id,
+        employee_id: emp?.id_number || emp?.id || log.employee_id || log.id,
+        is_in: log.is_in,
+        timestamp: `${log.date}T${log.scanned_time}`,
+        captured_image: log.captured_image || log.captured_image_url || log.backend_photo_url || null,
+        photo_url: emp?.user_profile?.profile_picture_url || log.backend_photo_url || null,
+        profile_picture_url: emp?.user_profile?.profile_picture_url || log.profile_picture_url || null,
+        name:
+          `${emp?.individual_basic_detail?.first_name || ''} ${emp?.individual_basic_detail?.last_name || ''}`.trim() || 'N/A',
+        position: emp?.item?.position?.title || log.position || 'N/A',
+      }
+    })
 
   const uniqueLogsMap = new Map<string | number, Log>()
   for (const log of newLogs) {
@@ -190,10 +202,20 @@ onUnmounted(() => {
 
 const onDetect = (detectedCodes: DetectedBarcode[]) => {
   if (!detectedCodes.length) return
+  const decodedString = detectedCodes[0].rawValue
 
-  detectedCodes.forEach((code) => {
-    const decodedString = code.rawValue
-    onDecode(decodedString)
+  if (showModal.value) {
+    showModal.value = false
+    dailyLogsStore.clearScannedEmployee()
+  }
+
+  if (isScannerResetting.value) return
+  isScannerResetting.value = true
+
+  onDecode(decodedString)
+
+  setTimeout(() => {
+    isScannerResetting.value = false
   })
 }
 
@@ -227,9 +249,7 @@ const capturePhoto = async (): Promise<{ file: File; previewUrl: string } | null
 }
 
 const onDecode = async (result: string) => {
-  showModal.value = false
   dailyLogsStore.clearScannedEmployee()
-  isScanLocked.value = true
 
   const captured = await capturePhoto()
   let message: string = ''
@@ -268,7 +288,7 @@ const onDecode = async (result: string) => {
         name: employee.name,
         position: employee.position,
         profile_picture_url: employee.profile_picture_url,
-        captured_image: backendImageUrl || captured?.previewUrl || undefined,
+        captured_image: backendImageUrl ?? captured?.previewUrl ?? undefined,
       }
 
       recentLogs.value = [newLog, ...recentLogs.value]
@@ -301,13 +321,10 @@ const onDecode = async (result: string) => {
     dailyLogsStore.lastLogMessage = message
   } finally {
     showModal.value = true
-
     setTimeout(() => {
       showModal.value = false
       dailyLogsStore.clearScannedEmployee()
     }, MODAL_DISPLAY_DURATION_MS)
-
-    isScanLocked.value = false
   }
 }
 
@@ -332,8 +349,12 @@ const onCameraError = (error: unknown) => {
 
 const countInToday = computed(() => dailyLogsStore.warmBodySummary?.in_office || 0)
 const countOutToday = computed(() => dailyLogsStore.warmBodySummary?.out_of_office || 0)
-
 const checkScreenSize = () => (isMobile.value = window.innerWidth <= 575)
+const dialogDynamicStyle = computed(() =>
+  isMobile.value ? { width: '100vw', height: '100vh', maxWidth: 'unset', maxHeight: 'unset' } : { width: '25vw' }
+)
+
+const dialogDynamicPosition = computed(() => (isMobile.value ? 'center' : 'right'))
 
 const dynamicSuccessMessage = computed(() =>
   dailyLogsStore.currentScannedEmployee
@@ -421,11 +442,7 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
               <tbody>
                 <tr v-for="entry in latestWarmBodyLogs" :key="entry.id">
                   <td class="p-2">
-                    <img
-                      :src="entry.captured_image ?? undefined"
-                      alt="Captured Photo"
-                      class="aspect-[2270/2479] border object-cover"
-                    />
+                    <img :src="entry.captured_image ?? ''" alt="Captured Photo" class="aspect-[2270/2479] border object-cover" />
                   </td>
 
                   <td class="p-2">
@@ -485,7 +502,8 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
         :modal="false"
         :closable="true"
         :dismissableMask="true"
-        class="xs:w-full h-auto w-1/4 max-w-none sm:w-3/4 md:h-auto md:w-1/4"
+        :position="dialogDynamicPosition"
+        :style="dialogDynamicStyle"
         :breakpoints="{ '1199px': '75vw', '575px': '90vw' }"
         :pt="{
           root: 'flex flex-col h-full bg-white shadow-lg p-4 md:p-12',
@@ -515,7 +533,7 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
             <div class="mb-4 flex justify-center">
               <img
                 :src="scannedEmployee?.photo_url || dswdLogoMark"
-                alt="Time Log Photo"
+                alt="Employee Profile Photo"
                 class="aspect-[2270/2479] h-auto max-w-full rounded-lg shadow"
                 @error="(e) => ((e.target as HTMLImageElement).src = dswdLogoMark)"
               />
