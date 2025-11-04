@@ -6,7 +6,7 @@ import {
   IndividualEducBg,
   IndividualEligibility,
   IndividualFamily,
-  IndividualGovernmentIssue,
+  IndividualGovernmentId,
   IndividualLearningDevelopment,
   IndividualMembership,
   IndividualQuestion,
@@ -95,7 +95,7 @@ export type PersonalDataSheetPayload = {
   /** PDS-C4 */
   individual_question: IndividualQuestion[]
   individual_reference: IndividualReference[]
-  individual_government_id: IndividualGovernmentIssue
+  individual_government_id: IndividualGovernmentId
   employee: PersonnelEmployee
   individual_educational_background: IndividualEducBg[]
   educations: {
@@ -451,11 +451,16 @@ export const usePdsStore = defineStore('pds', () => {
         _delete: ref._delete ?? null,
       }))
       : [],
-    individual_government_id: {
-      gov_id_name: '',
-      gov_id_no: '',
-      gov_id_issuance: '',
-    },
+
+    individual_government_id: individual?.individual_government_id
+      ? {
+        id: individual.individual_government_id.id ?? null,
+        gov_issued_id: individual.individual_government_id.gov_issued_id ?? '',
+        gov_id_no: individual.individual_government_id.gov_id_no ?? '',
+        gov_issuance: individual.individual_government_id.gov_issuance ?? '',
+      }
+      : { id: null, gov_issued_id: '', gov_id_no: '', gov_issuance: '' },
+
     employee: {
       id: employee?.id ?? 0,
       individual_basic_detail_id: null,
@@ -839,6 +844,21 @@ export const usePdsStore = defineStore('pds', () => {
         _delete: r._delete ?? '',
       }))
       : []
+
+    // === Individual Goverment Id ===
+    pdsInfo.individual_government_id = personnel.individual_government_id
+      ? {
+        id: personnel.individual_government_id.id ?? null,
+        gov_issued_id: personnel.individual_government_id.gov_issued_id ?? '',
+        gov_id_no: personnel.individual_government_id.gov_id_no ?? '',
+        gov_issuance: personnel.individual_government_id.gov_issuance ?? '',
+      }
+      : {
+        id: null,
+        gov_issued_id: '',
+        gov_id_no: '',
+        gov_issuance: '',
+      }
   }
 
   const savePds = async (payload: PersonalDataSheetPayload) => {
