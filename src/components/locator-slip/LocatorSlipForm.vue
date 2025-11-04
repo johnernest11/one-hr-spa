@@ -113,10 +113,10 @@ const payload = reactive<LocatorSlipPayload>({
 
 const updatePayloadFromResponse = (locatorSlip: LocatorSlipPayload | null) => {
   ;(payload.form_type = locatorSlip?.form_type ?? ''),
-  (payload.date = locatorSlip?.date ?? ''),
-  (payload.period = locatorSlip?.period ?? null),
-  (payload.locator_slip_no = locatorSlip?.locator_slip_no ?? null),
-  (payload.locator_slip_logger = locatorSlip?.locator_slip_logger ?? [])
+    (payload.date = locatorSlip?.date ?? ''),
+    (payload.period = locatorSlip?.period ?? null),
+    (payload.locator_slip_no = locatorSlip?.locator_slip_no ?? null),
+    (payload.locator_slip_logger = locatorSlip?.locator_slip_logger ?? [])
 
   if (payload.locator_slip_logger) {
     payload.locator_slip_logger.forEach((log) => {
