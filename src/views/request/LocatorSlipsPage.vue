@@ -97,6 +97,7 @@ const payload = reactive<LocatorSlipPayload>({
   date: '',
   period: null,
   locator_slip_no: null,
+  auxiliary_wellness: 0,
   locator_slip_logger: [
     {
       locator_slip_id: null,
@@ -106,7 +107,7 @@ const payload = reactive<LocatorSlipPayload>({
       destination: '',
       purpose: '',
       approved_for: null,
-      duration: null,
+      duration: 0,
       remarks: '',
     },
   ],
