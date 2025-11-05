@@ -588,6 +588,7 @@ export type TimeLogResponse = {
   scanned_time: string
   is_in: boolean // true = IN, false = OUT
   is_selected: boolean // true = SELECTED, false = NOT SELECTED
+  log_type: 'in1' | 'out1' | 'in2' | 'out2'
 } & Omit<ApiResponseData, 'id'>
 
 export type QrCodeResponse = {
