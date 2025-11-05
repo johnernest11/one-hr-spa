@@ -1793,7 +1793,6 @@ const updateC1Form = async () => {
     individual_family: familyArray,
   }
 
-  debugger
   const response = await pdsStore.updatePds(requestPayload, id, 'C1')
 
   if (!response.success) {
