@@ -276,7 +276,8 @@ const formRules = computed(() => ({
       in: helpers.withMessage('Select a valid blood type from the list', required),
     },
     gsis_no: {
-      maxLength: helpers.withMessage(() => generateMessage('gsis_no').maxLength, globalStringMaxLengthRule),
+      required: helpers.withMessage(() => generateMessage('umid_id_no').required, required),
+      maxLength: helpers.withMessage(() => generateMessage('umid_id_no').maxLength, globalStringMaxLengthRule),
     },
     philhealth_no: {
       required: helpers.withMessage(() => generateMessage('philhealth_number').required, required),
@@ -287,8 +288,8 @@ const formRules = computed(() => ({
       maxLength: helpers.withMessage(() => generateMessage('pag_ibig_no').maxLength, globalStringMaxLengthRule),
     },
     sss_no: {
-      required: helpers.withMessage(() => generateMessage('sss_no').required, required),
-      maxLength: helpers.withMessage(() => generateMessage('sss_no').maxLength, globalStringMaxLengthRule),
+      required: helpers.withMessage(() => generateMessage('philsys_no').required, required),
+      maxLength: helpers.withMessage(() => generateMessage('philsys_no').maxLength, globalStringMaxLengthRule),
     },
     tin: {
       required: helpers.withMessage(() => generateMessage('tin').required, required),
