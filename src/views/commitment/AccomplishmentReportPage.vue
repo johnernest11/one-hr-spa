@@ -83,41 +83,64 @@ const fetchAccomplishmentsBasedOnContext = async (page = 1) => {
 
 onBeforeMount(() => fetchAccomplishmentsBasedOnContext())
 
+/************* Pagination Function *************/
 const handlePaginationPageChange = async (event: PageState) => {
   const pageSelected = event.page + 1
   accomplishmentReportIsLoading.value = true
-  const response = await accomplishmentReportStore.fetchAccomplishment(paginationLimit, pageSelected)
+  let response
+  if (searchSubmitted.value && lastSearchQuery.value) {
+    response = await accomplishmentReportStore.searchAccomplishment(lastSearchQuery.value, paginationLimit, pageSelected)
+  } else if (lastFilterValue.value) {
+    response = await accomplishmentReportStore.filterAccomplishment(lastFilterValue.value, paginationLimit, pageSelected)
+  } else {
+    response = await accomplishmentReportStore.fetchAccomplishment(paginationLimit, pageSelected)
+  }
   if (response.success && response.pagination) {
     pagination.value = response.pagination
   }
   accomplishmentReportIsLoading.value = false
 }
+
+/************* Search Function *************/
+const lastSearchQuery = ref<string | null>(null)
 
 const handleSearchAccomplishmentReport = async () => {
   accomplishmentReportIsLoading.value = true
   searchSubmitted.value = true
 
+  if (!searchQuery.value) {
+    const response = await accomplishmentReportStore.fetchAccomplishment(paginationLimit)
+    if (response.success && response.pagination) {
+      pagination.value = response.pagination
+    }
+    lastSearchQuery.value = null
+    accomplishmentReportIsLoading.value = false
+    return
+  }
+  lastSearchQuery.value = searchQuery.value
   const response = await accomplishmentReportStore.searchAccomplishment(searchQuery.value, paginationLimit)
   if (response.success && response.pagination) {
     pagination.value = response.pagination
-    searchQuery.value = null
   }
   accomplishmentReportIsLoading.value = false
 }
 
+/************* Filter Function *************/
+const lastFilterValue = ref<string | null>(null)
 const handleFilterAccomplishmentReport = async () => {
   accomplishmentReportIsLoading.value = true
+  lastFilterValue.value = selectedStatus.value
 
   const response = await accomplishmentReportStore.filterAccomplishment(selectedStatus.value, paginationLimit)
   if (response.success && response.pagination) {
     pagination.value = response.pagination
-    searchQuery.value = null
   }
 
   accomplishmentReportIsLoading.value = false
   showModal.value = false
 }
 
+/************* Export Function *************/
 const exportToFile = async (accomplishmentReport: PersonnelAccomplishmentReportResponse) => {
   toast.add({
     severity: 'info',

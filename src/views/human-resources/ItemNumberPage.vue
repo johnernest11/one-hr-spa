@@ -62,40 +62,66 @@ const statusOptions = ref([
   { label: 'Filled', value: 'Filled' },
 ])
 
+/************* Pagination Function *************/
 const handlePaginationPageChange = async (event: PageState) => {
   const pageSelected = event.page + 1
   itemNumberIsLoading.value = true
-  const response = await itemNumberStore.fetchItemNumber(paginationLimit, pageSelected)
+  let response
+  if (searchSubmitted.value && lastSearchQuery.value) {
+    response = await itemNumberStore.searchItemNumber(lastSearchQuery.value, paginationLimit, pageSelected)
+  } else if (lastFilterValue.value) {
+    response = await itemNumberStore.filterItemNumber(lastFilterValue.value, paginationLimit, pageSelected)
+  } else {
+    response = await itemNumberStore.fetchItemNumber(paginationLimit, pageSelected)
+  }
   if (response.success && response.pagination) {
     pagination.value = response.pagination
   }
   itemNumberIsLoading.value = false
 }
 
+/************* Filter Filter *************/
+const lastFilterValue = ref<string | null>(null)
+
 const handleFilterItemNumber = async () => {
   itemNumberIsLoading.value = true
   searchSubmitted.value = true
+  lastFilterValue.value = selectedStatus.value
 
-  const response = await itemNumberStore.filterItemNumber(selectedStatus.value)
+  const response = await itemNumberStore.filterItemNumber(selectedStatus.value, paginationLimit, 1)
+
   if (response.success && response.pagination) {
     pagination.value = response.pagination
-    searchQuery.value = null
   }
 
   itemNumberIsLoading.value = false
   showModal.value = false
 }
 
+/************* Search Filter *************/
+const lastSearchQuery = ref<string | null>(null)
+
 const handleSearchItemNumber = async () => {
   itemNumberIsLoading.value = true
   searchSubmitted.value = true
 
-  const response = await itemNumberStore.searchItemNumber(searchQuery.value, paginationLimit)
+  if (!searchQuery.value) {
+    const response = await itemNumberStore.fetchItemNumber(paginationLimit)
+    if (response.success && response.pagination) {
+      pagination.value = response.pagination
+    }
+    lastSearchQuery.value = null
+    itemNumberIsLoading.value = false
+    return
+  }
+  lastSearchQuery.value = searchQuery.value
+
+  const response = await itemNumberStore.searchItemNumber(searchQuery.value, paginationLimit, 1)
+
   if (response.success && response.pagination) {
     pagination.value = response.pagination
-
-    searchQuery.value = null
   }
+
   itemNumberIsLoading.value = false
 }
 </script>
