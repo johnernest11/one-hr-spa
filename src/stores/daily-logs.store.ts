@@ -7,6 +7,12 @@ import { ApiErrorCode } from '@/typings/http-resources.types.ts'
 import type { ApiResponseBody, WarmBodyLogEntry, DailyLogEntry } from '@/typings/http-resources.types.ts'
 import type { ScannedEmployeeResponse } from '@/typings/models.types'
 import type { WbAutoCompleteOption } from '@/components/webkit/WbAutoComplete.vue'
+import dswdLogoMark from '@/assets/image/DSWD logo_Mark.png'
+
+interface CustomScannedEmployeeResponse extends ScannedEmployeeResponse {
+  employee_id?: string
+  captured_image?: string | null
+}
 
 interface DivisionSectionSummary {
   name: string
@@ -24,31 +30,46 @@ interface WarmBodySummary {
   per_section: DivisionSectionSummary[]
 }
 
-interface TimeLogEntry {
-  dtr_date: string
-  time_log_id: number
-  is_in: boolean
+interface DailyLogDisplayEntry {
+  id: number
+  employee_id: string
+  employee_name: string
+  position: string
   scanned_time: string
-  time_log_date: string
-  id_number: string
-  first_name: string
-  middle_name: string | null
-  last_name: string
-  ext_name: string | null
-  division_name: string
-  section_name: string
+  is_in: boolean
+  date: string
+  captured_image_url: string
+  daily_time_record?: WarmBodyLogEntry['daily_time_record']
 }
 
 export const useDailyLogsStore = defineStore('dailyLogs', () => {
   const authStore = useAuthStore()
+
   const timelogOfficeId = useStorage<string | null>('timelogOfficeId', null)
-  const dailyLogs = ref<DailyLogEntry[]>([])
-  const currentScannedEmployee = ref<ScannedEmployeeResponse | null>(null)
+  const recentLogs = useStorage<CustomScannedEmployeeResponse[]>('recentLogs', [])
+  const dailyLogs = useStorage<DailyLogEntry[]>('dailyLogs', [])
+  const currentScannedEmployee = ref<CustomScannedEmployeeResponse | null>(null)
   const lastLogMessage = ref<string | null>(null)
   const warmBodySummary = ref<WarmBodySummary | null>(null)
   const showModal = ref(false)
+  const modalTimer: { current: ReturnType<typeof setTimeout> | null } = { current: null }
+  const MODAL_DISPLAY_DURATION_MS = 10000
 
-  let modalTimer: ReturnType<typeof setTimeout> | null = null
+  const getCapturedPhotoUrl = (path?: string | null, fallback?: string) => {
+    if (path?.startsWith('blob:')) return path
+    if (!path) return fallback || dswdLogoMark
+    if (path.startsWith('http')) return path
+    return `https://hr-cares-assets.s3.ap-southeast-1.amazonaws.com/${path}`
+  }
+
+  const addRecentLog = (employee: CustomScannedEmployeeResponse) => {
+    recentLogs.value.unshift(employee)
+    if (recentLogs.value.length > 20) recentLogs.value.pop()
+  }
+
+  const clearRecentLogs = () => {
+    recentLogs.value = []
+  }
 
   const countIn = computed(
     () => (date: string) => dailyLogs.value.find((l) => l.date === date)?.warm_bodies.filter((wb) => wb.is_in).length ?? 0
@@ -58,14 +79,19 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     () => (date: string) => dailyLogs.value.find((l) => l.date === date)?.warm_bodies.filter((wb) => !wb.is_in).length ?? 0
   )
 
-  const getTodayWarmBodies = computed(
-    () => (date: string) =>
-      dailyLogs.value.find((l) => l.date === date)
-        ? [...dailyLogs.value.find((l) => l.date === date)!.warm_bodies].sort(
-          (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-        )
-        : []
-  )
+  const getTodayWarmBodies = computed(() => (date: string) => {
+    const dailyLog = dailyLogs.value.find((l) => l.date === date)
+    if (!dailyLog) return []
+    return dailyLog.warm_bodies
+      .map((log) => {
+        const validDate = log.date || date || new Date().toISOString().slice(0, 10)
+        const validTime = log.scanned_time || '00:00:00'
+        const timestamp = `${validDate}T${validTime}`
+        return { ...log, timestamp }
+      })
+      .filter((log) => !isNaN(new Date(log.timestamp).getTime()))
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+  })
 
   const setOffice = (office: WbAutoCompleteOption) => {
     timelogOfficeId.value = office.value as string
@@ -75,98 +101,125 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     timelogOfficeId.value = null
   }
 
-  const showScannedEmployeeModal = (employee: ScannedEmployeeResponse | null, message: string) => {
+  const showScannedEmployeeModal = (employee: CustomScannedEmployeeResponse | null, message: string) => {
     currentScannedEmployee.value = employee
     lastLogMessage.value = message
     showModal.value = true
 
-    if (modalTimer) clearTimeout(modalTimer)
-
-    modalTimer = setTimeout(() => {
+    if (modalTimer.current) clearTimeout(modalTimer.current)
+    modalTimer.current = setTimeout(() => {
       showModal.value = false
-      currentScannedEmployee.value = null
-      lastLogMessage.value = null
-    }, 10000)
+      clearScannedEmployee()
+      modalTimer.current = null
+    }, MODAL_DISPLAY_DURATION_MS)
   }
 
   const clearScannedEmployee = () => {
     currentScannedEmployee.value = null
     lastLogMessage.value = null
     showModal.value = false
-    if (modalTimer) clearTimeout(modalTimer)
+    if (modalTimer.current) clearTimeout(modalTimer.current)
   }
 
   const updateDailyLogs = (date: string, logs: WarmBodyLogEntry[]) => {
-    const logEntry = dailyLogs.value.find((l) => l.date === date)
-    if (logEntry) {
-      logEntry.warm_bodies = logs
+    const existingIndex = dailyLogs.value.findIndex((l) => l.date === date)
+
+    if (existingIndex !== -1) {
+      const existingIds = new Set(dailyLogs.value[existingIndex].warm_bodies.map((l) => l.id))
+      const newLogs = logs.filter((l) => !existingIds.has(l.id))
+      dailyLogs.value[existingIndex].warm_bodies.unshift(...newLogs)
     } else {
       dailyLogs.value.push({ date, warm_bodies: logs })
     }
   }
 
-  const logEmployeeTime = async (payload: { scanned_qr: string; captured_image: string | null }) => {
+  const logEmployeeTime = async (
+    payload: FormData | { scanned_qr: string; captured_image: string | null },
+    localCapturedImageUrl: string | null = null
+  ) => {
     const { data } = await useApiCall('employees/log-time', authStore.authenticationToken).post(payload).json()
+
     const responseBody: ApiResponseBody = data.value
+
     if (responseBody?.success) {
       const warmBodyLog = responseBody.data as WarmBodyLogEntry
-      const employeeDetails = warmBodyLog?.daily_time_record?.employee?.individual_basic_detail
-      const employeeItem = warmBodyLog?.daily_time_record?.employee?.item
+
+      const emp = warmBodyLog.daily_time_record?.employee
+      const empDetails = emp?.individual_basic_detail
+
       const messageToDisplay = responseBody.message || 'Time log successful!'
 
-      const photoUrl =
-        employeeDetails?.user_profile?.profile_picture_url && employeeDetails.user_profile.profile_picture_url.trim() !== ''
-          ? employeeDetails.user_profile.profile_picture_url
-          : '@/assets/image/DSWD logo_Mark.png'
+      const profilePhotoUrl = getCapturedPhotoUrl(empDetails?.user_profile?.profile_picture_url, dswdLogoMark)
+      const capturedImageUrl = localCapturedImageUrl || getCapturedPhotoUrl(warmBodyLog?.captured_image_url, dswdLogoMark)
 
-      const scannedEmployee: ScannedEmployeeResponse = {
-        id: warmBodyLog.daily_time_record?.employee?.id_number || 'N/A',
-        name: `${employeeDetails?.first_name || ''} ${employeeDetails?.last_name || ''}`.trim() || 'N/A',
-        position: employeeItem?.position?.title || 'N/A',
+      const employeeIdString = warmBodyLog.daily_time_record?.employee_id ?? emp?.id_number ?? 'N/A'
+
+      const scannedEmployee: CustomScannedEmployeeResponse = {
+        id: employeeIdString,
+        employee_id: employeeIdString,
+        name: `${empDetails?.first_name || ''} ${empDetails?.last_name || ''}`.trim() || 'N/A',
+        position: emp?.item?.position?.title || 'N/A',
         is_in: warmBodyLog.is_in,
-        timestamp: warmBodyLog.created_at || new Date().toISOString(),
-        photo_url: photoUrl,
-        captured_image: payload.captured_image || null,
+        timestamp: warmBodyLog.scanned_time || new Date().toISOString(),
+        photo_url: profilePhotoUrl,
+        captured_image: capturedImageUrl,
+        captured_photo_url: capturedImageUrl,
       }
 
-      const dtrDate = warmBodyLog.daily_time_record?.date || new Date().toISOString().substring(0, 10)
+      const dtrDate = warmBodyLog.daily_time_record?.date || new Date().toISOString().slice(0, 10)
       updateDailyLogs(dtrDate, [warmBodyLog])
       showScannedEmployeeModal(scannedEmployee, messageToDisplay)
-    } else if (responseBody) {
-      let messageToDisplay = responseBody.message?.trim() || 'Time log failed.'
-      if (responseBody.error_code === ApiErrorCode.VALIDATION_ERROR) {
+
+      currentScannedEmployee.value = scannedEmployee
+    } else {
+      let messageToDisplay = responseBody?.message?.trim() || 'Time log failed.'
+      if (responseBody?.error_code === ApiErrorCode.VALIDATION_ERROR) {
         const apiErrors = responseBody.errors
-        if (apiErrors && apiErrors.length > 0 && apiErrors[0].messages && apiErrors[0].messages.length > 0) {
+        if (apiErrors?.length && apiErrors[0].messages?.length) {
           messageToDisplay = apiErrors[0].messages[0]
         }
       }
       showScannedEmployeeModal(null, messageToDisplay)
-      return responseBody
     }
+
+    return responseBody
   }
 
   const fetchDailyLogs = async (date: string) => {
-    const officeId = timelogOfficeId.value
-    let url = `employees/daily-time-records/time-logs?date=${date}`
-    if (officeId) url += `&office_id=${officeId}`
-    const { data } = await useApiCall(url, authStore.authenticationToken).get().json()
-    const responseBody: ApiResponseBody = data.value
+    try {
+      const url = `/employees/daily-time-records/time-logs?date=${date}`
+      const { data } = await useApiCall(url, authStore.authenticationToken).get().json()
+      const responseBody: ApiResponseBody = data.value
 
-    if (responseBody?.success && Array.isArray(responseBody.data)) {
-      const mappedLogs = (responseBody.data as TimeLogEntry[]).map((log) => ({
-        employee_id: log.id_number,
-        timestamp: `${log.time_log_date}T${log.scanned_time}`,
-        is_in: log.is_in,
-        id: log.time_log_id,
-        created_at: undefined,
-        updated_at: undefined,
-        daily_time_record: undefined,
-      }))
-      updateDailyLogs(date, mappedLogs as WarmBodyLogEntry[])
-    } else if (responseBody) {
-      updateDailyLogs(date, [])
+      if (responseBody?.success && Array.isArray(responseBody.data)) {
+        const logs: DailyLogDisplayEntry[] = (responseBody.data as WarmBodyLogEntry[]).map((log) => {
+          const emp = log.daily_time_record?.employee
+          const empDetails = emp?.individual_basic_detail
+
+          const employeeId = emp?.id_number ?? 'N/A'
+
+          return {
+            id: log.id,
+            employee_id: employeeId,
+            employee_name: `${empDetails?.first_name || ''} ${empDetails?.last_name || ''}`.trim() || 'N/A',
+            position: emp?.item?.position?.title || 'N/A',
+            scanned_time: log.scanned_time || '',
+            is_in: log.is_in,
+            date: log.date || '',
+            captured_image_url: log.captured_image_url || log.captured_photo_url || '',
+            daily_time_record: log.daily_time_record,
+          }
+        })
+
+        if (logs.length) updateDailyLogs(date, logs)
+      } else {
+        console.warn('Failed to fetch daily logs:', responseBody?.message)
+      }
+
+      return responseBody
+    } catch (error) {
+      console.error('Failed to fetch daily logs:', error)
     }
-    return responseBody
   }
 
   const fetchWarmBodySummary = async (date: string) => {
@@ -179,6 +232,7 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
 
   return {
     timelogOfficeId,
+    recentLogs,
     dailyLogs,
     currentScannedEmployee,
     lastLogMessage,
@@ -188,11 +242,13 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     countOut,
     getTodayWarmBodies,
     logEmployeeTime,
+    fetchWarmBodySummary,
+    fetchDailyLogs,
+    showScannedEmployeeModal,
     clearScannedEmployee,
     updateDailyLogs,
-    showScannedEmployeeModal,
-    fetchDailyLogs,
-    fetchWarmBodySummary,
+    addRecentLog,
+    clearRecentLogs,
     setOffice,
     clearOffice,
   }

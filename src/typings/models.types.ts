@@ -292,7 +292,7 @@ export type PersonnelResponse = {
 } & ApiResponseData
 
 export type PersonnelAddress = {
-  id: number
+  id: number | null
   individual_basic_detail_id: string | null
   residential_house_block_lot_no: string | null
   residential_street: string | null
@@ -328,12 +328,14 @@ export type PersonnelContactInfo = {
 }
 
 export type IndividualContactInfo = {
+  id: string | null
   tel_no: string | null
   mobile_no: string | null
   email_address: string | null
 }
 
 export type IndividualAddress = {
+  id: number | null
   residential_house_block_lot_no: string | null
   residential_street: string | null
   residential_subdivision_village: string | null
@@ -731,11 +733,11 @@ export type SettingsResponse = {
 } & ApiResponseData
 
 export interface ScannedEmployeeResponse {
-  id: string | number
+  id: string
   name: string
   position: string
   is_in: boolean
   timestamp: string
   photo_url: string
-  captured_image?: string | null
+  captured_photo_url?: string | null
 }

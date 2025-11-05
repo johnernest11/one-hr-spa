@@ -61,6 +61,7 @@ export type PersonalDataSheetPayload = {
   individual_address: IndividualAddress[]
   individual_address_init: {
     /**Personnel Data Sheet Address */
+    id: number | null
     residential_house_block_lot_no: string | null
     residential_street: string | null
     residential_subdivision_village: string | null
@@ -161,6 +162,7 @@ export const usePdsStore = defineStore('pds', () => {
     },
 
     contact_info: {
+      id: contactInfo?.id ?? null,
       tel_no: contactInfo?.tel_no ?? null,
       mobile_no: contactInfo?.mobile_no ?? null,
       email_address: contactInfo?.email_address ?? null,
@@ -169,6 +171,7 @@ export const usePdsStore = defineStore('pds', () => {
     individual_address: [],
     individual_address_init: {
       /**Personnel Data Sheet Address */
+      id: individual_address?.id ?? null,
       residential_house_block_lot_no: individual_address?.residential_house_block_lot_no ?? null,
       residential_street: individual_address?.residential_street ?? null,
       residential_subdivision_village: individual_address?.residential_subdivision_village ?? null,
@@ -531,13 +534,14 @@ export const usePdsStore = defineStore('pds', () => {
 
     // === C1 -  Contact Info ===
     const contactInfo = personnel.individual_contact_info
+    pdsInfo.contact_info.id = contactInfo?.id ?? null
     pdsInfo.contact_info.tel_no = contactInfo?.tel_no ?? null
     pdsInfo.contact_info.mobile_no = contactInfo?.mobile_no ?? null
     pdsInfo.contact_info.email_address = contactInfo?.email_address ?? null
 
     // === C1 - Individual Address Init ===
     const address = personnel.individual_address
-
+    pdsInfo.individual_address_init.id = address?.id ?? null
     pdsInfo.individual_address_init.residential_house_block_lot_no = address?.residential_house_block_lot_no ?? null
     pdsInfo.individual_address_init.residential_street = address?.residential_street ?? null
     pdsInfo.individual_address_init.residential_subdivision_village = address?.residential_subdivision_village ?? null
