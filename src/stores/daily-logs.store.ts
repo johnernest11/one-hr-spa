@@ -152,7 +152,7 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
       const profilePhotoUrl = getCapturedPhotoUrl(empDetails?.user_profile?.profile_picture_url, dswdLogoMark)
       const capturedImageUrl = localCapturedImageUrl || getCapturedPhotoUrl(warmBodyLog?.captured_image_url, dswdLogoMark)
 
-      const employeeIdString = warmBodyLog.daily_time_record?.employee_id ?? emp?.id_number ?? 'N/A'
+      const employeeIdString = emp?.id_number ?? warmBodyLog.daily_time_record?.employee_id ?? 'N/A'
 
       const scannedEmployee: CustomScannedEmployeeResponse = {
         id: employeeIdString,

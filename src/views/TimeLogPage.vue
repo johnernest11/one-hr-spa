@@ -24,6 +24,17 @@ interface Log {
   captured_image_url?: string | null
   backend_photo_url?: string | null
   captured_image?: string | null
+  daily_time_record?: {
+    employee?: {
+      id?: number | string
+      id_number?: string
+      individual_basic_detail?: { first_name?: string; last_name?: string }
+      item?: { position?: { title?: string } }
+    }
+  }
+  employee?: {
+    id_number?: string
+  }
 }
 
 interface BackendLog {
@@ -550,7 +561,7 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
               <div>
                 <span class="mb-2 block text-xl font-semibold uppercase text-surface-500 md:mb-4 md:text-xl">ID Number:</span>
                 <p class="font-mono text-2xl text-primary-700 md:text-2xl">
-                  {{ dailyLogsStore.currentScannedEmployee?.id || 'N/A' }}
+                  {{ dailyLogsStore.currentScannedEmployee?.employee_id || 'N/A' }}
                 </p>
               </div>
 
