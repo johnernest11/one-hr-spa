@@ -8,11 +8,13 @@ import Button from 'primevue/button'
 import RadioButton from 'primevue/radiobutton'
 import Card from 'primevue/card'
 import Message from 'primevue/message'
+import MeterGroup from 'primevue/metergroup'
 import { useToast } from 'primevue/usetoast'
 import { useLocatorSlipStore, LocatorSlipPayload } from '@/stores/locator-slip.store'
 import { useDailyTimeRecordsStore } from '@/stores/daily-time-record.store'
 import { formatDateSafe, isSameOrAfterDate, formatDateLong } from '@/utils/helpers.ts'
 import WbInputText from '@/components/webkit/WbInputText.vue'
+import WbDropdown from '../webkit/WbDropdown.vue'
 import WbCalendar from '../webkit/WbCalendar.vue'
 import { LSLoggerResponse, TimeLogResponse } from '@/typings/models.types'
 
@@ -33,6 +35,14 @@ const warningMessage = ref(
   "Heads Up! You are currently out of the office. This slip's Time Out will be linked to your next physical Time Out."
 )
 const defaultApproval = ref('personal_time')
+
+const officialTimePurposeOptions = ref([
+  { label: 'Wellness Activity', value: 'Wellness Activity' },
+  { label: 'Auxiliary Wellness', value: 'Auxiliary Wellness' },
+])
+
+const auxRemaining = ref(0)
+const auxUsed = ref(0)
 
 const validateDateNow = (value: string) => {
   if (!value) return false
@@ -96,6 +106,7 @@ const payload = reactive<LocatorSlipPayload>({
   date: '',
   period: null,
   locator_slip_no: null,
+  auxiliary_wellness: 0,
   locator_slip_logger: [
     {
       locator_slip_id: null,
@@ -116,15 +127,20 @@ const updatePayloadFromResponse = (locatorSlip: LocatorSlipPayload | null) => {
   (payload.date = locatorSlip?.date ?? ''),
   (payload.period = locatorSlip?.period ?? null),
   (payload.locator_slip_no = locatorSlip?.locator_slip_no ?? null),
+  (payload.auxiliary_wellness = locatorSlip?.auxiliary_wellness ?? 0),
   (payload.locator_slip_logger = locatorSlip?.locator_slip_logger ?? [])
 
   if (payload.locator_slip_logger) {
     payload.locator_slip_logger.forEach((log) => {
       const formattedDate = formatDateLong(log.date)
       log.date = formattedDate
+      log.duration = parseFloat(log.duration?.toFixed(2))
     })
   }
   isFormTypeA.value = payload.form_type === 'a' ? true : false
+
+  auxRemaining.value = payload.auxiliary_wellness
+  auxUsed.value = 2 - payload.auxiliary_wellness
 }
 
 const checkActiveLog = async () => {
@@ -151,6 +167,13 @@ const checkCurrentEmployeeStatus = async () => {
   }
 }
 
+const auxiliaryWellnessData = computed(() => {
+  return [
+    { label: 'Used', value: auxUsed.value, color: 'bg-primary-500 dark:bg-primary-400', icon: 'pi pi-times' },
+    { label: 'Remaining', value: auxRemaining.value, color: 'rgb(203 213 225)', icon: 'pi pi-clock' },
+  ]
+})
+
 /** Validation */
 const globalStringMaxLength = import.meta.env.VITE_GLOBAL_STRING_MAX_LENGTH
 const globalStringMaxLengthRule = helpers.withMessage(
@@ -159,7 +182,7 @@ const globalStringMaxLengthRule = helpers.withMessage(
 )
 const formRules = computed(() => ({
   $lazy: true,
-  locator_slip_logger: payload.locator_slip_logger.map(() => ({
+  locator_slip_logger: payload.locator_slip_logger.map((item) => ({
     date: {
       maxLength: globalStringMaxLengthRule,
     },
@@ -168,6 +191,16 @@ const formRules = computed(() => ({
       maxLength: helpers.withMessage('', globalStringMaxLengthRule),
     },
     purpose: {
+      auxiliaryCheck: helpers.withMessage('The 2 hrs of your auxiliary wellness has already been used.', () => {
+        const selectedPurpose = item.purpose
+        const hasId = !!item.id
+
+        if (selectedPurpose === 'Auxiliary Wellness' && !hasId) {
+          const isAuxUsed = auxRemaining.value === 0
+          return !isAuxUsed
+        }
+        return true
+      }),
       required: helpers.withMessage('Purpose is required', required),
       maxLength: helpers.withMessage('', globalStringMaxLengthRule),
     },
@@ -427,7 +460,7 @@ const saveButtonSubmission = async () => {
                 />
               </p>
             </div>
-            <div>
+            <div v-if="row.approved_for !== 'official_time'">
               <p class="text-xs font-semibold text-surface-500 md:hidden">Purpose</p>
               <WbInputText
                 v-model="row.purpose"
@@ -435,6 +468,22 @@ const saveButtonSubmission = async () => {
                 label-class="text-sm text-surface-600"
                 placeholder="e.g. Wellness Activity"
                 class="w-full"
+                :disabled="!validateDateNow(row.date) || isHumanResourceActive || row.time_out || row.time_in"
+                :invalidText="validator.locator_slip_logger?.[index]?.purpose?.$errors[0]?.$message"
+                :invalid="validator.locator_slip_logger?.[index]?.purpose?.$error"
+                @blur="validator.locator_slip_logger?.[index]?.purpose?.$touch()"
+              />
+              <p class="text-base text-surface-600"></p>
+            </div>
+            <div v-else class="w-full">
+              <p class="text-xs font-semibold text-surface-500 md:hidden">Purpose</p>
+              <WbDropdown
+                v-model="row.purpose"
+                label=""
+                :options="officialTimePurposeOptions"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="Purpose"
                 :disabled="!validateDateNow(row.date) || isHumanResourceActive || row.time_out || row.time_in"
                 :invalidText="validator.locator_slip_logger?.[index]?.purpose?.$errors[0]?.$message"
                 :invalid="validator.locator_slip_logger?.[index]?.purpose?.$error"
@@ -533,6 +582,25 @@ const saveButtonSubmission = async () => {
         <br />
 
         <!-- Save/Update Buttons -->
+        <div v-if="!isFormTypeA">
+          <h3 class="mb-4 ml-4 text-2xl text-primary-700 dark:text-primary-700 md:ml-4">
+            Remaining auxiliary wellness for the month:
+          </h3>
+          <MeterGroup :value="auxiliaryWellnessData" :max="2">
+            <template #label>
+              <div class="text-l">
+                <span class="pr-3">
+                  <i :class="auxiliaryWellnessData[0].icon" class="dark:text-primary-40 text-primary-500" />
+                  Used ({{ auxiliaryWellnessData[0].value }} hrs)
+                </span>
+                <span>
+                  <i :class="auxiliaryWellnessData[1].icon" class="dark:text-primary-40 text-surface-500" />
+                  Remaining ({{ auxiliaryWellnessData[1].value }} hrs)
+                </span>
+              </div>
+            </template>
+          </MeterGroup>
+        </div>
         <div class="mt-2 flex justify-end gap-2">
           <Button
             label="Cancel"

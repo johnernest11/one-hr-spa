@@ -11,6 +11,7 @@ export type LocatorSlipPayload = {
   date: string
   period: string | null
   locator_slip_no: string | null
+  auxiliary_wellness: number
   locator_slip_logger: LSLoggerPayload[]
 }
 
@@ -23,7 +24,7 @@ export type LSLoggerPayload = {
   destination: string | null
   purpose: string | null
   approved_for: string | null
-  duration: number | null
+  duration: number
   remarks: string | null
 }
 
