@@ -1473,6 +1473,7 @@ const resetPdsPayload = () => {
     /** Force empty arrays so Vue detects change */
     contact_info: [
       {
+        id: null,
         tel_no: null,
         mobile_no: null,
         email_address: null,
@@ -1512,6 +1513,7 @@ const resetPdsPayload = () => {
     },
 
     individual_address_init: {
+      id: null,
       residential_house_block_lot_no: null,
       residential_street: null,
       residential_subdivision_village: null,
@@ -1758,10 +1760,40 @@ const updateC1Form = async () => {
 
   const requestPayload = {
     ...payload,
+    individual_contact_info: [
+      {
+        id: payload.contact_info.id ?? null,
+        tel_no: payload.contact_info.tel_no,
+        mobile_no: payload.contact_info.mobile_no,
+        email_address: payload.contact_info.email_address,
+      },
+    ],
+    individual_address: [
+      {
+        id: payload.individual_address_init.id ?? null,
+        residential_house_block_lot_no: payload.individual_address_init.residential_house_block_lot_no,
+        residential_street: payload.individual_address_init.residential_street,
+        residential_subdivision_village: payload.individual_address_init.residential_subdivision_village,
+        residential_brgy_id: payload.individual_address_init.residential_brgy_id,
+        residential_citymun_id: payload.individual_address_init.residential_citymun_id,
+        residential_province_id: payload.individual_address_init.residential_province_id,
+        residential_region_id: payload.individual_address_init.residential_region_id,
+        residential_zip_code: payload.individual_address_init.residential_zip_code,
+        permanent_house_block_lot_no: payload.individual_address_init.permanent_house_block_lot_no,
+        permanent_street: payload.individual_address_init.permanent_street,
+        permanent_subdivision_village: payload.individual_address_init.permanent_subdivision_village,
+        permanent_brgy_id: payload.individual_address_init.permanent_brgy_id,
+        permanent_citymun_id: payload.individual_address_init.permanent_citymun_id,
+        permanent_province_id: payload.individual_address_init.permanent_province_id,
+        permanent_region_id: payload.individual_address_init.permanent_region_id,
+        permanent_zip_code: payload.individual_address_init.permanent_zip_code,
+      },
+    ],
     individual_educational_background: educationsArray,
     individual_family: familyArray,
   }
 
+  debugger
   const response = await pdsStore.updatePds(requestPayload, id, 'C1')
 
   if (!response.success) {
