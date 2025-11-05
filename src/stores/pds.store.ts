@@ -318,150 +318,150 @@ export const usePdsStore = defineStore('pds', () => {
     /** PDS C2 */
     individual_eligibility: Array.isArray(individual?.individual_eligibility)
       ? individual.individual_eligibility.map((elgi) => ({
-          ...elgi,
-          id: elgi.id ?? null,
-          eligibility: elgi.eligibility ?? '',
-          rating: elgi.rating ?? '',
-          date_of_examination_conferment: elgi.date_of_examination_conferment ?? '',
-          place_of_examination: elgi.place_of_examination ?? '',
-          license_number: elgi.license_number ?? null,
-          license_date_of_validity: elgi.license_date_of_validity ?? '',
-          _delete: elgi._delete ?? null,
-        }))
+        ...elgi,
+        id: elgi.id ?? null,
+        eligibility: elgi.eligibility ?? '',
+        rating: elgi.rating ?? '',
+        date_of_examination_conferment: elgi.date_of_examination_conferment ?? '',
+        place_of_examination: elgi.place_of_examination ?? '',
+        license_number: elgi.license_number ?? null,
+        license_date_of_validity: elgi.license_date_of_validity ?? '',
+        _delete: elgi._delete ?? null,
+      }))
       : [
-          {
-            id: null,
-            eligibility: '',
-            rating: '',
-            date_of_examination_conferment: '',
-            place_of_examination: '',
-            license_number: '',
-            license_date_of_validity: '',
-            _delete: null,
-          },
-        ],
+        {
+          id: null,
+          eligibility: '',
+          rating: '',
+          date_of_examination_conferment: '',
+          place_of_examination: '',
+          license_number: '',
+          license_date_of_validity: '',
+          _delete: null,
+        },
+      ],
 
     individual_work_experience: Array.isArray(individual?.individual_work_experience)
       ? individual.individual_work_experience.map((exp) => ({
-          ...exp,
-          id: exp.id ?? null,
-          is_current_work: exp.is_current_work ?? false,
-          inclusive_date_from: exp.inclusive_date_from ?? '',
-          inclusive_date_to: exp.inclusive_date_to ?? '',
-          position_title: exp.position_title ?? '',
-          department_agency_office_company: exp.department_agency_office_company ?? '',
-          monthly_salary: exp.monthly_salary ?? '',
-          salary_grade_id: exp.salary_grade_id ?? null,
-          salary_grade: exp.salary_grade ?? null,
-          custom_salary_grade: exp.custom_salary_grade ?? '',
-          status_of_appointment: exp.status_of_appointment ?? null,
-          is_gov_service: exp.is_gov_service ?? false,
-          _delete: exp._delete ?? null,
-        }))
+        ...exp,
+        id: exp.id ?? null,
+        is_current_work: exp.is_current_work ?? false,
+        inclusive_date_from: exp.inclusive_date_from ?? '',
+        inclusive_date_to: exp.inclusive_date_to ?? '',
+        position_title: exp.position_title ?? '',
+        department_agency_office_company: exp.department_agency_office_company ?? '',
+        monthly_salary: exp.monthly_salary ?? '',
+        salary_grade_id: exp.salary_grade_id ?? null,
+        salary_grade: exp.salary_grade ?? null,
+        custom_salary_grade: exp.custom_salary_grade ?? '',
+        status_of_appointment: exp.status_of_appointment ?? null,
+        is_gov_service: exp.is_gov_service ?? false,
+        _delete: exp._delete ?? null,
+      }))
       : [],
 
     /** PDS C3 */
     individual_voluntary_work: Array.isArray(individual?.individual_voluntary_work)
       ? individual.individual_voluntary_work.map((work) => ({
-          ...work,
-          id: work.id ?? null,
-          is_current_org: work.is_current_org ?? false,
-          org_name: work.org_name ?? '',
-          org_address: work.org_address ?? '',
-          from: work.from ?? null,
-          to: work.to ?? null,
-          number_of_hours: work.number_of_hours ?? null,
-          position_nature_of_work: work.position_nature_of_work ?? null,
-          _delete: work._delete ?? null,
-        }))
+        ...work,
+        id: work.id ?? null,
+        is_current_org: work.is_current_org ?? false,
+        org_name: work.org_name ?? '',
+        org_address: work.org_address ?? '',
+        from: work.from ?? null,
+        to: work.to ?? null,
+        number_of_hours: work.number_of_hours ?? null,
+        position_nature_of_work: work.position_nature_of_work ?? null,
+        _delete: work._delete ?? null,
+      }))
       : [],
     individual_lnd: Array.isArray(individual?.individual_lnd)
       ? individual.individual_lnd.map((lnd) => ({
-          ...lnd,
-          id: lnd.id ?? null,
-          title: lnd.title ?? '',
-          from: lnd.from ?? '',
-          to: lnd.to ?? null,
-          number_of_hours: lnd.number_of_hours ?? null,
-          type: lnd.type ?? null,
-          conducted_sponsor: lnd.conducted_sponsor ?? null,
-          _delete: lnd._delete ?? null,
-        }))
+        ...lnd,
+        id: lnd.id ?? null,
+        title: lnd.title ?? '',
+        from: lnd.from ?? '',
+        to: lnd.to ?? null,
+        number_of_hours: lnd.number_of_hours ?? null,
+        type: lnd.type ?? null,
+        conducted_sponsor: lnd.conducted_sponsor ?? null,
+        _delete: lnd._delete ?? null,
+      }))
       : [],
     individual_skills_hobby: Array.isArray(individual?.individual_skills_hobby)
       ? individual.individual_skills_hobby.map((skill) => ({
-          ...skill,
-          id: skill.id ?? null,
-          skill_hobby: skill.skill_hobby ?? '',
-          _delete: skill._delete ?? null,
-        }))
+        ...skill,
+        id: skill.id ?? null,
+        skill_hobby: skill.skill_hobby ?? '',
+        _delete: skill._delete ?? null,
+      }))
       : [],
     individual_recognition: Array.isArray(individual?.individual_recognition)
       ? individual.individual_recognition.map((rec) => ({
-          ...rec,
-          id: rec.id ?? null,
-          recognition: rec.recognition ?? '',
-          _delete: rec._delete ?? null,
-        }))
+        ...rec,
+        id: rec.id ?? null,
+        recognition: rec.recognition ?? '',
+        _delete: rec._delete ?? null,
+      }))
       : [],
     individual_membership: Array.isArray(individual?.individual_membership)
       ? individual.individual_membership.map((mem) => ({
-          ...mem,
-          id: mem.id ?? null,
-          association_organization: mem.association_organization ?? '',
-          _delete: mem._delete ?? null,
-        }))
+        ...mem,
+        id: mem.id ?? null,
+        association_organization: mem.association_organization ?? '',
+        _delete: mem._delete ?? null,
+      }))
       : [],
     /** PDS C4 */
     individual_question: individual?.individual_question
       ? [
-          {
-            id: individual.individual_question.id ?? null,
-            q34_a: individual.individual_question.q34_a ?? false,
-            q34_b: individual.individual_question.q34_b ?? false,
-            q34_details: individual.individual_question.q34_details ?? null,
-            q35_a: individual.individual_question.q35_a ?? false,
-            q35_a_details: individual.individual_question.q35_a_details ?? null,
-            q35_b: individual.individual_question.q35_b ?? false,
-            q35_b_date_filed: individual.individual_question.q35_b_date_filed ?? null,
-            q35_b_status: individual.individual_question.q35_b_status ?? null,
-            q36: individual.individual_question.q36 ?? false,
-            q36_details: individual.individual_question.q36_details ?? null,
-            q37: individual.individual_question.q37 ?? false,
-            q37_details: individual.individual_question.q37_details ?? null,
-            q38_a: individual.individual_question.q38_a ?? false,
-            q38_a_details: individual.individual_question.q38_a_details ?? null,
-            q38_b: individual.individual_question.q38_b ?? false,
-            q38_b_details: individual.individual_question.q38_b_details ?? null,
-            q39: individual.individual_question.q39 ?? false,
-            country_id: individual.individual_question.country_id ?? null,
-            q40_a_indigenous_group: individual.individual_question.q40_a_indigenous_group ?? false,
-            q40_a_details: individual.individual_question.q40_a_details ?? null,
-            q40_b_pwd: individual.individual_question.q40_b_pwd ?? false,
-            q40_b_details: individual.individual_question.q40_b_details ?? null,
-            q40_c_solo_parent: individual.individual_question.q40_c_solo_parent ?? false,
-            q40_c_details: individual.individual_question.q40_c_details ?? null,
-          },
-        ]
+        {
+          id: individual.individual_question.id ?? null,
+          q34_a: individual.individual_question.q34_a ?? false,
+          q34_b: individual.individual_question.q34_b ?? false,
+          q34_details: individual.individual_question.q34_details ?? null,
+          q35_a: individual.individual_question.q35_a ?? false,
+          q35_a_details: individual.individual_question.q35_a_details ?? null,
+          q35_b: individual.individual_question.q35_b ?? false,
+          q35_b_date_filed: individual.individual_question.q35_b_date_filed ?? null,
+          q35_b_status: individual.individual_question.q35_b_status ?? null,
+          q36: individual.individual_question.q36 ?? false,
+          q36_details: individual.individual_question.q36_details ?? null,
+          q37: individual.individual_question.q37 ?? false,
+          q37_details: individual.individual_question.q37_details ?? null,
+          q38_a: individual.individual_question.q38_a ?? false,
+          q38_a_details: individual.individual_question.q38_a_details ?? null,
+          q38_b: individual.individual_question.q38_b ?? false,
+          q38_b_details: individual.individual_question.q38_b_details ?? null,
+          q39: individual.individual_question.q39 ?? false,
+          country_id: individual.individual_question.country_id ?? null,
+          q40_a_indigenous_group: individual.individual_question.q40_a_indigenous_group ?? false,
+          q40_a_details: individual.individual_question.q40_a_details ?? null,
+          q40_b_pwd: individual.individual_question.q40_b_pwd ?? false,
+          q40_b_details: individual.individual_question.q40_b_details ?? null,
+          q40_c_solo_parent: individual.individual_question.q40_c_solo_parent ?? false,
+          q40_c_details: individual.individual_question.q40_c_details ?? null,
+        },
+      ]
       : [],
 
     individual_reference: Array.isArray(individual?.individual_reference)
       ? individual.individual_reference.map((ref) => ({
-          ...ref,
-          name: ref.name ?? '',
-          address: ref.address ?? '',
-          tel_no: ref.tel_no ?? '',
-          _delete: ref._delete ?? null,
-        }))
+        ...ref,
+        name: ref.name ?? '',
+        address: ref.address ?? '',
+        tel_no: ref.tel_no ?? '',
+        _delete: ref._delete ?? null,
+      }))
       : [],
 
     individual_government_id: individual?.individual_government_id
       ? {
-          id: individual.individual_government_id.id ?? null,
-          gov_issued_id: individual.individual_government_id.gov_issued_id ?? '',
-          gov_id_no: individual.individual_government_id.gov_id_no ?? '',
-          gov_issuance: individual.individual_government_id.gov_issuance ?? '',
-        }
+        id: individual.individual_government_id.id ?? null,
+        gov_issued_id: individual.individual_government_id.gov_issued_id ?? '',
+        gov_id_no: individual.individual_government_id.gov_id_no ?? '',
+        gov_issuance: individual.individual_government_id.gov_issuance ?? '',
+      }
       : { id: null, gov_issued_id: '', gov_id_no: '', gov_issuance: '' },
 
     employee: {

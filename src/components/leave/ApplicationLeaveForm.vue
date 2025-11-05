@@ -218,9 +218,9 @@ onMounted(async () => {
 const updatePayloadFromReport = (leaveApplication: LeaveApplicationResponse | null) => {
   payload.leave_type_id = leaveApplication?.leave_type_id
     ? {
-        title: leaveApplication.leave_type_id.title ?? '',
-        description: leaveApplication.leave_type_id.description != null ? String(leaveApplication.leave_type_id.description) : '',
-      }
+      title: leaveApplication.leave_type_id.title ?? '',
+      description: leaveApplication.leave_type_id.description != null ? String(leaveApplication.leave_type_id.description) : '',
+    }
     : { title: '', description: '' }
   payload.date_of_filing = leaveApplication?.date_of_filing ?? null
   payload.others_notes = leaveApplication?.others_notes ?? ''
