@@ -52,6 +52,15 @@ export type AddressResponse = {
   region: RegionResponse | null
 } & ApiResponseData
 
+export type CountriesResponse = {
+  common_name: string
+  official_name: string | null
+  cca2: string | null
+  ccn3: string | null
+  cca3: string | null
+  cioc: string | null
+} & ApiResponseData
+
 export type OfficesResponse = {
   name: string
   head_user_id: string | null
@@ -73,6 +82,10 @@ export type SectionorUnitResponse = {
   division_id: string | null
   added_by_user_id: string | null
   last_modified_by_user_id: string | null
+} & ApiResponseData
+
+export type ProgramResponse = {
+  name: string
 } & ApiResponseData
 
 export type ItemNumberResponse = {
@@ -129,6 +142,16 @@ export type UserResponse = {
   user_profile?: UserProfileResponse
 } & ApiResponseData
 
+/** Active Directory (HTTP Responses) */
+export type ActiveDiretoryResponse = {
+  guid: string
+  name: string
+  username: string
+  email: string
+  active: boolean
+  email_verified_at: string
+} & ApiResponseData
+
 /** User Profile (HTTP Responses) */
 export type UserProfileResponse = {
   first_name: string
@@ -160,7 +183,8 @@ export type PersonnelAccomplishmentReportDetialsResponse = {
   dates_in_week: string
   specific_activity: string | null
   highlights: string | null
-} & ApiResponseData
+  _delete: boolean | null
+} & Omit<ApiResponseData, 'id'>
 
 /** Compensatory Time Day Off (HTTP Responses) */
 export type PersonnelCompensatoryDayTimeOffResponse = {
@@ -249,6 +273,7 @@ export type PersonnelResponse = {
   tin: string
   citizenship: string
   citizenship_acquisition: string
+  country_id: number | null
   individual_address: PersonnelAddress | null
   individual_contact_info: PersonnelContactInfo | null
   individual_family: IndividualFamily | null
@@ -262,11 +287,12 @@ export type PersonnelResponse = {
   individual_membership: IndividualMembership | null
   individual_question: IndividualQuestion | null
   individual_reference: IndividualReference | null
+  individual_government_id: IndividualGovernmentId | null
   employee: PersonnelEmployee | null
 } & ApiResponseData
 
 export type PersonnelAddress = {
-  id: number
+  id: number | null
   individual_basic_detail_id: string | null
   residential_house_block_lot_no: string | null
   residential_street: string | null
@@ -302,12 +328,14 @@ export type PersonnelContactInfo = {
 }
 
 export type IndividualContactInfo = {
+  id: string | null
   tel_no: string | null
   mobile_no: string | null
   email_address: string | null
 }
 
 export type IndividualAddress = {
+  id: number | null
   residential_house_block_lot_no: string | null
   residential_street: string | null
   residential_subdivision_village: string | null
@@ -327,6 +355,7 @@ export type IndividualAddress = {
 }
 
 export type IndividualFamily = {
+  id: number | null
   first_name: string | null
   last_name: string | null
   middle_name?: string | null
@@ -335,11 +364,13 @@ export type IndividualFamily = {
   employers_business_name: string | null
   business_address: string | null
   telephone_no?: string | null
-  class: string
+  class: 'Spouse' | 'Father' | 'Mother' | 'Children' | null
   date_of_birth?: string | null
-}
+  _delete: boolean | null
+} & Omit<ApiResponseData, 'id'>
 
 export type IndividualEducBg = {
+  id: number | null
   schools_name: string | null
   education_description: string | null
   level: 'Elementary' | 'Secondary' | 'College' | 'Vocational' | 'Graduate' | null
@@ -423,7 +454,7 @@ export type IndividualMembership = {
 
 /**Personnel Data Sheet (C4 FORM) (HTTP Responses) */
 export type IndividualQuestion = {
-  id: number
+  id: number | null
   q34_a: boolean
   q34_b: boolean
   q34_details: string | null
@@ -448,19 +479,22 @@ export type IndividualQuestion = {
   q40_b_details: string | null
   q40_c_solo_parent: boolean
   q40_c_details: string | null
-}
+} & Omit<ApiResponseData, 'id'>
 
 export type IndividualReference = {
+  id: number | null
   name: string | null
   address: string | null
   tel_no: string | null
-}
+  _delete: boolean | null
+} & Omit<ApiResponseData, 'id'>
 
-export type IndividualGovernmentIssue = {
-  gov_id_name: string | null
+export type IndividualGovernmentId = {
+  id: number | null
+  gov_issued_id: string | null
   gov_id_no: string | null
-  gov_id_issuance: string | null
-}
+  gov_issuance: string | null
+} & Omit<ApiResponseData, 'id'>
 
 /**Daily Time Record (HTTP Responses) */
 export type DailyTimeRecordResponse = {
@@ -488,6 +522,17 @@ export type ViewDailyTimeRecordResponse = {
   hr_remarks: string | null
   status: string | null
   time_log: Array<TimeLogResponse> | null | undefined
+} & Omit<ApiResponseData, 'id'>
+
+export type CalendarDay = {
+  date?: Date
+  day?: number
+  timeLog?: TimeLogResponse[] | null
+  status?: 'Present' | 'Absent' | 'Weekend'
+  isWeekend?: boolean
+  dayOfWeek?: number
+  empty?: boolean
+  dtrRecord?: ViewDailyTimeRecordResponse | null
 }
 
 export type ViewTimeLogsResponse = {
@@ -543,7 +588,7 @@ export type TimeLogResponse = {
   scanned_time: string
   is_in: boolean // true = IN, false = OUT
   is_selected: boolean // true = SELECTED, false = NOT SELECTED
-}
+} & Omit<ApiResponseData, 'id'>
 
 export type QrCodeResponse = {
   id: number
@@ -552,6 +597,7 @@ export type QrCodeResponse = {
   last_generated_at: string | null
   is_active: boolean
 } & ApiResponseData
+
 /** Leave Application (HTTP Responses) */
 export type LeaveApplicationResponse = {
   id: number | null
@@ -621,12 +667,27 @@ export type DocumentRequestResponse = {
 /** Locator Slip (HTTP Responses) */
 export type LocatorSlipResponse = {
   id: number | null
-  period_covered_from: string | null
-  period_covered_to: string | null
-  period_request: string | null
   locator_slip_no: string | null
+  employee_id: PersonnelResponse
   status: string | null
-  employee_id: PersonnelResponse | null
+  form_type: string
+  date: string
+  period: string | null
+  ls_logger: LSLoggerResponse[] | null
+} & ApiResponseData
+
+/** Locator Slip Logger (HTTP Responses) */
+export type LSLoggerResponse = {
+  id?: number | null
+  locator_slip_id: number | null
+  date: string
+  time_in: string | null
+  time_out: string | null
+  destination: string | null
+  purpose: string | null
+  approve_for: string | null
+  duration: number | null
+  remarks: string | null
 } & ApiResponseData
 
 /** PayRoll (HTTP Responses) */
@@ -672,10 +733,11 @@ export type SettingsResponse = {
 } & ApiResponseData
 
 export interface ScannedEmployeeResponse {
-  id: string | number
+  id: string
   name: string
   position: string
   is_in: boolean
   timestamp: string
   photo_url: string
+  captured_photo_url?: string | null
 }

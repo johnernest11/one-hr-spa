@@ -84,8 +84,19 @@ export const useEmployeeEntryStore = defineStore('personnel', () => {
   const isEmployeesLoading = ref(true)
   const pdsMode = ref('')
 
-  const fetchEmployees = () => {
+  const fetchEmployees = async (): Promise<ApiResponseBody> => {
+    isEmployeesLoading.value = true
     employees.value = []
+
+    const { data } = await useApiCall('/employees', auth.authenticationToken.value).get().json()
+
+    const responseBody: ApiResponseBody = data.value
+    if (responseBody.success) {
+      employees.value = responseBody.data as PersonnelResponse[]
+    }
+
+    isEmployeesLoading.value = false
+    return responseBody
   }
 
   const fetchPersonalDataSheet = async () => {
@@ -100,7 +111,6 @@ export const useEmployeeEntryStore = defineStore('personnel', () => {
   }
 
   const updatePersonalDataSheet = async (payload: Partial<PersonalDataSheetPayload>) => {
-    // The API only accepts Y-m-d format (2024-01-31)
     if (payload.birthday) {
       payload.birthday = useDateFormat(payload.birthday, 'YYYY-MM-DD').value.toString()
     }

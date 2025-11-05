@@ -2,33 +2,48 @@
 import WbBreadcrumbs from '@/components/layout/AppBreadcrumbs.vue'
 import Toolbar from 'primevue/toolbar'
 import Avatar from 'primevue/avatar'
-import Button from 'primevue/button'
 import Badge from 'primevue/badge'
 import Menu from 'primevue/menu'
 import Tag from 'primevue/tag'
 import type { MenuItem } from 'primevue/menuitem'
 import { useAuthStore } from '@/stores/auth.store.ts'
 import { useRouter } from 'vue-router'
-import { computed, ref } from 'vue'
+import { computed, ref, reactive, onMounted } from 'vue'
 import { snakeCaseToTitleCase } from '@/utils/helpers.ts'
+import { usePdsStore, PersonalDataSheetPayload } from '@/stores/pds.store.ts'
+import { PersonnelResponse } from '@/typings/models.types'
 
 const authStore = useAuthStore()
+const pdsStore = usePdsStore()
+
+/** Payload */
+const payload = reactive<PersonalDataSheetPayload>({
+  ...pdsStore.pdsInfo,
+})
+
+const isLoading = ref(true)
+
+onMounted(async () => {
+  const id = authStore.authenticatedUser?.user_profile?.individual_basic_detail_id
+  if (id) {
+    const response = await pdsStore.fetchPdsById(id)
+    if (response?.success) {
+      const data = response.data as PersonnelResponse
+
+      pdsStore.updatePdsFromPersonnel(data)
+      Object.assign(payload, pdsStore.pdsInfo)
+    } else {
+      console.warn('Failed to fetch PDS or response unsuccessful.')
+    }
+  }
+  isLoading.value = false
+})
+
 const router = useRouter()
 
 /** Avatar Menu */
 const avatarMenu = ref()
 const avatarMenuItems = ref<MenuItem[]>([
-  {
-    label: 'Data Entry',
-    icon: 'pi pi-book',
-  },
-  {
-    label: 'Need Help',
-    icon: 'pi pi-phone',
-    command: async () => {
-      await router.push({ name: 'support' })
-    },
-  },
   {
     label: 'Logout',
     icon: 'pi pi-sign-out',
@@ -38,8 +53,28 @@ const avatarMenuItems = ref<MenuItem[]>([
     },
   },
 ])
+
+// Computed Full Name
 const fullName = computed(() => {
-  return authStore.authenticatedUser.user_profile?.full_name || ''
+  const individual = payload.individual
+  return [individual.first_name, individual.middle_name, individual.last_name, individual.ext_name].filter(Boolean).join(' ')
+})
+
+// Computed AvatarDisplayNamePlaceholder
+const AvatarDisplayNamePlaceholder = computed(() => {
+  const individual = payload.individual
+  if (!individual) return ''
+
+  const initials = [
+    ...(individual.first_name?.split(' ').map((n) => n[0]?.toUpperCase()) || []),
+    ...(individual.middle_name?.split(' ').map((n) => n[0]?.toUpperCase()) || []),
+    individual.last_name?.[0]?.toUpperCase() ?? '',
+    individual.ext_name?.[0]?.toUpperCase() ?? '',
+  ]
+    .filter(Boolean)
+    .join('')
+
+  return initials || ''
 })
 
 const toggleAvatarMenu = (event: Event) => {
@@ -61,31 +96,12 @@ const handleLogout = async () => {
     <template #end>
       <!-- Start Avatar Menu -->
       <template v-if="authStore.isAuthenticated">
-        <Button
-          icon="pi pi-inbox"
-          v-tooltip.top="'Filter Accomplishments'"
-          severity="info"
-          size="large"
-          class="mr-2 border-none text-lg font-semibold text-surface-0 dark:text-primary-100 lg:text-surface-900 dark:lg:text-primary-400"
-          text
-          @click="$router.push({ name: 'sign-up' })"
-        />
-        <Button
-          icon="pi pi-bell"
-          v-tooltip.top="'Notification'"
-          severity="info"
-          size="large"
-          class="mr-4 border-none text-lg font-semibold text-surface-0 dark:text-primary-100 lg:text-surface-900 dark:lg:text-primary-900"
-          text
-          @click="$router.push({ name: 'sign-up' })"
-        />
         <Avatar
           :image="authStore.authenticatedUser.user_profile?.profile_picture_url ?? undefined"
+          :label="!authStore.authenticatedUser.user_profile?.profile_picture_url ? AvatarDisplayNamePlaceholder : undefined"
           shape="circle"
-          class="cursor-pointer overflow-hidden transition-transform hover:scale-105 hover:ring-1 hover:ring-primary-500 dark:!bg-primary-500"
-          :label="`${
-            !authStore.authenticatedUser.user_profile?.profile_picture_url ? authStore.avatarDisplayNamePlaceholder : ''
-          }`"
+          size="large"
+          class="cursor-pointer transition-transform hover:scale-105 hover:ring-2 hover:ring-primary-500 dark:!bg-primary-500"
           @click="toggleAvatarMenu"
           aria-haspopup="true"
           aria-controls="avatar-menu"
@@ -104,9 +120,7 @@ const handleLogout = async () => {
             >
               <Avatar
                 :image="authStore.authenticatedUser.user_profile?.profile_picture_url ?? undefined"
-                :label="`${
-                  !authStore.authenticatedUser.user_profile?.profile_picture_url ? authStore.avatarDisplayNamePlaceholder : ''
-                }`"
+                :label="`${!authStore.authenticatedUser.user_profile?.profile_picture_url ? AvatarDisplayNamePlaceholder : ''}`"
                 class="mr-2.5 overflow-hidden dark:!bg-primary-500"
                 shape="square"
                 size="large"

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { reactive, ref, onMounted, computed, watch } from 'vue'
 import { usePdsStore, PersonalDataSheetPayload } from '@/stores/pds.store.ts'
-import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth.store.ts'
 import { useRoute } from 'vue-router'
 
 import useVuelidate from '@vuelidate/core'
@@ -14,14 +14,14 @@ import { useToast } from 'primevue/usetoast'
 import { parseApiResponseError } from '@/utils/error-handle.ts'
 import { helpers, maxLength, required } from '@vuelidate/validators'
 import { TabGroup, TabList, Tab, TabPanels, TabPanel } from '@headlessui/vue'
-import { isAfterOrEqualFromDate, usePrependOrAppendOnce } from '@/utils/helpers.js'
+import { isAfterOrEqualFromDate, usePrependOrAppendOnce, notInFuture } from '@/utils/helpers.js'
 import { TransitionRoot } from '@headlessui/vue'
 import { PersonnelResponse } from '@/typings/models.types'
 
 const getId = usePrependOrAppendOnce('pds-c3-section-form')
 const pdsStore = usePdsStore()
+const authStore = useAuthStore()
 const toast = useToast()
-const router = useRouter()
 const route = useRoute()
 
 const maxToasts = 5
@@ -53,6 +53,8 @@ const globalStringMaxLengthRule = helpers.withMessage(
   maxLength(globalStringMaxLength)
 )
 
+const hasAnyValue = (vm: Record<string, unknown>) => Object.values(vm).some((v) => helpers.req(v))
+
 const formRules = computed(() => ({
   individual_lnd: payload.individual_lnd.map(() => ({
     title: {
@@ -79,12 +81,14 @@ const formRules = computed(() => ({
           return from <= to
         }
       ),
+      notInFuture: helpers.withMessage('Start date must not be in the future.', notInFuture),
     },
     to: {
       required: helpers.withMessage('Inclusive "To" date is required', (val, vm) => {
         return vm.is_current_work === true ? true : helpers.req(val)
       }),
       isAfterOrEqualFromDate,
+      notInFuture: helpers.withMessage('End date must not be in the future.', notInFuture),
     },
     number_of_hours: {
       required: helpers.withMessage('Number of hours is required.', required),
@@ -92,15 +96,24 @@ const formRules = computed(() => ({
         if (val === null || val === '') return true // allow empty (if not required)
         return Number.isInteger(Number(val))
       }),
+      maxLength: globalStringMaxLengthRule,
     },
     type: {
       required: helpers.withMessage('Type is required.', required),
+      maxLength: globalStringMaxLengthRule,
     },
     conducted_sponsor: {
       required: helpers.withMessage('Conducted Sponsor is required.', required),
+      maxLength: globalStringMaxLengthRule,
     },
   })),
   individual_voluntary_work: payload.individual_voluntary_work.map(() => ({
+    org_name: {
+      required: helpers.withMessage(' Fill up Name of Organization since other information is provided.', (val, vm) =>
+        hasAnyValue(vm) ? helpers.req(val) : true
+      ),
+      maxLength: globalStringMaxLengthRule,
+    },
     from: {
       isAfterOrEqualTo: helpers.withMessage(
         'Inclusive "From" date must not be after "To" date.',
@@ -121,9 +134,41 @@ const formRules = computed(() => ({
           return from <= to
         }
       ),
+      notInFuture: helpers.withMessage('End date must not be in the future.', notInFuture),
     },
     to: {
       isAfterOrEqualFromDate,
+      notInFuture: helpers.withMessage('End date must not be in the future.', notInFuture),
+    },
+    number_of_hours: {
+      required: helpers.withMessage('Fill up Hours since other info is provided.', (val, vm) =>
+        hasAnyValue(vm) ? helpers.req(val) : true
+      ),
+      maxLength: globalStringMaxLengthRule,
+    },
+    position_nature_of_work: {
+      required: helpers.withMessage('Fill up Position / Nature of Work since other information is provided.', (val, vm) =>
+        hasAnyValue(vm) ? helpers.req(val) : true
+      ),
+      maxLength: globalStringMaxLengthRule,
+    },
+  })),
+  individual_skills_hobby: payload.individual_skills_hobby.map(() => ({
+    skill_hobby: {
+      required: helpers.withMessage('Skill or hobby is required.', (val, vm) => hasAnyValue(vm) || helpers.req(val)),
+      maxLength: globalStringMaxLengthRule,
+    },
+  })),
+  individual_recognition: payload.individual_recognition.map(() => ({
+    recognition: {
+      required: helpers.withMessage('Recognition is required.', (val, vm) => hasAnyValue(vm) || helpers.req(val)),
+      maxLength: globalStringMaxLengthRule,
+    },
+  })),
+  individual_membership: payload.individual_membership.map(() => ({
+    association_organization: {
+      required: helpers.withMessage('Association / organization is required.', (val, vm) => hasAnyValue(vm) || helpers.req(val)),
+      maxLength: globalStringMaxLengthRule,
     },
   })),
 }))
@@ -174,7 +219,7 @@ const showToast = (
 
     setTimeout(() => {
       activeToasts.value--
-    }, 5000)
+    }, 10000)
   }
 }
 
@@ -328,16 +373,64 @@ type pdsDetailsFormProps = {
 }
 const props = defineProps<pdsDetailsFormProps>()
 onMounted(async () => {
-  const id = route.params.id as string
+  const isManualInput = route.query.mode === 'via-manual-input'
+  const id = !isManualInput
+    ? (route.params.id as string) || authStore.authenticatedUser?.user_profile?.individual_basic_detail_id
+    : null
   if (id) {
     const response = await pdsStore.fetchPdsById(id)
 
     if (response && response.success) {
       console.log('Fetched PDS data:', response.data)
-      pdsStore.updatePdsFromPersonnel(response.data as PersonnelResponse)
+      const data = response.data as PersonnelResponse
+      pdsStore.updatePdsFromPersonnel(data)
+
+      /** ------------------
+       * Handle Voluntary Work
+       * --------------------- */
+      const voluntaryRaw = data.individual_voluntary_work
+      payload.individual_voluntary_work = Array.isArray(voluntaryRaw)
+        ? reactive([...voluntaryRaw])
+        : voluntaryRaw
+          ? reactive([voluntaryRaw])
+          : reactive([])
+
+      /** ------------------
+       * Handle L&D
+       * ------------------- */
+      const lndRaw = data.individual_lnd
+      payload.individual_lnd = Array.isArray(lndRaw) ? reactive([...lndRaw]) : lndRaw ? reactive([lndRaw]) : reactive([])
+
+      /** ----------------------------------------
+       * Handle Skills / Recognition / Membership
+       * ----------------------------------------- */
+      payload.individual_skills_hobby = Array.isArray(data.individual_skills_hobby)
+        ? data.individual_skills_hobby
+        : data.individual_skills_hobby
+          ? [data.individual_skills_hobby]
+          : []
+
+      payload.individual_recognition = Array.isArray(data.individual_recognition)
+        ? data.individual_recognition
+        : data.individual_recognition
+          ? [data.individual_recognition]
+          : []
+
+      payload.individual_membership = Array.isArray(data.individual_membership)
+        ? data.individual_membership
+        : data.individual_membership
+          ? [data.individual_membership]
+          : []
     } else {
       console.warn('Failed to fetch PDS by ID or response unsuccessful.')
     }
+  } else if (isManualInput) {
+    // Clear payload fields for manual input
+    payload.individual_voluntary_work.length = 0
+    payload.individual_lnd.length = 0
+    payload.individual_skills_hobby.length = 0
+    payload.individual_recognition.length = 0
+    payload.individual_membership.length = 0
   }
 
   isLoading.value = false
@@ -357,27 +450,62 @@ watch(
   { immediate: true }
 )
 
-const updateC3Form = async () => {
-  IsBeingUpdated.value = true
-  const id = route.params.id as string
-
-  formIsSubmitting.value = true
-
+/**************************************************
+      Validations of C3 with Toast Message
+***************************************************/
+const validateForm = async () => {
   const valid = await validator.value.$validate()
   if (!valid) {
+    const hasVoluntaryWork = Object.values(validator.value.individual_voluntary_work).some(
+      (entry) => (entry as { $error: boolean })?.$error
+    )
+
     const hasLearningDevelopmentError = Object.values(validator.value.individual_lnd).some(
       (entry) => (entry as { $error: boolean })?.$error
     )
 
-    let errorTabs = []
-    if (hasLearningDevelopmentError) errorTabs.push(' Learning and Development (L&D) Interventions / Training Programs Attended')
+    const hasOtherInformationError =
+      Object.values(validator.value.individual_skills_hobby ?? {}).some((entry) => (entry as { $error: boolean })?.$error) ||
+      Object.values(validator.value.individual_recognition ?? {}).some((entry) => (entry as { $error: boolean })?.$error) ||
+      Object.values(validator.value.individual_memebership ?? {}).some((entry) => (entry as { $error: boolean })?.$error)
 
-    const tabList = errorTabs.join(', ')
-    showToast('error', 'Validation Error', `Please check the following tab(s): ${tabList}`)
+    const errorTabs: string[] = []
+    if (hasVoluntaryWork)
+      errorTabs.push('C3 - Voluntary Work or Involvement in Civic / Non-Goverment/People/Voluntary Organization/s')
+    if (hasLearningDevelopmentError)
+      errorTabs.push('C3 - Learning and Development (L&D) Interventions / Training Programs Attended')
+    if (hasOtherInformationError) errorTabs.push('C4 - Other Information (Skills, Recognition, Membership)')
+
+    const sectionDescriptions: Record<string, string> = {
+      'C3 - Voluntary Work or Involvement in Civic / Non-Goverment/People/Voluntary Organization/s':
+        'C3 - Voluntary Work or Involvement in Civic / Non-Goverment/People/Voluntary Organization/s',
+      'C3 - Learning and Development (L&D) Interventions / Training Programs Attended':
+        'C3 - Learning and Development (L&D) Interventions / Training Programs Attended',
+      'C4 - Other Information (Skills, Recognition, Membership)': 'C4 - Other Information (Skills, Recognition, Membership)',
+    }
+
+    errorTabs.forEach((field) => {
+      const message = sectionDescriptions[field] ?? field
+      showToast('error', 'Validation Error - Please check the following', message)
+    })
 
     isC3Loading.value = false
     return { valid: false, errorTabs: ['C3'] }
   }
+
+  return { valid: true }
+}
+
+/**************************************************
+             PDS C3 - UPDATE SERVICE 
+***************************************************/
+const updateC3Form = async () => {
+  IsBeingUpdated.value = true
+  const id = pdsStore.isMyPds
+    ? authStore.authenticatedUser?.user_profile?.individual_basic_detail?.id?.toString() ?? 0
+    : (route.params.id as string)
+
+  formIsSubmitting.value = true
 
   const response = await pdsStore.updatePds(
     { ...payload }, // only payload properties
@@ -385,63 +513,37 @@ const updateC3Form = async () => {
     'C3' // pass form_type as a separate argument if your store expects it
   )
 
-  if (response.success === false) {
+  if (!response.success) {
     const result = parseApiResponseError(response)
 
     isPdsError.value = true
     errorMessage.value = result?.message
     pdsErrors.value = result?.errors
-    showToast('error', 'PDS C3 Error', 'Please see the validation messages')
-  } else {
-    showToast('success', 'PDS', 'PDS has been saved')
+    return { valid: false, errorTabs: ['C3'] }
   }
-
-  formIsSubmitting.value = false
 }
-
-// ──────────────────────────────────────────────────────────
-//          PDS Details Form - Save Handler
-// ──────────────────────────────────────────────────────────
-
+/**************************************************
+            PDS C3 - STORE SERVICE 
+***************************************************/
 const handleSaveC3Form = async () => {
   isC3Loading.value = true
 
-  const valid = await validator.value.$validate()
-  if (!valid) {
-    const hasLearningDevelopmentError = Object.values(validator.value.individual_lnd).some(
-      (entry) => (entry as { $error: boolean })?.$error
-    )
-
-    let errorTabs = []
-    if (hasLearningDevelopmentError) errorTabs.push(' Learning and Development (L&D) Interventions / Training Programs Attended')
-
-    const tabList = errorTabs.join(', ')
-    showToast('error', 'Validation Error', `Please check the following tab(s): ${tabList}`)
-
-    isC3Loading.value = false
-    return { valid: false, errorTabs: ['C3'] }
-  }
-
   const response = await pdsStore.savePds(payload)
 
-  if (response.success === false) {
+  if (!response.success) {
     const result = parseApiResponseError(response)
 
     isPdsError.value = true
     errorMessage.value = result?.message
     pdsErrors.value = result?.errors
-    showToast('error', 'PDS C3 Error', 'Please see the validation messages')
-  } else {
-    showToast('success', 'PDS', 'PDS has been saved')
-    router.push({ name: 'employment' })
+    return { valid: false, errorTabs: ['C3'] }
   }
-
-  isC3Loading.value = false
 }
 
 defineExpose({
   handleSaveC3Form,
   updateC3Form,
+  validateForm,
 })
 </script>
 
@@ -486,8 +588,9 @@ defineExpose({
                       </p>
                     </span>
                     <div class="col-span-2 my-4 ml-4">
-                      <div class="align-items-center flex items-center">
+                      <div v-if="!pdsStore.isMyPds" class="align-items-center flex items-center">
                         <Checkbox
+                          :disabled="pdsStore.isMyPds"
                           v-model="currentlyInvolved"
                           :id="getId('input-currently-involve')"
                           :inputId="getId('input-currently-involve')"
@@ -512,33 +615,37 @@ defineExpose({
                         leaveTo="opacity-0"
                       >
                         <div v-if="!payload.individual_voluntary_work[voluntaryWorkIndex - 1]?._delete">
-                          <div class="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-                            <div>
+                          <div class="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4">
+                            <div class="md:col-span-2">
                               <WbInputText
                                 v-model="payload.individual_voluntary_work[voluntaryWorkIndex - 1].org_name"
                                 label="Name of Organization"
+                                :readonly="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                  validator.individual_voluntary_work[voluntaryWorkIndex - 1].org_name.$error ? 'mb-0' : 'mb-6',
+                                ]"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                                :invalidText="
+                                  validator.individual_voluntary_work[voluntaryWorkIndex - 1].org_name.$errors[0]?.$message
+                                "
+                                :invalid="validator.individual_voluntary_work[voluntaryWorkIndex - 1].org_name.$error"
+                                @blur="validator.individual_voluntary_work[voluntaryWorkIndex - 1].org_name.$touch()"
                               />
                             </div>
-                            <div>
-                              <WbInputText
-                                v-model="payload.individual_voluntary_work[voluntaryWorkIndex - 1].org_address"
-                                label="Address of Organization"
-                                label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                                validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                              />
-                            </div>
-                          </div>
-                          <div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-6">
                             <div>
                               <WbCalendar
                                 v-model="payload.individual_voluntary_work[voluntaryWorkIndex - 1].from"
                                 label="From"
+                                :readonly="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                  validator.individual_voluntary_work[voluntaryWorkIndex - 1].from.$error ? 'mb-0' : 'mb-6',
+                                ]"
                                 :dateFormat="'yy-mm-dd'"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalidText="
@@ -555,8 +662,14 @@ defineExpose({
                                 v-if="!currentlyInvolved"
                                 v-model="payload.individual_voluntary_work[voluntaryWorkIndex - 1].to"
                                 label="To"
+                                :readonly="pdsStore.isMyPds"
                                 :dateFormat="'yy-mm-dd'"
                                 class="w-full text-sm"
+                                :class="[
+                                  'w-full text-sm',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                  validator.individual_voluntary_work[voluntaryWorkIndex - 1].to.$error ? 'mb-0' : 'mb-6',
+                                ]"
                                 label-class="text-md text-surface-600 md:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold"
                                 :invalidText="validator.individual_voluntary_work[voluntaryWorkIndex - 1].to.$errors[0]?.$message"
@@ -581,8 +694,13 @@ defineExpose({
                               <WbCalendar
                                 v-model="payload.individual_voluntary_work[voluntaryWorkIndex - 1].to"
                                 label="To"
+                                :readonly="pdsStore.isMyPds"
                                 :dateFormat="'yy-mm-dd'"
-                                class="w-full text-sm"
+                                :class="[
+                                  'w-full text-sm',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                  validator.individual_voluntary_work[voluntaryWorkIndex - 1].to.$error ? 'mb-0' : 'mb-6',
+                                ]"
                                 label-class="text-md text-surface-600 md:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalidText="validator.individual_voluntary_work[voluntaryWorkIndex - 1].to.$errors[0]?.$message"
@@ -590,33 +708,69 @@ defineExpose({
                                 @blur="validator.individual_voluntary_work[voluntaryWorkIndex - 1].to.$touch()"
                               />
                             </div>
-
+                          </div>
+                          <div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-6">
                             <div>
                               <WbInputText
                                 v-model="payload.individual_voluntary_work[voluntaryWorkIndex - 1].number_of_hours"
                                 label="No of Hours"
+                                :readonly="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                  validator.individual_voluntary_work[voluntaryWorkIndex - 1].number_of_hours.$error
+                                    ? 'mb-0'
+                                    : 'mb-6',
+                                ]"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                                :invalidText="
+                                  validator.individual_voluntary_work[voluntaryWorkIndex - 1].number_of_hours.$errors[0]?.$message
+                                "
+                                :invalid="validator.individual_voluntary_work[voluntaryWorkIndex - 1].number_of_hours.$error"
+                                @blur="validator.individual_voluntary_work[voluntaryWorkIndex - 1].number_of_hours.$touch()"
                               />
                             </div>
-                            <div class="flex items-end gap-2 md:col-span-3">
+                            <div class="flex items-end gap-2 md:col-span-5">
                               <WbInputText
                                 v-model="payload.individual_voluntary_work[voluntaryWorkIndex - 1].position_nature_of_work"
                                 label="Position / Nature of Work"
+                                :readonly="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                  validator.individual_voluntary_work[voluntaryWorkIndex - 1].position_nature_of_work.$error
+                                    ? 'mb-0'
+                                    : 'mb-10',
+                                ]"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                                :invalidText="
+                                  validator.individual_voluntary_work[voluntaryWorkIndex - 1].position_nature_of_work.$errors[0]
+                                    ?.$message
+                                "
+                                :invalid="
+                                  validator.individual_voluntary_work[voluntaryWorkIndex - 1].position_nature_of_work.$error
+                                "
+                                @blur="
+                                  validator.individual_voluntary_work[voluntaryWorkIndex - 1].position_nature_of_work.$touch()
+                                "
                               />
                               <!-- Delete button aligned right, below label -->
                               <Button
+                                v-if="!pdsStore.isMyPds"
                                 v-show="voluntaryWorkIndex > 0"
                                 :id="getId(`button-remove-voluntary-work-${voluntaryWorkIndex}`)"
                                 icon="pi pi-trash"
                                 @click="handleRemoveVoluntaryWork(voluntaryWorkIndex)"
                                 v-tooltip.top="'Remove Voluntary Work'"
                                 severity="danger"
-                                class="mb-2 text-lg font-semibold dark:text-primary-100"
+                                :class="[
+                                  'text-lg font-semibold dark:text-primary-100',
+                                  validator.individual_voluntary_work[voluntaryWorkIndex - 1].position_nature_of_work.$error
+                                    ? 'mb-8'
+                                    : 'mb-12',
+                                ]"
                                 text
                               />
                             </div>
@@ -626,7 +780,7 @@ defineExpose({
                       </TransitionRoot>
                     </template>
                     <Button
-                      v-if="payload.individual_voluntary_work.length < 7"
+                      v-if="payload.individual_voluntary_work.length < 7 && !pdsStore.isMyPds"
                       label="Add additional Voluntary Work field"
                       @click="handleAdditionalVoluntaryWork"
                       size="large"
@@ -685,8 +839,13 @@ defineExpose({
                               <WbInputText
                                 v-model="payload.individual_lnd[learningDevelopmentIndex - 1].title"
                                 label="Title of L & D Interventions / Training Programs"
+                                :readonly="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-xs md:mb-1"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                  validator.individual_lnd[learningDevelopmentIndex - 1].title.$error ? 'mb-0' : 'mb-6',
+                                ]"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalidText="validator.individual_lnd[learningDevelopmentIndex - 1].title.$errors[0]?.$message"
                                 :invalid="validator.individual_lnd[learningDevelopmentIndex - 1].title.$error"
@@ -699,8 +858,13 @@ defineExpose({
                               <WbCalendar
                                 v-model="payload.individual_lnd[learningDevelopmentIndex - 1].from"
                                 label="From"
+                                :readonly="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                  validator.individual_lnd[learningDevelopmentIndex - 1].from.$error ? 'mb-0' : 'mb-6',
+                                ]"
                                 :dateFormat="'yy-mm-dd'"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalidText="validator.individual_lnd[learningDevelopmentIndex - 1].from.$errors[0]?.$message"
@@ -714,8 +878,13 @@ defineExpose({
                               <WbCalendar
                                 v-model="payload.individual_lnd[learningDevelopmentIndex - 1].to"
                                 label="To"
+                                :readonly="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                  validator.individual_lnd[learningDevelopmentIndex - 1].to.$error ? 'mb-0' : 'mb-2',
+                                ]"
                                 :dateFormat="'yy-mm-dd'"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalidText="validator.individual_lnd[learningDevelopmentIndex - 1].to.$errors[0]?.$message"
@@ -729,8 +898,13 @@ defineExpose({
                               <WbInputText
                                 v-model="payload.individual_lnd[learningDevelopmentIndex - 1].number_of_hours"
                                 label="No of Hours"
+                                :readonly="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                  validator.individual_lnd[learningDevelopmentIndex - 1].number_of_hours.$error ? 'mb-0' : 'mb-6',
+                                ]"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalidText="
                                   validator.individual_lnd[learningDevelopmentIndex - 1].number_of_hours.$errors[0]?.$message
@@ -747,8 +921,13 @@ defineExpose({
                               <WbInputText
                                 v-model="payload.individual_lnd[learningDevelopmentIndex - 1].type"
                                 label="Type of LD"
+                                :readonly="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                  validator.individual_lnd[learningDevelopmentIndex - 1].type.$error ? 'mb-0' : 'mb-2',
+                                ]"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalidText="validator.individual_lnd[learningDevelopmentIndex - 1].type.$errors[0]?.$message"
                                 :invalid="validator.individual_lnd[learningDevelopmentIndex - 1].type.$error"
@@ -762,8 +941,15 @@ defineExpose({
                               <WbInputText
                                 v-model="payload.individual_lnd[learningDevelopmentIndex - 1].conducted_sponsor"
                                 label="Conducted / Sponsored By"
+                                :readonly="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md flex-1 text-sm placeholder:text-sm"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md flex-1 text-sm placeholder:text-sm',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                  validator.individual_lnd[learningDevelopmentIndex - 1].conducted_sponsor.$error
+                                    ? 'mb-0'
+                                    : 'mb-6',
+                                ]"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                                 :invalidText="
                                   validator.individual_lnd[learningDevelopmentIndex - 1].conducted_sponsor.$errors[0]?.$message
@@ -774,13 +960,19 @@ defineExpose({
                               />
                               <!-- Delete button aligned right, below label -->
                               <Button
+                                v-if="!pdsStore.isMyPds"
                                 v-show="learningDevelopmentIndex > 0"
                                 :id="getId(`button-remove-learning-development-${learningDevelopmentIndex}`)"
                                 icon="pi pi-trash"
                                 @click="handleRemoveLearningDevelopment(learningDevelopmentIndex)"
                                 v-tooltip.top="'Remove L&D'"
                                 severity="danger"
-                                class="mb-2 text-lg font-semibold dark:text-primary-100"
+                                :class="[
+                                  'text-lg font-semibold dark:text-primary-100',
+                                  validator.individual_lnd[learningDevelopmentIndex - 1].conducted_sponsor.$error
+                                    ? 'mb-8'
+                                    : 'mb-2',
+                                ]"
                                 text
                               />
                             </div>
@@ -791,7 +983,7 @@ defineExpose({
                     </template>
 
                     <Button
-                      v-if="payload.individual_lnd.length < 21"
+                      v-if="payload.individual_lnd.length < 21 && !pdsStore.isMyPds"
                       label="Add additional L&D field"
                       @click="handleAdditionalLearningDevelopment"
                       size="large"
@@ -826,7 +1018,7 @@ defineExpose({
                   leaveFrom="opacity-100"
                   leaveTo="opacity-0"
                 >
-                  <!-- VI. Voluntary Work or Involvement in Civic / Non-Government / People / Voluntary Organization/s -->
+                  <!-- Special Skills and Hobbies -->
                   <div class="flex flex-col gap-4">
                     <span class="flex flex-col justify-center space-y-2 font-medium">
                       <p class="mr-6 text-xl italic text-primary-700 md:text-2xl">VIII. Other Information</p>
@@ -850,19 +1042,32 @@ defineExpose({
                               <WbInputText
                                 v-model="payload.individual_skills_hobby[skillHobbiesIndex - 1].skill_hobby"
                                 label="Special Skill / Hobby"
+                                :readonly="pdsStore.isMyPds"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                                :invalidText="
+                                  validator.individual_skills_hobby[skillHobbiesIndex - 1]?.skill_hobby.$errors[0]?.$message
+                                "
+                                :invalid="validator.individual_skills_hobby[skillHobbiesIndex - 1]?.skill_hobby.$error"
+                                @blur="validator.individual_skills_hobby[skillHobbiesIndex - 1]?.skill_hobby.$touch()"
                               />
                               <!-- Delete button aligned right, below label -->
                               <Button
+                                v-if="!pdsStore.isMyPds"
                                 v-show="skillHobbiesIndex > 0"
                                 :id="getId(`button-remove-skill-hobbies-${skillHobbiesIndex}`)"
                                 icon="pi pi-trash"
                                 @click="handleRemoveSkillHobbies(skillHobbiesIndex)"
                                 v-tooltip.top="'Remove Special Skills and Hobbies'"
                                 severity="danger"
-                                class="mb-2 text-lg font-semibold dark:text-primary-100 md:mb-2"
+                                :class="[
+                                  'text-lg font-semibold dark:text-primary-100',
+                                  validator.individual_skills_hobby[skillHobbiesIndex - 1].skill_hobby.$error ? 'mb-8' : 'mb-2',
+                                ]"
                                 text
                               />
                             </div>
@@ -872,7 +1077,7 @@ defineExpose({
                       </TransitionRoot>
                     </template>
                     <Button
-                      v-if="payload.individual_skills_hobby.length < 7"
+                      v-if="payload.individual_skills_hobby.length < 7 && !pdsStore.isMyPds"
                       label="Add additional Special Skills and Hobbies field"
                       @click="handleAdditionalSkillHobbies"
                       size="large"
@@ -914,19 +1119,32 @@ defineExpose({
                               <WbInputText
                                 v-model="payload.individual_recognition[recognitionIndex - 1].recognition"
                                 label="Non-Academic Distinction / Recognition"
+                                :readonly="pdsStore.isMyPds"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                                :invalidText="
+                                  validator.individual_recognition[recognitionIndex - 1]?.recognition.$errors[0]?.$message
+                                "
+                                :invalid="validator.individual_recognition[recognitionIndex - 1]?.recognition.$error"
+                                @blur="validator.individual_recognition[recognitionIndex - 1]?.recognition.$touch()"
                               />
                               <!-- Delete button aligned right, below label -->
                               <Button
+                                v-if="!pdsStore.isMyPds"
                                 v-show="recognitionIndex > 0"
                                 :id="getId(`button-remove-recognition-${recognitionIndex}`)"
                                 icon="pi pi-trash"
                                 @click="handleRemoveRecognition(recognitionIndex)"
                                 v-tooltip.top="'Remove Non-Academic Distinctions / Recognition'"
                                 severity="danger"
-                                class="mb-2 text-lg font-semibold dark:text-primary-100 md:mb-2"
+                                :class="[
+                                  'text-lg font-semibold dark:text-primary-100',
+                                  validator.individual_recognition[recognitionIndex - 1]?.recognition.$error ? 'mb-8' : 'mb-2',
+                                ]"
                                 text
                               />
                             </div>
@@ -936,7 +1154,7 @@ defineExpose({
                       </TransitionRoot>
                     </template>
                     <Button
-                      v-if="payload.individual_work_experience.length < 7"
+                      v-if="payload.individual_recognition.length < 7 && !pdsStore.isMyPds"
                       label="Add additional Non-Academic Distinctions / Recognition field"
                       @click="handleAdditionalRecognition"
                       size="large"
@@ -956,7 +1174,7 @@ defineExpose({
                     </span>
                   </div>
 
-                  <!-- VIII. Other Information -->
+                  <!-- Membership in Association / Organization -->
                   <div class="flex flex-col gap-4">
                     <span class="flex flex-col justify-center space-y-2 font-medium">
                       <p class="text-xl italic text-primary-700 md:text-2xl">Membership in Association / Organization</p>
@@ -979,19 +1197,35 @@ defineExpose({
                               <WbInputText
                                 v-model="payload.individual_membership[membershipIndex - 1].association_organization"
                                 label="Association / Organization"
+                                :readonly="pdsStore.isMyPds"
+                                :class="[
+                                  'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                                 validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                                :invalidText="
+                                  validator.individual_membership[membershipIndex - 1]?.association_organization.$errors[0]
+                                    ?.$message
+                                "
+                                :invalid="validator.individual_membership[membershipIndex - 1]?.association_organization.$error"
+                                @blur="validator.individual_membership[membershipIndex - 1]?.association_organization.$touch()"
                               />
                               <!-- Delete button aligned right, below label -->
                               <Button
+                                v-if="!pdsStore.isMyPds"
                                 v-show="membershipIndex > 0"
                                 :id="getId(`button-remove-membership-${membershipIndex}`)"
                                 icon="pi pi-trash"
                                 @click="handleRemoveMembership(membershipIndex)"
                                 v-tooltip.top="'Remove Membership in Association / Organization'"
                                 severity="danger"
-                                class="mb-2 text-lg font-semibold dark:text-primary-100 md:mb-2"
+                                :class="[
+                                  'text-lg font-semibold dark:text-primary-100',
+                                  validator.individual_membership[membershipIndex - 1]?.association_organization.$error
+                                    ? 'mb-8'
+                                    : 'mb-2',
+                                ]"
                                 text
                               />
                             </div>
@@ -1001,7 +1235,7 @@ defineExpose({
                       </TransitionRoot>
                     </template>
                     <Button
-                      v-if="payload.individual_work_experience.length < 28"
+                      v-if="payload.individual_membership.length < 7 && !pdsStore.isMyPds"
                       label="Add additional Membership in Association / Organization field"
                       @click="handleAdditionalMembership"
                       size="large"

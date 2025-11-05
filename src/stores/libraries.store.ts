@@ -1,13 +1,41 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { WbAutoCompleteOption } from '@/components/webkit/WbAutoComplete.vue'
-import { DivisionResponse, ItemNumberResponse, OfficesResponse, SectionorUnitResponse } from '@/typings/models.types'
+import {
+  DivisionResponse,
+  ItemNumberResponse,
+  OfficesResponse,
+  SectionorUnitResponse,
+  ProgramResponse,
+  CountriesResponse,
+} from '@/typings/models.types'
 import { ApiResponseBody } from '@/typings/http-resources.types'
 import { useApiCall } from '@/composables/network'
 import { useAuthStore } from './auth.store'
 
+export type OfficePayload = {
+  name: string
+}
+
+export type DivisionPayload = {
+  name: string
+}
+
+export type SectionorUnitPayload = {
+  name: string
+  division_id: string
+}
+
+export type ProgramPayload = {
+  name: string
+}
+
 export const useLibrariesStore = defineStore('libraries', () => {
   /** States */
+  const offices = ref<OfficesResponse[]>([])
+  const divisions = ref<DivisionResponse[]>([])
+  const sectionsorunits = ref<SectionorUnitResponse[]>([])
+  const programs = ref<ProgramResponse[]>([])
   const officeOptions = ref<WbAutoCompleteOption[]>([])
   const officeOptionsLoading = ref(false)
   const authStore = useAuthStore()
@@ -81,6 +109,37 @@ export const useLibrariesStore = defineStore('libraries', () => {
     return res
   }
 
+  const fetchCountry = async () => {
+    if (countryOptions.value.length > 0) return
+
+    countryOptionsLoading.value = true
+
+    const { data } = await useApiCall('/libraries/countries?limit=1000', authStore.authenticationToken).get().json()
+    const res: ApiResponseBody = data.value
+
+    if (res.success && Array.isArray(res.data)) {
+      const countryList = res.data as CountriesResponse[]
+      countryOptions.value = countryList.map((country) => ({
+        value: country.id,
+        label: country.official_name ?? '',
+      }))
+    }
+
+    countryOptionsLoading.value = false
+    return res
+  }
+
+  const createOffices = async (user: Partial<OfficesResponse>) => {
+    const { data } = await useApiCall('/libraries/offices/', authStore.authenticationToken).post(user).json()
+    const responseBody: ApiResponseBody = data.value
+
+    if (responseBody.success) {
+      offices.value.unshift(responseBody.data as OfficesResponse)
+    }
+
+    return responseBody
+  }
+
   const fetchOffices = async () => {
     if (officeOptions.value.length > 0) return
 
@@ -101,6 +160,47 @@ export const useLibrariesStore = defineStore('libraries', () => {
 
     officeOptionsLoading.value = false
     return res
+  }
+
+  const fetchListOffices = async (limit: number = 15, page: number | null = null) => {
+    let uri = `/libraries/offices?limit=${limit}&sort=asc`
+    if (page) uri += `&page=${page}`
+
+    const { data } = await useApiCall(uri, authStore.authenticationToken).get().json()
+    const responseBody: ApiResponseBody = data.value
+
+    if (responseBody.success) {
+      const officesList = responseBody.data as OfficesResponse[]
+      offices.value = [...officesList]
+    }
+
+    return responseBody
+  }
+
+  const searchListOffices = async (query: string | null) => {
+    let uri = '/libraries/offices/search?'
+    if (query) uri += `query=${query}`
+
+    const { data } = await useApiCall(uri, authStore.authenticationToken).get().json()
+    const responseBody: ApiResponseBody = data.value
+
+    if (responseBody.success) {
+      const officesList = responseBody.data as OfficesResponse[]
+      offices.value = [...officesList]
+    }
+
+    return responseBody
+  }
+
+  const createDivisions = async (user: Partial<OfficesResponse>) => {
+    const { data } = await useApiCall('/divisions/offices/', authStore.authenticationToken).post(user).json()
+    const responseBody: ApiResponseBody = data.value
+
+    if (responseBody.success) {
+      divisions.value.unshift(responseBody.data as OfficesResponse)
+    }
+
+    return responseBody
   }
 
   const fetchDivisions = async () => {
@@ -125,6 +225,47 @@ export const useLibrariesStore = defineStore('libraries', () => {
     return res
   }
 
+  const fetchListDivisions = async (limit: number = 15, page: number | null = null) => {
+    let uri = `/libraries/divisions?limit=${limit}&sort=asc`
+    if (page) uri += `&page=${page}`
+
+    const { data } = await useApiCall(uri, authStore.authenticationToken).get().json()
+    const responseBody: ApiResponseBody = data.value
+
+    if (responseBody.success) {
+      const divisionsList = responseBody.data as DivisionResponse[]
+      divisions.value = [...divisionsList]
+    }
+
+    return responseBody
+  }
+
+  const searchListDivisions = async (query: string | null) => {
+    let uri = '/libraries/divisions/search?'
+    if (query) uri += `query=${query}`
+
+    const { data } = await useApiCall(uri, authStore.authenticationToken).get().json()
+    const responseBody: ApiResponseBody = data.value
+
+    if (responseBody.success) {
+      const divisionsList = responseBody.data as DivisionResponse[]
+      divisions.value = [...divisionsList]
+    }
+
+    return responseBody
+  }
+
+  const createSectionUnits = async (user: Partial<SectionorUnitResponse>) => {
+    const { data } = await useApiCall('/divisions/section-or-units/', authStore.authenticationToken).post(user).json()
+    const responseBody: ApiResponseBody = data.value
+
+    if (responseBody.success) {
+      sectionsorunits.value.unshift(responseBody.data as SectionorUnitResponse)
+    }
+
+    return responseBody
+  }
+
   const fetchSectionUnits = async () => {
     if (sectionUnitOptions.value.length > 0) return null
 
@@ -147,21 +288,123 @@ export const useLibrariesStore = defineStore('libraries', () => {
     return res
   }
 
-  /** Actions */
+  const fetchListSectionUnits = async (limit: number = 15, page: number | null = null) => {
+    let uri = `/libraries/section-or-units?limit=${limit}&sort=asc`
+    if (page) uri += `&page=${page}`
 
+    const { data } = await useApiCall(uri, authStore.authenticationToken).get().json()
+    const responseBody: ApiResponseBody = data.value
+
+    if (responseBody.success) {
+      const sectionorunitsList = responseBody.data as SectionorUnitResponse[]
+      sectionsorunits.value = [...sectionorunitsList]
+    }
+
+    return responseBody
+  }
+
+  const searchListSectionUnits = async (query: string | null) => {
+    let uri = '/libraries/section-or-units/search?'
+    if (query) uri += `query=${query}`
+
+    const { data } = await useApiCall(uri, authStore.authenticationToken).get().json()
+    const responseBody: ApiResponseBody = data.value
+
+    if (responseBody.success) {
+      const sectionorunitsList = responseBody.data as SectionorUnitResponse[]
+      sectionsorunits.value = [...sectionorunitsList]
+    }
+
+    return responseBody
+  }
+
+  const filterListSectionUnits = async (divisions: string | null) => {
+    let uri = '/libraries/section-or-units'
+    if (divisions) uri += `?division=${encodeURIComponent(divisions)}`
+    const { data } = await useApiCall(uri, authStore.authenticationToken).get().json()
+    const responseBody: ApiResponseBody = data.value
+    if (responseBody.success) {
+      const sectionorunitsList = responseBody.data as SectionorUnitResponse[]
+      sectionsorunits.value = [...sectionorunitsList]
+    }
+    return responseBody
+  }
+
+  /* Programs */
+
+  const createPrograms = async (user: Partial<ProgramResponse>) => {
+    const { data } = await useApiCall('/libraries/programs/', authStore.authenticationToken).post(user).json()
+    const responseBody: ApiResponseBody = data.value
+
+    if (responseBody.success) {
+      programs.value.unshift(responseBody.data as ProgramResponse)
+    }
+
+    return responseBody
+  }
+
+  const fetchListPrograms = async (limit: number = 15, page: number | null = null) => {
+    let uri = `/libraries/programs?limit=${limit}&sort=asc`
+    if (page) uri += `&page=${page}`
+
+    const { data } = await useApiCall(uri, authStore.authenticationToken).get().json()
+    const responseBody: ApiResponseBody = data.value
+
+    if (responseBody.success) {
+      const programsList = responseBody.data as ProgramResponse[]
+      programs.value = [...programsList]
+    }
+
+    return responseBody
+  }
+
+  const searchListPrograms = async (query: string | null) => {
+    let uri = '/libraries/programs/search?'
+    if (query) uri += `query=${query}`
+
+    const { data } = await useApiCall(uri, authStore.authenticationToken).get().json()
+    const responseBody: ApiResponseBody = data.value
+
+    if (responseBody.success) {
+      const programsList = responseBody.data as SectionorUnitResponse[]
+      programs.value = [...programsList]
+    }
+
+    return responseBody
+  }
+
+  /** Actions */
   return {
     fetchItems,
     itemsOptions,
     itemsOptionsLoading,
+    offices,
+    fetchCountry,
+    createOffices,
     fetchOffices,
+    fetchListOffices,
+    searchListOffices,
     officeOptions,
     officeOptionsLoading,
+    divisions,
+    createDivisions,
     fetchDivisions,
+    fetchListDivisions,
+    searchListDivisions,
     divisionOptions,
     divisionOptionsLoading,
+    sectionsorunits,
+    createSectionUnits,
     fetchSectionUnits,
+    fetchListSectionUnits,
+    searchListSectionUnits,
+    filterListSectionUnits,
     sectionUnitOptions,
     sectionUnitOptionsLoading,
+    programs,
+    createPrograms,
+    fetchListPrograms,
+    searchListPrograms,
     fundingSourcesOptions,
     fundingSourcesOptionsLoading,
     positionsOptions,

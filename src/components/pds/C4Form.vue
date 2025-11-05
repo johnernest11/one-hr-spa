@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { reactive, ref, computed, onMounted, toRef, watch } from 'vue'
 import { usePdsStore, PersonalDataSheetPayload } from '@/stores/pds.store.ts'
+import { useAuthStore } from '@/stores/auth.store.ts'
 import { useLibrariesStore } from '@/stores/libraries.store.ts'
-import { useRouter } from 'vue-router'
 import { useRoute } from 'vue-router'
 import { IndividualQuestion } from '@/typings/models.types.ts'
 
@@ -17,18 +17,18 @@ import { useWbAutoCompleteHandleTrueValue } from '@/composables/wb-ui-components
 
 import { useToast } from 'primevue/usetoast'
 import { parseApiResponseError } from '@/utils/error-handle.ts'
-import { helpers, required } from '@vuelidate/validators'
+import { helpers, required, maxLength } from '@vuelidate/validators'
 import { TabGroup, TabList, Tab, TabPanels, TabPanel } from '@headlessui/vue'
 import { mobilePhoneRule } from '@/utils/custom-validations'
-import { usePrependOrAppendOnce } from '@/utils/helpers.js'
+import { usePrependOrAppendOnce, notInFuture } from '@/utils/helpers.js'
 import { TransitionRoot } from '@headlessui/vue'
 import { PersonnelResponse } from '@/typings/models.types'
 
 const getId = usePrependOrAppendOnce('pds-c3-section-form')
 const pdsStore = usePdsStore()
 const libraryStore = useLibrariesStore()
+const authStore = useAuthStore()
 const toast = useToast()
-const router = useRouter()
 const route = useRoute()
 
 const formIsSubmitting = ref(false)
@@ -41,9 +41,11 @@ const isLoading = ref(true)
 const errorDetails = ref<string[]>([])
 
 const isC4Loading = ref(false)
+const isMyPds = route.name === 'my-pds'
 const isPdsError = ref(false)
 const activeToasts = ref<number>(0)
-const selectedCountry = ref<WbAutoCompleteOption[] | null>(null)
+const selectedCountry = ref<WbAutoCompleteOption | null>(null)
+
 const c4Tabs = ref([
   { name: ' Other Information Continued', index: 0 },
   { name: ' References & Gov` Issued ID', index: 1 },
@@ -54,76 +56,137 @@ const payload = reactive<PersonalDataSheetPayload>({
   ...pdsStore.pdsInfo,
 })
 
+if (!payload.individual_question || !payload.individual_question.length) {
+  payload.individual_question = [
+    {
+      id: null,
+      q34_a: false,
+      q34_b: false,
+      q34_details: null,
+      q35_a: false,
+      q35_a_details: null,
+      q35_b: false,
+      q35_b_date_filed: null,
+      q35_b_status: null,
+      q36: false,
+      q36_details: null,
+      q37: false,
+      q37_details: null,
+      q38_a: false,
+      q38_a_details: null,
+      q38_b: false,
+      q38_b_details: null,
+      q39: false,
+      country_id: null,
+      q40_a_indigenous_group: false,
+      q40_a_details: null,
+      q40_b_pwd: false,
+      q40_b_details: null,
+      q40_c_solo_parent: false,
+      q40_c_details: null,
+    },
+  ]
+}
+
 const conditionalRequiredIfTrue = (fields: keyof IndividualQuestion | (keyof IndividualQuestion)[]) =>
   helpers.withMessage('Please provide details if you answered YES.', (val: unknown, vm: IndividualQuestion) => {
     const fieldList = Array.isArray(fields) ? fields : [fields]
     return fieldList.some((field) => vm[field] === true) ? helpers.req(val) : true
   })
 
+const uniqueField = <T extends Record<string, unknown>>(references: T[], field: keyof T, message: string) =>
+  helpers.withMessage(message, (value: unknown) => {
+    if (!value) return true // let required handle empty
+    const values = references.map((ref) => ref[field])
+    const count = values.filter((v) => v === value).length
+    return count <= 1
+  })
+
+const globalStringMaxLength = import.meta.env.VITE_GLOBAL_STRING_MAX_LENGTH
+const globalStringMaxLengthRule = helpers.withMessage(
+  `Must not exceed ${globalStringMaxLength} characters`,
+  maxLength(globalStringMaxLength)
+)
+
 const formRules = computed(() => ({
-  individual_question: {
+  individual_question: payload.individual_question.map(() => ({
     q34_details: {
       required: conditionalRequiredIfTrue(['q34_a', 'q34_b']),
+      maxLength: globalStringMaxLengthRule,
     },
     q35_a_details: {
       required: conditionalRequiredIfTrue('q35_a'),
+      maxLength: globalStringMaxLengthRule,
     },
     q35_b_date_filed: {
       required: conditionalRequiredIfTrue('q35_b'),
+      notInFuture: helpers.withMessage('Start date must not be in the future.', notInFuture),
     },
     q35_b_status: {
       required: conditionalRequiredIfTrue('q35_b'),
+      maxLength: globalStringMaxLengthRule,
     },
     q36_details: {
       required: conditionalRequiredIfTrue('q36'),
+      maxLength: globalStringMaxLengthRule,
     },
     q37_details: {
       required: conditionalRequiredIfTrue('q37'),
+      maxLength: globalStringMaxLengthRule,
     },
     q38_a_details: {
       required: conditionalRequiredIfTrue('q38_a'),
+      maxLength: globalStringMaxLengthRule,
     },
     q38_b_details: {
       required: conditionalRequiredIfTrue('q38_b'),
+      maxLength: globalStringMaxLengthRule,
     },
     country_id: {
       required: conditionalRequiredIfTrue('q39'),
+      maxLength: globalStringMaxLengthRule,
     },
     q40_a_details: {
       required: conditionalRequiredIfTrue('q40_a_indigenous_group'),
+      maxLength: globalStringMaxLengthRule,
     },
     q40_b_details: {
       required: conditionalRequiredIfTrue('q40_b_pwd'),
+      maxLength: globalStringMaxLengthRule,
     },
     q40_c_details: {
       required: conditionalRequiredIfTrue('q40_c_solo_parent'),
+      maxLength: globalStringMaxLengthRule,
     },
-  },
+  })),
   individual_reference: payload.individual_reference.map(() => ({
     name: {
       required: helpers.withMessage('Name is required.', required),
+      maxLength: globalStringMaxLengthRule,
+      unique: uniqueField(payload.individual_reference, 'name', 'Character references name already exists.'),
     },
     address: {
       required: helpers.withMessage('Address is required.', required),
+      maxLength: globalStringMaxLengthRule,
     },
     tel_no: {
       required: helpers.withMessage('Tel No. Sponsor is required.', required),
       tel_no: helpers.withMessage('Must be a valid PH mobile number', mobilePhoneRule()),
+      unique: uniqueField(payload.individual_reference, 'tel_no', 'Character references tel no already provided/exists.'),
     },
   })),
   individual_government_id: {
-    gov_id_name: {
-      required: helpers.withMessage('Goverment Id is required.', required),
+    gov_issued_id: {
+      required: helpers.withMessage('Government Id is required.', required),
+      maxLength: globalStringMaxLengthRule,
     },
-    gov_id_no: {
-      required: helpers.withMessage('ID No is required.', required),
-    },
-    gov_id_issuance: {
-      required: helpers.withMessage('Date/Place of Issuance Sponsor is required.', required),
+    gov_id_no: { required: helpers.withMessage('ID No is required.', required), maxLength: globalStringMaxLengthRule },
+    gov_issuance: {
+      required: helpers.withMessage('Date/Place of Issuance is required.', required),
+      maxLength: globalStringMaxLengthRule,
     },
   },
 }))
-
 const validator = useVuelidate<PersonalDataSheetPayload>(formRules, payload)
 
 const showToast = (
@@ -142,95 +205,255 @@ const showToast = (
 
     setTimeout(() => {
       activeToasts.value--
-    }, 5000)
+    }, 10000)
   }
 }
 
 const handleAdditionalReference = () => {
-  if (payload.individual_reference.length < 3) {
+  if (payload.individual_reference.filter((ref) => !ref._delete).length < 3) {
     payload.individual_reference.push({
-      name: null,
-      address: null,
-      tel_no: null,
+      id: null,
+      name: '',
+      address: '',
+      tel_no: '',
+      _delete: false,
     })
   }
 }
 
 const handleRemoveReference = (referenceIndex: number) => {
-  payload.individual_reference?.splice(referenceIndex, 1)
-}
+  const idx = referenceIndex - 1
+  const reference = payload.individual_reference?.[idx]
 
-// ──────────────────────────────────────────────────────────
-//          PDS Details Form - Fetching by ID & Update
-// ──────────────────────────────────────────────────────────
-type pdsDetailsFormProps = {
-  personnelPds?: PersonnelResponse | null
-}
-const props = defineProps<pdsDetailsFormProps>()
-onMounted(async () => {
-  const id = route.params.id as string
-  if (id) {
-    const response = await pdsStore.fetchPdsById(id)
-
-    if (response && response.success) {
-      console.log('Fetched PDS data:', response.data)
-      pdsStore.updatePdsFromPersonnel(response.data as PersonnelResponse)
+  if (reference?.id) {
+    payload.individual_reference[idx] = {
+      ...reference,
+      _delete: true,
+    }
+  } else {
+    if (payload.individual_reference.length === 1) {
+      payload.individual_reference[idx] = {
+        id: null,
+        name: null,
+        address: null,
+        tel_no: null,
+        _delete: null,
+      }
     } else {
-      console.warn('Failed to fetch PDS by ID or response unsuccessful.')
+      payload.individual_reference.splice(idx, 1)
     }
   }
+}
+
+/***Clear the payload to default when manual input mode is detected***/
+const formKey = ref(0)
+const resetPdsPayload = () => {
+  // Government ID
+  payload.individual_government_id.id = null
+  payload.individual_government_id.gov_issued_id = ''
+  payload.individual_government_id.gov_id_no = ''
+  payload.individual_government_id.gov_issuance = ''
+
+  // Questions
+  payload.individual_question.splice(0, payload.individual_question.length, {
+    id: null,
+    q34_a: false,
+    q34_b: false,
+    q34_details: null,
+    q35_a: false,
+    q35_a_details: null,
+    q35_b: false,
+    q35_b_date_filed: null,
+    q35_b_status: null,
+    q36: false,
+    q36_details: null,
+    q37: false,
+    q37_details: null,
+    q38_a: false,
+    q38_a_details: null,
+    q38_b: false,
+    q38_b_details: null,
+    q39: false,
+    country_id: null,
+    q40_a_indigenous_group: false,
+    q40_a_details: null,
+    q40_b_pwd: false,
+    q40_b_details: null,
+    q40_c_solo_parent: false,
+    q40_c_details: null,
+  })
+
+  // References
+  payload.individual_reference.splice(0, payload.individual_reference.length, {
+    id: null,
+    name: '',
+    address: '',
+    tel_no: '',
+    _delete: null,
+  })
+}
+
+/**************************************************
+     PDS Details Form - Fetching by ID & Update
+************************************************* */
+onMounted(async () => {
+  /*********Manual Input Mode*********/
+  if (route.query.mode === 'via-manual-input') {
+    console.info('Manual input detected on mount → resetting payload.')
+    resetPdsPayload()
+    formKey.value++
+    isLoading.value = false
+    return
+  }
+
+  /*********Fetch Existing PDS*********/
+  const id = route.params.id as string
+  if (!id) {
+    console.log('No ID in route, skipping fetch.')
+    isLoading.value = false
+    return
+  }
+
+  const response = await pdsStore.fetchPdsById(id)
+  if (!response?.success) {
+    console.warn('Failed to fetch PDS by ID or response unsuccessful.')
+    isLoading.value = false
+    return
+  }
+
+  console.log('Fetched PDS data:', response.data)
+  const data = response.data as PersonnelResponse
+  pdsStore.updatePdsFromPersonnel(data)
+
+  // -------------------------
+  // Government ID
+  // -------------------------
+  payload.individual_government_id = data.individual_government_id
+    ? Array.isArray(data.individual_government_id)
+      ? data.individual_government_id.length
+        ? { ...data.individual_government_id[0] }
+        : { id: null, gov_issued_id: '', gov_id_no: '', gov_issuance: '' }
+      : { ...data.individual_government_id }
+    : { id: null, gov_issued_id: '', gov_id_no: '', gov_issuance: '' }
+
+  // -------------------------
+  // Questions
+  // -------------------------
+  payload.individual_question = Array.isArray(data.individual_question)
+    ? JSON.parse(JSON.stringify(data.individual_question))
+    : data.individual_question
+      ? [JSON.parse(JSON.stringify(data.individual_question))]
+      : [
+        {
+          id: null,
+          q34_a: false,
+          q34_b: false,
+          q34_details: null,
+          q35_a: false,
+          q35_a_details: null,
+          q35_b: false,
+          q35_b_date_filed: null,
+          q35_b_status: null,
+          q36: false,
+          q36_details: null,
+          q37: false,
+          q37_details: null,
+          q38_a: false,
+          q38_a_details: null,
+          q38_b: false,
+          q38_b_details: null,
+          q39: false,
+          country_id: null,
+          q40_a_indigenous_group: false,
+          q40_a_details: null,
+          q40_b_pwd: false,
+          q40_b_details: null,
+          q40_c_solo_parent: false,
+          q40_c_details: null,
+        },
+      ]
+
+  // -------------------------
+  // References
+  // -------------------------
+  payload.individual_reference = Array.isArray(data.individual_reference)
+    ? data.individual_reference.length
+      ? JSON.parse(JSON.stringify(data.individual_reference))
+      : [{ id: null, name: '', address: '', tel_no: '', _delete: null }]
+    : [{ id: null, name: '', address: '', tel_no: '', _delete: null }]
 
   isLoading.value = false
 })
 
+/***************************************************
+     Watcher Show the Country ID Label
+****************************************************/
 watch(
-  () => props.personnelPds,
-  (newPersonnel) => {
-    if (newPersonnel) {
-      pdsStore.updatePdsFromPersonnel(newPersonnel)
-    } else {
-      for (const key in payload.individual) {
-        payload.individual[key as keyof typeof payload.individual] = null
+  () => payload.individual_question[0].country_id,
+  async (newVal) => {
+    if (newVal) {
+      if (!libraryStore.countryOptions.length) {
+        await libraryStore.fetchCountry?.()
       }
+
+      const found = libraryStore.countryOptions.find((opt) => opt.value === newVal)
+      selectedCountry.value = found || null
+    } else {
+      selectedCountry.value = null
     }
   },
   { immediate: true }
 )
 
-const updateC4Form = async () => {
-  IsBeingUpdated.value = true
-  const id = route.params.id as string
+/***************************************************
+     Watcher Clear field when radio set to "No"
+****************************************************/
+const allQuestionsFlags = computed(() => {
+  const q = payload.individual_question?.[0]
+  return [
+    q?.q34_a ?? null,
+    q?.q34_b ?? null,
+    q?.q35_a ?? null,
+    q?.q35_b ?? null,
+    q?.q36 ?? null,
+    q?.q37 ?? null,
+    q?.q38_a ?? null,
+    q?.q38_b ?? null,
+    q?.q39 ?? null,
+    q?.q40_a_indigenous_group ?? null,
+    q?.q40_b_pwd ?? null,
+    q?.q40_c_solo_parent ?? null,
+  ]
+})
 
-  formIsSubmitting.value = true
-  const response = await pdsStore.updatePds({ ...payload }, id, 'C4')
+watch(
+  allQuestionsFlags,
+  (newFlags) => {
+    const q = payload.individual_question?.[0]
+    if (!q) return // safety guard — nothing to clear yet
 
-  if (!response.success) {
-    const result = parseApiResponseError(response)
-    if (!result) return (formIsSubmitting.value = false)
+    if (newFlags[0] === false || newFlags[1] === false) q.q34_details = null
+    if (newFlags[2] === false) q.q35_a_details = null
+    if (newFlags[3] === false) {
+      q.q35_b_date_filed = null
+      q.q35_b_status = null
+    }
+    if (newFlags[4] === false) q.q36_details = null
+    if (newFlags[5] === false) q.q37_details = null
+    if (newFlags[6] === false) q.q38_a_details = null
+    if (newFlags[7] === false) q.q38_b_details = null
+    if (newFlags[8] === false) q.country_id = null
+    if (newFlags[9] === false) q.q40_a_details = null
+    if (newFlags[10] === false) q.q40_b_details = null
+    if (newFlags[11] === false) q.q40_c_details = null
+  },
+  { deep: true }
+)
 
-    showErrorAlert.value = true
-    errorMessage.value = result.message
-    errorDetails.value = result.errors
-    IsBeingUpdated.value = false
-  }
-
-  formIsSubmitting.value = false
-  toast.add({
-    severity: 'success',
-    summary: 'Personal Data Sheet (PDS)',
-    detail: 'PDS has been successfully updated.',
-    life: 1000,
-  })
-
-  formIsSubmitting.value = false
-}
-
-// ──────────────────────────────────────────────────────────
-//          PDS Details Form - Save Handler
-// ──────────────────────────────────────────────────────────
-const handleSaveC4Form = async () => {
-  isC4Loading.value = true
-
+/**************************************************
+      Validations of C4 with Toast Message
+***************************************************/
+const validateForm = async () => {
   const valid = await validator.value.$validate()
   if (!valid) {
     const hasIndividualQuestionError = Object.values(validator.value.individual_question).some(
@@ -241,42 +464,83 @@ const handleSaveC4Form = async () => {
       (entry) => (entry as { $error: boolean })?.$error
     )
 
-    const hasIndividualGovermentIDError = Object.values(validator.value.individual_government_id).some(
+    const hasIndividualGovermentIdError = Object.values(validator.value.individual_government_id).some(
       (entry) => (entry as { $error: boolean })?.$error
     )
 
-    let errorTabs = []
-    if (hasIndividualQuestionError) errorTabs.push('Other Information Continued')
-    if (hasIndividualReferenceError) errorTabs.push('References & Gov` Issued ID')
-    if (hasIndividualGovermentIDError) errorTabs.push('References & Gov` Issued ID')
+    const errorTabs: string[] = []
+    if (hasIndividualQuestionError) errorTabs.push('C4 - Other Information Continued')
+    if (hasIndividualReferenceError) errorTabs.push('C4 - References')
+    if (hasIndividualGovermentIdError) errorTabs.push('C4 - Gov`t Issued ID')
 
-    const tabList = errorTabs.join(', ')
-    showToast('error', 'Validation Error', `Please check the following tab(s): ${tabList}`)
+    const sectionDescriptions: Record<string, string> = {
+      'C4 - Other Information Continued': 'C4 - Other Information Continued',
+      'C4 - References': 'C4 - References',
+      'C4 - Gov`t Issued ID': 'C4 - Gov`t Issued ID',
+    }
+
+    errorTabs.forEach((field) => {
+      const message = sectionDescriptions[field] ?? field
+      showToast('error', 'Validation Error - Please check the following', message)
+    })
 
     isC4Loading.value = false
     return { valid: false, errorTabs: ['C4'] }
   }
-  console.log('Payload before save:', payload)
-  const response = await pdsStore.savePds(payload)
+  return { valid: true }
+}
+/**************************************************
+             PDS C4 - UPDATE SERVICE 
+***************************************************/
+const updateC4Form = async () => {
+  IsBeingUpdated.value = true
+  const id = isMyPds
+    ? authStore.authenticatedUser?.user_profile?.individual_basic_detail?.id?.toString() ?? 0
+    : (route.params.id as string)
 
-  if (response.success === false) {
+  if (!id) {
+    IsBeingUpdated.value = false
+    isC4Loading.value = false
+    formIsSubmitting.value = false
+    return { valid: false, errorTabs: ['C4'] }
+  }
+
+  const response = await pdsStore.updatePds({ ...payload }, id, 'C4')
+
+  if (!response.success) {
+    const result = parseApiResponseError(response)
+    if (!result) {
+      formIsSubmitting.value = false
+      return
+    }
+    showErrorAlert.value = true
+    errorMessage.value = result.message
+    errorDetails.value = result.errors
+    IsBeingUpdated.value = false
+    return { valid: false, errorTabs: ['C4'] }
+  }
+}
+/**************************************************
+            PDS C4 - STORE SERVICE 
+***************************************************/
+const handleSaveC4Form = async () => {
+  isC4Loading.value = true
+
+  const response = await pdsStore.savePds(payload)
+  if (!response.success) {
     const result = parseApiResponseError(response)
 
     isPdsError.value = true
     errorMessage.value = result?.message
     pdsErrors.value = result?.errors
-    showToast('error', 'PDS C4 Error', 'Please see the validation messages')
-  } else {
-    showToast('success', 'PDS', 'PDS has been saved')
-    router.push({ name: 'employment' })
+    return { valid: false, errorTabs: ['C4'] }
   }
-
-  isC4Loading.value = false
 }
 
 defineExpose({
   handleSaveC4Form,
   updateC4Form,
+  validateForm,
 })
 </script>
 
@@ -341,9 +605,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q34_a"
                                 :id="getId('input-question-34a-yes')"
+                                :readonly="pdsStore.isMyPds"
                                 name="q34_a"
                                 :value="true"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-34a-yes')" class="ml-2 cursor-pointer">Yes</label>
                             </div>
@@ -351,9 +619,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q34_a"
                                 :id="getId('input-question-34a-no')"
+                                :readonly="pdsStore.isMyPds"
                                 name="q34_a"
                                 :value="false"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-34a-no')" class="ml-2 cursor-pointer">No</label>
                             </div>
@@ -372,9 +644,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q34_b"
                                 :id="getId('input-question-34b-yes')"
+                                :readonly="pdsStore.isMyPds"
                                 name="q34_b"
                                 :value="true"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-34b-yes')" class="ml-2 cursor-pointer">Yes</label>
                             </div>
@@ -382,9 +658,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q34_b"
                                 :id="getId('input-question-34b-no')"
+                                :readonly="pdsStore.isMyPds"
                                 name="q34_b"
                                 :value="false"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-34b-no')" class="ml-2 cursor-pointer">No</label>
                             </div>
@@ -398,12 +678,16 @@ defineExpose({
                           <WbInputText
                             v-model="payload.individual_question[0].q34_details"
                             label="If YES, give details"
+                            :readonly="pdsStore.isMyPds"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                            :invalid="validator.individual_question.q34_details.$error"
-                            :invalid-text="validator.individual_question.q34_details.$errors[0]?.$message"
-                            @blur="validator.individual_question.q34_details.$touch"
+                            :invalid="validator.individual_question[0].q34_details.$error"
+                            :invalid-text="validator.individual_question[0].q34_details.$errors[0]?.$message"
+                            @blur="validator.individual_question[0].q34_details.$touch"
                           />
                         </div>
                       </div>
@@ -423,9 +707,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q35_a"
                                 :id="getId('input-question-35a-yes')"
+                                :readonly="pdsStore.isMyPds"
                                 name="q35_a"
                                 :value="true"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-34a-yes')" class="ml-2 cursor-pointer">Yes</label>
                             </div>
@@ -433,9 +721,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q35_a"
                                 :id="getId('input-question-35a-no')"
+                                :readonly="pdsStore.isMyPds"
                                 name="q35_a"
                                 :value="false"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-35a-no')" class="ml-2 cursor-pointer">No</label>
                             </div>
@@ -449,11 +741,15 @@ defineExpose({
                           <WbInputText
                             v-model="payload.individual_question[0].q35_a_details"
                             label="If YES, give details"
+                            :readonly="pdsStore.isMyPds"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                            :invalid="validator.individual_question.q35_a_details.$error"
-                            :invalid-text="validator.individual_question.q35_a_details.$errors[0]?.$message"
-                            @blur="validator.individual_question.q35_a_details.$touch"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
+                            :invalid="validator.individual_question[0].q35_a_details.$error"
+                            :invalid-text="validator.individual_question[0].q35_a_details.$errors[0]?.$message"
+                            @blur="validator.individual_question[0].q35_a_details.$touch"
                             required
                           />
                         </div>
@@ -468,9 +764,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q35_b"
                                 :id="getId('input-question-35b-yes')"
+                                :readonly="pdsStore.isMyPds"
                                 name="q35_b"
                                 :value="true"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-34b-yes')" class="ml-2 cursor-pointer">Yes</label>
                             </div>
@@ -478,9 +778,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q35_b"
                                 :id="getId('input-question-35b-no')"
+                                :readonly="pdsStore.isMyPds"
                                 name="q35_b"
                                 :value="false"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-35b-no')" class="ml-2 cursor-pointer">No</label>
                             </div>
@@ -495,12 +799,16 @@ defineExpose({
                             <WbCalendar
                               v-model="payload.individual_question[0].q35_b_date_filed"
                               label="Date Filed"
+                              :readonly="pdsStore.isMyPds"
                               label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm md:mb-1"
-                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                              :class="[
+                                'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                              ]"
                               validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                              :invalid="validator.individual_question.q35_b_date_filed.$error"
-                              :invalid-text="validator.individual_question.q35_b_date_filed.$errors[0]?.$message"
-                              @blur="validator.individual_question.q35_b_date_filed.$touch"
+                              :invalid="validator.individual_question[0].q35_b_date_filed.$error"
+                              :invalid-text="validator.individual_question[0].q35_b_date_filed.$errors[0]?.$message"
+                              @blur="validator.individual_question[0].q35_b_date_filed.$touch"
                               required
                             />
                           </div>
@@ -508,12 +816,16 @@ defineExpose({
                             <WbInputText
                               v-model="payload.individual_question[0].q35_b_status"
                               label="Status of Case/s"
+                              :readonly="pdsStore.isMyPds"
                               label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                              :class="[
+                                'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                              ]"
                               validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                              :invalid="validator.individual_question.q35_b_status.$error"
-                              :invalid-text="validator.individual_question.q35_b_status.$errors[0]?.$message"
-                              @blur="validator.individual_question.q35_b_status.$touch"
+                              :invalid="validator.individual_question[0].q35_b_status.$error"
+                              :invalid-text="validator.individual_question[0].q35_b_status.$errors[0]?.$message"
+                              @blur="validator.individual_question[0].q35_b_status.$touch"
                               required
                             />
                           </div>
@@ -535,9 +847,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q36"
                                 :id="getId('input-question-36-yes')"
+                                :readonly="pdsStore.isMyPds"
                                 name="q36"
                                 :value="true"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-36-yes')" class="ml-2 cursor-pointer">Yes</label>
                             </div>
@@ -545,9 +861,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q36"
                                 :id="getId('input-question-36-no')"
+                                :readonly="pdsStore.isMyPds"
                                 name="q36"
                                 :value="false"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-36-no')" class="ml-2 cursor-pointer">No</label>
                             </div>
@@ -561,11 +881,15 @@ defineExpose({
                           <WbInputText
                             v-model="payload.individual_question[0].q36_details"
                             label="If YES, give details"
+                            :readonly="pdsStore.isMyPds"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                            :invalid="validator.individual_question.q36_details.$error"
-                            :invalid-text="validator.individual_question.q36_details.$errors[0]?.$message"
-                            @blur="validator.individual_question.q36_details.$touch"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
+                            :invalid="validator.individual_question[0].q36_details.$error"
+                            :invalid-text="validator.individual_question[0].q36_details.$errors[0]?.$message"
+                            @blur="validator.individual_question[0].q36_details.$touch"
                             required
                           />
                         </div>
@@ -587,9 +911,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q37"
                                 :id="getId('input-question-37-yes')"
+                                :readonly="pdsStore.isMyPds"
                                 name="q37"
                                 :value="true"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-37-yes')" class="ml-2 cursor-pointer">Yes</label>
                             </div>
@@ -597,9 +925,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q37"
                                 :id="getId('input-question-37-no')"
+                                :readonly="pdsStore.isMyPds"
                                 name="q37"
                                 :value="false"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-37-no')" class="ml-2 cursor-pointer">No</label>
                             </div>
@@ -613,11 +945,15 @@ defineExpose({
                           <WbInputText
                             v-model="payload.individual_question[0].q37_details"
                             label="If YES, give details"
+                            :readonly="pdsStore.isMyPds"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                            :invalid="validator.individual_question.q37_details.$error"
-                            :invalid-text="validator.individual_question.q37_details.$errors[0]?.$message"
-                            @blur="validator.individual_question.q37_details.$touch"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
+                            :invalid="validator.individual_question[0].q37_details.$error"
+                            :invalid-text="validator.individual_question[0].q37_details.$errors[0]?.$message"
+                            @blur="validator.individual_question[0].q37_details.$touch"
                             required
                           />
                         </div>
@@ -639,9 +975,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q38_a"
                                 :id="getId('input-question-38_a-yes')"
+                                :readonly="pdsStore.isMyPds"
                                 name="q38_a"
                                 :value="true"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-38_a-yes')" class="ml-2 cursor-pointer">Yes</label>
                             </div>
@@ -649,9 +989,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q38_a"
                                 :id="getId('input-question-38_a-no')"
+                                :readonly="pdsStore.isMyPds"
                                 name="q38_a"
                                 :value="false"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-38_a-no')" class="ml-2 cursor-pointer">No</label>
                             </div>
@@ -665,11 +1009,15 @@ defineExpose({
                           <WbInputText
                             v-model="payload.individual_question[0].q38_a_details"
                             label="If YES, give details"
+                            :readonly="pdsStore.isMyPds"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                            :invalid="validator.individual_question.q38_a_details.$error"
-                            :invalid-text="validator.individual_question.q38_a_details.$errors[0]?.$message"
-                            @blur="validator.individual_question.q38_a_details.$touch"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
+                            :invalid="validator.individual_question[0].q38_a_details.$error"
+                            :invalid-text="validator.individual_question[0].q38_a_details.$errors[0]?.$message"
+                            @blur="validator.individual_question[0].q38_a_details.$touch"
                             required
                           />
                         </div>
@@ -688,9 +1036,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q38_b"
                                 :id="getId('input-question-38_b-yes')"
+                                :readonly="pdsStore.isMyPds"
                                 name="q38_b"
                                 :value="true"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-38_b-yes')" class="ml-2 cursor-pointer">Yes</label>
                             </div>
@@ -698,9 +1050,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q38_b"
                                 :id="getId('input-question-38_b-no')"
+                                :readonly="pdsStore.isMyPds"
                                 name="q38_b"
                                 :value="false"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-38_b-no')" class="ml-2 cursor-pointer">No</label>
                             </div>
@@ -714,11 +1070,15 @@ defineExpose({
                           <WbInputText
                             v-model="payload.individual_question[0].q38_b_details"
                             label="If YES, give details"
+                            :readonly="pdsStore.isMyPds"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                            :invalid="validator.individual_question.q38_b_details.$error"
-                            :invalid-text="validator.individual_question.q38_b_details.$errors[0]?.$message"
-                            @blur="validator.individual_question.q38_b_details.$touch"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
+                            :invalid="validator.individual_question[0].q38_b_details.$error"
+                            :invalid-text="validator.individual_question[0].q38_b_details.$errors[0]?.$message"
+                            @blur="validator.individual_question[0].q38_b_details.$touch"
                             required
                           />
                         </div>
@@ -738,9 +1098,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q39"
                                 :id="getId('input-question-39-yes')"
+                                :readonly="pdsStore.isMyPds"
                                 name="q39"
                                 :value="true"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-39-yes')" class="ml-2 cursor-pointer">Yes</label>
                             </div>
@@ -748,9 +1112,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q39"
                                 :id="getId('input-question-39-no')"
+                                :readonly="pdsStore.isMyPds"
                                 name="q39"
                                 :value="false"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-39-no')" class="ml-2 cursor-pointer">No</label>
                             </div>
@@ -768,6 +1136,7 @@ defineExpose({
                             :loading="libraryStore.countryOptionsLoading"
                             apiOptionLabel="country_code"
                             label="If YES, give details"
+                            :readonly="pdsStore.isMyPds"
                             placeholder="Type the Country"
                             v-model="selectedCountry"
                             :id="getId('input-office')"
@@ -780,11 +1149,14 @@ defineExpose({
                                 useWbAutoCompleteHandleTrueValue(value, toRef(payload.individual_question[0], 'country_id'))
                             "
                             label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
                             validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                            :invalid="validator.individual_question.country_id.$error"
-                            :invalid-text="validator.individual_question.country_id.$errors[0]?.$message"
-                            @blur="validator.individual_question.country_id.$touch"
+                            :invalid="validator.individual_question[0].country_id.$error"
+                            :invalid-text="validator.individual_question[0].country_id.$errors[0]?.$message"
+                            @blur="validator.individual_question[0].country_id.$touch"
                           >
                           </WbAutoComplete>
                         </div>
@@ -796,7 +1168,7 @@ defineExpose({
                           <div class="flex items-start gap-2 md:col-span-4">
                             <span class="shrink-0 text-base font-medium text-surface-600">40.</span>
                             <p class="md:text-md text-lg text-surface-600">
-                              Pursuant to: (a) Indigenous People`s Act (RA 8371); (b) Magna Carta for Disabled Persons (RA 7277);
+                              Pursuant to: (a) Indigenous People`s Act (RA 8371); (b) Magna Carta for readonly Persons (RA 7277);
                               and (c) Solo Parents Welfare Act of 2000 (RA 8972), please answer the following items:
                             </p>
                           </div>
@@ -814,8 +1186,12 @@ defineExpose({
                                 v-model="payload.individual_question[0].q40_a_indigenous_group"
                                 :id="getId('input-question-q40_a_indigenous_group-yes')"
                                 name="q40_a_indigenous_group"
+                                :readonly="pdsStore.isMyPds"
                                 :value="true"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-q40_a_indigenous_group-yes')" class="ml-2 cursor-pointer"
                                 >Yes</label
@@ -826,8 +1202,12 @@ defineExpose({
                                 v-model="payload.individual_question[0].q40_a_indigenous_group"
                                 :id="getId('input-question-q40_a_indigenous_group-no')"
                                 name="q40_a_indigenous_group"
+                                :readonly="pdsStore.isMyPds"
                                 :value="false"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-q40_a_indigenous_group-no')" class="ml-2 cursor-pointer"
                                 >No</label
@@ -843,11 +1223,15 @@ defineExpose({
                           <WbInputText
                             v-model="payload.individual_question[0].q40_a_details"
                             label="If YES, give details"
+                            :readonly="pdsStore.isMyPds"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                            :invalid="validator.individual_question.q40_a_details.$error"
-                            :invalid-text="validator.individual_question.q40_a_details.$errors[0]?.$message"
-                            @blur="validator.individual_question.q40_a_details.$touch"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
+                            :invalid="validator.individual_question[0].q40_a_details.$error"
+                            :invalid-text="validator.individual_question[0].q40_a_details.$errors[0]?.$message"
+                            @blur="validator.individual_question[0].q40_a_details.$touch"
                             required
                           />
                         </div>
@@ -863,9 +1247,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q40_b_pwd"
                                 :id="getId('input-question-q40_b_pwd-yes')"
+                                :readonly="pdsStore.isMyPds"
                                 name="q40_b_pwd"
                                 :value="true"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-q40_b_pwd-yes')" class="ml-2 cursor-pointer">Yes</label>
                             </div>
@@ -873,9 +1261,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q40_b_pwd"
                                 :id="getId('input-question-q40_b_pwd-no')"
+                                :readonly="pdsStore.isMyPds"
                                 name="q40_b_pwd"
                                 :value="false"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-q40_b_pwd-no')" class="ml-2 cursor-pointer">No</label>
                             </div>
@@ -889,11 +1281,15 @@ defineExpose({
                           <WbInputText
                             v-model="payload.individual_question[0].q40_b_details"
                             label="If YES, give details"
+                            :readonly="pdsStore.isMyPds"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                            :invalid="validator.individual_question.q40_b_details.$error"
-                            :invalid-text="validator.individual_question.q40_b_details.$errors[0]?.$message"
-                            @blur="validator.individual_question.q40_b_details.$touch"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
+                            :invalid="validator.individual_question[0].q40_b_details.$error"
+                            :invalid-text="validator.individual_question[0].q40_b_details.$errors[0]?.$message"
+                            @blur="validator.individual_question[0].q40_b_details.$touch"
                             required
                           />
                         </div>
@@ -909,9 +1305,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q40_c_solo_parent"
                                 :id="getId('input-question-q40_c_solo_parent-yes')"
+                                :readonly="pdsStore.isMyPds"
                                 name="q40_c_solo_parent"
                                 :value="true"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-q40_c_solo_parent-yes')" class="ml-2 cursor-pointer">Yes</label>
                             </div>
@@ -919,9 +1319,13 @@ defineExpose({
                               <RadioButton
                                 v-model="payload.individual_question[0].q40_c_solo_parent"
                                 :id="getId('input-question-q40_c_solo_parent-no')"
+                                :readonly="pdsStore.isMyPds"
                                 name="q40_c_solo_parent"
                                 :value="false"
-                                class="scale-150 transform"
+                                :class="[
+                                  'scale-150 transform',
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                ]"
                               />
                               <label :for="getId('input-question-q40_c_solo_parent-no')" class="ml-2 cursor-pointer">No</label>
                             </div>
@@ -935,11 +1339,15 @@ defineExpose({
                           <WbInputText
                             v-model="payload.individual_question[0].q40_c_details"
                             label="If YES, give details"
+                            :readonly="pdsStore.isMyPds"
                             label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                            :invalid="validator.individual_question.q40_c_details.$error"
-                            :invalid-text="validator.individual_question.q40_c_details.$errors[0]?.$message"
-                            @blur="validator.individual_question.q40_c_details.$touch"
+                            :class="[
+                              'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                              pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            ]"
+                            :invalid="validator.individual_question[0].q40_c_details.$error"
+                            :invalid-text="validator.individual_question[0].q40_c_details.$errors[0]?.$message"
+                            @blur="validator.individual_question[0].q40_c_details.$touch"
                             required
                           />
                         </div>
@@ -983,67 +1391,97 @@ defineExpose({
                         leaveFrom="opacity-100"
                         leaveTo="opacity-0"
                       >
-                        <p class="mb-4 text-surface-700">Reference # {{ referenceIndex }}</p>
-                        <div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-5">
-                          <div class="md:col-span-2">
-                            <WbInputText
-                              v-model="payload.individual_reference[referenceIndex - 1].name"
-                              label="Name"
-                              label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-xs md:mb-1"
-                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                              :invalidText="validator.individual_reference[referenceIndex - 1].name.$errors[0]?.$message"
-                              :invalid="validator.individual_reference[referenceIndex - 1].name.$error"
-                              @blur="validator.individual_reference[referenceIndex - 1].name.$touch()"
-                              required
-                            />
-                          </div>
-                          <div class="md:col-span-2">
-                            <WbInputText
-                              v-model="payload.individual_reference[referenceIndex - 1].address"
-                              label="Address"
-                              label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                              :invalidText="validator.individual_reference[referenceIndex - 1].address.$errors[0]?.$message"
-                              :invalid="validator.individual_reference[referenceIndex - 1].address.$error"
-                              @blur="validator.individual_reference[referenceIndex - 1].address.$touch()"
-                              required
-                            />
-                          </div>
-                          <div class="flex items-end gap-2">
-                            <!-- WbInputText takes most of the space -->
-                            <WbInputText
-                              v-model="payload.individual_reference[referenceIndex - 1].tel_no"
-                              label="Tel. No"
-                              label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                              :invalidText="validator.individual_reference[referenceIndex - 1].tel_no.$errors[0]?.$message"
-                              :invalid="validator.individual_reference[referenceIndex - 1].tel_no.$error"
-                              @blur="validator.individual_reference[referenceIndex - 1].tel_no.$touch()"
-                              required
-                            />
+                        <div v-if="!payload.individual_reference[referenceIndex - 1]?._delete">
+                          <p class="mb-4 text-surface-700">
+                            Reference #
+                            {{
+                              payload.individual_reference
+                                .filter((ref) => !ref._delete)
+                                .indexOf(payload.individual_reference[referenceIndex - 1]) + 1
+                            }}
+                          </p>
+                          <div v-if="!payload.individual_reference[referenceIndex - 1]?._delete">
+                            <div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-5">
+                              <div class="md:col-span-2">
+                                <WbInputText
+                                  v-model="payload.individual_reference[referenceIndex - 1].name"
+                                  label="Name"
+                                  :readonly="pdsStore.isMyPds"
+                                  label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-xs md:mb-1"
+                                  :class="[
+                                    pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                    'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                    validator.individual_reference[referenceIndex - 1].name.$error ? 'mb-0' : 'mb-6',
+                                  ]"
+                                  validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                                  :invalidText="validator.individual_reference[referenceIndex - 1].name.$errors[0]?.$message"
+                                  :invalid="validator.individual_reference[referenceIndex - 1].name.$error"
+                                  @blur="validator.individual_reference[referenceIndex - 1].name.$touch()"
+                                  required
+                                />
+                              </div>
+                              <div class="md:col-span-2">
+                                <WbInputText
+                                  v-model="payload.individual_reference[referenceIndex - 1].address"
+                                  label="Office / Residential Address"
+                                  :readonly="pdsStore.isMyPds"
+                                  label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                                  :class="[
+                                    pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                    'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                    validator.individual_reference[referenceIndex - 1].address.$error ? 'mb-0' : 'mb-6',
+                                  ]"
+                                  validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                                  :invalidText="validator.individual_reference[referenceIndex - 1].address.$errors[0]?.$message"
+                                  :invalid="validator.individual_reference[referenceIndex - 1].address.$error"
+                                  @blur="validator.individual_reference[referenceIndex - 1].address.$touch()"
+                                  required
+                                />
+                              </div>
+                              <div class="flex items-end gap-2">
+                                <!-- WbInputText takes most of the space -->
+                                <WbInputText
+                                  v-model="payload.individual_reference[referenceIndex - 1].tel_no"
+                                  label="Contact No. and/or Email"
+                                  :readonly="pdsStore.isMyPds"
+                                  label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                                  :class="[
+                                    pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                    'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                    validator.individual_reference[referenceIndex - 1].tel_no.$error ? 'mb-0' : 'mb-10',
+                                  ]"
+                                  validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                                  :invalidText="validator.individual_reference[referenceIndex - 1].tel_no.$errors[0]?.$message"
+                                  :invalid="validator.individual_reference[referenceIndex - 1].tel_no.$error"
+                                  @blur="validator.individual_reference[referenceIndex - 1].tel_no.$touch()"
+                                  required
+                                />
 
-                            <!-- Delete button aligned right, below label -->
-                            <Button
-                              v-show="referenceIndex - 1 > 0"
-                              :id="getId(`button-remove-learning-development-${referenceIndex - 1}`)"
-                              icon="pi pi-trash"
-                              @click="handleRemoveReference(referenceIndex - 1)"
-                              v-tooltip.top="'Remove L&D'"
-                              severity="danger"
-                              class="mb-2 text-lg font-semibold dark:text-primary-100"
-                              text
-                            />
+                                <!-- Delete button aligned right, below label -->
+                                <Button
+                                  v-if="!pdsStore.isMyPds"
+                                  v-show="referenceIndex > 1"
+                                  :id="getId(`button-remove-learning-development-${referenceIndex}`)"
+                                  icon="pi pi-trash"
+                                  @click="handleRemoveReference(referenceIndex)"
+                                  v-tooltip.top="'Remove Reference'"
+                                  severity="danger"
+                                  :class="[
+                                    'text-lg font-semibold dark:text-primary-100',
+                                    validator.individual_reference[referenceIndex - 1].tel_no.$error ? 'mb-8' : 'mb-12',
+                                  ]"
+                                  text
+                                />
+                              </div>
+                            </div>
                           </div>
+                          <hr />
                         </div>
-                        <hr />
                       </TransitionRoot>
                     </template>
 
                     <Button
-                      v-if="payload.individual_reference.length < 3"
+                      v-if="payload.individual_reference.filter((ref) => !ref._delete).length < 3 && !pdsStore.isMyPds"
                       label="Add additional References field"
                       @click="handleAdditionalReference"
                       size="large"
@@ -1069,60 +1507,82 @@ defineExpose({
                         Date of Issuance
                       </p>
                     </span>
-
                     <template v-if="true">
                       <TransitionRoot
                         appear
                         :show="true"
-                        enter="transition-all ease-in-out duration-500 "
+                        enter="transition-all ease-in-out duration-500"
                         enterFrom="opacity-0 translate-y-6"
                         enterTo="opacity-100 translate-y-0"
                         leave="transition-all ease-in-out duration-800"
                         leaveFrom="opacity-100"
                         leaveTo="opacity-0"
                       >
-                        <div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-5">
-                          <div class="md:col-span-2">
-                            <WbInputText
-                              v-model="payload.individual_government_id.gov_id_name"
-                              label="Government Issued ID"
-                              label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm md:mb-1"
-                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                              :invalid="validator.individual_government_id.gov_id_name.$error"
-                              :invalid-text="validator.individual_government_id.gov_id_name.$errors[0]?.$message"
-                              @blur="validator.individual_government_id.gov_id_name.$touch"
-                              required
-                            />
+                        <div>
+                          <div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-5">
+                            <!-- Government Issued ID -->
+                            <div class="md:col-span-2">
+                              <WbInputText
+                                v-model="payload.individual_government_id.gov_issued_id"
+                                label="Government Issued ID"
+                                :readonly="pdsStore.isMyPds"
+                                label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm md:mb-1"
+                                :class="[
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                  'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  validator.individual_government_id.gov_issued_id.$error ? 'mb-0' : 'mb-6',
+                                ]"
+                                validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                                :invalid="validator.individual_government_id.gov_issued_id.$error"
+                                :invalidText="validator.individual_government_id.gov_issued_id.$errors[0]?.$message"
+                                @blur="validator.individual_government_id.gov_issued_id.$touch()"
+                                required
+                              />
+                            </div>
+
+                            <!-- ID / License / Passport No -->
+                            <div class="md:col-span-2">
+                              <WbInputText
+                                v-model="payload.individual_government_id.gov_id_no"
+                                label="ID / License / Passport No."
+                                :readonly="pdsStore.isMyPds"
+                                label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                                :class="[
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                  'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  validator.individual_government_id.gov_id_no.$error ? 'mb-0' : 'mb-6',
+                                ]"
+                                validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                                :invalid="validator.individual_government_id.gov_id_no.$error"
+                                :invalidText="validator.individual_government_id.gov_id_no.$errors[0]?.$message"
+                                @blur="validator.individual_government_id.gov_id_no.$touch()"
+                                required
+                              />
+                            </div>
+
+                            <!-- Date / Place of Issuance -->
+                            <div class="flex items-end gap-2">
+                              <WbInputText
+                                v-model="payload.individual_government_id.gov_issuance"
+                                label="Date / Place of Issuance"
+                                :readonly="pdsStore.isMyPds"
+                                label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                                :class="[
+                                  pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                                  'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                                  validator.individual_government_id.gov_issuance.$error ? 'mb-0' : 'mb-10',
+                                ]"
+                                validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                                :invalid="validator.individual_government_id.gov_issuance.$error"
+                                :invalidText="validator.individual_government_id.gov_issuance.$errors[0]?.$message"
+                                @blur="validator.individual_government_id.gov_issuance.$touch()"
+                                required
+                              />
+                            </div>
                           </div>
-                          <div class="md:col-span-2">
-                            <WbInputText
-                              v-model="payload.individual_government_id.gov_id_no"
-                              label="ID/License/Passport No."
-                              label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                              :invalid="validator.individual_government_id.gov_id_no.$error"
-                              :invalid-text="validator.individual_government_id.gov_id_no.$errors[0]?.$message"
-                              @blur="validator.individual_government_id.gov_id_no.$touch"
-                              required
-                            />
-                          </div>
-                          <div class="flex items-end gap-2">
-                            <WbInputText
-                              v-model="payload.individual_government_id.gov_id_issuance"
-                              label="Date/Place of Issuance"
-                              label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                              class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
-                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                              :invalid="validator.individual_government_id.gov_id_issuance.$error"
-                              :invalid-text="validator.individual_government_id.gov_id_issuance.$errors[0]?.$message"
-                              @blur="validator.individual_government_id.gov_id_issuance.$touch"
-                              required
-                            />
-                          </div>
+
+                          <hr />
                         </div>
-                        <hr />
                       </TransitionRoot>
                     </template>
                   </div>

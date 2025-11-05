@@ -33,10 +33,16 @@ export type ApiResponseData = {
 export interface WarmBodyLogEntry {
   id: number
   employee_id: string
-  timestamp: string
+  date: string
+  scanned_time: string
   is_in: boolean
+  captured_photo_url?: string | null
+  captured_image_url?: string | null
+  profile_picture_url?: string | null
+  photo_url?: string | null
   created_at?: string
   updated_at?: string
+
   daily_time_record?: {
     id: number
     date: string
@@ -83,4 +89,16 @@ export enum ApiErrorCode {
   INVALID_MFA_ATTEMPT_TOKEN_ERROR = 'INVALID_MFA_ATTEMPT_TOKEN_ERROR',
   INVALID_MFA_CODE_ERROR = 'INVALID_MFA_CODE_ERROR',
   INVALID_MFA_BACKUP_CODE_ERROR = 'INVALID_MFA_BACKUP_CODE_ERROR',
+}
+
+export interface ApiValidationErrorResponse {
+  success: false
+  message: string
+  error_code?: 'VALIDATION_ERROR' | string
+  errors?: Array<{ messages: string[] }>
+  error_message?: string
+}
+
+export interface ObservedErrorDetails {
+  messages: string[]
 }

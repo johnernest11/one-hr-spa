@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { onBeforeMount, ref, computed } from 'vue'
-import { useProfileStore } from '@/stores/profile.store.ts'
+import { onBeforeMount, ref, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
+// import { useRouter } from 'vue-router'
+
 import { usePdsStore } from '@/stores/pds.store'
 
 import C1Form from '@/components/pds/C1Form.vue'
@@ -12,66 +13,141 @@ import C4Form from '@/components/pds/C4Form.vue'
 import { lcFirst } from '@/utils/helpers.ts'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { TabGroup, TabList, Tab, TabPanels, TabPanel } from '@headlessui/vue'
-import { TransitionRoot } from '@headlessui/vue'
 import Button from 'primevue/button'
-
+import { useToast } from 'primevue/usetoast'
+const toast = useToast()
 const route = useRoute()
+// const router = useRouter()
+
 const isMyPds = route.name === 'my-pds'
 const isEditMode = computed(() => !!route.params.id)
 const pdsStore = usePdsStore()
-const profileStore = useProfileStore()
 const isSubmitting = ref(false)
+const isImporting = ref(false)
 
 const c1FormRef = ref()
 const c2FormRef = ref()
 const c3FormRef = ref()
 const c4FormRef = ref()
 
+const c1Key = ref(0)
+const c2Key = ref(0)
+const c3Key = ref(0)
+const c4Key = ref(0)
+
+/**************************************************
+              Refresh/Reload the Tab
+************************************************* */
+const refreshTabs = () => {
+  c1Key.value++
+  c2Key.value++
+  c3Key.value++
+  c4Key.value++
+}
+
+watch(
+  () => route.fullPath,
+  () => {
+    refreshTabs()
+  }
+)
+
 onBeforeMount(async () => {
-  await profileStore.fetchProfile()
+  isImporting.value = false
   if (route.query.mode === 'via-manual-input') {
+    pdsStore.pdsMode = route.query.mode.replace(/-/g, ' ').replace(/(?:^|\s)\S/g, (a: string) => a.toUpperCase())
+  }
+  if (route.query.mode === 'via-pds-importation') {
+    isImporting.value = true
     pdsStore.pdsMode = route.query.mode.replace(/-/g, ' ').replace(/(?:^|\s)\S/g, (a: string) => a.toUpperCase())
   }
 })
 
+/**************************************************
+        Handle Store Creation C1-C4
+************************************************* */
 const handleSubmit = async () => {
   isSubmitting.value = true
-
   try {
-    const resultC1 = await c1FormRef.value?.handleSaveC1Form?.()
-    if (resultC1?.valid === false) return
+    // Validate all forms first (before saving anything)
+    const validations = await Promise.all(
+      [
+        c1FormRef.value?.validateForm?.(),
+        c2FormRef.value?.validateForm?.(),
+        c3FormRef.value?.validateForm?.(),
+        c4FormRef.value?.validateForm?.(),
+      ].filter(Boolean)
+    )
 
-    const resultC2 = await c2FormRef.value?.handleSaveC2Form?.()
-    if (resultC2?.valid === false) return
+    const hasInvalid = validations.some((r) => r?.valid === false)
+    if (hasInvalid) {
+      return
+    }
 
-    const resultC3 = await c3FormRef.value?.handleSaveC3Form?.()
-    if (resultC3?.valid === false) return
+    // Proceed only if all forms are valid
+    await Promise.all(
+      [
+        c1FormRef.value?.handleSaveC1Form?.(),
+        c2FormRef.value?.handleSaveC2Form?.(),
+        c3FormRef.value?.handleSaveC3Form?.(),
+        c4FormRef.value?.handleSaveC4Form?.(),
+      ].filter(Boolean)
+    )
 
-    const resultC4 = await c4FormRef.value?.handleSaveC4Form?.()
-    if (resultC4?.valid === false) return
-
-    window.location.reload()
+    toast.add({
+      severity: 'success',
+      summary: 'Success',
+      detail: 'All forms have passed validation and were updated successfully.',
+      life: 3000,
+    })
   } finally {
     isSubmitting.value = false
   }
 }
-
+/**************************************************
+            Handle Update C1-C4
+************************************************* */
 const handleUpdate = async () => {
   isSubmitting.value = true
-
   try {
-    const promises = [
-      // c1FormRef.value?.updateC1Form?.(),
-      c2FormRef.value?.updateC2Form?.(),
-      c3FormRef.value?.updateC3Form?.(),
-      c4FormRef.value?.updateC4Form?.(),
-    ].filter(Boolean)
+    // Validate all forms before proceeding
+    const validations = await Promise.all(
+      [
+        c1FormRef.value?.validateForm?.(),
+        c2FormRef.value?.validateForm?.(),
+        c3FormRef.value?.validateForm?.(),
+        c4FormRef.value?.validateForm?.(),
+      ].filter(Boolean)
+    )
 
-    const results = await Promise.all(promises)
-
-    for (const result of results) {
-      if (result?.valid === false) return
+    const hasValidationError = validations.some((r) => r?.valid === false)
+    if (hasValidationError) {
+      toast.add({
+        severity: 'error',
+        summary: 'Validation Error',
+        detail: 'Please check all tabs and fix validation errors before submitting.',
+        life: 4000,
+      })
+      return
     }
+
+    // Proceed with updates after successful validation
+    await Promise.all(
+      [
+        c1FormRef.value?.updateC1Form?.(),
+        c2FormRef.value?.updateC2Form?.(),
+        c3FormRef.value?.updateC3Form?.(),
+        c4FormRef.value?.updateC4Form?.(),
+      ].filter(Boolean)
+    )
+
+    toast.add({
+      severity: 'success',
+      summary: 'Success',
+      detail: 'All forms have passed validation and were updated successfully.',
+      life: 3000,
+    })
+    refreshTabs()
   } finally {
     isSubmitting.value = false
   }
@@ -89,7 +165,8 @@ const handleUpdate = async () => {
           <FontAwesomeIcon :icon="['fas', 'users']" class="text-2xl md:text-4xl" />
           <span class="flex flex-col justify-center">
             <p class="text-xl md:text-3xl">Personal Data Sheet</p>
-            <p class="text-surface-500">{{ lcFirst(pdsStore.pdsMode) }}</p>
+            <p v-if="isImporting" class="text-lg md:text-xl lg:text-2xl">Reviewing Imported Information</p>
+            <p v-if="!isEditMode" class="text-surface-500">{{ lcFirst(pdsStore.pdsMode) }}</p>
           </span>
         </div>
 
@@ -188,61 +265,17 @@ const handleUpdate = async () => {
             </TabList>
 
             <TabPanels>
-              <TabPanel>
-                <TransitionRoot
-                  appear
-                  :show="true"
-                  enter="transition-all ease-in-out duration-500"
-                  enterFrom="opacity-0 translate-y-6"
-                  enterTo="opacity-100 translate-y-0"
-                  leave="transition-all ease-in-out duration-800"
-                  leaveFrom="opacity-100"
-                  leaveTo="opacity-0"
-                >
-                  <C1Form ref="c1FormRef" :activeSubTab="0" />
-                </TransitionRoot>
+              <TabPanel :key="c1Key" :static="true" v-slot="{ selected }">
+                <div v-show="selected"><C1Form ref="c1FormRef" /></div>
               </TabPanel>
-              <TabPanel>
-                <TransitionRoot
-                  appear
-                  :show="true"
-                  enter="transition-all ease-in-out duration-500"
-                  enterFrom="opacity-0 translate-y-6"
-                  enterTo="opacity-100 translate-y-0"
-                  leave="transition-all ease-in-out duration-800"
-                  leaveFrom="opacity-100"
-                  leaveTo="opacity-0"
-                >
-                  <C2Form ref="c2FormRef" :activeSubTab="0" />
-                </TransitionRoot>
+              <TabPanel :key="c2Key" :static="true" v-slot="{ selected }">
+                <div v-show="selected"><C2Form ref="c2FormRef" /></div>
               </TabPanel>
-              <TabPanel>
-                <TransitionRoot
-                  appear
-                  :show="true"
-                  enter="transition-all ease-in-out duration-500"
-                  enterFrom="opacity-0 translate-y-6"
-                  enterTo="opacity-100 translate-y-0"
-                  leave="transition-all ease-in-out duration-800"
-                  leaveFrom="opacity-100"
-                  leaveTo="opacity-0"
-                >
-                  <C3Form ref="c3FormRef" :activeSubTab="0" />
-                </TransitionRoot>
+              <TabPanel :key="c3Key" :static="true" v-slot="{ selected }">
+                <div v-show="selected"><C3Form ref="c3FormRef" /></div>
               </TabPanel>
-              <TabPanel>
-                <TransitionRoot
-                  appear
-                  :show="true"
-                  enter="transition-all ease-in-out duration-500"
-                  enterFrom="opacity-0 translate-y-6"
-                  enterTo="opacity-100 translate-y-0"
-                  leave="transition-all ease-in-out duration-800"
-                  leaveFrom="opacity-100"
-                  leaveTo="opacity-0"
-                >
-                  <C4Form ref="c4FormRef" :activeSubTab="0" />
-                </TransitionRoot>
+              <TabPanel :key="c4Key" :static="true" v-slot="{ selected }">
+                <div v-show="selected"><C4Form ref="c4FormRef" /></div>
               </TabPanel>
             </TabPanels>
           </TabGroup>

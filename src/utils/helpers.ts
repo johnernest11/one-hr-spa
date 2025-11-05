@@ -1,6 +1,5 @@
 import { CountryCode, isValidPhoneNumber, parsePhoneNumber } from 'libphonenumber-js'
 import { Ref } from 'vue'
-import { TimeLogResponse } from '@/typings/models.types.ts'
 import { useDateFormat } from '@vueuse/core'
 import { helpers } from '@vuelidate/validators'
 /**
@@ -225,6 +224,31 @@ export const formatDate = (dateString: string | null | undefined): string => {
 }
 
 /**
+ * @description Formats a date string into "d MM yy" format.
+ * @example "04 October 2025"
+ */
+export const formatDateLong = (dateString: string | null | undefined): string => {
+  if (!dateString) return ''
+  try {
+    const date = new Date(dateString)
+    if (isNaN(date.getTime())) {
+      console.error('Invalid date string:', dateString)
+      return 'Invalid Date'
+    }
+    const options: Intl.DateTimeFormatOptions = {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+    }
+    const formattedDate = date.toLocaleDateString(undefined, options)
+    return formattedDate.replace(/^(\w+)\s(\d+),\s(\d+)$/, '$2 $1 $3')
+  } catch (error) {
+    console.error('Error formatting date:', error)
+    return 'Invalid Date'
+  }
+}
+
+/**
  * @description Formats a single date range into a readable string.
  * @example// "01 - 15 June 2025"
  */
@@ -307,7 +331,28 @@ export const formatPayrollPeriod = (periodStr: string | null): string => {
  * @description Gets "Month Year" from a date string.
  * @example getMonthAndYear('2025-07-14') // "Jul 2025"
  */
-export const getMonthAndYear = (dateString: string | null | undefined): string => {
+export const getMonthAndYear = (dateValue: string | Date | null | undefined): string => {
+  if (!dateValue) return ''
+
+  const date = typeof dateValue === 'string' ? new Date(dateValue) : dateValue
+  if (isNaN(date.getTime())) {
+    console.error('Invalid date value:', dateValue)
+    return 'Invalid Date'
+  }
+
+  const options: Intl.DateTimeFormatOptions = {
+    month: 'short',
+    year: 'numeric',
+  }
+
+  return date.toLocaleDateString(undefined, options)
+}
+
+/**
+ * @description Gets long "Month Year" from a date string.
+ * @example getMonthAndYear('2025-07-14') // "July 2025"
+ */
+export const getLongMonthAndYear = (dateString: string | null | undefined): string => {
   if (!dateString) return ''
   try {
     const date = new Date(dateString)
@@ -317,7 +362,7 @@ export const getMonthAndYear = (dateString: string | null | undefined): string =
     }
 
     const options: Intl.DateTimeFormatOptions = {
-      month: 'short',
+      month: 'long',
       year: 'numeric',
     }
 
@@ -404,6 +449,34 @@ export const isAfterOrEqualFromDate = (getFromDate: () => string | null) => (val
 }
 
 /**
+ * Validator: ensures a given date is not in the future.
+ */
+export const notInFuture = (val: string | number | Date | null) => {
+  if (!helpers.req(val)) return true // skip if empty
+  const date = new Date(val as string | number | Date)
+  if (isNaN(date.getTime())) return true
+  const today = new Date()
+  today.setHours(0, 0, 0, 0) // normalize to midnight
+  return date <= today
+}
+
+/**
+ * Checks if the first date is on or after the second date, ignoring time.
+ * @param {string | Date} date1 The date to check.
+ * @param {string | Date} date2 The date to compare against.
+ * @returns {boolean} True if date1 is on or after date2, otherwise false.
+ */
+export const isSameOrAfterDate = (date1: string, date2: string) => {
+  const d1 = new Date(date1)
+  d1.setHours(0, 0, 0, 0)
+
+  const d2 = new Date(date2)
+  d2.setHours(0, 0, 0, 0)
+
+  return d1 >= d2
+}
+
+/**
  * Summarizes leave date ranges by grouping consecutive dates into ranges.
  * Formats multiple ranges (or single dates) into a compact string.
  *
@@ -451,16 +524,6 @@ export const summarizeLeaveDates = (dates: { start_date: string; end_date: strin
   return `${dayStrings.join(', ')} ${monthYear}`
 }
 
-export const formatDTRTime = (dateString: string | undefined): string => {
-  if (!dateString) return ''
-  const date = new Date(dateString)
-  return date.toLocaleString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  })
-}
-
 export const formatTimeTo12Hour = (timeString: string | undefined): string => {
   if (!timeString) return '—'
 
@@ -474,111 +537,20 @@ export const formatTimeTo12Hour = (timeString: string | undefined): string => {
   return `${hour}:${minute} ${period}`
 }
 
-/** Helper to get formatted date like "1-Feb" */
-export const getFormattedDTRDate = (dateString: string): string => {
-  if (!dateString) return ''
-
-  const date = new Date(dateString)
-  // Format with short month and numeric day
-  const formatted = new Intl.DateTimeFormat('en-GB', {
-    day: 'numeric',
-    month: 'short',
-  }).format(date)
-  // Intl yields "5 Jun" → convert to "5-Jun"
-  return formatted.replace(' ', '-')
-}
-
-// Helper to get the day of the week like "Sat"
-export const getDTRDayOfWeek = (dateString: string): string => {
-  if (!dateString) return ''
-
-  const date = new Date(dateString)
-  const options: Intl.DateTimeFormatOptions = {
-    weekday: 'short',
-  }
-
-  return date.toLocaleDateString('en-US', options)
-}
-
-export const toTimestamp = (date: string, time: string) => `${date}T${time}`
-
-export const resolveDTRSlots = (entries: TimeLogResponse[] = []) => {
-  const inLogs = entries
-    .filter((e) => e.is_in)
-    .sort(
-      (a, b) => new Date(toTimestamp(a.date, a.scanned_time)).getTime() - new Date(toTimestamp(b.date, b.scanned_time)).getTime()
-    )
-
-  const outLogs = entries
-    .filter((e) => !e.is_in)
-    .sort(
-      (a, b) => new Date(toTimestamp(a.date, a.scanned_time)).getTime() - new Date(toTimestamp(b.date, b.scanned_time)).getTime()
-    )
-
-  const slots = {
-    in1: '',
-    out1: '',
-    in2: '',
-    out2: '',
-  }
-
-  const isBetween = (timestamp: string, startHour: number, endHour: number) => {
-    const date = new Date(timestamp)
-    const hours = date.getHours()
-    return hours >= startHour && hours < endHour
-  }
-
-  // 1. Assign in1: between 6:00 - 9:00
-  const in1Candidate = inLogs.find((e) => isBetween(toTimestamp(e.date, e.scanned_time), 6, 9))
-  if (in1Candidate) {
-    slots.in1 = toTimestamp(in1Candidate.date, in1Candidate.scanned_time)
-  }
-
-  // 2. Assign out1: between 12:00 - 13:00
-  const out1Candidate = outLogs.find((e) => isBetween(toTimestamp(e.date, e.scanned_time), 12, 13))
-  if (out1Candidate) {
-    slots.out1 = toTimestamp(out1Candidate.date, out1Candidate.scanned_time)
-  }
-
-  // 3. Assign in2: between 12:00 - 14:00, but not within 15 mins after out1
-  if (slots.out1) {
-    const out1Time = new Date(slots.out1).getTime()
-    const in2Candidates = inLogs.filter((e) => {
-      const timestamp = toTimestamp(e.date, e.scanned_time)
-      const time = new Date(timestamp).getTime()
-      return isBetween(timestamp, 12, 14) && time >= out1Time + 15 * 60 * 1000
-    })
-
-    if (in2Candidates.length) {
-      slots.in2 = toTimestamp(in2Candidates[0].date, in2Candidates[0].scanned_time)
-    }
-  } else {
-    const in2Candidate = inLogs.find((e) => isBetween(toTimestamp(e.date, e.scanned_time), 12, 14))
-    if (in2Candidate) {
-      slots.in2 = toTimestamp(in2Candidate.date, in2Candidate.scanned_time)
-    }
-  }
-
-  // 4. Assign out2: from 14:00 onwards
-  const out2Candidate = outLogs.find((e) => {
-    const date = new Date(toTimestamp(e.date, e.scanned_time))
-    return date.getHours() >= 14
-  })
-  if (out2Candidate) {
-    slots.out2 = toTimestamp(out2Candidate.date, out2Candidate.scanned_time)
-  }
-
-  return slots
-}
-
 /**
  * Formats a date input (string, number, or Date) to 'YYYY-MM-DD'.
- * Returns an empty string if the input is invalid or is a future date.
+ *
+ * The `canBeFuture` parameter controls the cutoff logic:
+ * - If `canBeFuture` is **false** (default), it returns an empty string if the date is in the **future** (today or earlier is allowed).
+ * - If `canBeFuture` is **true**, it will proceed with the date formatting.
+ *
+ * It always returns an empty string if the input is an invalid date.
  *
  * @param input - A date in string, number, or Date format.
- * @returns Formatted date string or empty string if invalid/future.
+ * @param canBeFuture - If true, dates in the future are valid for formatting. Defaults to false.
+ * @returns Formatted date string or empty string if invalid or outside the acceptable date range.
  */
-export const formatDateSafe = (input: unknown): string => {
+export const formatDateSafe = (input: unknown, canBeFuture: boolean = false): string => {
   const date = new Date(input as string | number | Date)
 
   // Invalid date check
@@ -586,7 +558,9 @@ export const formatDateSafe = (input: unknown): string => {
 
   // Today cutoff
   const today = new Date()
-  if (date > today) return ''
+  if (!canBeFuture) {
+    if (date > today) return ''
+  }
 
   return useDateFormat(date, 'YYYY-MM-DD').value
 }
@@ -615,13 +589,31 @@ export const formatValidationDate = (val: unknown): string => {
 /**
  * Applies `formatDateSafe` to specific fields of each object in an array.
  *
+ * It defaults to ensuring the date cannot be in the future (canBeFuture: false),
+ * but allows overriding this behavior for specific fields.
+ *
  * @param entries - Array of objects with potentially date fields.
- * @param fields - List of keys to be formatted using `formatDateSafe`.
+ * @param fields - A list of keys to be formatted. This can be:
+ * 1. A string array of field names (e.g., ['field1', 'field2']).
+ * These default to `canBeFuture: false`.
+ * 2. An array of objects to configure specific fields (e.g., [{ field: 'field3', canBeFuture: true }]).
+ * 3. A mixed array of both strings and objects.
  */
-export const formatDateFields = <T extends Record<string, unknown>>(entries: T[], fields: (keyof T)[]) => {
+export const formatDateFields = <T extends Record<string, unknown>>(
+  entries: T[],
+  fields: (keyof T | { field: keyof T; canBeFuture: boolean })[]
+) => {
+  const fieldConfigs: { field: keyof T; canBeFuture: boolean }[] = (fields as any).map((item: any) => {
+    if (typeof item === 'string') {
+      return { field: item, canBeFuture: false }
+    }
+    return item
+  })
+
   entries.forEach((entry) => {
-    fields.forEach((field) => {
-      entry[field] = formatDateSafe(entry[field]) as T[keyof T]
+    fieldConfigs.forEach((config) => {
+      const { field, canBeFuture } = config
+      entry[field] = formatDateSafe(entry[field], canBeFuture) as T[keyof T]
     })
   })
 }
@@ -643,4 +635,54 @@ export function isNotMoreThanYearsAgo(maxYearsAgo: number) {
     const oldestAllowed = new Date(today.getFullYear() - maxYearsAgo, today.getMonth(), today.getDate())
     return inputDate >= oldestAllowed
   })
+}
+
+/**
+ * Convert a full position label into an abbreviation code.
+ *
+ * Rules:
+ * - Take the first letter of each word
+ * - Skip filler words like "OFFICER" and "AND"
+ * - Keep the Roman numeral (I, II, III, IV, etc.) intact at the end
+ */
+export function getPositionCode(label: string | null | undefined): string | null {
+  if (!label) return null
+
+  const words = label.trim().split(/\s+/)
+
+  const lastWord = words[words.length - 1]
+  const isRoman = /^[IVXLCDM]+$/i.test(lastWord)
+
+  const skipWords = ['AND']
+
+  let initials = words
+    .slice(0, isRoman ? -1 : words.length)
+    .filter((w) => !skipWords.includes(w.toUpperCase()))
+    .map((w) => w[0].toUpperCase())
+    .join('')
+
+  if (isRoman) {
+    initials += lastWord.toUpperCase()
+  }
+
+  return initials
+}
+
+// utils/dateHelpers.ts
+export const formatToYMD = (date: string | Date | null): string | null => {
+  if (!date) return null
+  if (date instanceof Date) {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+  // Assume string in MM/DD/YYYY or YYYY-MM-DD
+  const parts = date.split('/')
+  if (parts.length === 3) {
+    // Convert MM/DD/YYYY → YYYY-MM-DD
+    const [month, day, year] = parts
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+  }
+  return date // already in YYYY-MM-DD
 }
