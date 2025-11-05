@@ -287,18 +287,47 @@ interface FormRules {
   remarksMap: Record<string, { required: (value: unknown) => boolean }>
 }
 
+/************** Form rules **************/
 const formRules = computed<FormRules>(() => {
   const rules: FormRules = { remarksMap: {} }
 
   monthDates.value.forEach((dtr) => {
     if (!dtr.row) return
-    const slots = resolveDTRSlots(dtr.row?.time_log ?? [])
-    const hasMissing = Object.values(slots).some((v) => v === null)
 
+    const timeLogs = dtr.row.time_log ?? []
+    const slots = resolveDTRSlots(timeLogs)
+
+    /*** Employee remarks required rule if any missing slot ***/
+    const hasMissing = Object.values(slots).some((v) => v === null)
     if (hasMissing) {
-      const key = getRemarksKey('employee_remarks', dtr.date)
-      rules.remarksMap[key] = {
+      const remarksKey = getRemarksKey('employee_remarks', dtr.date)
+      rules.remarksMap[remarksKey] = {
         required: helpers.withMessage('Required when entries are missing', required) as unknown as (value: unknown) => boolean,
+      }
+    }
+
+    /*** Duplicate time entries validation (out1 → in2) ***/
+    const out1 = timeLogs.find((log) => !log.is_in && log.scanned_time && log.date === formatDateYMD(dtr.date))
+    const in2 = timeLogs.find((log) => log.is_in && log.scanned_time && log.date === formatDateYMD(dtr.date))
+
+    if (out1 && in2) {
+      const out1Time = new Date(`${out1.date}T${out1.scanned_time}`)
+      const in2Time = new Date(`${in2.date}T${in2.scanned_time}`)
+
+      const duplicateTime = (in2Time.getTime() - out1Time.getTime()) / (1000 * 60)
+
+      /*** Only apply duplicate validation if both exist and are too close in time ***/
+      if (duplicateTime === 0) {
+        const duplicateKeys = ['in1', 'out1', 'in2', 'out2']
+        duplicateKeys.forEach((slotKey) => {
+          const remarksKey = getRemarksKey(slotKey, dtr.date)
+          /*** Only assign if this slot doesn't already have a "missing" rule ***/
+          if (rules.remarksMap[remarksKey]) {
+            rules.remarksMap[remarksKey] = {
+              required: helpers.withMessage('Duplicate entry', required) as unknown as (value: unknown) => boolean,
+            }
+          }
+        })
       }
     }
   })
@@ -672,7 +701,7 @@ const exportToPDF = async (
             <div
               v-for="(dtr, index) in monthDates"
               :key="dtr.date.getTime()"
-              class="grid grid-cols-1 items-center gap-y-2 border-b border-surface-300 px-4 py-4 md:grid-cols-12 md:gap-2 md:px-24"
+              class="grid cursor-pointer grid-cols-1 items-center gap-y-2 border-b border-surface-300 px-4 py-4 transition-all duration-150 hover:bg-surface-50 hover:shadow-xl dark:hover:bg-primary-950 md:grid-cols-12 md:gap-2 md:px-24"
             >
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">Date</p>
@@ -769,7 +798,11 @@ const exportToPDF = async (
                   placeholder="HH:mm"
                   v-tooltip.bottom="'This time logs is edited'"
                   class="h-10 md:h-8 md:w-24"
-                />
+                  :invalid="validator.remarksMap?.[getRemarksKey('in1', dtr.date)]?.$error"
+                  :invalidText="validator.remarksMap?.[getRemarksKey('in1', dtr.date)]?.$errors[0]?.$message"
+                  @blur="validator.remarksMap[getRemarksKey('in1', dtr.date)]?.$touch()"
+                >
+                </WbTimePicker>
               </div>
 
               <!-- OUT 1 -->
@@ -806,7 +839,11 @@ const exportToPDF = async (
                   placeholder="HH:mm"
                   v-tooltip.bottom="'This time logs is edited'"
                   class="h-10 md:h-8 md:w-24"
-                />
+                  :invalid="validator.remarksMap?.[getRemarksKey('out1', dtr.date)]?.$error"
+                  :invalidText="validator.remarksMap?.[getRemarksKey('out1', dtr.date)]?.$errors[0]?.$message"
+                  @blur="validator.remarksMap[getRemarksKey('out1', dtr.date)]?.$touch()"
+                >
+                </WbTimePicker>
               </div>
 
               <!-- IN 2 -->
@@ -841,7 +878,11 @@ const exportToPDF = async (
                   placeholder="HH:mm"
                   v-tooltip.bottom="'This time logs is edited'"
                   class="h-10 md:h-8 md:w-24"
-                />
+                  :invalid="validator.remarksMap?.[getRemarksKey('in2', dtr.date)]?.$error"
+                  :invalidText="validator.remarksMap?.[getRemarksKey('in2', dtr.date)]?.$errors[0]?.$message"
+                  @blur="validator.remarksMap[getRemarksKey('in2', dtr.date)]?.$touch()"
+                >
+                </WbTimePicker>
               </div>
 
               <!-- OUT 2 -->
@@ -878,7 +919,11 @@ const exportToPDF = async (
                   placeholder="HH:mm"
                   v-tooltip.top="resolveDTRSlots(dtr.row?.time_log ?? []).out2 ? 'This time log is Edited' : ''"
                   class="h-10 md:h-8 md:w-24"
-                />
+                  :invalid="validator.remarksMap?.[getRemarksKey('out2', dtr.date)]?.$error"
+                  :invalidText="validator.remarksMap?.[getRemarksKey('out2', dtr.date)]?.$errors[0]?.$message"
+                  @blur="validator.remarksMap[getRemarksKey('out2', dtr.date)]?.$touch()"
+                >
+                </WbTimePicker>
               </div>
 
               <!-- UT, OT, Remarks -->

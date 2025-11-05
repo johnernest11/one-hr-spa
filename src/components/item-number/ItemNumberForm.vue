@@ -230,16 +230,16 @@ const updatePayloadFromReport = (itemNumber: ItemNumberResponse | null) => {
 
   selectedFundSource.value = itemNumber?.fund_source
     ? {
-        label: itemNumber.fund_source.name,
-        value: itemNumber.fund_source.id,
-      }
+      label: itemNumber.fund_source.name,
+      value: itemNumber.fund_source.id,
+    }
     : null
 
   selectedPosition.value = itemNumber?.position
     ? {
-        label: itemNumber.position.title,
-        value: itemNumber.position.id,
-      }
+      label: itemNumber.position.title,
+      value: itemNumber.position.id,
+    }
     : null
 }
 

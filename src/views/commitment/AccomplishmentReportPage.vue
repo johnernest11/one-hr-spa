@@ -84,21 +84,20 @@ const fetchAccomplishmentsBasedOnContext = async (page = 1) => {
 onBeforeMount(() => fetchAccomplishmentsBasedOnContext())
 
 const handlePaginationPageChange = async (event: PageState) => {
-  await fetchAccomplishmentsBasedOnContext(event.page + 1)
+  const pageSelected = event.page + 1
+  accomplishmentReportIsLoading.value = true
+  const response = await accomplishmentReportStore.fetchAccomplishment(paginationLimit, pageSelected)
+  if (response.success && response.pagination) {
+    pagination.value = response.pagination
+  }
+  accomplishmentReportIsLoading.value = false
 }
 
 const handleSearchAccomplishmentReport = async () => {
   accomplishmentReportIsLoading.value = true
   searchSubmitted.value = true
-  if (!searchQuery.value) {
-    const response = await accomplishmentReportStore.fetchAccomplishment(paginationLimit)
-    if (response.success && response.pagination) {
-      pagination.value = response.pagination
-    }
-    return (accomplishmentReportIsLoading.value = false)
-  }
 
-  const response = await accomplishmentReportStore.searchAccomplishment(searchQuery.value)
+  const response = await accomplishmentReportStore.searchAccomplishment(searchQuery.value, paginationLimit)
   if (response.success && response.pagination) {
     pagination.value = response.pagination
     searchQuery.value = null
@@ -108,15 +107,8 @@ const handleSearchAccomplishmentReport = async () => {
 
 const handleFilterAccomplishmentReport = async () => {
   accomplishmentReportIsLoading.value = true
-  if (!selectedStatus.value) {
-    const response = await accomplishmentReportStore.fetchAccomplishment(paginationLimit) // 5 = pagination limit
-    if (response.success && response.pagination) {
-      pagination.value = response.pagination
-    }
-    return (accomplishmentReportIsLoading.value = false)
-  }
 
-  const response = await accomplishmentReportStore.filterAccomplishment(selectedStatus.value)
+  const response = await accomplishmentReportStore.filterAccomplishment(selectedStatus.value, paginationLimit)
   if (response.success && response.pagination) {
     pagination.value = response.pagination
     searchQuery.value = null

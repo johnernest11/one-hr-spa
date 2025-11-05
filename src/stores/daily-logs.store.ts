@@ -62,8 +62,8 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     () => (date: string) =>
       dailyLogs.value.find((l) => l.date === date)
         ? [...dailyLogs.value.find((l) => l.date === date)!.warm_bodies].sort(
-            (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-          )
+          (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        )
         : []
   )
 

@@ -86,9 +86,9 @@ export const useItemNumberStore = defineStore('item-number', () => {
     return responseBody
   }
 
-  const searchItemNumber = async (query: string | null) => {
-    let uri = '/items/search?'
-    if (query) uri += `query=${query}`
+  const searchItemNumber = async (query: string | null, limit: number = 5, page: number = 1) => {
+    let uri = `/items/search?limit=${limit}&page=${page}`
+    if (query) uri += `&query=${query}`
     const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
     const responseBody: ApiResponseBody = data.value
     if (responseBody.success) {
@@ -98,9 +98,9 @@ export const useItemNumberStore = defineStore('item-number', () => {
     return responseBody
   }
 
-  const filterItemNumber = async (status: string | null) => {
-    let uri = '/items'
-    if (status) uri += `?status=${encodeURIComponent(status)}`
+  const filterItemNumber = async (status: string | null, limit: number = 5, page: number = 1) => {
+    let uri = `/items?limit=${limit}&sort=asc&page=${page}`
+    if (status) uri += `&status=${encodeURIComponent(status)}`
     const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
     const responseBody: ApiResponseBody = data.value
     if (responseBody.success) {

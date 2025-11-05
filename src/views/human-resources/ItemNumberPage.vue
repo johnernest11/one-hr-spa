@@ -75,14 +75,7 @@ const handlePaginationPageChange = async (event: PageState) => {
 const handleFilterItemNumber = async () => {
   itemNumberIsLoading.value = true
   searchSubmitted.value = true
-  if (!selectedStatus.value) {
-    const response = await itemNumberStore.fetchItemNumber(paginationLimit)
-    if (response.success && response.pagination) {
-      pagination.value = response.pagination
-    }
-    itemNumberIsLoading.value = false
-    return
-  }
+
   const response = await itemNumberStore.filterItemNumber(selectedStatus.value)
   if (response.success && response.pagination) {
     pagination.value = response.pagination
@@ -97,16 +90,7 @@ const handleSearchItemNumber = async () => {
   itemNumberIsLoading.value = true
   searchSubmitted.value = true
 
-  if (!searchQuery.value) {
-    const response = await itemNumberStore.fetchItemNumber(paginationLimit)
-    if (response.success && response.pagination) {
-      pagination.value = response.pagination
-    }
-    itemNumberIsLoading.value = false
-    return
-  }
-
-  const response = await itemNumberStore.searchItemNumber(searchQuery.value)
+  const response = await itemNumberStore.searchItemNumber(searchQuery.value, paginationLimit)
   if (response.success && response.pagination) {
     pagination.value = response.pagination
 
