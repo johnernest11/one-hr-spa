@@ -148,9 +148,6 @@ const formRules = computed(() => ({
         if (val === null || val === '') return true // allow empty
         return !isNaN(Number(val))
       }),
-      required: helpers.withMessage('Fill Up Rating since other information is provided.', (val, vm) =>
-        hasAnyValue(vm) ? helpers.req(val) : true
-      ),
       maxLength: globalStringMaxLengthRule,
     },
   })),

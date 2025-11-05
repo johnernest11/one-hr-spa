@@ -10,7 +10,6 @@ import useVuelidate from '@vuelidate/core'
 import WbInputText from '@/components/webkit/WbInputText.vue'
 import WbCalendar from '@/components/webkit/WbCalendar.vue'
 import WbAutoComplete from '@/components/webkit/WbAutoComplete.vue'
-import Button from 'primevue/button'
 import RadioButton from 'primevue/radiobutton'
 import { WbAutoCompleteOption, WbAutoCompleteOptionTrueValue } from '@/components/webkit/WbAutoComplete.vue'
 import { useWbAutoCompleteHandleTrueValue } from '@/composables/wb-ui-components.ts'
@@ -209,42 +208,6 @@ const showToast = (
   }
 }
 
-const handleAdditionalReference = () => {
-  if (payload.individual_reference.filter((ref) => !ref._delete).length < 3) {
-    payload.individual_reference.push({
-      id: null,
-      name: '',
-      address: '',
-      tel_no: '',
-      _delete: false,
-    })
-  }
-}
-
-const handleRemoveReference = (referenceIndex: number) => {
-  const idx = referenceIndex - 1
-  const reference = payload.individual_reference?.[idx]
-
-  if (reference?.id) {
-    payload.individual_reference[idx] = {
-      ...reference,
-      _delete: true,
-    }
-  } else {
-    if (payload.individual_reference.length === 1) {
-      payload.individual_reference[idx] = {
-        id: null,
-        name: null,
-        address: null,
-        tel_no: null,
-        _delete: null,
-      }
-    } else {
-      payload.individual_reference.splice(idx, 1)
-    }
-  }
-}
-
 /***Clear the payload to default when manual input mode is detected***/
 const formKey = ref(0)
 const resetPdsPayload = () => {
@@ -284,13 +247,32 @@ const resetPdsPayload = () => {
   })
 
   // References
-  payload.individual_reference.splice(0, payload.individual_reference.length, {
-    id: null,
-    name: '',
-    address: '',
-    tel_no: '',
-    _delete: null,
-  })
+  // References: always 3 entries
+  payload.individual_reference.splice(
+    0,
+    payload.individual_reference.length,
+    {
+      id: null,
+      name: '',
+      address: '',
+      tel_no: '',
+      _delete: null,
+    },
+    {
+      id: null,
+      name: '',
+      address: '',
+      tel_no: '',
+      _delete: null,
+    },
+    {
+      id: null,
+      name: '',
+      address: '',
+      tel_no: '',
+      _delete: null,
+    }
+  )
 }
 
 /**************************************************
@@ -1456,22 +1438,6 @@ defineExpose({
                                   @blur="validator.individual_reference[referenceIndex - 1].tel_no.$touch()"
                                   required
                                 />
-
-                                <!-- Delete button aligned right, below label -->
-                                <Button
-                                  v-if="!pdsStore.isMyPds"
-                                  v-show="referenceIndex > 1"
-                                  :id="getId(`button-remove-learning-development-${referenceIndex}`)"
-                                  icon="pi pi-trash"
-                                  @click="handleRemoveReference(referenceIndex)"
-                                  v-tooltip.top="'Remove Reference'"
-                                  severity="danger"
-                                  :class="[
-                                    'text-lg font-semibold dark:text-primary-100',
-                                    validator.individual_reference[referenceIndex - 1].tel_no.$error ? 'mb-8' : 'mb-12',
-                                  ]"
-                                  text
-                                />
                               </div>
                             </div>
                           </div>
@@ -1479,19 +1445,6 @@ defineExpose({
                         </div>
                       </TransitionRoot>
                     </template>
-
-                    <Button
-                      v-if="payload.individual_reference.filter((ref) => !ref._delete).length < 3 && !pdsStore.isMyPds"
-                      label="Add additional References field"
-                      @click="handleAdditionalReference"
-                      size="large"
-                      class="dark:text-secondary-100 mt-4 !w-64 border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
-                      text
-                    >
-                      <template #icon>
-                        <i class="pi pi-plus mr-2"></i>
-                      </template>
-                    </Button>
                   </div>
 
                   <span class="mt-10 flex flex-col justify-center space-y-4 font-medium text-surface-600">
