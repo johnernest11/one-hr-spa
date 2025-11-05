@@ -63,22 +63,22 @@ const updatePayloadFromReport = (payRoll: PayrollResponse | null) => {
     // Map payroll deductions if available, transforming each item
     payload.payroll.payroll_deduction_id = Array.isArray(payRoll.payroll_deduction_id)
       ? payRoll.payroll_deduction_id.map((deduction) => ({
-        amount: deduction.amount ?? null,
-        range: deduction.range ?? null,
-        deduction_id: deduction.deduction_id
-          ? {
-            name: deduction.deduction_id.name ?? '',
-            code: deduction.deduction_id.code ?? null,
-            details: deduction.deduction_id.details ?? null,
-            id: deduction.deduction_id.id ?? '',
-          }
-          : {
-            name: '',
-            code: null,
-            details: null,
-            id: '',
-          },
-      }))
+          amount: deduction.amount ?? null,
+          range: deduction.range ?? null,
+          deduction_id: deduction.deduction_id
+            ? {
+                name: deduction.deduction_id.name ?? '',
+                code: deduction.deduction_id.code ?? null,
+                details: deduction.deduction_id.details ?? null,
+                id: deduction.deduction_id.id ?? '',
+              }
+            : {
+                name: '',
+                code: null,
+                details: null,
+                id: '',
+              },
+        }))
       : []
 
     // If employee info exists, populate nested employee object
@@ -119,6 +119,7 @@ const updatePayloadFromReport = (payRoll: PayrollResponse | null) => {
           individual_membership: null,
           individual_question: null,
           individual_reference: null,
+          individual_government_id: null,
           employee: null,
         },
         // Employee identifier info

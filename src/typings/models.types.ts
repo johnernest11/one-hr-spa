@@ -52,6 +52,15 @@ export type AddressResponse = {
   region: RegionResponse | null
 } & ApiResponseData
 
+export type CountriesResponse = {
+  common_name: string
+  official_name: string | null
+  cca2: string | null
+  ccn3: string | null
+  cca3: string | null
+  cioc: string | null
+} & ApiResponseData
+
 export type OfficesResponse = {
   name: string
   head_user_id: string | null
@@ -278,11 +287,12 @@ export type PersonnelResponse = {
   individual_membership: IndividualMembership | null
   individual_question: IndividualQuestion | null
   individual_reference: IndividualReference | null
+  individual_government_id: IndividualGovernmentId | null
   employee: PersonnelEmployee | null
 } & ApiResponseData
 
 export type PersonnelAddress = {
-  id: number
+  id: number | null
   individual_basic_detail_id: string | null
   residential_house_block_lot_no: string | null
   residential_street: string | null
@@ -318,12 +328,14 @@ export type PersonnelContactInfo = {
 }
 
 export type IndividualContactInfo = {
+  id: string | null
   tel_no: string | null
   mobile_no: string | null
   email_address: string | null
 }
 
 export type IndividualAddress = {
+  id: number | null
   residential_house_block_lot_no: string | null
   residential_street: string | null
   residential_subdivision_village: string | null
@@ -477,11 +489,12 @@ export type IndividualReference = {
   _delete: boolean | null
 } & Omit<ApiResponseData, 'id'>
 
-export type IndividualGovernmentIssue = {
-  gov_id_name: string | null
+export type IndividualGovernmentId = {
+  id: number | null
+  gov_issued_id: string | null
   gov_id_no: string | null
-  gov_id_issuance: string | null
-}
+  gov_issuance: string | null
+} & Omit<ApiResponseData, 'id'>
 
 /**Daily Time Record (HTTP Responses) */
 export type DailyTimeRecordResponse = {
