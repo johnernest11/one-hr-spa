@@ -50,11 +50,11 @@ export const useSidebarNavLinks = () => {
           case 'time-logs':
             navLink.icon = 'pi pi-hourglass'
             break
-          case 'requests':
-            navLink.icon = 'pi pi-bookmark'
-            break
           case 'my-profile':
             navLink.icon = 'pi pi-id-card'
+            break
+          case 'requests':
+            navLink.icon = 'pi pi-bookmark'
             break
           case 'commitments':
             navLink.icon = 'pi pi-clock'
