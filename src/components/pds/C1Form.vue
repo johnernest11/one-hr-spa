@@ -1866,12 +1866,6 @@ const handleSaveC1Form = async () => {
     errorMessage.value = result?.message
     pdsErrors.value = result?.errors
   } else {
-    toast.add({
-      severity: 'success',
-      summary: 'Success',
-      detail: 'All forms have passed validation and were updated successfully.',
-      life: 10000,
-    })
     router.push({ name: 'employment' })
   }
 }
