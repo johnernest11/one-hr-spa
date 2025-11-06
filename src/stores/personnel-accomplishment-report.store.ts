@@ -15,6 +15,7 @@ export type PersonnelAccomplishmentReportPayload = {
     dates_in_week: string
     specific_activity: string | null
     highlights: string | null
+    _delete: boolean | null
   }[]
 }
 
@@ -72,9 +73,9 @@ export const useAccomplishmentReportStore = defineStore('personnel-accomplishmen
     return responseBody
   }
 
-  const searchAccomplishment = async (query: string | null) => {
-    let uri = '/accomplishment-reports/search?'
-    if (query) uri += `query=${query}`
+  const searchAccomplishment = async (query: string | null, limit: number = 5, page: number = 1) => {
+    let uri = `/accomplishment-reports/search?limit=${limit}&page=${page}`
+    if (query) uri += `&query=${query}`
     const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
     const responseBody: ApiResponseBody = data.value
     if (responseBody.success) {
@@ -84,9 +85,9 @@ export const useAccomplishmentReportStore = defineStore('personnel-accomplishmen
     return responseBody
   }
 
-  const filterAccomplishment = async (status: string | null) => {
-    let uri = '/accomplishment-reports'
-    if (status) uri += `?status=${encodeURIComponent(status)}`
+  const filterAccomplishment = async (status: string | null, limit: number = 5, page: number = 1) => {
+    let uri = `/accomplishment-reports?limit=${limit}&sort=asc&page=${page}`
+    if (status) uri += `&status=${encodeURIComponent(status)}`
     const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
     const responseBody: ApiResponseBody = data.value
     if (responseBody.success) {

@@ -50,11 +50,11 @@ export const useSidebarNavLinks = () => {
           case 'time-logs':
             navLink.icon = 'pi pi-hourglass'
             break
-          case 'requests':
-            navLink.icon = 'pi pi-bookmark'
-            break
           case 'my-profile':
             navLink.icon = 'pi pi-id-card'
+            break
+          case 'requests':
+            navLink.icon = 'pi pi-bookmark'
             break
           case 'commitments':
             navLink.icon = 'pi pi-clock'
@@ -76,6 +76,12 @@ export const useSidebarNavLinks = () => {
             break
           case 'about-us':
             navLink.icon = 'pi pi-heart'
+            break
+          case 'management':
+            navLink.icon = 'pi pi-book'
+            break
+          case 'odsus':
+            navLink.icon = 'pi pi-book'
             break
           case 'user-management':
             navLink.icon = 'pi pi-users'
@@ -158,6 +164,33 @@ export const useSidebarNavLinks = () => {
                   break
                 case 'item-numbers':
                   childNavLink.icon = 'fas fa-sitemap'
+                  break
+
+                /*Management Routes */
+                case 'active-directories':
+                  childNavLink.icon = 'fas fa-user-lock'
+                  break
+                case 'positions':
+                  childNavLink.icon = 'fas fa-users-rays'
+                  break
+                case 'fund-sources':
+                  childNavLink.icon = 'fas fa-wallet'
+                  break
+                case 'salary-grades':
+                  childNavLink.icon = 'fas fa-coins'
+                  break
+
+                case 'offices':
+                  childNavLink.icon = 'fas fa-building'
+                  break
+                case 'divisions':
+                  childNavLink.icon = 'fas fa-braille'
+                  break
+                case 'section_or_units':
+                  childNavLink.icon = 'fas fa-layer-group'
+                  break
+                case 'programs':
+                  childNavLink.icon = 'fas fa-object-group'
                   break
 
                 /*Responsibility Routes */

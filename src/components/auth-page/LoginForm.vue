@@ -8,7 +8,6 @@ import useVuelidate from '@vuelidate/core'
 import { helpers, required } from '@vuelidate/validators'
 import { useRoute, useRouter } from 'vue-router'
 import { LoginPayload, useAuthStore } from '@/stores/auth.store.ts'
-import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import AppLogo from '@/components/layout/AppLogo.vue'
 import { checkIfValidMobileNumber } from '@/utils/helpers.ts'
 import { ApiErrorCode } from '@/typings/http-resources.types.ts'
@@ -20,8 +19,9 @@ const emit = defineEmits<{
 }>()
 
 /** Props */
-const props = withDefaults(defineProps<{ showLoginExpiredAlert: boolean }>(), {
+const props = withDefaults(defineProps<{ showLoginExpiredAlert: boolean; showRefreshTokenExpiredAlert: boolean }>(), {
   showLoginExpiredAlert: false,
+  showRefreshTokenExpiredAlert: false,
 })
 
 const route = useRoute()
@@ -155,7 +155,9 @@ const handleLogin = async () => {
 
   // For normal log-ins, we go the dashboard page for verified emails, and to the guard page for those who
   // have un-verified emails
-  if (authStore.authenticatedUser.email_verified_at) {
+  if (authStore.authRoles.includes('time_logger')) {
+    return await router.replace({ name: 'time-logs' })
+  } else if (authStore.authenticatedUser.email_verified_at) {
     return await router.replace({ name: 'dashboard' })
   } else {
     return await router.replace({ name: 'verify-email-guard' })
@@ -193,7 +195,10 @@ const manageIfEmailIsPhoneNumber = (payload: LoginPayload) => {
     <!-- End Alert Message -->
     <!-- Start Auth Token Expired Message -->
     <transition enter-active-class="transition duration-200" enter-from-class="scale-50 opacity-0" leave-to-class="opacity-0">
-      <Message v-if="props.showLoginExpiredAlert && !showCredsErrorAlert" :closable="false" severity="warn">
+      <Message v-if="props.showRefreshTokenExpiredAlert && !showCredsErrorAlert" :closable="false" severity="warn">
+        <span>Your refresh token has expired, please enter your credentials again to continue.</span>
+      </Message>
+      <Message v-else-if="props.showLoginExpiredAlert && !showCredsErrorAlert" :closable="false" severity="warn">
         <span>Your login session has expired, please enter your credentials again to continue.</span>
       </Message>
     </transition>
@@ -236,30 +241,6 @@ const manageIfEmailIsPhoneNumber = (payload: LoginPayload) => {
           class="mt-3 w-full"
         ></Button>
       </div>
-      <p class="flex justify-between pt-3 text-center">
-        <Button
-          label="Forgot Password"
-          size="small"
-          class="text-xs text-surface-0 hover:bg-surface-100 dark:text-primary-100 dark:hover:bg-primary-300/20 lg:text-surface-500 dark:lg:text-primary-400"
-          text
-          @click="$router.push({ name: 'forgot-password' })"
-        >
-          <template #icon>
-            <FontAwesomeIcon icon="fa-solid fa-lock" class="mr-1.5" />
-          </template>
-        </Button>
-        <Button
-          label="Create an account"
-          size="small"
-          class="text-xs text-surface-0 dark:text-primary-100 lg:text-primary-400 dark:lg:text-primary-400"
-          text
-          @click="$router.push({ name: 'sign-up' })"
-        >
-          <template #icon>
-            <FontAwesomeIcon icon="fa-solid fa-right-to-bracket" class="mr-1.5" />
-          </template>
-        </Button>
-      </p>
     </form>
     <!-- End Form -->
   </section>

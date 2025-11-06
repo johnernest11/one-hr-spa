@@ -39,6 +39,7 @@ const routes = [
         AuthRole.ADMIN,
         AuthRole.SUPER_USER,
         AuthRole.SYSTEM_SUPPORT,
+        AuthRole.TIME_LOGGER,
       ],
     },
   },
@@ -71,96 +72,8 @@ const routes = [
       isSidebarMenu: true,
       authType: AuthType.AUTHENTICATED,
       hideNavigation: true,
-      roles: [AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER, AuthRole.SYSTEM_SUPPORT],
+      roles: [AuthRole.SUPER_USER, AuthRole.TIME_LOGGER],
     },
-  },
-  /*Request Routes */
-  {
-    path: '/requests',
-    name: 'requests',
-    meta: <RouteMeta>{
-      group: RouteGroup.MAIN,
-      label: 'Requests',
-      isSidebarMenu: true,
-      authType: AuthType.AUTHENTICATED,
-      roles: [
-        AuthRole.STANDARD_USER,
-        AuthRole.SECTION_HEAD,
-        AuthRole.DIVISION_HEAD,
-        AuthRole.HR_PPMS_ADMIN,
-        AuthRole.HR_PAS_ADMIN,
-        AuthRole.ADMIN,
-        AuthRole.SUPER_USER,
-        AuthRole.SYSTEM_SUPPORT,
-      ],
-    },
-    children: [
-      {
-        path: '/request-documents/:id?',
-        name: 'request-documents',
-        component: () => import('@/views/request/DocumentsPage.vue'),
-        meta: <RouteMeta>{
-          label: 'Documents',
-          isSidebarMenu: true,
-          authType: AuthType.AUTHENTICATED,
-          roles: [
-            AuthRole.STANDARD_USER,
-            AuthRole.SECTION_HEAD,
-            AuthRole.DIVISION_HEAD,
-            AuthRole.HR_PPMS_ADMIN,
-            AuthRole.HR_PAS_ADMIN,
-            AuthRole.ADMIN,
-            AuthRole.SYSTEM_SUPPORT,
-            AuthRole.SUPER_USER,
-          ],
-        },
-      },
-      {
-        path: '/request-documents/store',
-        name: 'request-documents/store',
-        component: () => import('@/components/request/DocumentRequestForm.vue'),
-        meta: <RouteMeta>{
-          isSidebarMenu: false,
-          authType: AuthType.AUTHENTICATED,
-          roles: [
-            AuthRole.STANDARD_USER,
-            AuthRole.HR_PPMS_ADMIN,
-            AuthRole.HR_PAS_ADMIN,
-            AuthRole.ADMIN,
-            AuthRole.SYSTEM_SUPPORT,
-            AuthRole.SUPER_USER,
-          ],
-        },
-      },
-      {
-        path: '/request-documents/:id/editor',
-        name: 'request-documents/editor',
-        component: () => import('@/components/request/DocumentRequestForm.vue'),
-        meta: <RouteMeta>{
-          isSidebarMenu: false,
-          authType: AuthType.AUTHENTICATED,
-          roles: [
-            AuthRole.STANDARD_USER,
-            AuthRole.HR_PPMS_ADMIN,
-            AuthRole.HR_PAS_ADMIN,
-            AuthRole.ADMIN,
-            AuthRole.SYSTEM_SUPPORT,
-            AuthRole.SUPER_USER,
-          ],
-        },
-      },
-      {
-        path: '/my-locator-slips',
-        name: 'my-locator-slips',
-        component: () => import('@/views/personnel/LocatorSlipsPage.vue'),
-        meta: <RouteMeta>{
-          label: 'My Locator Slip',
-          isSidebarMenu: true,
-          authType: AuthType.AUTHENTICATED,
-          roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
-        },
-      },
-    ],
   },
   /*My Profile */
   {
@@ -209,7 +122,7 @@ const routes = [
         component: () => import('@/views/personnel/WorkExperienceSheetPage.vue'),
         meta: <RouteMeta>{
           label: 'Work Experience Sheet',
-          isSidebarMenu: true,
+          isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
           roles: [
             AuthRole.STANDARD_USER,
@@ -248,7 +161,7 @@ const routes = [
         component: () => import('@/views/personnel/LeaveApplicationPage.vue'),
         meta: <RouteMeta>{
           label: 'Leave Application',
-          isSidebarMenu: true,
+          isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
           roles: [
             AuthRole.STANDARD_USER,
@@ -302,7 +215,7 @@ const routes = [
         component: () => import('@/views/personnel/PayslipPage.vue'),
         meta: <RouteMeta>{
           label: 'Payslip',
-          isSidebarMenu: true,
+          isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
           roles: [
             AuthRole.STANDARD_USER,
@@ -321,7 +234,7 @@ const routes = [
         name: 'my-payslip/editor',
         component: () => import('@/components/payslip/PayslipView.vue'),
         meta: <RouteMeta>{
-          isSidebarMenu: false,
+          label: 'Payslip',
           authType: AuthType.AUTHENTICATED,
           roles: [
             AuthRole.STANDARD_USER,
@@ -355,13 +268,32 @@ const routes = [
           ],
         },
       },
+      {
+        path: '/my-monthly-dtrs/:id?/:year/:month',
+        name: 'my-monthly-dtrs',
+        component: () => import('@/components/dtr/MyDTR.vue'),
+        meta: <RouteMeta>{
+          label: 'Daily Time Record',
+          authType: AuthType.AUTHENTICATED,
+          roles: [
+            AuthRole.STANDARD_USER,
+            AuthRole.SECTION_HEAD,
+            AuthRole.DIVISION_HEAD,
+            AuthRole.HR_PPMS_ADMIN,
+            AuthRole.HR_PAS_ADMIN,
+            AuthRole.ADMIN,
+            AuthRole.SUPER_USER,
+            AuthRole.SYSTEM_SUPPORT,
+          ],
+        },
+      },
 
       {
-        path: '/my-dtrs/list',
+        path: '/my-dtrs/list/:id?',
         name: 'my-dtrs/list',
         component: () => import('@/components/dtr/DTRList.vue'),
         meta: <RouteMeta>{
-          isSidebarMenu: false,
+          label: 'Daily Time Record',
           authType: AuthType.AUTHENTICATED,
           roles: [
             AuthRole.STANDARD_USER,
@@ -382,7 +314,7 @@ const routes = [
         component: () => import('@/views/personnel/CompensatoryPage.vue'),
         meta: <RouteMeta>{
           label: 'Compensatory Overtime Credit',
-          isSidebarMenu: true,
+          isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
           roles: [
             AuthRole.STANDARD_USER,
@@ -421,7 +353,7 @@ const routes = [
         component: () => import('@/views/personnel/LeaveCreditsPage.vue'),
         meta: <RouteMeta>{
           label: 'Leave Credits',
-          isSidebarMenu: true,
+          isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
           roles: [
             AuthRole.STANDARD_USER,
@@ -433,6 +365,105 @@ const routes = [
             AuthRole.SUPER_USER,
             AuthRole.SYSTEM_SUPPORT,
           ],
+        },
+      },
+    ],
+  },
+
+  /*Request Routes */
+  {
+    path: '/requests',
+    name: 'requests',
+    meta: <RouteMeta>{
+      group: RouteGroup.MAIN,
+      label: 'Requests',
+      isSidebarMenu: true,
+      authType: AuthType.AUTHENTICATED,
+      roles: [
+        AuthRole.STANDARD_USER,
+        AuthRole.SECTION_HEAD,
+        AuthRole.DIVISION_HEAD,
+        AuthRole.HR_PPMS_ADMIN,
+        AuthRole.HR_PAS_ADMIN,
+        AuthRole.ADMIN,
+        AuthRole.SUPER_USER,
+        AuthRole.SYSTEM_SUPPORT,
+      ],
+    },
+    children: [
+      {
+        path: '/request-documents/:id?',
+        name: 'request-documents',
+        component: () => import('@/views/request/DocumentsPage.vue'),
+        meta: <RouteMeta>{
+          label: 'Documents',
+          isSidebarMenu: false,
+          authType: AuthType.AUTHENTICATED,
+          roles: [
+            AuthRole.STANDARD_USER,
+            AuthRole.SECTION_HEAD,
+            AuthRole.DIVISION_HEAD,
+            AuthRole.HR_PPMS_ADMIN,
+            AuthRole.HR_PAS_ADMIN,
+            AuthRole.ADMIN,
+            AuthRole.SYSTEM_SUPPORT,
+            AuthRole.SUPER_USER,
+          ],
+        },
+      },
+      {
+        path: '/request-documents/store',
+        name: 'request-documents/store',
+        component: () => import('@/components/request/DocumentRequestForm.vue'),
+        meta: <RouteMeta>{
+          isSidebarMenu: false,
+          authType: AuthType.AUTHENTICATED,
+          roles: [
+            AuthRole.STANDARD_USER,
+            AuthRole.HR_PPMS_ADMIN,
+            AuthRole.HR_PAS_ADMIN,
+            AuthRole.ADMIN,
+            AuthRole.SYSTEM_SUPPORT,
+            AuthRole.SUPER_USER,
+          ],
+        },
+      },
+      {
+        path: '/request-documents/:id/editor',
+        name: 'request-documents/editor',
+        component: () => import('@/components/request/DocumentRequestForm.vue'),
+        meta: <RouteMeta>{
+          isSidebarMenu: false,
+          authType: AuthType.AUTHENTICATED,
+          roles: [
+            AuthRole.STANDARD_USER,
+            AuthRole.HR_PPMS_ADMIN,
+            AuthRole.HR_PAS_ADMIN,
+            AuthRole.ADMIN,
+            AuthRole.SYSTEM_SUPPORT,
+            AuthRole.SUPER_USER,
+          ],
+        },
+      },
+      {
+        path: '/my-locator-slips',
+        name: 'my-locator-slips',
+        component: () => import('@/views/request/LocatorSlipsPage.vue'),
+        meta: <RouteMeta>{
+          label: 'My Locator Slip',
+          isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+      {
+        path: '/my-locator-slips/:id/editor',
+        name: 'my-locator-slips/editor',
+        component: () => import('@/components/locator-slip/LocatorSlipForm.vue'),
+        meta: <RouteMeta>{
+          isSidebarMenu: false,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
         },
       },
     ],
@@ -522,7 +553,7 @@ const routes = [
         component: () => import('@/views/commitment/CompensatoryTimeOffPage.vue'),
         meta: <RouteMeta>{
           label: 'CTDos',
-          isSidebarMenu: true,
+          isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
           roles: [
             AuthRole.STANDARD_USER,
@@ -584,7 +615,7 @@ const routes = [
     meta: <RouteMeta>{
       group: RouteGroup.IMMEDIATE_SUPERVISOR,
       label: 'Responsibility',
-      isSidebarMenu: true,
+      isSidebarMenu: false,
       authType: AuthType.AUTHENTICATED,
       roles: [AuthRole.SECTION_HEAD, AuthRole.DIVISION_HEAD, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
     },
@@ -595,7 +626,7 @@ const routes = [
         component: AccomplishmentReportPage,
         meta: <RouteMeta>{
           label: 'Staff ARs',
-          isSidebarMenu: true,
+          isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
           roles: [AuthRole.SECTION_HEAD, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
         },
@@ -616,7 +647,7 @@ const routes = [
         component: () => import('@/views/commitment/CompensatoryTimeOffPage.vue'),
         meta: <RouteMeta>{
           label: 'Staff CTDos',
-          isSidebarMenu: true,
+          isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
           roles: [AuthRole.DIVISION_HEAD, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
         },
@@ -699,6 +730,7 @@ const routes = [
             AuthRole.STANDARD_USER,
             AuthRole.EMPLOYEE,
             AuthRole.HR_PPMS_ADMIN,
+            AuthRole.HR_PAS_ADMIN,
             AuthRole.ADMIN,
             AuthRole.SYSTEM_SUPPORT,
             AuthRole.SUPER_USER,
@@ -713,7 +745,7 @@ const routes = [
           label: 'Create Personnel',
           isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
-          roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
+          roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
         },
       },
     ],
@@ -780,7 +812,7 @@ const routes = [
         component: () => import('@/views/personnel/LeaveApplicationPage.vue'),
         meta: <RouteMeta>{
           label: 'Leave Application',
-          isSidebarMenu: true,
+          isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
           roles: [AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
         },
@@ -797,14 +829,24 @@ const routes = [
       },
 
       {
-        path: '/locator-slips/:id?',
+        path: '/locator-slips/',
         name: 'locator-slips',
-        component: () => import('@/views/personnel/LocatorSlipsPage.vue'),
+        component: () => import('@/views/request/LocatorSlipsPage.vue'),
         meta: <RouteMeta>{
           label: 'Locator Slip',
           isSidebarMenu: true,
           authType: AuthType.AUTHENTICATED,
-          roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+          roles: [AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+      {
+        path: '/locator-slips/:id/editor',
+        name: 'locator-slips/editor',
+        component: () => import('@/components/locator-slip/LocatorSlipForm.vue'),
+        meta: <RouteMeta>{
+          isSidebarMenu: false,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
         },
       },
       {
@@ -813,7 +855,7 @@ const routes = [
         component: () => import('@/views/request/DocumentsPage.vue'),
         meta: <RouteMeta>{
           label: 'Document Request',
-          isSidebarMenu: true,
+          isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
           roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
         },
@@ -835,7 +877,7 @@ const routes = [
         component: () => import('@/views/human-resources/PayrollPage.vue'),
         meta: <RouteMeta>{
           label: 'Payroll',
-          isSidebarMenu: true,
+          isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
           roles: [AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
         },
@@ -857,7 +899,7 @@ const routes = [
         component: () => import('@/views/commitment/CompensatoryTimeOffPage.vue'),
         meta: <RouteMeta>{
           label: 'Staff CTDO`s',
-          isSidebarMenu: true,
+          isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
           roles: [AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
         },
@@ -868,9 +910,125 @@ const routes = [
         component: () => import('@/views/human-resources/COCPage.vue'),
         meta: <RouteMeta>{
           label: 'Staff COC`s',
-          isSidebarMenu: true,
+          isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
           roles: [AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+    ],
+  },
+
+  /*Libraries Management */
+  /*HRPPMS*/
+  {
+    path: '/management',
+    name: 'management',
+    meta: <RouteMeta>{
+      group: RouteGroup.HUMAN_RESOURCES,
+      label: 'Management',
+      isSidebarMenu: false,
+      roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+    },
+    children: [
+      {
+        path: '/active-directories',
+        name: 'active-directories',
+        component: () => import('@/views/human-resources/ActiveDirectPage.vue'),
+        meta: <RouteMeta>{
+          label: 'Active Directory',
+          isSidebarMenu: false,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+      {
+        path: '/positions',
+        name: 'positions',
+        component: () => import('@/views/human-resources/PositionPage.vue'),
+        meta: <RouteMeta>{
+          label: 'Positions',
+          isSidebarMenu: false,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+      {
+        path: '/fund-sources',
+        name: 'fund-sources',
+        component: () => import('@/views/human-resources/FundSourcePage.vue'),
+        meta: <RouteMeta>{
+          label: 'Fund Sources',
+          isSidebarMenu: false,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+      {
+        path: '/salary-grades',
+        name: 'salary-grades',
+        component: () => import('@/views/human-resources/SalaryGradePage.vue'),
+        meta: <RouteMeta>{
+          label: 'Salary Grades',
+          isSidebarMenu: false,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+    ],
+  },
+  /*ODSUS*/
+  {
+    path: '/odsus',
+    name: 'odsus',
+    meta: <RouteMeta>{
+      group: RouteGroup.HUMAN_RESOURCES,
+      label: 'Odsus',
+      isSidebarMenu: false,
+      roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+    },
+    children: [
+      {
+        path: '/offices',
+        name: 'offices',
+        component: () => import('@/views/human-resources/OfficePage.vue'),
+        meta: <RouteMeta>{
+          label: 'Offices',
+          isSidebarMenu: false,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+      {
+        path: '/divisions',
+        name: 'divisions',
+        component: () => import('@/views/human-resources/DivisionsPage.vue'),
+        meta: <RouteMeta>{
+          label: 'Divisions',
+          isSidebarMenu: false,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+      {
+        path: '/section_or_units',
+        name: 'section_or_units',
+        component: () => import('@/views/human-resources/SectionorUnitPage.vue'),
+        meta: <RouteMeta>{
+          label: 'Section/Units',
+          isSidebarMenu: false,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
+      {
+        path: '/programs',
+        name: 'programs',
+        component: () => import('@/views/human-resources/ProgramPage.vue'),
+        meta: <RouteMeta>{
+          label: 'Programs',
+          isSidebarMenu: false,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
         },
       },
     ],
@@ -884,7 +1042,7 @@ const routes = [
     meta: <RouteMeta>{
       group: RouteGroup.MISC,
       label: 'Support',
-      isSidebarMenu: true,
+      isSidebarMenu: false,
       authType: AuthType.AUTHENTICATED,
       roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],
     },
@@ -896,7 +1054,7 @@ const routes = [
     meta: <RouteMeta>{
       group: RouteGroup.MISC,
       label: 'About Us',
-      isSidebarMenu: true,
+      isSidebarMenu: false,
       authType: AuthType.AUTHENTICATED,
       roles: [
         AuthRole.STANDARD_USER,
@@ -927,7 +1085,7 @@ const routes = [
     component: () => import('@/views/SettingsPage.vue'),
     meta: <RouteMeta>{
       label: 'Settings',
-      isSidebarMenu: true,
+      isSidebarMenu: false,
       group: RouteGroup.ADMIN_TOOLS,
       authType: AuthType.AUTHENTICATED,
       roles: [AuthRole.ADMIN, AuthRole.SUPER_USER],
@@ -1057,6 +1215,7 @@ router.beforeEach(async (to, from) => {
   // Block authenticated users to routes that require them to be unauthenticated
   // Ex. Login, Sign-up, Forgot Password
   const authStore = useAuthStore()
+
   if (authStore.isAuthenticated && !authStore.authExpired && to.meta.authType === AuthType.UNAUTHENTICATED) {
     return from
   }
@@ -1077,8 +1236,28 @@ router.beforeEach(async (to, from) => {
     return { name: 'dashboard' }
   }
 
+  // Attempt to refresh tokens if ever the auth token is expired.
+  if (authStore.authExpired && authStore.refreshToken && !authStore.refreshTokenExpired) {
+    try {
+      await authStore.refreshCurrentTokens()
+      return { name: 'time-logs' }
+    } catch (err) {
+      console.error('Failed to refresh tokens:', err)
+      return { name: 'login' }
+    }
+  }
+
   // Protect routes that need authentication
   if (to.meta.authType === AuthType.AUTHENTICATED && !authStore.isAuthenticated) {
+    if (authStore.refreshToken) {
+      try {
+        await authStore.refreshCurrentTokens()
+        return { name: 'time-logs' }
+      } catch (err) {
+        console.error('Failed to refresh tokens:', err)
+        return { name: 'login' }
+      }
+    }
     if (authStore.mfaToken) return { name: 'mfa-guard-page' }
     return { name: 'login' }
   }

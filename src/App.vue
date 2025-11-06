@@ -22,8 +22,21 @@ const profileStore = useProfileStore()
 const route = useRoute()
 
 onBeforeMount(async () => {
+  const params = new URLSearchParams(window.location.search)
+  const urlToken = params.get('token')
+
+  // Intercept token, clear old auth token, and redirect to dashboard.
+  // This will resolve the issue wherein it automatically logs out AD users if there are previous expired tokens.
+  if (urlToken) {
+    authStore.clearAuthTokenOnStorage()
+    await authStore.ssoLogin(urlToken)
+
+    await router.replace({
+      name: 'dashboard',
+    })
+  }
   // Rehydrate profile info on reload if there is an authenticated user
-  if (authStore.isAuthenticated) {
+  else if (authStore.isAuthenticated) {
     await profileStore.fetchProfile()
   }
 })
@@ -34,6 +47,7 @@ watch(
   () => authStore.authExpired,
   async (tokenIsExpired) => {
     if (tokenIsExpired) {
+      authStore.clearAuthTokenOnStorage()
       await router.replace({
         name: 'login',
         query: { from: route.name as string },

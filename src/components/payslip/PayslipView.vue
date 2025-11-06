@@ -105,6 +105,7 @@ const updatePayloadFromReport = (payRoll: PayrollResponse | null) => {
           tin: '',
           citizenship: '',
           citizenship_acquisition: '',
+          country_id: null,
           individual_address: null,
           individual_contact_info: null,
           individual_family: null,
@@ -118,6 +119,7 @@ const updatePayloadFromReport = (payRoll: PayrollResponse | null) => {
           individual_membership: null,
           individual_question: null,
           individual_reference: null,
+          individual_government_id: null,
           employee: null,
         },
         // Employee identifier info
@@ -239,8 +241,11 @@ watch(
                 For the Period of
                 {{
                   formatPayrollPeriod(
-                    payload.payroll.period
-                      ? payload.payroll.period.map((date) => date.toISOString().split('T')[0]).join(', ')
+                    payload?.payroll?.period
+                      ? payload.payroll.period
+                          .map((date) => (date ? new Date(date).toISOString().split('T')[0] : null))
+                          .filter(Boolean)
+                          .join(', ')
                       : null
                   )
                 }}
