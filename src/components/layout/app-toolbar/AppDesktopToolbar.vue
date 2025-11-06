@@ -23,19 +23,35 @@ const payload = reactive<PersonalDataSheetPayload>({
 
 const isLoading = ref(true)
 
+/***
+ * Always fetch and display the authenticated user's own PDS information.
+ * Even if the user is currently viewing another employee's record,
+ * this section ensures that only the logged-in user's data populates
+ * their personal profile and related UI components.
+ ***/
 onMounted(async () => {
+  // Always derive ID from authenticated user, not from route or selection
   const id = authStore.authenticatedUser?.user_profile?.individual_basic_detail_id
-  if (id) {
-    const response = await pdsStore.fetchPdsById(id)
-    if (response?.success) {
-      const data = response.data as PersonnelResponse
 
-      pdsStore.updatePdsFromPersonnel(data)
-      Object.assign(payload, pdsStore.pdsInfo)
-    } else {
-      console.warn('Failed to fetch PDS or response unsuccessful.')
+  if (id) {
+    try {
+      const response = await pdsStore.fetchPdsById(id)
+
+      if (response?.success) {
+        const data = response.data as PersonnelResponse
+        // Update Pinia store and payload to always reflect logged-in user
+        pdsStore.updatePdsFromPersonnel(data)
+        Object.assign(payload, pdsStore.pdsInfo)
+      } else {
+        console.warn('Failed to fetch PDS or response unsuccessful.')
+      }
+    } catch (error) {
+      console.error('Error fetching authenticated user PDS:', error)
     }
+  } else {
+    console.warn('Authenticated user ID not found.')
   }
+
   isLoading.value = false
 })
 
@@ -54,15 +70,16 @@ const avatarMenuItems = ref<MenuItem[]>([
   },
 ])
 
-// Computed Full Name
+// Always show the logged-in user's name in the profile button
 const fullName = computed(() => {
-  const individual = payload.individual
-  return [individual.first_name, individual.middle_name, individual.last_name, individual.ext_name].filter(Boolean).join(' ')
+  const user = authStore.authenticatedUser?.user_profile?.individual_basic_detail
+  if (!user) return ''
+  return [user.first_name, user.middle_name, user.last_name, user.ext_name].filter(Boolean).join(' ')
 })
 
 // Computed AvatarDisplayNamePlaceholder
 const AvatarDisplayNamePlaceholder = computed(() => {
-  const individual = payload.individual
+  const individual = authStore.authenticatedUser?.user_profile?.individual_basic_detail
   if (!individual) return ''
 
   const initials = [

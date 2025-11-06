@@ -20,22 +20,16 @@ import {
   computeWorkedHours,
   isWeekend,
 } from '@/utils/dtr-helpers'
-import { PersonalDataSheetPayload, usePdsStore } from '@/stores/pds.store'
+import { useAuthStore } from '@/stores/auth.store.ts'
 import { ApiResponsePagination } from '@/typings/http-resources.types.ts'
 import Paginator, { PageState } from 'primevue/paginator'
 import { useAccomplishmentReportStore } from '@/stores/personnel-accomplishment-report.store'
 import { useLocatorSlipStore } from '@/stores/locator-slip.store'
 import WbCalendar from '@/components/webkit/WbCalendar.vue'
 import HappyBirthdayGreetingPage from './misc/HappyBirthdayGreetingPage.vue'
-
-const pdsStore = usePdsStore()
+const authStore = useAuthStore()
 const accomplishmentReportStore = useAccomplishmentReportStore()
 const locatorSlipsStore = useLocatorSlipStore()
-
-/** Payload */
-const payload = reactive<PersonalDataSheetPayload>({
-  ...pdsStore.pdsInfo,
-})
 
 /**
  *
@@ -77,7 +71,7 @@ const initialYear = today.getFullYear()
 const initialMonth = today.getMonth() // 0-based: Jan = 0, Dec = 11
 const monthDate = ref<Date>(new Date(initialYear, initialMonth))
 
-/** Fetch today's DTR */
+/*** Fetch Daily Time Records for the selected month ***/
 const normalizeTimeKey = (dtrTimeLogs: string, date: Date | string | null) =>
   `${dtrTimeLogs}-${date ? new Date(date).toISOString().slice(0, 10) : 'no-date'}`
 const fetchTodayDTR = async () => {
@@ -100,13 +94,14 @@ const fetchTodayDTR = async () => {
     })
   }
 }
-
+/*** Computed helpers for selected month/year ***/
 const selectedYear = computed(() => monthDate.value.getFullYear())
 const selectedMonth = computed(() => monthDate.value.getMonth())
 const selectedMonthName = computed(() => monthDate.value.toLocaleString('default', { month: 'long' }))
 const fromDate = ref<Date | null>(null)
 const toDate = ref<Date | null>(null)
 
+/*** Main computed calendarDays list ***/
 const calendarDays = computed<CalendarDay[]>(() => {
   if (!allDailyTimeRecordsData.value) return []
 
@@ -150,7 +145,7 @@ const calendarDays = computed<CalendarDay[]>(() => {
 
   return days
 })
-
+/*** Initialize Today`s DTR Time Logs data. ***/
 const todayDTR = computed(() => {
   const today = new Date()
   const ts = normalizeDateTimestamp(today)!
@@ -178,6 +173,7 @@ const computeOTValue = (item: { is_missing: string; date: Date; row: ViewDailyTi
   return computeOT(computeWorkedHours(item.row.time_log ?? []), isWeekend(item.row.date))
 }
 
+/*** Initialize DTR data for current month. ***/
 onMounted(async () => {
   // Initialize today's date and start live clock
   const today = getManilaTodayISO()
@@ -189,15 +185,16 @@ onMounted(async () => {
   await fetchTodayDTR()
 })
 
-/** Computed Full Name */
+// Always show the logged-in user's name in the profile button
 const fullName = computed(() => {
-  const individual = payload.individual
-  return [individual.first_name, individual.middle_name, individual.last_name, individual.ext_name].filter(Boolean).join(' ')
+  const user = authStore.authenticatedUser?.user_profile?.individual_basic_detail
+  if (!user) return ''
+  return [user.first_name, user.middle_name, user.last_name, user.ext_name].filter(Boolean).join(' ')
 })
 
 /** Computed Birthday */
 const isMyBirthday = computed(() => {
-  const dateStr = payload.individual?.birthday
+  const dateStr = authStore.authenticatedUser?.user_profile?.individual_basic_detail?.birthday
   if (!dateStr) return false // return boolean, not string
 
   const date = new Date(dateStr)

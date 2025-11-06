@@ -205,6 +205,7 @@ const monthDates = computed(() => {
 const computeUTValue = computed(() => {
   return (item: { is_missing: string; date: Date; row: ViewDailyTimeRecordResponse | null }) => {
     if (!item.row) return ''
+    if (item.row.ut && item.row.ut > 0) return item.row.ut
     return computeUT(computeWorkedHours(item.row.time_log ?? []), isWeekend(item.row.date))
   }
 })
