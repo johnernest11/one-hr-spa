@@ -591,11 +591,11 @@ const saveButtonSubmission = async () => {
               <div class="text-l">
                 <span class="pr-3">
                   <i :class="auxiliaryWellnessData[0].icon" class="dark:text-primary-40 text-primary-500" />
-                  Used ({{ auxiliaryWellnessData[0].value }} hrs)
+                  Used ({{ auxiliaryWellnessData[0].value.toFixed(2) }} hrs)
                 </span>
                 <span>
                   <i :class="auxiliaryWellnessData[1].icon" class="dark:text-primary-40 text-surface-500" />
-                  Remaining ({{ auxiliaryWellnessData[1].value }} hrs)
+                  Remaining ({{ auxiliaryWellnessData[1].value.toFixed(2) }} hrs)
                 </span>
               </div>
             </template>
