@@ -18,7 +18,6 @@ import { useToast } from 'primevue/usetoast'
 import { parseApiResponseError } from '@/utils/error-handle.ts'
 import { helpers, required, maxLength } from '@vuelidate/validators'
 import { TabGroup, TabList, Tab, TabPanels, TabPanel } from '@headlessui/vue'
-import { mobilePhoneRule } from '@/utils/custom-validations'
 import { usePrependOrAppendOnce, notInFuture } from '@/utils/helpers.js'
 import { TransitionRoot } from '@headlessui/vue'
 import { PersonnelResponse } from '@/typings/models.types'
@@ -169,8 +168,7 @@ const formRules = computed(() => ({
       maxLength: globalStringMaxLengthRule,
     },
     tel_no: {
-      required: helpers.withMessage('Tel No. Sponsor is required.', required),
-      tel_no: helpers.withMessage('Must be a valid PH mobile number', mobilePhoneRule()),
+      required: helpers.withMessage('Contact No. and/or Email is required.', required),
       unique: uniqueField(payload.individual_reference, 'tel_no', 'Character references tel no already provided/exists.'),
     },
   })),
