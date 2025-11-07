@@ -144,7 +144,8 @@ const fullMonthlyRecords = computed(() => {
 const paginatedMonthlyRecords = computed(() => {
   const start = (currentPage.value - 1) * rowsPerPage
   const end = start + rowsPerPage
-  return fullMonthlyRecords.value.slice(start, end)
+  const records = fullMonthlyRecords.value.slice(start, end)
+  return records
 })
 
 const handlePaginationPageChange = (event: PageState) => {

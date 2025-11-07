@@ -74,7 +74,10 @@ const avatarMenuItems = ref<MenuItem[]>([
 const fullName = computed(() => {
   const user = authStore.authenticatedUser?.user_profile?.individual_basic_detail
   if (!user) return ''
-  return [user.first_name, user.middle_name, user.last_name, user.ext_name].filter(Boolean).join(' ')
+
+  const initials = [user.first_name, user.middle_name, user.last_name, user.ext_name].filter(Boolean).join(' ')
+
+  return initials
 })
 
 // Computed AvatarDisplayNamePlaceholder
