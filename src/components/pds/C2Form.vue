@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref, computed, onMounted, watch } from 'vue'
+import { reactive, ref, computed, onMounted, watch, nextTick } from 'vue'
 import { usePdsStore, PersonalDataSheetPayload } from '@/stores/pds.store.ts'
 import { useSalaryGradesStore } from '@/stores/salary-grades.store.ts'
 import { useAuthStore } from '@/stores/auth.store.ts'
@@ -60,6 +60,9 @@ onMounted(async () => {
   const hasImport = !!pdsStore.importResult
 
   if (hasImport) {
+    isImporting.value = true
+    console.log('Importing C2...')
+
     const importedEligibility = pdsStore.importResult?.individual_eligibility ?? []
     const filteredEligibility = removeEmptyArrays(importedEligibility)
     const importedWork = pdsStore.importResult?.individual_work_experience ?? []
@@ -67,6 +70,10 @@ onMounted(async () => {
     Object.assign(payload.individual_eligibility, filteredEligibility)
     Object.assign(payload.individual_work_experience, filteredWork)
   }
+
+  await nextTick()
+  isImporting.value = false
+  console.log('Importing C2 done!')
 })
 
 const removeEmptyArrays = <T,>(arr: T[]): T[] => {
@@ -369,12 +376,12 @@ type pdsDetailsFormProps = {
 const props = defineProps<pdsDetailsFormProps>()
 onMounted(async () => {
   const isManualInput = route.query.mode === 'via-manual-input'
-  const isImporting = route.query.mode === 'via-pds-importation'
+  const routeIsImport = route.query.mode === 'via-pds-importation'
 
   const id = !isManualInput
     ? (route.params.id as string) || authStore.authenticatedUser?.user_profile?.individual_basic_detail_id
     : null
-  if (id && !isImporting) {
+  if (id && !routeIsImport) {
     const response = await pdsStore.fetchPdsById(id)
 
     if (response && response.success) {

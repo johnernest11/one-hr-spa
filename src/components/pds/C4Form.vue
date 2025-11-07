@@ -326,8 +326,9 @@ onMounted(async () => {
   }
 
   /*********Fetch Existing PDS*********/
+  const routeIsImport = route.query.mode === 'via-pds-importation'
   const id = route.params.id as string
-  if (!id) {
+  if (!id || routeIsImport) {
     console.log('No ID in route, skipping fetch.')
     isLoading.value = false
     return

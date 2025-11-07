@@ -382,11 +382,11 @@ type pdsDetailsFormProps = {
 const props = defineProps<pdsDetailsFormProps>()
 onMounted(async () => {
   const isManualInput = route.query.mode === 'via-manual-input'
-  const isImporting = route.query.mode === 'via-pds-importation'
+  const routeIsImport = route.query.mode === 'via-pds-importation'
   const id = !isManualInput
     ? (route.params.id as string) || authStore.authenticatedUser?.user_profile?.individual_basic_detail_id
     : null
-  if (id && !isImporting) {
+  if (id && !routeIsImport) {
     const response = await pdsStore.fetchPdsById(id)
 
     if (response && response.success) {
