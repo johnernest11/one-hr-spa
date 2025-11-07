@@ -1566,8 +1566,9 @@ onMounted(async () => {
   /*********Fetch Existing PDS*********/
   isLoading.value = true
   const id = (route.params.id as string) || authStore.authenticatedUser?.user_profile?.individual_basic_detail_id
+  const isImporting = route.query.mode === 'via-pds-importation'
 
-  if (id) {
+  if (id && !isImporting) {
     const response = await pdsStore.fetchPdsById(id)
 
     if (response && response.success) {
@@ -1866,12 +1867,6 @@ const handleSaveC1Form = async () => {
     errorMessage.value = result?.message
     pdsErrors.value = result?.errors
   } else {
-    toast.add({
-      severity: 'success',
-      summary: 'Success',
-      detail: 'All forms have passed validation and were updated successfully.',
-      life: 10000,
-    })
     router.push({ name: 'employment' })
   }
 }
