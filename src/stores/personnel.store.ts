@@ -31,8 +31,10 @@ export const usePersonnelStore = defineStore('personnel', () => {
 
     return responseBody
   }
-  const searchEmployees = async (query: string | null) => {
-    let uri = '/individual-basic-details/search?'
+  const searchEmployees = async (query: string | null, limit: number = 5, page: number | null = null) => {
+    let uri = `/individual-basic-details/search?limit=${limit}&sort=desc`
+
+    if (page) uri += `&page=${page}`
     if (query) uri += `query=${query}`
     const { data } = await useApiCall(uri, authStore.authenticationToken).get().json()
     const responseBody: ApiResponseBody = data.value
@@ -46,7 +48,7 @@ export const usePersonnelStore = defineStore('personnel', () => {
   const filterEmployees = async (
     divisionId?: number | null,
     sectionOrUnitId?: number | null,
-    limit: number = 15,
+    limit: number = 5,
     page: number | null = null
   ) => {
     let uri = `/individual-basic-details?limit=${limit}&sort=desc`

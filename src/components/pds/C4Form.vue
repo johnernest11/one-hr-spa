@@ -169,7 +169,7 @@ const formRules = computed(() => ({
     },
     tel_no: {
       required: helpers.withMessage('Contact No. and/or Email is required.', required),
-      unique: uniqueField(payload.individual_reference, 'tel_no', 'Character references tel no already provided/exists.'),
+      unique: uniqueField(payload.individual_reference, 'tel_no', 'Character references tel no/email already provided/exists.'),
     },
   })),
   individual_government_id: {

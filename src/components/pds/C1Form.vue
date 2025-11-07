@@ -785,28 +785,6 @@ watch(
   }
 )
 
-/***************************************************
-     Watcher Show the Country ID Label
-****************************************************/
-watch(
-  () => payload.individual.country_id,
-  async (newVal) => {
-    if (newVal) {
-      // Fetch countries if not loaded yet
-      if (!libraryStore.countryOptions.length) {
-        await libraryStore.fetchCountry?.()
-      }
-
-      // Find the selected option object
-      const found = libraryStore.countryOptions.find((opt) => opt.value === newVal)
-      selectedCountry.value = found || null
-    } else {
-      selectedCountry.value = null
-    }
-  },
-  { immediate: true }
-)
-
 watch(
   () => payload.individual.citizenship,
   (newValue) => {
@@ -817,6 +795,7 @@ watch(
       payload.individual.citizenship_acquisition = ''
     } else if (newValue === 'Dual Citizenship') {
       payload.individual.citizenship_acquisition = ''
+      selectedCountry.value = null
     }
   },
   { immediate: true }
@@ -1401,6 +1380,7 @@ const resetPdsPayload = () => {
       citizenship: '',
       citizenship_by: '',
       dual_country: '',
+      country_id: null,
     },
 
     employee: {
@@ -1554,6 +1534,11 @@ type pdsDetailsFormProps = {
 const formKey = ref(0)
 const props = defineProps<pdsDetailsFormProps>()
 onMounted(async () => {
+  /********* Ensure Country Options are Loaded *********/
+  if (!libraryStore.countryOptions.length) {
+    console.log('→ Fetching country options before mounting...')
+    await libraryStore.fetchCountry?.()
+  }
   /*********Manual Input Mode*********/
   if (route.query.mode === 'via-manual-input') {
     console.info('Manual input detected on mount → resetting payload.')
@@ -1574,6 +1559,12 @@ onMounted(async () => {
     if (response && response.success) {
       const data = response.data as PersonnelResponse
       pdsStore.updatePdsFromPersonnel(data)
+
+      /*********Handle Citizenship Country Id*********/
+      selectedCountry.value = libraryStore.countryOptions.find((r) => r.value === data.country_id) ?? null
+      payload.individual.country_id = data.country_id
+      console.log('→ Selected Country (after fetch):', selectedCountry.value)
+
       /*********Handle Educations*********/
       const educationsRaw = data.individual_educational_background
       const educationsArray: IndividualEducBg[] = Array.isArray(educationsRaw)
@@ -1634,6 +1625,7 @@ onMounted(async () => {
         // Residential
         selectedResidentialRegion.value =
           publicStore.regionOptions.find((r) => r.value === addressRaw.residential_region_id) ?? null
+
         selectedResidentialProvince.value =
           publicStore.provinceOptions.find((p) => p.value === addressRaw.residential_province_id) ?? null
         selectedResidentialCity.value = publicStore.cityOptions.find((c) => c.value === addressRaw.residential_citymun_id) ?? null
@@ -1665,6 +1657,26 @@ watch(
       for (const key in payload.individual) {
         payload.individual[key as keyof typeof payload.individual] = null
       }
+    }
+  },
+  { immediate: true }
+)
+
+/***************************************************
+     Watcher Show the Country ID Label
+****************************************************/
+watch(
+  () => payload.individual.country_id,
+  async (newVal) => {
+    if (newVal) {
+      if (!libraryStore.countryOptions.length) {
+        await libraryStore.fetchCountry?.()
+      }
+
+      const found = libraryStore.countryOptions.find((opt) => opt.value === newVal)
+      selectedCountry.value = found || null
+    } else {
+      selectedCountry.value = null
     }
   },
   { immediate: true }
