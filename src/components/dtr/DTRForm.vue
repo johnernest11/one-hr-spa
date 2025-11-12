@@ -301,7 +301,7 @@ const computeOTValue = computed(() => {
             <div
               v-for="(dtr, index) in monthDates"
               :key="dtr.date.getTime()"
-              class="grid cursor-pointer grid-cols-1 items-center gap-y-2 border-b border-surface-300 px-4 py-2 transition-all duration-150 hover:bg-surface-50 hover:shadow-xl dark:hover:bg-primary-950 md:grid-cols-9 md:gap-2 md:px-24"
+              class="grid cursor-pointer grid-cols-1 items-center gap-y-2 border-b border-surface-300 px-4 py-2 transition-all duration-150 hover:bg-surface-100 dark:hover:bg-primary-950 md:grid-cols-9 md:gap-2 md:px-24"
             >
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">Date</p>

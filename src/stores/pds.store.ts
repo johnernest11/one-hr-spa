@@ -52,7 +52,6 @@ export type PersonalDataSheetPayload = {
     tin: string | null
     agency_employee_no: string | null
     citizenship: string | null
-    citizenship_country: string | null
     citizenship_acquisition: string | null
     country_id: number | null
   }
@@ -156,7 +155,6 @@ export const usePdsStore = defineStore('pds', () => {
       tin: individual?.tin ?? null,
       agency_employee_no: individual?.employee?.agency_employee_no ?? null,
       citizenship: individual?.citizenship ?? null,
-      citizenship_country: null,
       citizenship_acquisition: individual?.citizenship_acquisition ?? null,
       country_id: individual?.country_id ?? null,
     },
@@ -530,7 +528,7 @@ export const usePdsStore = defineStore('pds', () => {
     pdsInfo.individual.agency_employee_no = personnel.employee?.agency_employee_no ?? null
     pdsInfo.individual.citizenship = personnel.citizenship ?? null
     pdsInfo.individual.citizenship_acquisition = personnel.citizenship_acquisition ?? null
-    pdsInfo.individual.citizenship_country = null
+    pdsInfo.individual.country_id = personnel.country_id ?? null
 
     // === C1 -  Contact Info ===
     const contactInfo = personnel.individual_contact_info
