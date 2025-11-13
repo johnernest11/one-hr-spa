@@ -97,14 +97,14 @@ export const useLocatorSlipStore = defineStore('locator-slip', () => {
     return responseBody
   }
 
-  const searchLocatorSlip = async (query: string | null, is_pas: boolean = false, limit = 10) => {
+  const searchLocatorSlip = async (query: string | null, is_pas: boolean = false, limit = 10, page: number = 1) => {
     const individual = auth.authenticatedUser.user_profile?.individual_basic_detail as PersonnelResponse
     if (!individual?.employee) {
       throw new Error('No employee data linked to current user')
     }
 
-    const myLocUri = `/employees/${individual.employee.id}/locator-slips/search?limit=${limit}&`
-    const pasUri = `/employees/locator-slips/search-all?limit=${limit}&`
+    const myLocUri = `/employees/${individual.employee.id}/locator-slips/search?limit=${limit}&page=${page}&`
+    const pasUri = `/employees/locator-slips/search-all?limit=${limit}&page=${page}&`
 
     let uri = is_pas ? pasUri : myLocUri
     if (query) uri += `query=${query}`
@@ -126,14 +126,15 @@ export const useLocatorSlipStore = defineStore('locator-slip', () => {
     form_type?: string | null,
     dateFilter?: string | null,
     is_pas: boolean = false,
-    limit = 10
+    limit = 10,
+    page: number = 1
   ) => {
     const individual = auth.authenticatedUser.user_profile?.individual_basic_detail as PersonnelResponse
     if (!individual?.employee) {
       throw new Error('No employee data linked to current user')
     }
-    const myLocUri = `/employees/${individual.employee.id}/locator-slips?limit=${limit}&`
-    const pasUri = `/employees/locator-slips/grouped?limit=${limit}&`
+    const myLocUri = `/employees/${individual.employee.id}/locator-slips?limit=${limit}&page=${page}&`
+    const pasUri = `/employees/locator-slips/grouped?limit=${limit}&page=${page}&`
 
     let uri = is_pas ? pasUri : myLocUri
     if (form_type) uri += `form-type=${encodeURIComponent(form_type)}&`
