@@ -113,12 +113,39 @@ const pagination = ref<ApiResponsePagination | null>(null)
 const currentPage = ref(1)
 const rowsPerPage = 5
 const searchResults = ref<{ month: string; records: DailyTimeRecordResponse[] }[]>([])
+/****************************************************************
+        Generated Current Month Records even record is Empty
+*****************************************************************/
+const currentYear = new Date().getFullYear()
+const currentMonthIndex = new Date().getMonth()
 
-const paginatedMonthlyRecords = computed(() => {
+const fullMonthlyRecords = computed(() => {
   const baseRecords = searchSubmitted.value ? searchResults.value : monthlyRecords.value
+
+  const monthName = new Date(currentYear, currentMonthIndex).toLocaleString('default', { month: 'long' })
+  const monthLabel = `${monthName} ${currentYear}`
+
+  let monthGroup = baseRecords.find((m) => m.month === monthLabel)
+
+  if (!monthGroup) {
+    monthGroup = {
+      month: monthLabel,
+      records: [],
+    }
+    baseRecords.push(monthGroup)
+  }
+
+  return baseRecords
+})
+
+/****************************************************************
+                 Show Monthly Record
+*****************************************************************/
+const paginatedMonthlyRecords = computed(() => {
   const start = (currentPage.value - 1) * rowsPerPage
   const end = start + rowsPerPage
-  return baseRecords.slice(start, end)
+  const records = fullMonthlyRecords.value.slice(start, end)
+  return records
 })
 
 const handlePaginationPageChange = (event: PageState) => {
@@ -243,6 +270,7 @@ const exportToPDF = async (employeeId: string, startDate: string, endDate: strin
 const isHumanResourceActive = computed(() => route.name === 'daily-time-records')
 
 const getMonthlyStatus = (records: ViewDailyTimeRecordResponse[]): string => {
+  if (!records || records.length === 0) return 'Draft'
   if (records.every((r) => r.status === 'Approved')) return 'Approved'
   if (records.some((r) => r.status === 'For Review')) return 'For Review'
   return 'Draft'

@@ -258,7 +258,10 @@ const handleSearchItemNumber = async () => {
             class="flex h-full w-full flex-col items-center justify-center font-menu text-lg dark:text-surface-300"
           >
             <i class="pi pi-exclamation-triangle mb-2 text-2xl"></i>
-            <p>No items found</p>
+            <p class="text-center">
+              Oops! We couldn’t find any items matching your search. <br />
+              Try adjusting your keywords.
+            </p>
           </div>
           <div
             v-if="!itemNumberIsLoading && !itemNumberStore.itemNumbers.length && !searchSubmitted"

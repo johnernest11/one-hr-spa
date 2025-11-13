@@ -282,7 +282,8 @@ const formRules = computed(() => ({
       in: helpers.withMessage('Select a valid blood type from the list', required),
     },
     gsis_no: {
-      maxLength: helpers.withMessage(() => generateMessage('gsis_no').maxLength, globalStringMaxLengthRule),
+      required: helpers.withMessage(() => generateMessage('umid_id_no').required, required),
+      maxLength: helpers.withMessage(() => generateMessage('umid_id_no').maxLength, globalStringMaxLengthRule),
     },
     philhealth_no: {
       required: helpers.withMessage(() => generateMessage('philhealth_number').required, required),
@@ -293,8 +294,8 @@ const formRules = computed(() => ({
       maxLength: helpers.withMessage(() => generateMessage('pag_ibig_no').maxLength, globalStringMaxLengthRule),
     },
     sss_no: {
-      required: helpers.withMessage(() => generateMessage('sss_no').required, required),
-      maxLength: helpers.withMessage(() => generateMessage('sss_no').maxLength, globalStringMaxLengthRule),
+      required: helpers.withMessage(() => generateMessage('philsys_no').required, required),
+      maxLength: helpers.withMessage(() => generateMessage('philsys_no').maxLength, globalStringMaxLengthRule),
     },
     tin: {
       required: helpers.withMessage(() => generateMessage('tin').required, required),
@@ -790,28 +791,6 @@ watch(
   }
 )
 
-/***************************************************
-     Watcher Show the Country ID Label
-****************************************************/
-watch(
-  () => payload.individual.country_id,
-  async (newVal) => {
-    if (newVal) {
-      // Fetch countries if not loaded yet
-      if (!libraryStore.countryOptions.length) {
-        await libraryStore.fetchCountry?.()
-      }
-
-      // Find the selected option object
-      const found = libraryStore.countryOptions.find((opt) => opt.value === newVal)
-      selectedCountry.value = found || null
-    } else {
-      selectedCountry.value = null
-    }
-  },
-  { immediate: true }
-)
-
 watch(
   () => payload.individual.citizenship,
   (newValue) => {
@@ -822,6 +801,7 @@ watch(
       payload.individual.citizenship_acquisition = ''
     } else if (newValue === 'Dual Citizenship') {
       payload.individual.citizenship_acquisition = ''
+      selectedCountry.value = null
     }
   },
   { immediate: true }
@@ -1406,6 +1386,7 @@ const resetPdsPayload = () => {
       citizenship: '',
       citizenship_by: '',
       dual_country: '',
+      country_id: null,
     },
 
     employee: {
@@ -1559,6 +1540,11 @@ type pdsDetailsFormProps = {
 const formKey = ref(0)
 const props = defineProps<pdsDetailsFormProps>()
 onMounted(async () => {
+  /********* Ensure Country Options are Loaded *********/
+  if (!libraryStore.countryOptions.length) {
+    console.log('→ Fetching country options before mounting...')
+    await libraryStore.fetchCountry?.()
+  }
   /*********Manual Input Mode*********/
   if (route.query.mode === 'via-manual-input') {
     console.info('Manual input detected on mount → resetting payload.')
@@ -1579,6 +1565,12 @@ onMounted(async () => {
     if (response && response.success) {
       const data = response.data as PersonnelResponse
       pdsStore.updatePdsFromPersonnel(data)
+
+      /*********Handle Citizenship Country Id*********/
+      selectedCountry.value = libraryStore.countryOptions.find((r) => r.value === data.country_id) ?? null
+      payload.individual.country_id = data.country_id
+      console.log('→ Selected Country (after fetch):', selectedCountry.value)
+
       /*********Handle Educations*********/
       const educationsRaw = data.individual_educational_background
       const educationsArray: IndividualEducBg[] = Array.isArray(educationsRaw)
@@ -1639,6 +1631,7 @@ onMounted(async () => {
         // Residential
         selectedResidentialRegion.value =
           publicStore.regionOptions.find((r) => r.value === addressRaw.residential_region_id) ?? null
+
         selectedResidentialProvince.value =
           publicStore.provinceOptions.find((p) => p.value === addressRaw.residential_province_id) ?? null
         selectedResidentialCity.value = publicStore.cityOptions.find((c) => c.value === addressRaw.residential_citymun_id) ?? null
@@ -1670,6 +1663,26 @@ watch(
       for (const key in payload.individual) {
         payload.individual[key as keyof typeof payload.individual] = null
       }
+    }
+  },
+  { immediate: true }
+)
+
+/***************************************************
+     Watcher Show the Country ID Label
+****************************************************/
+watch(
+  () => payload.individual.country_id,
+  async (newVal) => {
+    if (newVal) {
+      if (!libraryStore.countryOptions.length) {
+        await libraryStore.fetchCountry?.()
+      }
+
+      const found = libraryStore.countryOptions.find((opt) => opt.value === newVal)
+      selectedCountry.value = found || null
+    } else {
+      selectedCountry.value = null
     }
   },
   { immediate: true }
