@@ -63,6 +63,7 @@ const isItemsLoading = ref(false)
 const isSalaryGradeLoading = ref(false)
 const isSameResidential = ref(false)
 const isLoading = ref(true)
+const isImporting = ref(false)
 const activeToasts = ref<number>(0)
 const maxToasts = 5
 
@@ -133,6 +134,9 @@ onMounted(async () => {
   const hasImport = !!pdsStore.importResult
 
   if (hasImport) {
+    isImporting.value = true
+    console.log('Importing C1...')
+
     // perform import with NO watcher present
     // (do NOT call setupSpouseWatch yet)
     // this is to prevent the bug wherein the spouse data is being overwritten by the watcher
@@ -166,6 +170,8 @@ onMounted(async () => {
     }
 
     await nextTick()
+    isImporting.value = false
+    console.log('Importing C1 done!')
     setupSpouseWatch(false)
   } else {
     setupSpouseWatch(true)
@@ -1551,9 +1557,9 @@ onMounted(async () => {
   /*********Fetch Existing PDS*********/
   isLoading.value = true
   const id = (route.params.id as string) || authStore.authenticatedUser?.user_profile?.individual_basic_detail_id
-  const isImporting = route.query.mode === 'via-pds-importation'
+  const routeIsImport = route.query.mode === 'via-pds-importation'
 
-  if (id && !isImporting) {
+  if (id && !routeIsImport) {
     const response = await pdsStore.fetchPdsById(id)
 
     if (response && response.success) {
