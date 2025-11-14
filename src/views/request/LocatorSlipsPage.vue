@@ -47,12 +47,21 @@ const employeeGroups = ref()
 const expandedRows = ref()
 
 const searchQuery = ref<string | null>(null)
+const lastSearchQuery = ref<string | null>(null)
+const lastFilterValues = ref<{
+  officeId: number | null
+  divId: number | null
+  secId: number | null
+  formType: string | null
+  dateFilter: string | null
+} | null>(null)
 const selectedDivision = ref<WbAutoCompleteOption | null>(null)
 const selectedOffice = ref<WbAutoCompleteOption | null>(null)
 const selectedSectionUnit = ref<WbAutoCompleteOption | null>(null)
 const selectedFormType = ref<string | null>(null)
 const selectedDateFilter = ref<Date | null>(null)
 const pagination = ref<ApiResponsePagination | null>(null)
+const first = ref(0)
 
 const emit = defineEmits<{
   (e: 'locator-created', value: boolean): void
@@ -126,6 +135,10 @@ const formRules = () => ({
 
 const fetchData = async () => {
   locatorSlipsIsLoading.value = true
+  lastSearchQuery.value = null
+  lastFilterValues.value = null
+  searchSubmitted.value = false
+
   if (isHumanResourceActive.value) {
     try {
       const response = await locatorSlipsStore.fetchGroupedLocatorSlip(paginationLimit)
@@ -164,47 +177,89 @@ onBeforeMount(async () => {
   fetchData()
 })
 
+/* -------------------------------------------------------------------------- */
+/*                                 Pagination                                 */
+/* -------------------------------------------------------------------------- */
 const handlePaginationPageChange = async (event: PageState) => {
+  first.value = event.first
   locatorSlipsIsLoading.value = true
   const pageSelected = event.page + 1
 
-  if (isHumanResourceActive.value) {
-    const response = await locatorSlipsStore.fetchGroupedLocatorSlip(paginationLimit, pageSelected)
-    if (response.success && response.pagination) {
-      employeeGroups.value = response.data
-      pagination.value = response.pagination
-    }
+  let response
+  let actionTaken = false
+
+  if (lastSearchQuery.value) {
+    response = await locatorSlipsStore.searchLocatorSlip(
+      lastSearchQuery.value,
+      isHumanResourceActive.value,
+      paginationLimit,
+      pageSelected
+    )
+    actionTaken = true
+  } else if (lastFilterValues.value) {
+    const filter = lastFilterValues.value
+    response = await locatorSlipsStore.filterLocatorSlip(
+      filter.officeId,
+      filter.divId,
+      filter.secId,
+      filter.formType,
+      filter.dateFilter,
+      isHumanResourceActive.value,
+      paginationLimit,
+      pageSelected
+    )
+    actionTaken = true
   } else {
-    const response = await locatorSlipsStore.fetchLocatorSlip(paginationLimit, pageSelected)
-    if (response.success && response.pagination) {
-      pagination.value = response.pagination
+    if (isHumanResourceActive.value) {
+      response = await locatorSlipsStore.fetchGroupedLocatorSlip(paginationLimit, pageSelected)
+    } else {
+      response = await locatorSlipsStore.fetchLocatorSlip(paginationLimit, pageSelected)
     }
   }
+
+  if (response && response.success && response.pagination) {
+    if (actionTaken || isHumanResourceActive.value) {
+      employeeGroups.value = response.data
+    }
+    pagination.value = response.pagination
+  }
+
   locatorSlipsIsLoading.value = false
 }
 
+/* -------------------------------------------------------------------------- */
+/*                                   Search                                   */
+/* -------------------------------------------------------------------------- */
 const handleSearchLocatorSlip = async () => {
   locatorSlipsIsLoading.value = true
   searchSubmitted.value = true
+  lastFilterValues.value = null
 
   if (!searchQuery.value) {
     fetchData()
+    searchSubmitted.value = false
+    lastSearchQuery.value = null
     return
   }
 
-  const response = await locatorSlipsStore.searchLocatorSlip(searchQuery.value, isHumanResourceActive.value, paginationLimit)
+  lastSearchQuery.value = searchQuery.value
+
+  const response = await locatorSlipsStore.searchLocatorSlip(lastSearchQuery.value, isHumanResourceActive.value, paginationLimit)
   if (response.success && response.pagination) {
     employeeGroups.value = response.data
     pagination.value = response.pagination
-    searchQuery.value = null
   }
 
   locatorSlipsIsLoading.value = false
 }
 
+/* -------------------------------------------------------------------------- */
+/*                                   Filter                                   */
+/* -------------------------------------------------------------------------- */
 const handleFilterLocatorSlip = async () => {
   locatorSlipsIsLoading.value = true
   searchSubmitted.value = true
+  lastSearchQuery.value = null
 
   try {
     const officeId = selectedOffice.value?.value as number | null
@@ -212,6 +267,8 @@ const handleFilterLocatorSlip = async () => {
     const secId = selectedSectionUnit.value?.value as number | null
     const formType = selectedFormType.value as string | null
     const dateFilter = selectedDateFilter.value ? formatDateSafe(selectedDateFilter.value) : null
+
+    lastFilterValues.value = { officeId, divId, secId, formType, dateFilter }
 
     const response = await locatorSlipsStore.filterLocatorSlip(
       officeId,
@@ -226,6 +283,7 @@ const handleFilterLocatorSlip = async () => {
     if (response.success && response.pagination) {
       employeeGroups.value = response.data
       pagination.value = response.pagination
+      first.value = 0
     }
   } catch (e) {
     toast.add({
@@ -641,6 +699,7 @@ const handleSaveSubmissionif = async () => {
               v-if="pagination && pagination.total > 0"
               :rows="pagination.per_page"
               :total-records="pagination.total"
+              :first="first"
               template="CurrentPageReport FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink"
               currentPageReportTemplate="Showing {first} to {last} of {totalRecords}"
               @page="(event: PageState) => handlePaginationPageChange(event)"
