@@ -412,7 +412,12 @@ const getMonthlyStatus = (records: ViewDailyTimeRecordResponse[]): string => {
           </div>
 
           <div
-            v-if="!dailyTimeRecordIsLoading && !dailyTimeRecordStore.dailyTimeRecords.length && !searchSubmitted"
+            v-if="
+              !fullMonthlyRecords &&
+              !dailyTimeRecordIsLoading &&
+              !dailyTimeRecordStore.dailyTimeRecords.length &&
+              !searchSubmitted
+            "
             class="mx-auto flex h-full w-full flex-col"
           >
             <Card class="w-full p-0 shadow-none">

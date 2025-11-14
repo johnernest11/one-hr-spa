@@ -31,11 +31,9 @@ const authStore = useAuthStore()
 const accomplishmentReportStore = useAccomplishmentReportStore()
 const locatorSlipsStore = useLocatorSlipStore()
 
-/**
- *
- * Card for Current Date & Time
- *
- */
+/************************************
+    Card for Current Date & Time
+*************************************/
 const todayISO = ref(new Date().toISOString().slice(0, 10))
 const currentDate: Ref<string> = ref('')
 const currentTime: Ref<string> = ref('')
@@ -58,11 +56,9 @@ const updateDateTime = () => {
   seconds.value = newSeconds
 }
 
-/**
- *
- * Card for Today`s Time In & Out
- *
- */
+/****************************************************
+    Card for Today`s Daily Time Records and Calendar
+******************************************************/
 const dailyTimeRecordsStore = useDailyTimeRecordsStore()
 const allDailyTimeRecordsData = ref<ViewDailyTimeRecordResponse[]>([])
 const remarksMap = reactive<Record<string, string | number>>({})
@@ -94,6 +90,7 @@ const fetchTodayDTR = async () => {
     })
   }
 }
+
 /*** Computed helpers for selected month/year ***/
 const selectedYear = computed(() => monthDate.value.getFullYear())
 const selectedMonth = computed(() => monthDate.value.getMonth())
@@ -247,13 +244,11 @@ watch(
   }
 )
 
-/**
- *
- * Cards for Accomplishment Report.
- *
- */
+/**************************************
+    Cards for Accomplishment Report.
+****************************************/
 const accomplishmentReportIsLoading = ref(false)
-const paginationLimit = 5
+const paginationLimit = 3
 const pagination = ref<ApiResponsePagination | null>(null)
 
 const fetchAccomplishmentsBasedOnContext = async (page = 1) => {
@@ -265,6 +260,9 @@ const fetchAccomplishmentsBasedOnContext = async (page = 1) => {
   accomplishmentReportIsLoading.value = false
 }
 
+/**************************************
+    Handle Pagination Function
+****************************************/
 const handlePaginationPageChange = async (event: PageState) => {
   await fetchAccomplishmentsBasedOnContext(event.page + 1)
 }
@@ -281,9 +279,9 @@ const fetchData = async () => {
   locatorSlipsIsLoading.value = false
 }
 
-/**
- * This hook runs before the component is mounted.
- */
+/**********************************************
+This hook runs before the component is mounted
+************************************************/
 onBeforeMount(async () => {
   await fetchData()
 

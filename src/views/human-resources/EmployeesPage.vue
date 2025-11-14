@@ -47,7 +47,7 @@ const pdsStore = usePdsStore()
 const router = useRouter()
 const getId = usePrependOrAppendOnce('employee-filter')
 
-const itemNumberIsLoading = ref(false)
+const employeeListIsLoading = ref(false)
 const searchSubmitted = ref(false)
 const showModal = ref(false)
 const showQrModal = ref(false)
@@ -328,12 +328,12 @@ const handleImportSubmission = async () => {
 }
 
 onBeforeMount(async () => {
-  itemNumberIsLoading.value = true
+  employeeListIsLoading.value = true
   const response = await personnelStore.fetchEmployees(paginationLimit)
   if (response.success && response.pagination) {
     pagination.value = response.pagination
   }
-  itemNumberIsLoading.value = false
+  employeeListIsLoading.value = false
 })
 
 const canCreateNewEmployee = computed(() => {
@@ -344,12 +344,18 @@ const toggleAddingList = (event: Event) => {
   menu.value.toggle(event)
 }
 
+/**************************************
+        Handle Pagination Function
+*************************************** */
 const handlePaginationPageChange = async (event: PageState) => {
   const pageSelected = event.page + 1
-  itemNumberIsLoading.value = true
+  employeeListIsLoading.value = true
 
   let response: ApiResponseBody
-  if (searchSubmitted.value) {
+  if (searchQuery.value) {
+    // If there is a search query, continue searching
+    response = await personnelStore.searchEmployees(searchQuery.value ?? undefined, pagination.value?.per_page ?? 5, pageSelected)
+  } else if (searchSubmitted.value) {
     response = await personnelStore.filterEmployees(
       payload.division ?? undefined,
       payload.section ?? undefined,
@@ -362,11 +368,14 @@ const handlePaginationPageChange = async (event: PageState) => {
   if (response.success && response.pagination) {
     pagination.value = response.pagination
   }
-  itemNumberIsLoading.value = false
+  employeeListIsLoading.value = false
 }
 
-const handleFilterItemNumber = async () => {
-  itemNumberIsLoading.value = true
+/**************************************
+         Filter Employee Function
+*************************************** */
+const handleFilterEmployee = async () => {
+  employeeListIsLoading.value = true
   searchSubmitted.value = true
 
   selectedDivisionLabel.value = selectedDivision.value?.[0]?.label ?? null
@@ -377,7 +386,7 @@ const handleFilterItemNumber = async () => {
     if (response.success && response.pagination) {
       pagination.value = response.pagination
     }
-    itemNumberIsLoading.value = false
+    employeeListIsLoading.value = false
     return
   }
   const response = await personnelStore.filterEmployees(
@@ -391,12 +400,15 @@ const handleFilterItemNumber = async () => {
     searchQuery.value = null
   }
 
-  itemNumberIsLoading.value = false
+  employeeListIsLoading.value = false
   showModal.value = false
 }
 
+/**************************************
+         Search Employee Function
+*************************************** */
 const handleSearchEmployee = async () => {
-  itemNumberIsLoading.value = true
+  employeeListIsLoading.value = true
   searchSubmitted.value = true
 
   if (!searchQuery.value) {
@@ -404,19 +416,20 @@ const handleSearchEmployee = async () => {
     if (response.success && response.pagination) {
       pagination.value = response.pagination
     }
-    itemNumberIsLoading.value = false
+    employeeListIsLoading.value = false
     return
   }
 
-  const response = await personnelStore.searchEmployees(searchQuery.value)
+  const response = await personnelStore.searchEmployees(searchQuery.value, pagination.value?.per_page ?? 5)
   if (response.success && response.pagination) {
     pagination.value = response.pagination
-
-    searchQuery.value = null
   }
-  itemNumberIsLoading.value = false
+  employeeListIsLoading.value = false
 }
 
+/**************************************
+         QR Code Generation Function
+*************************************** */
 const openQrModal = async (individual: PersonnelResponse) => {
   selectedEmployeeForQr.value = individual
   showQrModal.value = true
@@ -600,7 +613,7 @@ const downloadQrCode = async () => {
           <div class="mx-auto flex h-full w-full flex-col">
             <div
               class="flex w-full items-center justify-end gap-4"
-              v-if="!itemNumberIsLoading && (searchSubmitted || personnelStore.employees.length > 0)"
+              v-if="!employeeListIsLoading && (searchSubmitted || personnelStore.employees.length > 0)"
             >
               <div
                 class="my-6 flex w-full flex-col items-center justify-between gap-4 rounded-lg bg-surface-0 px-6 py-6 dark:bg-surface-800 md:my-4 md:flex-row md:px-4 md:py-4"
@@ -647,7 +660,7 @@ const downloadQrCode = async () => {
                       v-model="searchQuery"
                       placeholder="Search Employee"
                       class="w-full"
-                      :disabled="itemNumberIsLoading"
+                      :disabled="employeeListIsLoading"
                       @keyup.enter="handleSearchEmployee"
                     />
                     <Button icon="pi pi-search" @click="handleSearchEmployee" />
@@ -667,7 +680,7 @@ const downloadQrCode = async () => {
                   headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
                 >
                   <template #body="props">
-                    <div v-if="!itemNumberIsLoading">
+                    <div v-if="!employeeListIsLoading">
                       <p class="font-semibold uppercase text-surface-500">
                         {{ props.data.first_name }} {{ props.data.middle_name ?? '' }} {{ props.data.last_name }}
                         {{ props.data.ext_name ?? '' }}
@@ -690,7 +703,7 @@ const downloadQrCode = async () => {
                   headerClass="w-80 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
                 >
                   <template #body="props">
-                    <div v-if="!itemNumberIsLoading">{{ props.data.employee?.item?.position?.title ?? 'N/A' }}</div>
+                    <div v-if="!employeeListIsLoading">{{ props.data.employee?.item?.position?.title ?? 'N/A' }}</div>
                     <div v-else class="h-4 w-40 rounded bg-surface-300 dark:bg-surface-700"></div>
                   </template>
                 </Column>
@@ -702,7 +715,7 @@ const downloadQrCode = async () => {
                   headerClass="w-64 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
                 >
                   <template #body="props">
-                    <div v-if="!itemNumberIsLoading">{{ props.data.individual_contact_info?.email_address ?? 'N/A' }}</div>
+                    <div v-if="!employeeListIsLoading">{{ props.data.individual_contact_info?.email_address ?? 'N/A' }}</div>
                     <div v-else class="h-4 w-40 rounded bg-surface-300 dark:bg-surface-700"></div>
                   </template>
                 </Column>
@@ -710,7 +723,7 @@ const downloadQrCode = async () => {
                 <!-- Actions Column -->
                 <Column field="action" header="Actions" headerClass="w-64 bg-surface-100 opacity-70 font-bold py-2">
                   <template #body="props">
-                    <div v-if="!itemNumberIsLoading" class="flex gap-4 whitespace-nowrap md:w-auto">
+                    <div v-if="!employeeListIsLoading" class="flex gap-4 whitespace-nowrap md:w-auto">
                       <Button
                         icon="pi pi-eye"
                         v-tooltip.top="'View Employee'"
@@ -751,14 +764,14 @@ const downloadQrCode = async () => {
             </div>
           </div>
           <div
-            v-if="searchSubmitted && !itemNumberIsLoading && !personnelStore.employees.length"
+            v-if="searchSubmitted && !employeeListIsLoading && !personnelStore.employees.length"
             class="flex h-full w-full flex-col items-center justify-center font-menu text-lg dark:text-surface-300"
           >
             <i class="pi pi-exclamation-triangle mb-2 text-2xl"></i>
             <p>No Employees found</p>
           </div>
           <div
-            v-if="!itemNumberIsLoading && !personnelStore.employees.length && !searchSubmitted"
+            v-if="!employeeListIsLoading && !personnelStore.employees.length && !searchSubmitted"
             class="mx-auto flex h-full w-full flex-col"
           >
             <Card class="w-full p-0 shadow-none">
@@ -1143,9 +1156,9 @@ const downloadQrCode = async () => {
             </template>
           </Button>
           <Button
-            :loading="itemNumberIsLoading"
-            :disabled="itemNumberIsLoading"
-            @click="handleFilterItemNumber"
+            :loading="employeeListIsLoading"
+            :disabled="employeeListIsLoading"
+            @click="handleFilterEmployee"
             label="Apply"
             class="dark:text-secondary-100 w-full border border-primary-500 px-4 py-3 text-primary-600 dark:border-surface-700"
             text

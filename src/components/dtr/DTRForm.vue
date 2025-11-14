@@ -17,6 +17,12 @@ import {
   computeWorkedHours,
   isWeekend,
   resolveDTRSlots,
+  computeRemarks,
+  computeAMHours,
+  generateAMTooltip,
+  generatePMTooltip,
+  computePMHours,
+  generateUTOTTooltip,
 } from '@/utils/dtr-helpers'
 
 import { useRoute } from 'vue-router'
@@ -202,18 +208,39 @@ const monthDates = computed(() => {
   return arr
 })
 
+/** Compute UT (Undertime) for a DTR row **/
 const computeUTValue = computed(() => {
   return (item: { is_missing: string; date: Date; row: ViewDailyTimeRecordResponse | null }) => {
-    if (!item.row) return ''
+    if (!item.row) return 0
     if (item.row.ut && item.row.ut > 0) return item.row.ut
     return computeUT(computeWorkedHours(item.row.time_log ?? []), isWeekend(item.row.date))
   }
 })
 
+/** Compute OT (Overtime) for a DTR row **/
 const computeOTValue = computed(() => {
   return (item: { is_missing: string; date: Date; row: ViewDailyTimeRecordResponse | null }) => {
-    if (!item.row) return ''
+    if (!item.row) return 0
     return computeOT(computeWorkedHours(item.row.time_log ?? []), isWeekend(item.row.date))
+  }
+})
+
+/**
+ * Compute Remarks for a DTR row
+ * - Use existing employee remark if present
+ * - Otherwise compute based on session hours
+ **/
+const computeRemarksValue = computed(() => {
+  return (item: { row: ViewDailyTimeRecordResponse | null }) => {
+    if (!item.row) return ''
+
+    // Accept only meaningful non-empty remarks
+    const remark = item.row.employee_remarks
+    if (remark !== null && remark !== undefined && remark.toString().trim() !== '') {
+      return remark
+    }
+
+    return computeRemarks(item.row.time_log ?? [])
   }
 })
 </script>
@@ -366,7 +393,13 @@ const computeOTValue = computed(() => {
               <!-- IN 1 -->
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">IN 1</p>
-                <p class="text-base text-surface-600">
+                <p
+                  class="text-base"
+                  :class="{
+                    'text-error-600': computeAMHours(dtr.row?.time_log ?? []) < 2,
+                  }"
+                  v-tooltip.bottom="generateAMTooltip(dtr.row?.time_log ?? [])"
+                >
                   {{
                     dtr.row && resolveDTRSlots(dtr.row.time_log ?? []).in1
                       ? formatDTRTime(
@@ -383,7 +416,13 @@ const computeOTValue = computed(() => {
               <!-- OUT 1 -->
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">OUT 1</p>
-                <p class="text-base text-surface-600">
+                <p
+                  class="text-base"
+                  :class="{
+                    'text-error-600': computeAMHours(dtr.row?.time_log ?? []) < 2,
+                  }"
+                  v-tooltip.bottom="generateAMTooltip(dtr.row?.time_log ?? [])"
+                >
                   {{
                     dtr.row && resolveDTRSlots(dtr.row.time_log ?? []).out1
                       ? formatDTRTime(
@@ -400,7 +439,13 @@ const computeOTValue = computed(() => {
               <!-- IN 2 -->
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">IN 2</p>
-                <p class="text-base text-surface-600">
+                <p
+                  class="text-base"
+                  :class="{
+                    'text-error-600': computePMHours(dtr.row?.time_log ?? []) < 2,
+                  }"
+                  v-tooltip.bottom="generatePMTooltip(dtr.row?.time_log ?? [])"
+                >
                   {{
                     dtr.row && resolveDTRSlots(dtr.row.time_log ?? []).in2
                       ? formatDTRTime(
@@ -417,7 +462,13 @@ const computeOTValue = computed(() => {
               <!-- OUT 2 -->
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">OUT 2</p>
-                <p class="text-base text-surface-600">
+                <p
+                  class="text-base"
+                  :class="{
+                    'text-error-600': computePMHours(dtr.row?.time_log ?? []) < 2,
+                  }"
+                  v-tooltip.bottom="generatePMTooltip(dtr.row?.time_log ?? [])"
+                >
                   {{
                     dtr.row && resolveDTRSlots(dtr.row.time_log ?? []).out2
                       ? formatDTRTime(
@@ -434,21 +485,21 @@ const computeOTValue = computed(() => {
               <!-- UT, OT, Remarks -->
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">UT</p>
-                <p class="text-base text-surface-600">
+                <p class="text-base text-surface-600" v-tooltip.bottom="generateUTOTTooltip(computeUTValue(dtr), 'UT')">
                   {{ computeUTValue(dtr) }}
                 </p>
               </div>
 
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">OT</p>
-                <p class="text-base text-surface-600">
+                <p class="text-base text-surface-600" v-tooltip.bottom="generateUTOTTooltip(computeOTValue(dtr), 'OT')">
                   {{ computeOTValue(dtr) }}
                 </p>
               </div>
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">Remarks</p>
                 <p class="text-base text-surface-600">
-                  {{ dtr.row?.employee_remarks }}
+                  {{ computeRemarksValue(dtr) }}
                 </p>
               </div>
             </div>
