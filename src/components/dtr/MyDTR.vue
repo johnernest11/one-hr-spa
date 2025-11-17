@@ -22,6 +22,8 @@ import {
   normalizeDateTimestamp,
   formatDateYMD,
   normalizeTimeOnly,
+  generateUTOTTooltip,
+  computeRemarks,
 } from '@/utils/dtr-helpers'
 import { useRoute } from 'vue-router'
 import { getMonthAndYear } from '@/utils/helpers'
@@ -30,6 +32,7 @@ import WbTimePicker from '../webkit/WbTimePicker.vue'
 import { usePersonnelStore } from '@/stores/personnel.store'
 import useVuelidate from '@vuelidate/core'
 import { helpers, required } from '@vuelidate/validators'
+import { useAuthStore } from '@/stores/auth.store.ts'
 
 const dailyTimeRecordsStore = useDailyTimeRecordsStore()
 const route = useRoute()
@@ -48,6 +51,9 @@ const formIsSubmitting = ref(false)
 const showErrorAlert = ref(false)
 const IsBeingUpdated = ref(false)
 const isLoading = ref(true)
+
+const auth = useAuthStore()
+
 // Define month/year props with defaults
 const props = withDefaults(
   defineProps<{
@@ -268,7 +274,11 @@ watch(
           remarksMap[otKey] = Math.abs(dbOT) < 0.001 ? computedOT : dbOT
         }
 
-        remarksMap[remarksKey] = dtr.row?.employee_remarks || ''
+        if (!dtr.row?.employee_remarks) {
+          remarksMap[remarksKey] = computeRemarksValue.value(dtr)
+        } else {
+          remarksMap[remarksKey] = dtr.row.employee_remarks
+        }
         remarksMap[remarksHrKey] = dtr.row?.hr_remarks || ''
       }
     })
@@ -278,6 +288,34 @@ watch(
 const getRemarksKey = (prefix: string, date?: Date | null): string => {
   return `${prefix}-${date ? date.toISOString() : 'no-date'}`
 }
+
+const computeUTValue = computed(() => {
+  return (item: { is_missing: string; date: Date; row: ViewDailyTimeRecordResponse | null }) => {
+    if (!item.row) return 0
+    if (item.row.ut && item.row.ut > 0) return item.row.ut
+    return computeUT(computeWorkedHours(item.row.time_log ?? []), isWeekend(item.row.date))
+  }
+})
+
+const computeOTValue = computed(() => {
+  return (item: { is_missing: string; date: Date; row: ViewDailyTimeRecordResponse | null }) => {
+    if (!item.row) return 0
+    return computeOT(computeWorkedHours(item.row.time_log ?? []), isWeekend(item.row.date))
+  }
+})
+const computeRemarksValue = computed(() => {
+  return (item: { row: ViewDailyTimeRecordResponse | null }) => {
+    if (!item.row) return ''
+
+    // Accept only meaningful non-empty remarks
+    const remark = item.row.employee_remarks
+    if (remark !== null && remark !== undefined && remark.toString().trim() !== '') {
+      return remark
+    }
+
+    return computeRemarks(item.row.time_log ?? [])
+  }
+})
 
 /*******************************************************************
                         Validation Form Rules
@@ -335,6 +373,13 @@ const formRules = computed<FormRules>(() => {
   return rules
 })
 
+const isEditingOtherEmployee = computed(() => {
+  return (
+    selectedEmployeeId.value != null &&
+    Number(selectedEmployeeId.value ?? auth.authenticatedUser.user_profile?.individual_basic_detail?.employee?.id)
+  )
+})
+
 const validator = useVuelidate(formRules, { remarksMap }, { $lazy: true })
 
 /*******************************************************************
@@ -342,8 +387,11 @@ Update all DTRs but only send updates for rows that actually changed.
 ********************************************************************* */
 
 const updateDTRTimeLogs = async () => {
-  validator.value.$touch()
-  const valid = await validator.value.$validate()
+  let valid = true
+  if (!isEditingOtherEmployee.value) {
+    validator.value.$touch()
+    valid = await validator.value.$validate()
+  }
 
   if (!valid) {
     toast.add({
@@ -412,27 +460,6 @@ const updateDTRTimeLogs = async () => {
           })
         }
       })
-      // === Validation: Ensure OUT1 → IN2 gap >= 15 minutes ===
-      const out1 = time_logs.find((log) => log.is_in === false && log.scanned_time && log.date === formatDateYMD(item.date))
-      const in2 = time_logs.find((log) => log.is_in === true && log.scanned_time && log.date === formatDateYMD(item.date))
-
-      if (out1 && in2) {
-        const out1Time = new Date(`${out1.date}T${out1.scanned_time}`)
-        const in2Time = new Date(`${in2.date}T${in2.scanned_time}`)
-
-        const diffMinutes = (in2Time.getTime() - out1Time.getTime()) / (1000 * 60)
-
-        if (diffMinutes <= 1) {
-          toast.add({
-            severity: 'error',
-            summary: 'Invalid Time Entry',
-            detail: 'There must be at least a 1-minute gap between OUT1 and IN2.',
-            life: 3000,
-          })
-          hasValidationError = true
-          return null
-        }
-      }
 
       // === Existing DTR ===
       if (existingDTR) {
@@ -502,7 +529,12 @@ const updateDTRTimeLogs = async () => {
     dtr: dtrPayloads,
   }
 
-  const response = await dailyTimeRecordsStore.updateDailyTimeRecords(updatePayload)
+  const employeeIdToUpdate = Number(
+    selectedEmployeeId.value ?? auth.authenticatedUser.user_profile?.individual_basic_detail?.employee?.id
+  )
+
+  const response = await dailyTimeRecordsStore.updateDailyTimeRecords(employeeIdToUpdate, updatePayload)
+
   if (!response.success) {
     const result = parseApiResponseError(response)
     if (result) {
@@ -930,11 +962,8 @@ const exportToPDF = async (
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">UT</p>
                 <template v-if="!route.params.id">
-                  <p
-                    v-if="new Date(dtr.date) < new Date(new Date().setHours(0, 0, 0, 0))"
-                    class="h-12 text-surface-600 md:h-8 md:w-24"
-                  >
-                    {{ dtr.date ? remarksMap[`ut-${new Date(dtr.date).toISOString()}`] ?? 0 : 0 }}
+                  <p class="text-base text-surface-600" v-tooltip.bottom="generateUTOTTooltip(computeUTValue(dtr), 'UT')">
+                    {{ computeUTValue(dtr) }}
                   </p>
                 </template>
                 <template v-else>
@@ -954,11 +983,8 @@ const exportToPDF = async (
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">OT</p>
                 <template v-if="!route.params.id">
-                  <p
-                    v-if="new Date(dtr.date) < new Date(new Date().setHours(0, 0, 0, 0))"
-                    class="h-12 text-surface-600 md:h-8 md:w-24"
-                  >
-                    {{ dtr.date ? remarksMap[`ot-${new Date(dtr.date).toISOString()}`] ?? 0 : 0 }}
+                  <p class="text-base text-surface-600" v-tooltip.bottom="generateUTOTTooltip(computeOTValue(dtr), 'OT')">
+                    {{ computeOTValue(dtr) }}
                   </p>
                 </template>
                 <template v-else>
@@ -980,13 +1006,13 @@ const exportToPDF = async (
 
                 <textarea
                   v-model="remarksMap[getRemarksKey('employee_remarks', dtr.date)]"
-                  @blur="validator.remarksMap[getRemarksKey('employee_remarks', dtr.date)]?.$touch()"
-                  placeholder="Enter Remarks..."
+                  @blur="!isEditingOtherEmployee && validator.remarksMap[getRemarksKey('employee_remarks', dtr.date)]?.$touch()"
+                  :placeholder="computeRemarksValue(dtr)"
                   rows="2"
                 />
 
                 <p
-                  v-if="validator.remarksMap?.[getRemarksKey('employee_remarks', dtr.date)]?.$error"
+                  v-if="!isEditingOtherEmployee && validator.remarksMap?.[getRemarksKey('employee_remarks', dtr.date)]?.$error"
                   class="mt-1 text-xs text-error-500"
                 >
                   {{ validator.remarksMap?.[getRemarksKey('employee_remarks', dtr.date)]?.$errors[0]?.$message }}

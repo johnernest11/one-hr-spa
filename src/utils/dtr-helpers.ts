@@ -148,6 +148,9 @@ export const resolveDTRSlots = (entries: TimeLogResponse[] = []): DTRSlots => {
  * - Lunch break from 12:00–13:00
  * - Minimum start times: 7:00 AM weekdays, 8:00 AM weekends
  * - Maximum end time for weekends: 5:00 PM
+ *  * Adds automatic rules:
+ * - < 2 hours worked → 0 (HALF DAY)
+ * - < 4 hours worked → 4 (ABSENT)
  */
 export const computeWorkedHours = (timeLog: TimeLogResponse[]): number => {
   const { in1, out1, in2, out2 } = resolveDTRSlots(timeLog ?? [])
@@ -182,7 +185,10 @@ export const computeWorkedHours = (timeLog: TimeLogResponse[]): number => {
     adjustedAmEnd = new Date(amEnd.getTime() - Math.max(overlap, 0))
   }
 
-  const morningHours = (adjustedAmEnd.getTime() - amStart.getTime()) / 36e5
+  let morningHours = (adjustedAmEnd.getTime() - amStart.getTime()) / 36e5
+  if (!isWeekend) {
+    if (morningHours < 2) morningHours = 0 // < 2 hrs → 0
+  }
 
   let afternoonHours = 0
   if (in2 && out2) {
@@ -199,6 +205,9 @@ export const computeWorkedHours = (timeLog: TimeLogResponse[]): number => {
     }
 
     afternoonHours = (pmEnd.getTime() - pmStart.getTime()) / 36e5
+    if (!isWeekend) {
+      if (afternoonHours < 2) afternoonHours = 0 // < 2 hrs → 0
+    }
   }
 
   const totalHours = morningHours + afternoonHours
@@ -232,6 +241,132 @@ export const computeUT = (worked: number, weekend = false): number => {
 export const computeOT = (worked: number, weekend = false): number => {
   if (weekend) return parseFloat(worked.toFixed(2))
   return worked > 8 ? parseFloat((worked - 8).toFixed(2)) : 0
+}
+
+/**************************************
+ * Compute Remarks for DTR
+ * ------------------------
+ * Determines employee remarks based on
+ * worked hours:
+ * - Absent if total worked < 2 hrs
+ * - Halfday AM if AM < 2 hrs and PM > 0
+ * - Halfday PM if PM < 2 hrs and AM > 0
+ **************************************/
+
+export const computeRemarks = (timeLog: TimeLogResponse[]): string => {
+  if (!timeLog || timeLog.length === 0) return ''
+
+  // Compute AM and PM hours using session helper (lunch excluded)
+  const morningWorked = computeSessionHours(timeLog, 'in1', 'out1')
+  const afternoonWorked = computeSessionHours(timeLog, 'in2', 'out2')
+  const totalWorked = morningWorked + afternoonWorked
+
+  // BOTH AM & PM < 2 hrs → Absent
+  if (morningWorked < 2 && afternoonWorked < 2) return 'Absent'
+  // ABSENT: total < 2 hrs
+  if (totalWorked < 2) return 'On Leave'
+
+  // HALF DAY rules
+  if (morningWorked < 2 && afternoonWorked > 0) return 'Halfday AM'
+  if (afternoonWorked < 2 && morningWorked > 0) return 'Halfday PM'
+  if (totalWorked < 4) return 'Leave'
+
+  // Full day, no remark
+  return ''
+}
+
+/**************************************
+ * Compute Session Hours
+ * ---------------------
+ * Calculates the total hours worked for a
+ * specific session (AM or PM) based on the
+ * resolved DTR slots.
+ * Excludes lunch break from 12:00–13:00.
+ **************************************/
+export const computeSessionHours = (
+  timeLog: TimeLogResponse[] | undefined,
+  inKey: 'in1' | 'in2',
+  outKey: 'out1' | 'out2'
+): number => {
+  if (!timeLog) return 0
+  const { [inKey]: startLog, [outKey]: endLog } = resolveDTRSlots(timeLog)
+  if (!startLog || !endLog) return 0
+
+  const toDate = (log: TimeLogResponse) => new Date(toTimestamp(log.date, log.scanned_time))
+  const start = toDate(startLog)
+  let end = toDate(endLog)
+
+  // Subtract lunch overlap (12:00–13:00)
+  const lunchStart = new Date(start)
+  lunchStart.setHours(12, 0, 0, 0)
+  const lunchEnd = new Date(start)
+  lunchEnd.setHours(13, 0, 0, 0)
+
+  const overlap = Math.min(end.getTime(), lunchEnd.getTime()) - Math.max(start.getTime(), lunchStart.getTime())
+  if (overlap > 0) {
+    end = new Date(end.getTime() - overlap)
+  }
+
+  const hours = (end.getTime() - start.getTime()) / 36e5
+  return +(hours > 0 ? hours : 0).toFixed(2)
+}
+
+/**************************************
+ * Generate Session Tooltip
+ * ------------------------
+ * Generates a tooltip string for a session
+ * (AM or PM) indicating worked hours or
+ * undertime/absence.
+ **************************************/
+export const generateSessionTooltip = (
+  timeLog: TimeLogResponse[] | undefined,
+  inKey: 'in1' | 'in2',
+  outKey: 'out1' | 'out2',
+  label: string
+): string => {
+  const hours = computeSessionHours(timeLog, inKey, outKey)
+  if (hours === 0) return `Absent / No ${label} log`
+  if (hours < 2) return `Undertime ${label} (${hours} hrs)`
+  return `Worked ${label} ${hours} hrs`
+}
+
+/**************************************
+ * AM / PM Helpers
+ * ----------------
+ * Convenient functions for computing AM/PM
+ * hours and generating tooltips.
+ **************************************/
+export const computeAMHours = (timeLog?: TimeLogResponse[]) => computeSessionHours(timeLog, 'in1', 'out1')
+
+export const computePMHours = (timeLog?: TimeLogResponse[]) => computeSessionHours(timeLog, 'in2', 'out2')
+
+export const generateAMTooltip = (timeLog?: TimeLogResponse[]) => generateSessionTooltip(timeLog, 'in1', 'out1', 'AM')
+
+export const generatePMTooltip = (timeLog?: TimeLogResponse[]) => generateSessionTooltip(timeLog, 'in2', 'out2', 'PM')
+
+/**************************************
+ * Converts decimal hours to HH:mm format
+ * Example: 2.43 → "2h 26m"
+ *
+ * @param hours - decimal hours
+ * @returns formatted string "Xh Ym"
+ **************************************/
+export const formatHoursToHHMM = (hours: number): string => {
+  const h = Math.floor(hours)
+  const m = Math.round((hours - h) * 60)
+  return `${h}h ${m}m`
+}
+
+/**************************************
+ * Generates tooltip description for UT or OT
+ *
+ * @param hours - decimal hours (UT or OT)
+ * @param type - 'UT' or 'OT'
+ * @returns string for tooltip, e.g., "Undertime: 2h 26m"
+ **************************************/
+export const generateUTOTTooltip = (hours: number, type: 'UT' | 'OT'): string => {
+  const formatted = formatHoursToHHMM(hours)
+  return type === 'UT' ? `Undertime: ${formatted}` : `Overtime: ${formatted}`
 }
 
 // dtr-helpers.ts

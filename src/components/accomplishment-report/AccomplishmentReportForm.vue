@@ -527,20 +527,6 @@ const handleMarkDone = async () => {
               </Button>
 
               <Button
-                label="Mark as Done"
-                v-if="!isSupervisorView"
-                :loading="formIsSubmitting"
-                :disabled="payload && payload.status === 'done'"
-                class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
-                text
-                @click="openDialog('markDone')"
-              >
-                <template #icon>
-                  <i class="pi pi-save mr-2"></i>
-                </template>
-              </Button>
-
-              <Button
                 @click="openDialog('saveDraft')"
                 v-if="isSupervisorView"
                 label="Approved Accomplishment"
@@ -697,7 +683,7 @@ const handleMarkDone = async () => {
             </RouterLink>
             <Button
               @click="openDialog('draft')"
-              label="Draft"
+              label="Save as Draft"
               v-if="!isUpdateMode"
               :disabled="payload && payload.status === 'done'"
               :loading="formIsSubmitting"
@@ -731,19 +717,6 @@ const handleMarkDone = async () => {
             >
               <template #icon>
                 <i class="pi pi-file mr-2"></i>
-              </template>
-            </Button>
-            <Button
-              @click="openDialog('done')"
-              v-if="!isUpdateMode"
-              label="Save Accomplishment"
-              :loading="formIsSubmitting"
-              :disabled="formIsSubmitting"
-              class="dark:text-secondary-100 border border-primary-500 text-xs text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
-              text
-            >
-              <template #icon>
-                <i class="pi pi-save mr-2"></i>
               </template>
             </Button>
           </div>

@@ -73,12 +73,18 @@ onBeforeMount(async () => {
   dailyTimeRecordIsLoading.value = false
 })
 
+/**************************************
+        Handle Pagination Function
+*************************************** */
 const handlePaginationPageChange = async (event: PageState) => {
   const pageSelected = event.page + 1
   dailyTimeRecordIsLoading.value = true
 
   let response: ApiResponseBody
-  if (searchSubmitted.value) {
+  if (searchQuery.value) {
+    // If there is a search query, continue searching
+    response = await personnelStore.searchEmployees(searchQuery.value ?? undefined, pagination.value?.per_page ?? 5, pageSelected)
+  } else if (searchSubmitted.value) {
     response = await personnelStore.filterEmployees(
       payload.division ?? undefined,
       payload.section ?? undefined,
@@ -94,7 +100,10 @@ const handlePaginationPageChange = async (event: PageState) => {
   dailyTimeRecordIsLoading.value = false
 }
 
-const handleFilterDailyTimeRecord = async () => {
+/**************************************
+         Filter Employee Function
+*************************************** */
+const handleFilterEmployee = async () => {
   dailyTimeRecordIsLoading.value = true
   searchSubmitted.value = true
 
@@ -124,6 +133,9 @@ const handleFilterDailyTimeRecord = async () => {
   showModal.value = false
 }
 
+/**************************************
+         Search Employee Function
+*************************************** */
 const handleSearchEmployee = async () => {
   dailyTimeRecordIsLoading.value = true
   searchSubmitted.value = true
@@ -137,11 +149,9 @@ const handleSearchEmployee = async () => {
     return
   }
 
-  const response = await personnelStore.searchEmployees(searchQuery.value)
+  const response = await personnelStore.searchEmployees(searchQuery.value, pagination.value?.per_page ?? 5)
   if (response.success && response.pagination) {
     pagination.value = response.pagination
-
-    searchQuery.value = null
   }
   dailyTimeRecordIsLoading.value = false
 }
@@ -171,7 +181,7 @@ const handleSearchEmployee = async () => {
                 <div class="flex w-full space-x-2 md:w-auto lg:w-1/2">
                   <Button
                     icon="pi pi-filter-fill"
-                    v-tooltip.top="'Filter Item'"
+                    v-tooltip.top="'Filter Employee'"
                     severity="info"
                     size="large"
                     class="border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100"
@@ -383,7 +393,7 @@ const handleSearchEmployee = async () => {
           <Button
             :loading="dailyTimeRecordIsLoading"
             :disabled="dailyTimeRecordIsLoading"
-            @click="handleFilterDailyTimeRecord"
+            @click="handleFilterEmployee"
             label="Apply"
             class="dark:text-secondary-100 w-full border border-primary-500 px-4 py-3 text-primary-600 dark:border-surface-700"
             text
