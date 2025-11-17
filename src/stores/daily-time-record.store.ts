@@ -160,11 +160,11 @@ export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => 
     )
   }
 
-  const updateDailyTimeRecords = async (payload: UpdateDTRPayload) => {
-    const individual = auth.authenticatedUser.user_profile?.individual_basic_detail as PersonnelResponse
-    if (!individual?.employee) throw new Error('No employee linked')
+  const updateDailyTimeRecords = async (employeeId: number, payload: UpdateDTRPayload) => {
+    // const individual = auth.authenticatedUser.user_profile?.individual_basic_detail as PersonnelResponse
+    // if (!individual?.employee) throw new Error('No employee linked')
 
-    const uri = `/employees/${individual.employee.id}/daily-time-records`
+    const uri = `/employees/${employeeId}/daily-time-records`
     const { data } = await useApiCall(uri, auth.authenticationToken).put(payload).json()
 
     return data.value as ApiResponseBody

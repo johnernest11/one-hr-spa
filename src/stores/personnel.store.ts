@@ -35,12 +35,12 @@ export const usePersonnelStore = defineStore('personnel', () => {
     let uri = `/individual-basic-details/search?limit=${limit}&sort=desc`
 
     if (page) uri += `&page=${page}`
-    if (query) uri += `query=${query}`
+    if (query) uri += `&query=${query}`
     const { data } = await useApiCall(uri, authStore.authenticationToken).get().json()
     const responseBody: ApiResponseBody = data.value
     if (responseBody.success) {
-      const itemNumbersList = responseBody.data as PersonnelResponse[]
-      employees.value = [...itemNumbersList]
+      const employeeList = responseBody.data as PersonnelResponse[]
+      employees.value = [...employeeList]
     }
     return responseBody
   }
