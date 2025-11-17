@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useStorage } from '@vueuse/core'
 import { QrcodeStream, DetectedBarcode } from 'vue-qrcode-reader'
 import { useDailyLogsStore } from '@/stores/daily-logs.store'
 import { useLibrariesStore } from '@/stores/libraries.store'
@@ -193,11 +194,11 @@ onMounted(async () => {
 watch(
   () => route.name,
   (newName) => {
-    const expiration = localStorage.getItem('auth-token-expiration')
+    const expiration = useStorage('auth-token-expiration', null)
     const userRoles = authStore.authRoles
-    if (newName === 'time-logs' && expiration && userRoles.includes('time_logger')) {
+    if (newName === 'time-logs' && expiration.value && userRoles.includes('time_logger')) {
       authStore.clearScheduledRefresh()
-      authStore.scheduleTokenRefresh(new Date(expiration))
+      authStore.scheduleTokenRefresh(new Date(expiration.value))
     } else {
       authStore.clearScheduledRefresh()
     }
