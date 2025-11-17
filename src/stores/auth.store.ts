@@ -79,8 +79,7 @@ export type VerifyEmailPayload = {
 
 export const useAuthStore = defineStore('auth', () => {
   const refreshTimer = ref<number | null>(null)
-  const CHECK_INTERVAL_MS = 60 * 1000 // 60 seconds
-  const REFRESH_BEFORE_EXPIRY_MS = 10 * 1000 // 10 seconds
+
   /**
    * States
    * We use sessionStorage to hydrate state when the page reloads
@@ -466,39 +465,37 @@ export const useAuthStore = defineStore('auth', () => {
    * Schedule proactive refresh
    */
   const scheduleTokenRefresh = (expiresAt: Date | null): void => {
+    if (!expiresAt) return
+    if (refreshTokenExpired.value) return
+
     if (refreshTimer.value) {
       clearScheduledRefresh()
     }
 
-    if (!expiresAt || refreshTokenExpired.value) {
-      return
-    }
+    const refreshIntervalSeconds = Number(import.meta.env.VITE_REFRESH_TOKEN_INTERVAL_CHECK)
+    const refreshIntervalMs = refreshIntervalSeconds * 1000
+    const timeUntilExpiry = expiresAt.getTime() - Date.now()
+    const delayMs = timeUntilExpiry - refreshIntervalMs
+    if (delayMs <= 0) return
 
-    console.log('Initializing token refresh scheduler with interval...')
-
-    refreshTimer.value = window.setInterval(async () => {
-      const expirationTime = expiresAt.getTime()
-      const timeUntilExpiry = expirationTime - Date.now()
-
-      if (timeUntilExpiry <= REFRESH_BEFORE_EXPIRY_MS) {
+    console.log('Initializing token refresh scheduler...')
+    console.log(`Refreshing in ${Math.ceil(delayMs / 1000)} seconds.`)
+    refreshTimer.value = window.setTimeout(async () => {
+      try {
         console.log('Token is nearing expiration. Refreshing...')
-
+        await refreshCurrentTokens()
+      } catch (err) {
+        console.error('Auto refresh failed', err)
+        refreshTokenExpired.value = true
         clearScheduledRefresh()
-
-        try {
-          await refreshCurrentTokens()
-        } catch (err) {
-          console.error('Auto refresh failed', err)
-          refreshTokenExpired.value = true
-          clearScheduledRefresh()
-        }
       }
-    }, CHECK_INTERVAL_MS)
+    }, delayMs)
   }
 
   const clearScheduledRefresh = () => {
     if (refreshTimer.value) {
-      window.clearInterval(refreshTimer.value as number)
+      console.log('Token refresh scheduler cleared.')
+      window.clearTimeout(refreshTimer.value)
       refreshTimer.value = null
     }
   }
