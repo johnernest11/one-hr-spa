@@ -248,6 +248,15 @@ export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => 
     return responseBody
   }
 
+  const checkLate = async () => {
+    const individual = auth.authenticatedUser.user_profile?.individual_basic_detail as PersonnelResponse
+    if (!individual?.employee) throw new Error('No employee linked')
+
+    const uri = `/employees/${individual.employee.id}/daily-time-records/check-late`
+    const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
+    return data.value as ApiResponseBody & { data: { is_late: boolean } }
+  }
+
   return {
     dailyTimeRecords,
     dailyTimeRecordInfo,
@@ -266,5 +275,6 @@ export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => 
     fetchCountWarmBodies,
     searchTimeLogs,
     getLastTimeLog,
+    checkLate,
   }
 })

@@ -30,11 +30,14 @@ const formIsSubmitting = ref(false)
 const isFormTypeA = ref(false)
 const isThereActiveLog = ref(false)
 const isInOffice = ref(false)
+const isLate = ref(false)
 const displayLocatorWarning = ref(false)
 const warningMessage = ref(
   "Heads Up! You are currently out of the office. This slip's Time Out will be linked to your next physical Time Out."
 )
 const defaultApproval = ref('personal_time')
+const purposePlaceholder = ref('e.g. Wellness Activity')
+const destinationPlaceholder = ref('e.g. Robinsons, San Fernando, La Union')
 
 const officialTimePurposeOptions = ref([
   { label: 'Wellness Activity', value: 'Wellness Activity' },
@@ -94,6 +97,8 @@ onMounted(async () => {
 
       if (payload.form_type === 'a') {
         defaultApproval.value = 'official_business'
+        purposePlaceholder.value = 'e.g. Provide TA'
+        destinationPlaceholder.value = 'e.g. RPMO'
       }
     }
   }
@@ -158,12 +163,33 @@ const checkActiveLog = async () => {
 }
 
 const checkCurrentEmployeeStatus = async () => {
-  const response = await warmBodiesStore.getLastTimeLog()
+  const [response, checkLateResponse] = await Promise.all([warmBodiesStore.getLastTimeLog(), warmBodiesStore.checkLate()])
+
   if (response && response.success) {
     if (response.data) {
       const lastLog = response.data as TimeLogResponse
       if (lastLog.is_in) isInOffice.value = true
     }
+  } else {
+    toast.add({
+      severity: 'error',
+      summary: 'Something went wrong.',
+      detail: response.error_message,
+      life: 5000,
+    })
+  }
+
+  if (checkLateResponse && checkLateResponse.success) {
+    if (checkLateResponse.data) {
+      isLate.value = checkLateResponse.data.is_late
+    }
+  } else {
+    toast.add({
+      severity: 'error',
+      summary: 'Something went wrong.',
+      detail: checkLateResponse.error_message,
+      life: 5000,
+    })
   }
 }
 
@@ -182,7 +208,7 @@ const globalStringMaxLengthRule = helpers.withMessage(
 )
 const formRules = computed(() => ({
   $lazy: true,
-  locator_slip_logger: payload.locator_slip_logger.map((item) => ({
+  locator_slip_logger: payload.locator_slip_logger.map((_, index) => ({
     date: {
       maxLength: globalStringMaxLengthRule,
     },
@@ -192,12 +218,35 @@ const formRules = computed(() => ({
     },
     purpose: {
       auxiliaryCheck: helpers.withMessage('The 2 hrs of your auxiliary wellness has already been used.', () => {
-        const selectedPurpose = item.purpose
-        const hasId = !!item.id
+        const locatorLog = payload.locator_slip_logger[index]
+        const selectedPurpose = locatorLog.purpose
+        const hasId = !!locatorLog.id
 
         if (selectedPurpose === 'Auxiliary Wellness' && !hasId) {
           const isAuxUsed = auxRemaining.value === 0
           return !isAuxUsed
+        }
+        return true
+      }),
+      wellnessMonday: helpers.withMessage('Wellness activity is not allowed on Mondays.', () => {
+        const locatorLog = payload.locator_slip_logger[index]
+        const selectedPurpose = locatorLog.purpose
+        const hasId = !!locatorLog.id
+        const today = new Date()
+        const isMonday = today.getDay() === 1
+
+        if (selectedPurpose === 'Wellness Activity' && !hasId && isMonday) {
+          return false
+        }
+        return true
+      }),
+      lateCheck: helpers.withMessage('You are late today. You cannot claim wellness activity.', () => {
+        const locatorLog = payload.locator_slip_logger[index]
+        const selectedPurpose = locatorLog.purpose
+        const hasId = !!locatorLog.id
+
+        if (selectedPurpose === 'Wellness Activity' && !hasId && isLate.value) {
+          return false
         }
         return true
       }),
@@ -451,7 +500,7 @@ const saveButtonSubmission = async () => {
                   v-model="row.destination"
                   label=""
                   label-class="text-sm text-surface-600"
-                  placeholder="e.g. Robinsons, San Fernando, La Union"
+                  :placeholder="destinationPlaceholder"
                   class="w-full"
                   :disabled="!validateDateNow(row.date) || isHumanResourceActive || row.time_out || row.time_in"
                   :invalidText="validator.locator_slip_logger?.[index]?.destination?.$errors[0]?.$message"
@@ -466,7 +515,7 @@ const saveButtonSubmission = async () => {
                 v-model="row.purpose"
                 label=""
                 label-class="text-sm text-surface-600"
-                placeholder="e.g. Wellness Activity"
+                :placeholder="purposePlaceholder"
                 class="w-full"
                 :disabled="!validateDateNow(row.date) || isHumanResourceActive || row.time_out || row.time_in"
                 :invalidText="validator.locator_slip_logger?.[index]?.purpose?.$errors[0]?.$message"
@@ -553,7 +602,6 @@ const saveButtonSubmission = async () => {
                     v-model="row.remarks"
                     label=""
                     label-class="text-sm text-surface-600"
-                    placeholder="e.g. Wellness Activity"
                     :disabled="isHumanResourceActive"
                     :invalidText="validator.locator_slip_logger?.[index]?.remarks?.$errors[0]?.$message"
                     :invalid="validator.locator_slip_logger?.[index]?.remarks?.$error"
