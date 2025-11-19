@@ -26,6 +26,7 @@ import { formatDateFields, formatValidationDate, formatYear } from '@/utils/help
 
 import { useRoute } from 'vue-router'
 import { BloodType, CivilStatusType, SexType } from '@/typings/employee-entry.types'
+import { useFetchBlob } from '@/composables/fetch.blob'
 
 /** Typings */
 export type UploadProfilePictureResponse = { owner_id: string | number; path: string; url: string }
@@ -1020,6 +1021,20 @@ export const usePdsStore = defineStore('pds', () => {
     return responseBody
   }
 
+  /**Generate Personnel Data Sheet to PDF */
+  const generatePersonalDataSheet = async (IndividualBasicDetail?: string) => {
+    const fallbackEmployeeId = authStore.authenticatedUser.user_profile?.individual_basic_detail?.employee?.id?.toString()
+
+    const finalEmployeeId = IndividualBasicDetail || fallbackEmployeeId
+    if (!finalEmployeeId) throw new Error('No employee id provided')
+
+    // Use finalEmployeeId in the URL, not IndividualBasicDetail
+    const api_url = `/individual-basic-details/${finalEmployeeId}/export`
+
+    const { data, fileNameHeader } = await useFetchBlob(api_url, authStore.authenticationToken)
+    return { data, fileNameHeader }
+  }
+
   return {
     pdsInfo,
     savePds,
@@ -1031,6 +1046,7 @@ export const usePdsStore = defineStore('pds', () => {
     fetchPds,
     updatePdsFromPersonnel,
     updatePds,
+    generatePersonalDataSheet,
     fetchPdsById,
   }
 })
