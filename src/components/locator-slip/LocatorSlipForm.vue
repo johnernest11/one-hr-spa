@@ -173,7 +173,7 @@ const checkCurrentEmployeeStatus = async () => {
   } else {
     toast.add({
       severity: 'error',
-      summary: 'Something went wrong.',
+      summary: 'An error has occured.',
       detail: response.error_message,
       life: 5000,
     })
@@ -186,7 +186,7 @@ const checkCurrentEmployeeStatus = async () => {
   } else {
     toast.add({
       severity: 'error',
-      summary: 'Something went wrong.',
+      summary: 'An error has occured.',
       detail: checkLateResponse.error_message,
       life: 5000,
     })
