@@ -238,20 +238,6 @@ const exportToPDF = async (employeeId: string) => {
                 <i class="pi pi-save mr-2"></i>
               </template>
             </Button>
-            <div class="flex w-full flex-col gap-4 md:w-auto md:flex-row md:justify-end">
-              <Button
-                label="Export DTR"
-                @click="exportToPDF(route.params.id as string)"
-                :loading="isSubmitting"
-                :disabled="isSubmitting"
-                class="border border-primary-400 text-base text-primary-500 dark:border-primary-700 dark:text-primary-100 lg:text-primary-500 dark:lg:text-primary-400"
-                text
-              >
-                <template #icon>
-                  <i class="pi pi-file-pdf mr-2"></i>
-                </template>
-              </Button>
-            </div>
 
             <!-- Show Update button only if id exists -->
             <Button
@@ -267,6 +253,21 @@ const exportToPDF = async (employeeId: string) => {
             >
               <template #icon>
                 <i class="pi pi-save mr-2"></i>
+              </template>
+            </Button>
+          </div>
+
+          <div class="flex w-full flex-col gap-4 md:w-auto md:flex-row md:justify-end">
+            <Button
+              label="Export DTR"
+              @click="exportToPDF(route.params.id as string)"
+              :loading="isSubmitting"
+              :disabled="isSubmitting"
+              class="dark:text-secondary-100 mt-4 w-full border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+              text
+            >
+              <template #icon>
+                <i class="pi pi-file-pdf mr-2"></i>
               </template>
             </Button>
           </div>
