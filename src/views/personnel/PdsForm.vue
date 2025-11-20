@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { onBeforeMount, ref, computed, watch } from 'vue'
+import { onBeforeMount, ref, computed, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
-// import { useRouter } from 'vue-router'
 
 import { usePdsStore } from '@/stores/pds.store'
 
@@ -17,14 +16,14 @@ import Button from 'primevue/button'
 import { useToast } from 'primevue/usetoast'
 const toast = useToast()
 const route = useRoute()
-// const router = useRouter()
 
 const isMyPds = route.name === 'my-pds'
 const isEditMode = computed(() => !!route.params.id)
 const pdsStore = usePdsStore()
 const isSubmitting = ref(false)
 const isImporting = ref(false)
-
+const tabsLoading = ref(true) // tracks if tabs are loading
+const buttonsVisible = ref(false)
 const c1FormRef = ref()
 const c2FormRef = ref()
 const c3FormRef = ref()
@@ -38,11 +37,21 @@ const c4Key = ref(0)
 /**************************************************
               Refresh/Reload the Tab
 ************************************************* */
-const refreshTabs = () => {
+const refreshTabs = async () => {
+  tabsLoading.value = true
+  buttonsVisible.value = false
+
   c1Key.value++
   c2Key.value++
   c3Key.value++
   c4Key.value++
+
+  await nextTick()
+
+  setTimeout(() => {
+    buttonsVisible.value = true
+    tabsLoading.value = false
+  }, 2300)
 }
 
 watch(
@@ -53,6 +62,7 @@ watch(
 )
 
 onBeforeMount(async () => {
+  await refreshTabs()
   isImporting.value = false
   if (route.query.mode === 'via-manual-input') {
     pdsStore.pdsMode = route.query.mode.replace(/-/g, ' ').replace(/(?:^|\s)\S/g, (a: string) => a.toUpperCase())
@@ -152,6 +162,55 @@ const handleUpdate = async () => {
     isSubmitting.value = false
   }
 }
+
+/**************************************************
+      Handle Export/Generate PDS PDF
+************************************************* */
+const exportToPDF = async (employeeId: string) => {
+  toast.add({
+    severity: 'info',
+    summary: 'Exporting...',
+    detail: 'Exporting PDS...',
+    life: 5000,
+  })
+
+  try {
+    const reportResponse = await pdsStore.generatePersonalDataSheet(employeeId)
+
+    if (!reportResponse.data.value) {
+      throw new Error('No data received from the server')
+    }
+
+    const blob = new Blob([reportResponse.data.value], { type: 'application/pdf' })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+
+    // Proper fallback for filename
+    const fileName = 'CS Form No. 212, Revised 2025 - Personal Data Sheet.pdf'
+
+    a.download = fileName
+    document.body.appendChild(a)
+    a.click()
+    window.URL.revokeObjectURL(url)
+    document.body.removeChild(a)
+
+    toast.add({
+      severity: 'success',
+      summary: 'PDS Exported',
+      detail: `The PDS for employee ${employeeId} was successfully exported.`,
+      life: 5000,
+    })
+  } catch (error) {
+    toast.add({
+      severity: 'error',
+      summary: 'Export Failed',
+      detail: `Failed to export PDS: ${(error as Error).message}`,
+      life: 5000,
+    })
+    console.error('Export error:', error)
+  }
+}
 </script>
 
 <template>
@@ -171,7 +230,7 @@ const handleUpdate = async () => {
         </div>
 
         <!-- Button aligned right -->
-        <div class="ml-auto">
+        <div class="ml-auto flex flex-row items-center gap-4" v-if="buttonsVisible">
           <div>
             <!-- Show Save button only if NO id -->
             <Button
@@ -204,6 +263,21 @@ const handleUpdate = async () => {
             >
               <template #icon>
                 <i class="pi pi-save mr-2"></i>
+              </template>
+            </Button>
+          </div>
+
+          <div class="flex w-full flex-col gap-4 md:w-auto md:flex-row md:justify-end">
+            <Button
+              label="Export DTR"
+              @click="exportToPDF(route.params.id as string)"
+              :loading="isSubmitting"
+              :disabled="isSubmitting"
+              class="dark:text-secondary-100 mt-4 w-full border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+              text
+            >
+              <template #icon>
+                <i class="pi pi-file-pdf mr-2"></i>
               </template>
             </Button>
           </div>

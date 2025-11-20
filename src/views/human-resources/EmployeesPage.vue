@@ -603,6 +603,57 @@ const downloadQrCode = async () => {
     })
   }
 }
+
+/**************************************************
+      Handle Export/Generate PDS PDF
+************************************************* */
+const exportToPDF = async (personnelPds: PersonnelResponse) => {
+  toast.add({
+    severity: 'info',
+    summary: 'Exporting...',
+    detail: 'Exporting PDS...',
+    life: 5000,
+  })
+
+  try {
+    const personnelId = String(personnelPds.id ?? 'employee')
+    const reportResponse = await pdsStore.generatePersonalDataSheet(personnelId)
+
+    if (!reportResponse.data.value) {
+      throw new Error('No data received from the server')
+    }
+
+    const blob = new Blob([reportResponse.data.value], { type: 'application/pdf' })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+
+    // Proper fallback for filename
+    const fileName = 'CS Form No. 212, Revised 2025 - Personal Data Sheet.pdf'
+    a.download = fileName
+
+    a.download = fileName
+    document.body.appendChild(a)
+    a.click()
+    window.URL.revokeObjectURL(url)
+    document.body.removeChild(a)
+
+    toast.add({
+      severity: 'success',
+      summary: 'PDS Exported',
+      detail: `The PDS for employee ${personnelPds.last_name} was successfully exported.`,
+      life: 5000,
+    })
+  } catch (error) {
+    toast.add({
+      severity: 'error',
+      summary: 'Export Failed',
+      detail: `Failed to export PDS: ${(error as Error).message}`,
+      life: 5000,
+    })
+    console.error('Export error:', error)
+  }
+}
 </script>
 
 <template>
@@ -740,6 +791,14 @@ const downloadQrCode = async () => {
                         class="border-none text-lg font-semibold text-primary-600 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
                         text
                         @click="openQrModal(props.data)"
+                      />
+                      <Button
+                        icon="pi pi-file-pdf"
+                        v-tooltip.top="'Export Personnel Data Sheet'"
+                        severity="info"
+                        class="border-none text-lg font-semibold text-primary-700 dark:text-primary-100 sm:text-primary-400 md:text-primary-500 lg:text-primary-500 dark:lg:text-primary-500"
+                        text
+                        @click="exportToPDF(props.data)"
                       />
                     </div>
                     <div v-else class="flex gap-4">
