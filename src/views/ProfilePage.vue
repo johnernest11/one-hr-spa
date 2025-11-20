@@ -4,8 +4,9 @@ import { useAuthStore } from '@/stores/auth.store.ts'
 import { computed, reactive } from 'vue'
 import { useAddressStore } from '@/stores/address.store.ts'
 import WbAvatarFileInput from '@/components/webkit/WbAvatarFileInput.vue'
-import UpdateProfileForm from '@/components/profile-page/UpdateProfileForm.vue'
+import PersonalInformation from '@/components/profile-page/PersonalInformation.vue'
 import { usePdsStore, PersonalDataSheetPayload } from '@/stores/pds.store.ts'
+import EmploymentHistory from '@/components/profile-page/EmploymentHistory.vue'
 
 const authStore = useAuthStore()
 const pdsStore = usePdsStore()
@@ -66,16 +67,29 @@ const fullAddress = computed(() => {
       </template>
       <template #footer> </template>
     </Card>
-    <Card class="mt-4">
-      <template #content>
-        <transition
-          enter-active-class="transition duration-500"
-          enter-from-class="translate-y-[20%] opacity-0"
-          leave-to-class="opacity-0"
-        >
-          <UpdateProfileForm />
-        </transition>
-      </template>
-    </Card>
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <Card class="mt-6">
+        <template #content>
+          <transition
+            enter-active-class="transition duration-500"
+            enter-from-class="translate-y-[20%] opacity-0"
+            leave-to-class="opacity-0"
+          >
+            <PersonalInformation />
+          </transition>
+        </template>
+      </Card>
+      <Card class="mt-6">
+        <template #content>
+          <transition
+            enter-active-class="transition duration-500"
+            enter-from-class="translate-y-[20%] opacity-0"
+            leave-to-class="opacity-0"
+          >
+            <EmploymentHistory />
+          </transition>
+        </template>
+      </Card>
+    </div>
   </div>
 </template>
