@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { onBeforeMount, ref, computed, watch } from 'vue'
+import { onBeforeMount, ref, computed, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
-// import { useRouter } from 'vue-router'
 
 import { usePdsStore } from '@/stores/pds.store'
 
@@ -17,14 +16,14 @@ import Button from 'primevue/button'
 import { useToast } from 'primevue/usetoast'
 const toast = useToast()
 const route = useRoute()
-// const router = useRouter()
 
 const isMyPds = route.name === 'my-pds'
 const isEditMode = computed(() => !!route.params.id)
 const pdsStore = usePdsStore()
 const isSubmitting = ref(false)
 const isImporting = ref(false)
-
+const tabsLoading = ref(true) // tracks if tabs are loading
+const buttonsVisible = ref(false)
 const c1FormRef = ref()
 const c2FormRef = ref()
 const c3FormRef = ref()
@@ -38,11 +37,21 @@ const c4Key = ref(0)
 /**************************************************
               Refresh/Reload the Tab
 ************************************************* */
-const refreshTabs = () => {
+const refreshTabs = async () => {
+  tabsLoading.value = true
+  buttonsVisible.value = false
+
   c1Key.value++
   c2Key.value++
   c3Key.value++
   c4Key.value++
+
+  await nextTick()
+
+  setTimeout(() => {
+    buttonsVisible.value = true
+    tabsLoading.value = false
+  }, 2300)
 }
 
 watch(
@@ -53,6 +62,7 @@ watch(
 )
 
 onBeforeMount(async () => {
+  await refreshTabs()
   isImporting.value = false
   if (route.query.mode === 'via-manual-input') {
     pdsStore.pdsMode = route.query.mode.replace(/-/g, ' ').replace(/(?:^|\s)\S/g, (a: string) => a.toUpperCase())
@@ -177,7 +187,7 @@ const exportToPDF = async (employeeId: string) => {
     a.href = url
 
     // Proper fallback for filename
-    const fileName = reportResponse.fileNameHeader?.value || 'CS Form No. 212, Revised 2025 - Personal Data Sheet.pdf'
+    const fileName = 'CS Form No. 212, Revised 2025 - Personal Data Sheet.pdf'
 
     a.download = fileName
     document.body.appendChild(a)
@@ -220,7 +230,7 @@ const exportToPDF = async (employeeId: string) => {
         </div>
 
         <!-- Button aligned right -->
-        <div class="ml-auto">
+        <div class="ml-auto flex flex-row items-center gap-4" v-if="buttonsVisible">
           <div>
             <!-- Show Save button only if NO id -->
             <Button

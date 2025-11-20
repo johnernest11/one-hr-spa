@@ -1022,14 +1022,8 @@ export const usePdsStore = defineStore('pds', () => {
   }
 
   /**Generate Personnel Data Sheet to PDF */
-  const generatePersonalDataSheet = async (IndividualBasicDetail?: string) => {
-    const fallbackEmployeeId = authStore.authenticatedUser.user_profile?.individual_basic_detail?.employee?.id?.toString()
-
-    const finalEmployeeId = IndividualBasicDetail || fallbackEmployeeId
-    if (!finalEmployeeId) throw new Error('No employee id provided')
-
-    // Use finalEmployeeId in the URL, not IndividualBasicDetail
-    const api_url = `/individual-basic-details/${finalEmployeeId}/export`
+  const generatePersonalDataSheet = async (id: string | number) => {
+    const api_url = `/individual-basic-details/${id}/export`
 
     const { data, fileNameHeader } = await useFetchBlob(api_url, authStore.authenticationToken)
     return { data, fileNameHeader }
