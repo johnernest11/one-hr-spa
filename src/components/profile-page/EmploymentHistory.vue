@@ -22,11 +22,11 @@ onBeforeMount(async () => {
   addressesAreLoading.value = false
 })
 
-/**
+/************************************************************
  * Compute total service tenure combining:
  * 1. Current agency tenure (first work experience entry)
  * 2. All Permanent + Government Service
- */
+ ************************************************************/
 const computeTotalServiceTenure = (experiences: typeof payload.individual_work_experience) => {
   if (!experiences || experiences.length === 0) return '-'
 
@@ -93,7 +93,14 @@ const computeTotalServiceTenure = (experiences: typeof payload.individual_work_e
   if (totalMonths > 0) parts.push(`${totalMonths} mo${totalMonths > 1 ? 's' : ''}`)
   if (totalDays > 0) parts.push(`${totalDays} day${totalDays > 1 ? 's' : ''}`)
 
-  return parts.length ? parts.join(', ') : '0 days'
+  if (!parts.length) return '0 days'
+
+  if (parts.length > 1) {
+    const last = parts.pop()
+    return `${parts.join(', ')} and ${last}`
+  }
+
+  return parts[0]
 }
 
 const allpermanentGovTenure = computed(() => computeTotalServiceTenure(payload.individual_work_experience))
