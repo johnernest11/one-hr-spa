@@ -128,6 +128,9 @@ export const useSidebarNavLinks = () => {
                 case 'my-payslips':
                   childNavLink.icon = 'fas fa-receipt'
                   break
+                case 'my-service-records':
+                  childNavLink.icon = 'fas fa-file'
+                  break
 
                 /*Profile Routes */
                 case 'my-pds':

@@ -466,6 +466,18 @@ const routes = [
           roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
         },
       },
+
+      {
+        path: '/my-service-records/:id?',
+        name: 'my-service-records',
+        component: () => import('@/components/service-record/ServiceRecordForm.vue'),
+        meta: <RouteMeta>{
+          label: 'My Service Records',
+          isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
+        },
+      },
     ],
   },
   /*Commitments Routes */

@@ -686,3 +686,14 @@ export const formatToYMD = (date: string | Date | null): string | null => {
   }
   return date // already in YYYY-MM-DD
 }
+
+/** Service Record Helpers */
+// Helper to format number as Philippine Peso
+export const formatPeso = (amount: number | null | undefined) => {
+  if (!amount) return '-'
+  return new Intl.NumberFormat('en-PH', {
+    style: 'currency',
+    currency: 'PHP',
+    minimumFractionDigits: 2,
+  }).format(amount)
+}
