@@ -1022,10 +1022,11 @@ export const usePdsStore = defineStore('pds', () => {
   }
 
   /**Generate Personnel Data Sheet to PDF */
-  const generatePersonalDataSheet = async (id: string | number) => {
-    const api_url = `/individual-basic-details/${id}/export`
+  const generatePersonalDataSheet = async (employeeId: string | number) => {
+    const id = employeeId ?? authStore.authenticatedUser.user_profile?.individual_basic_detail?.employee?.id
+    const url = `/individual-basic-details/${id}/export`
 
-    const { data, fileNameHeader } = await useFetchBlob(api_url, authStore.authenticationToken)
+    const { data, fileNameHeader } = await useFetchBlob(url, authStore.authenticationToken)
     return { data, fileNameHeader }
   }
 
