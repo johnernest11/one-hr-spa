@@ -562,7 +562,7 @@ export const formatDateSafe = (input: unknown, canBeFuture: boolean = false): st
     if (date > today) return ''
   }
 
-  return useDateFormat(date, 'YYYY-MM-DD').value
+  return useDateFormat(date, 'MM/DD/YYYY').value
 }
 
 /**
