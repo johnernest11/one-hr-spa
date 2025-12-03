@@ -79,14 +79,14 @@ const filteredWorkExperience = computed(() =>
               <!-- From -->
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">From</p>
-                <p class="text-sm text-surface-600">{{ formatDateSafe(work.inclusive_date_from) }}</p>
+                <p class="text-sm text-surface-600">{{ formatDateSafe(work.inclusive_date_from, false, 'MM/DD/YYYY') }}</p>
               </div>
 
               <!-- To -->
               <div>
                 <p class="text-xs font-semibold text-surface-500 md:hidden">To</p>
                 <p class="text-sm text-surface-600">
-                  {{ work.is_current_work ? 'PRESENT' : formatDateSafe(work.inclusive_date_to) }}
+                  {{ work.is_current_work ? 'PRESENT' : formatDateSafe(work.inclusive_date_to, false, 'MM/DD/YYYY') }}
                 </p>
               </div>
 
