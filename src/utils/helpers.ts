@@ -550,7 +550,7 @@ export const formatTimeTo12Hour = (timeString: string | undefined): string => {
  * @param canBeFuture - If true, dates in the future are valid for formatting. Defaults to false.
  * @returns Formatted date string or empty string if invalid or outside the acceptable date range.
  */
-export const formatDateSafe = (input: unknown, canBeFuture: boolean = false): string => {
+export const formatDateSafe = (input: unknown, canBeFuture: boolean = false, format: string = 'YYYY-MM-DD'): string => {
   const date = new Date(input as string | number | Date)
 
   // Invalid date check
@@ -562,7 +562,7 @@ export const formatDateSafe = (input: unknown, canBeFuture: boolean = false): st
     if (date > today) return ''
   }
 
-  return useDateFormat(date, 'MM/DD/YYYY').value
+  return useDateFormat(date, format).value
 }
 
 /**
