@@ -153,19 +153,7 @@ const updateWES = async () => {
                             </template>
                           </Button>
                         </div>
-                        <div>
-                          <!-- <Button
-                            label="Export to word file"
-                            type="submit"
-                            size="large"
-                            class="dark:text-secondary-100 bottom-0 right-0 mr-8 mt-4 border border-primary-500 text-base text-primary-700 dark:border-surface-700 lg:text-primary-600 dark:lg:text-surface-400"
-                            text
-                          >
-                            <template #icon>
-                              <i class="pi pi-save mr-2"></i>
-                            </template>
-                          </Button> -->
-                        </div>
+                        <div></div>
                       </div>
                     </div>
                     <div
