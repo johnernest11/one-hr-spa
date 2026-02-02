@@ -13,7 +13,7 @@ defineOptions({
 
 /** Props */
 type WbTextAreaProps = {
-  modelValue?: string
+  modelValue?: string | null
   label: string
   required?: boolean
   invalid?: boolean
