@@ -697,3 +697,28 @@ export const formatPeso = (amount: number | null | undefined) => {
     minimumFractionDigits: 2,
   }).format(amount)
 }
+
+/** --------------- Format Date for WES Duration------------------
+ * Formats a date range for WES (Work Experience Sheet) duration.
+ * e.g January 1, 2010 - February 11, 2011 ,
+ * e.g February 11, 2011 – present)
+ * --------------------------------------------------------------- */
+export const formatWesDuration = (from: string | null, to: string | null, isCurrent: boolean = false): string => {
+  if (!from && !to) return ''
+
+  const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' }
+
+  const startDate = from ? new Date(from) : null
+  let endStr: string
+
+  if (isCurrent) {
+    endStr = 'Present'
+  } else {
+    const endDate = to ? new Date(to) : null
+    endStr = endDate ? endDate.toLocaleDateString('en-US', options) : 'Present'
+  }
+
+  const startStr = startDate ? startDate.toLocaleDateString('en-US', options) : 'Unknown'
+
+  return `${startStr} – ${endStr}`
+}

@@ -355,6 +355,10 @@ export const usePdsStore = defineStore('pds', () => {
         custom_salary_grade: exp.custom_salary_grade ?? '',
         status_of_appointment: exp.status_of_appointment ?? null,
         is_gov_service: exp.is_gov_service ?? false,
+        immediate_supervisor: exp.immediate_supervisor ?? '',
+        name_of_office_unit: exp.name_of_office_unit ?? '',
+        list_of_accomplishments: exp.list_of_accomplishments ?? '',
+        summary_of_duties: exp.summary_of_duties ?? '',
         _delete: exp._delete ?? null,
       }))
       : [],
@@ -713,6 +717,10 @@ export const usePdsStore = defineStore('pds', () => {
         custom_salary_grade: w.custom_salary_grade ?? '',
         status_of_appointment: w.status_of_appointment ?? null,
         is_gov_service: w.is_gov_service ?? false,
+        immediate_supervisor: w.immediate_supervisor ?? null,
+        name_of_office_unit: w.name_of_office_unit ?? null,
+        list_of_accomplishments: w.list_of_accomplishments ?? null,
+        summary_of_duties: w.summary_of_duties ?? null,
         _delete: w._delete ?? null,
       }))
       : []
@@ -1021,6 +1029,22 @@ export const usePdsStore = defineStore('pds', () => {
     return responseBody
   }
 
+  const updateWES = async (payload: Partial<PersonalDataSheetPayload>, id: string | number, formType: 'C2') => {
+    const { data } = await useApiCall(`/individual-basic-details/${id}`, authStore.authenticationToken)
+      .put({ ...payload, form_type: formType })
+      .json()
+
+    const responseBody: ApiResponseBody = data.value
+    if (responseBody.success) {
+      const index = personnelPds.value.findIndex((personnelPds) => personnelPds?.id === id)
+      if (index !== -1) {
+        personnelPds.value[index] = responseBody.data as PersonnelResponse
+      }
+    }
+
+    return responseBody
+  }
+
   /**Generate Personnel Data Sheet to PDF */
   const generatePersonalDataSheet = async (employeeId: string | number) => {
     const id = employeeId ?? authStore.authenticatedUser.user_profile?.individual_basic_detail?.employee?.id
@@ -1041,6 +1065,7 @@ export const usePdsStore = defineStore('pds', () => {
     fetchPds,
     updatePdsFromPersonnel,
     updatePds,
+    updateWES,
     generatePersonalDataSheet,
     fetchPdsById,
   }
