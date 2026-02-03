@@ -8,6 +8,7 @@ import C1Form from '@/components/pds/C1Form.vue'
 import C2Form from '@/components/pds/C2Form.vue'
 import C3Form from '@/components/pds/C3Form.vue'
 import C4Form from '@/components/pds/C4Form.vue'
+import WESForm from '@/components/wes/WorkExperienceSheetForm.vue'
 
 import { lcFirst } from '@/utils/helpers.ts'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
@@ -16,8 +17,7 @@ import Button from 'primevue/button'
 import { useToast } from 'primevue/usetoast'
 const toast = useToast()
 const route = useRoute()
-
-const isMyPds = route.name === 'my-pds'
+const isMyPds = computed(() => route.path.startsWith('/my-pds'))
 const isEditMode = computed(() => !!route.params.id)
 const pdsStore = usePdsStore()
 const isSubmitting = ref(false)
@@ -28,11 +28,13 @@ const c1FormRef = ref()
 const c2FormRef = ref()
 const c3FormRef = ref()
 const c4FormRef = ref()
+const wesFormRef = ref()
 
 const c1Key = ref(0)
 const c2Key = ref(0)
 const c3Key = ref(0)
 const c4Key = ref(0)
+const wesKey = ref(0)
 
 /**************************************************
               Refresh/Reload the Tab
@@ -45,6 +47,7 @@ const refreshTabs = async () => {
   c2Key.value++
   c3Key.value++
   c4Key.value++
+  wesKey.value++
 
   await nextTick()
 
@@ -86,6 +89,7 @@ const handleSubmit = async () => {
         c2FormRef.value?.validateForm?.(),
         c3FormRef.value?.validateForm?.(),
         c4FormRef.value?.validateForm?.(),
+        wesFormRef.value?.validateForm?.(),
       ].filter(Boolean)
     )
 
@@ -127,6 +131,7 @@ const handleUpdate = async () => {
         c2FormRef.value?.validateForm?.(),
         c3FormRef.value?.validateForm?.(),
         c4FormRef.value?.validateForm?.(),
+        wesFormRef.value?.validateForm?.(),
       ].filter(Boolean)
     )
 
@@ -148,6 +153,7 @@ const handleUpdate = async () => {
         c2FormRef.value?.updateC2Form?.(),
         c3FormRef.value?.updateC3Form?.(),
         c4FormRef.value?.updateC4Form?.(),
+        wesFormRef.value?.updateWESForm?.(),
       ].filter(Boolean)
     )
 
@@ -336,6 +342,18 @@ const exportToPDF = async (employeeId: string) => {
                   C4
                 </button>
               </Tab>
+              <Tab v-if="isMyPds || isEditMode" v-slot="{ selected }" as="template">
+                <button
+                  :class="[
+                    'w-full border-b-2 border-solid py-4 text-sm font-medium leading-5 ring-transparent transition-all duration-300 ease-in-out focus:outline-none md:text-base',
+                    selected
+                      ? 'border-b-2 border-solid border-primary-600 bg-primary-100 text-primary-600'
+                      : 'border-surface-300 text-surface-400 hover:bg-surface-0/[0.12]',
+                  ]"
+                >
+                  WES
+                </button>
+              </Tab>
             </TabList>
 
             <TabPanels>
@@ -350,6 +368,9 @@ const exportToPDF = async (employeeId: string) => {
               </TabPanel>
               <TabPanel :key="c4Key" :static="true" v-slot="{ selected }">
                 <div v-show="selected"><C4Form ref="c4FormRef" /></div>
+              </TabPanel>
+              <TabPanel :key="wesKey" :static="true" v-slot="{ selected }">
+                <div v-show="selected"><WESForm ref="wesFormRef" /></div>
               </TabPanel>
             </TabPanels>
           </TabGroup>
