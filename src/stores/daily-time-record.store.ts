@@ -11,7 +11,6 @@ import {
   ViewDailyTimeRecordResponse,
   ViewTimeLogsResponse,
 } from '@/typings/models.types'
-import { parseYear, parseMonth } from '@/utils/dtr-helpers'
 
 export type DailyTimeRecordPayload = {
   id: number
@@ -145,19 +144,28 @@ export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => 
     return responseBody
   }
 
-  const searchDailyTimeRecordsByMonthQuery = async (query: string | null): Promise<DailyTimeRecordResponse[]> => {
-    if (!query?.trim()) throw new Error('Enter a valid month (e.g., "October 2025").')
+  const searchDailyTimeRecordsByMonthQuery = async (
+    query: string | Date | null,
+    employeeId?: string | number
+  ): Promise<DailyTimeRecordResponse[]> => {
+    if (!query) throw new Error('Enter a valid month (e.g., "October 2025").')
 
-    const now = new Date()
-    const q = query.toLowerCase().trim()
-    const year = +(parseYear(q) ?? now.getFullYear())
-    const month = parseMonth(q)
+    let selectedDate: Date
 
-    if (month === null) throw new Error('Invalid month. Use a month name or number (e.g., "October 2025").')
+    if (query instanceof Date) {
+      selectedDate = query
+    } else if (typeof query === 'string') {
+      // Parse "January 2025" safely by adding a day
+      const parsed = new Date(query + ' 01')
+      if (isNaN(parsed.getTime())) throw new Error('Invalid month format')
+      selectedDate = parsed
+    } else {
+      throw new Error('Invalid query type')
+    }
 
-    return fetchDailyTimeRecordsByMonth(new Date(year, month)).then(
-      (res) => structuredClone(res.data ?? []) as DailyTimeRecordResponse[]
-    )
+    // Call your API with year and month only
+    const response = await fetchDailyTimeRecordsByMonth(selectedDate, 31, employeeId)
+    return structuredClone(response.data ?? []) as DailyTimeRecordResponse[]
   }
 
   const updateDailyTimeRecords = async (employeeId: number, payload: UpdateDTRPayload) => {

@@ -256,6 +256,11 @@ export const computeOT = (worked: number, weekend = false): number => {
 export const computeRemarks = (timeLog: TimeLogResponse[]): string => {
   if (!timeLog || timeLog.length === 0) return ''
 
+  // Check for weekend or holiday first
+  const date = timeLog[0]?.date
+  if (!date) return ''
+  if (isWeekend(date)) return 'Rendered OT'
+
   // Compute AM and PM hours using session helper (lunch excluded)
   const morningWorked = computeSessionHours(timeLog, 'in1', 'out1')
   const afternoonWorked = computeSessionHours(timeLog, 'in2', 'out2')

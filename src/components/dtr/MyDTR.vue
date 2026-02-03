@@ -551,6 +551,31 @@ const updateDTRTimeLogs = async () => {
   formIsSubmitting.value = false
 }
 
+/*******************************************************************
+  Watch all DTR rows' time logs and always recompute UT/OT
+********************************************************************* */
+
+/**Reset the OT & UT if Timelogs Change */
+watch(
+  () => monthDates.value.map((dtr) => dtr.row?.time_log),
+  () => {
+    const today = new Date(new Date().setHours(0, 0, 0, 0))
+
+    monthDates.value.forEach(({ date, row }) => {
+      if (!row || new Date(date) >= today) return
+
+      const worked = computeWorkedHours(row.time_log ?? [])
+      const weekend = isWeekend(formatDateYMD(date))
+      const utKey = getRemarksKey('ut', date)
+      const otKey = getRemarksKey('ot', date)
+
+      remarksMap[utKey] = computeUT(worked, weekend)
+      remarksMap[otKey] = computeOT(worked, weekend)
+    })
+  },
+  { deep: true, immediate: true }
+)
+
 const isEditedTimeLog = computed(() => {
   return (slot: 'in1' | 'out1' | 'in2' | 'out2', logs: TimeLogResponse[] = []) => {
     const slotLog = resolveDTRSlots(logs)[slot]
