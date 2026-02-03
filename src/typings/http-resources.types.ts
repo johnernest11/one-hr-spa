@@ -102,3 +102,12 @@ export interface ApiValidationErrorResponse {
 export interface ObservedErrorDetails {
   messages: string[]
 }
+
+export type WarmBodyRaw = WarmBodyLogEntry & {
+  office_id?: string | number
+  date?: string
+  scanned_time?: string
+  daily_time_record?: WarmBodyLogEntry['daily_time_record'] & {
+    office_id?: string | number
+  }
+}

@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useStorage } from '@vueuse/core'
 import { QrcodeStream, DetectedBarcode } from 'vue-qrcode-reader'
-import { useDailyLogsStore } from '@/stores/daily-logs.store'
+import { useDailyLogsStore, type CustomScannedEmployeeResponse } from '@/stores/daily-logs.store'
 import { useLibrariesStore } from '@/stores/libraries.store'
 import { useAuthStore } from '@/stores/auth.store'
 import { useRoute } from 'vue-router'
@@ -76,7 +76,7 @@ const qrStreamRef = ref<InstanceType<typeof QrcodeStream> | null>(null)
 const selectedOffice = ref<WbAutoCompleteOption | undefined>(undefined)
 const recentLogs = ref<Log[]>([])
 const isScannerResetting = ref(false)
-const scannedEmployee = computed(() => dailyLogsStore.currentScannedEmployee as Log | null | undefined)
+const scannedEmployee = computed(() => dailyLogsStore.currentScannedEmployee)
 
 const paintOutline = (detectedCodes: DetectedBarcode[], ctx: CanvasRenderingContext2D) => {
   for (const detectedCode of detectedCodes) {
@@ -107,8 +107,8 @@ const updateDailyLogsState = async (date: string) => {
   const backendLogs: BackendLog[] = dailyLogsStore.getTodayWarmBodies(date) || []
 
   const filteredLogs: Log[] = backendLogs
-    .filter((log) => String(log.office_id) === String(currentOfficeId))
-    .map((log) => {
+    .filter((log: BackendLog) => String(log.office_id) === String(currentOfficeId))
+    .map((log: BackendLog): Log => {
       const employee = log.daily_time_record?.employee
       const empDetails = employee?.individual_basic_detail
       const captured = log.captured_image_url ?? log.captured_photo_url ?? null
@@ -133,7 +133,7 @@ const updateDailyLogsState = async (date: string) => {
   recentLogs.value = filteredLogs
 
   if (recentLogs.value.length > 0) {
-    dailyLogsStore.currentScannedEmployee = recentLogs.value[0] as any
+    dailyLogsStore.currentScannedEmployee = recentLogs.value[0] as unknown as CustomScannedEmployeeResponse
   }
 }
 
@@ -226,7 +226,7 @@ const onDetect = (detectedCodes: DetectedBarcode[]) => {
 
   setTimeout(() => {
     isScannerResetting.value = false
-  })
+  }, MODAL_DISPLAY_DURATION_MS)
 }
 
 const capturePhoto = async (): Promise<{ file: File; previewUrl: string } | null> => {
@@ -267,66 +267,27 @@ const onDecode = async (result: string) => {
     formData.append('scanned_qr', result)
     if (captured?.file) formData.append('captured_image', captured.file)
 
-    const officeId = Number(localStorage.getItem('timelog_office_id') || dailyLogsStore.timelogOfficeId || 0)
-    formData.append('office_id', officeId.toString())
-
-    const response = await dailyLogsStore.logEmployeeTime(formData)
-
-    if (!response?.success) {
-      dailyLogsStore.lastLogMessage = response?.message || 'Failed to log time.'
+    const officeId = dailyLogsStore.timelogOfficeId
+    if (!officeId) {
+      dailyLogsStore.lastLogMessage = 'Official station not set.'
       showModal.value = true
       return
     }
 
-    const today = getManilaTodayISO()
-    await Promise.all([dailyLogsStore.fetchWarmBodySummary(today), updateDailyLogsState(today)])
+    formData.append('office_id', officeId.toString())
 
-    const officeLabel = librariesStore.officeOptions.find((o: WbAutoCompleteOption) => o.value === officeId)?.label || 'N/A'
+    const response = await dailyLogsStore.logEmployeeTime(formData, captured?.previewUrl)
 
-    const data = response.data as {
-      id: string | number
-      date: string
-      scanned_time: string
-      is_in: boolean
-      daily_time_record?: {
-        employee?: {
-          id_number?: string
-          individual_basic_detail?: { first_name?: string; last_name?: string }
-          item?: { position?: { title?: string } }
-          user_profile?: { profile_picture_url?: string }
-        }
-      }
-      captured_image_url?: string
-      daily_time_record_id?: string | number
+    if (response?.success) {
+      const today = getManilaTodayISO()
+      await Promise.all([dailyLogsStore.fetchWarmBodySummary(today), updateDailyLogsState(today)])
+
+      showModal.value = true
+    } else {
+      showModal.value = true
     }
-
-    const newLog: Log = {
-      id: String(data.id ?? ''),
-      employee_id: String(data.daily_time_record?.employee?.id_number ?? data.daily_time_record_id ?? ''),
-      timestamp: `${data.date}T${data.scanned_time}`,
-      is_in: data.is_in ?? false,
-      name:
-        `${data.daily_time_record?.employee?.individual_basic_detail?.first_name ?? ''} ${data.daily_time_record?.employee?.individual_basic_detail?.last_name ?? ''}`.trim() ||
-        'N/A',
-      position: data.daily_time_record?.employee?.item?.position?.title ?? 'N/A',
-      office: officeLabel,
-      captured_image: data.captured_image_url ?? captured?.previewUrl ?? null,
-      photo_url: (data.captured_image_url ?? captured?.previewUrl) || dswdLogoMark,
-    }
-
-    recentLogs.value = [newLog, ...recentLogs.value.filter((l) => l.office === officeLabel)]
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-      .slice(0, 10)
-
-    dailyLogsStore.currentScannedEmployee = newLog
-    showModal.value = true
-
-    setTimeout(() => {
-      showModal.value = false
-      dailyLogsStore.clearScannedEmployee()
-    }, MODAL_DISPLAY_DURATION_MS)
   } catch (error) {
-    console.error(error)
+    console.error('Scan Error:', error)
     dailyLogsStore.lastLogMessage = 'Network or server error.'
     showModal.value = true
   }
@@ -348,7 +309,11 @@ const onInit = (promise: Promise<void>) => {
 }
 
 const onCameraError = (error: unknown) => {
-  cameraError.value = error instanceof Error ? error.message : 'Camera stream error.'
+  if (error instanceof Error) {
+    cameraError.value = error.message
+  } else {
+    cameraError.value = 'An unexpected camera error occurred.'
+  }
 }
 
 const countInToday = computed(() => dailyLogsStore.warmBodySummary?.in_office ?? 0)
