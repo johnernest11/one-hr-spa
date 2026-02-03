@@ -14,49 +14,44 @@ import WbAutoComplete from '@/components/webkit/WbAutoComplete.vue'
 import { WbAutoCompleteOption } from '@/components/webkit/WbAutoComplete.vue'
 
 interface Log {
-  id: string | number
-  employee_id: string | number
+  id: string
+  employee_id: string
   timestamp: string
   is_in: boolean
-  photo_url?: string | null
-  profile_picture_url?: string | null
-  name?: string | null
-  position?: string | null
-  captured_image_url?: string | null
-  backend_photo_url?: string | null
-  captured_image?: string | null
+  name: string
+  position: string
+  office: string
+  photo_url: string
+  captured_image: string | null
   daily_time_record?: {
     employee?: {
-      id?: number | string
       id_number?: string
-      individual_basic_detail?: { first_name?: string; last_name?: string }
+      individual_basic_detail?: {
+        first_name?: string
+        last_name?: string
+      }
       item?: { position?: { title?: string } }
     }
-  }
-  employee?: {
-    id_number?: string
   }
 }
 
 interface BackendLog {
-  id: number
-  employee_id: string
-  is_in: boolean
+  id: number | string
+  employee_id?: string
   date: string
   scanned_time: string
+  is_in: boolean
+  office_id?: string | number
+  captured_photo_url?: string | null
   captured_image_url?: string | null
-  captured_image?: string | null
-  backend_photo_url?: string | null
-  profile_picture_url?: string | null
-  name?: string | null
-  position?: string | null
+  position?: string
+  daily_time_record_id?: string | number
   daily_time_record?: {
     employee?: {
-      id?: number | string
       id_number?: string
-      user_profile?: { profile_picture_url?: string | null }
       individual_basic_detail?: { first_name?: string; last_name?: string }
       item?: { position?: { title?: string } }
+      user_profile?: { profile_picture_url?: string }
     }
   }
 }
@@ -78,7 +73,7 @@ const MODAL_DISPLAY_DURATION_MS = 10000
 const scanTimeoutId = ref<number | undefined>(undefined)
 const intervalId = ref<number | undefined>(undefined)
 const qrStreamRef = ref<InstanceType<typeof QrcodeStream> | null>(null)
-const selectedOffice = ref<WbAutoCompleteOption | null | undefined>(null)
+const selectedOffice = ref<WbAutoCompleteOption | undefined>(undefined)
 const recentLogs = ref<Log[]>([])
 const isScannerResetting = ref(false)
 const scannedEmployee = computed(() => dailyLogsStore.currentScannedEmployee as Log | null | undefined)
@@ -106,50 +101,40 @@ const startTimeLogs = async () => {
 
 const updateDailyLogsState = async (date: string) => {
   await dailyLogsStore.fetchDailyLogs(date)
-  const backendLogs = dailyLogsStore.getTodayWarmBodies(date) || []
+  const currentOfficeId = dailyLogsStore.timelogOfficeId
+  if (!currentOfficeId) return
 
-  const newLogs: Log[] = backendLogs
-    .filter((log) => log.scanned_time && log.date)
-    .map((log: BackendLog) => {
-      const emp = log.daily_time_record?.employee
+  const backendLogs: BackendLog[] = dailyLogsStore.getTodayWarmBodies(date) || []
+
+  const filteredLogs: Log[] = backendLogs
+    .filter((log) => String(log.office_id) === String(currentOfficeId))
+    .map((log) => {
+      const employee = log.daily_time_record?.employee
+      const empDetails = employee?.individual_basic_detail
+      const captured = log.captured_image_url ?? log.captured_photo_url ?? null
+
       return {
-        id: log.id,
-        employee_id: emp?.id_number || emp?.id || log.employee_id || log.id,
-        is_in: log.is_in,
+        id: String(log.id ?? ''),
+        employee_id: String(employee?.id_number ?? 'N/A'),
         timestamp: `${log.date}T${log.scanned_time}`,
-        captured_image: log.captured_image || log.captured_image_url || log.backend_photo_url || null,
-        photo_url: emp?.user_profile?.profile_picture_url || log.backend_photo_url || null,
-        profile_picture_url: emp?.user_profile?.profile_picture_url || log.profile_picture_url || null,
-        name:
-          `${emp?.individual_basic_detail?.first_name || ''} ${emp?.individual_basic_detail?.last_name || ''}`.trim() || 'N/A',
-        position: emp?.item?.position?.title || log.position || 'N/A',
+        is_in: log.is_in ?? false,
+        name: `${empDetails?.first_name ?? ''} ${empDetails?.last_name ?? ''}`.trim() || 'N/A',
+        position: employee?.item?.position?.title ?? 'N/A',
+        office:
+          librariesStore.officeOptions.find((o: WbAutoCompleteOption) => String(o.value) === String(currentOfficeId))?.label ||
+          'N/A',
+        captured_image: captured,
+        photo_url: captured || dswdLogoMark,
       }
     })
-
-  const uniqueLogsMap = new Map<string | number, Log>()
-  for (const log of newLogs) {
-    uniqueLogsMap.set(log.id, log)
-  }
-
-  for (const localLog of recentLogs.value) {
-    const backendLog = Array.from(uniqueLogsMap.values()).find((l) => String(l.employee_id) === String(localLog.employee_id))
-
-    const localImageIsTemporary = !!localLog.captured_image && localLog.captured_image.startsWith('blob:')
-
-    if (backendLog) {
-      const backendHasPermanentImage = !!backendLog.captured_image && !backendLog.captured_image.startsWith('blob:')
-      if (localImageIsTemporary && !backendHasPermanentImage) {
-        backendLog.captured_image = localLog.captured_image
-      }
-      uniqueLogsMap.set(backendLog.id, backendLog)
-    } else {
-      uniqueLogsMap.set(localLog.id, localLog)
-    }
-  }
-
-  recentLogs.value = Array.from(uniqueLogsMap.values())
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
     .slice(0, 10)
+
+  recentLogs.value = filteredLogs
+
+  if (recentLogs.value.length > 0) {
+    dailyLogsStore.currentScannedEmployee = recentLogs.value[0] as any
+  }
 }
 
 const updateDateTime = () => {
@@ -176,14 +161,27 @@ const updateDateTime = () => {
 
 onMounted(async () => {
   await librariesStore.fetchOffices()
+
   if (dailyLogsStore.timelogOfficeId) {
-    showOfficeSelectionModal.value = false
-    selectedOffice.value = librariesStore.officeOptions.find((o) => o.value === dailyLogsStore.timelogOfficeId)
-  } else showOfficeSelectionModal.value = true
+    const matchedOffice = librariesStore.officeOptions.find(
+      (o: WbAutoCompleteOption) => String(o.value) === String(dailyLogsStore.timelogOfficeId)
+    )
+
+    selectedOffice.value = matchedOffice ?? undefined
+
+    if (selectedOffice.value) {
+      showOfficeSelectionModal.value = false
+    } else {
+      showOfficeSelectionModal.value = true
+    }
+  } else {
+    showOfficeSelectionModal.value = true
+  }
 
   const today = getManilaTodayISO()
   todayISO.value = today
   updateDateTime()
+
   intervalId.value = window.setInterval(updateDateTime, 1000)
   checkScreenSize()
   window.addEventListener('resize', checkScreenSize)
@@ -262,81 +260,75 @@ const capturePhoto = async (): Promise<{ file: File; previewUrl: string } | null
 
 const onDecode = async (result: string) => {
   dailyLogsStore.clearScannedEmployee()
-
   const captured = await capturePhoto()
-  let message: string = ''
 
   try {
     const formData = new FormData()
     formData.append('scanned_qr', result)
     if (captured?.file) formData.append('captured_image', captured.file)
 
+    const officeId = Number(localStorage.getItem('timelog_office_id') || dailyLogsStore.timelogOfficeId || 0)
+    formData.append('office_id', officeId.toString())
+
     const response = await dailyLogsStore.logEmployeeTime(formData)
 
     if (!response?.success) {
-      message = response?.error_message || response?.message || 'An unknown error occurred.'
-      dailyLogsStore.lastLogMessage = message
-    } else if (dailyLogsStore.currentScannedEmployee) {
-      const employee = dailyLogsStore.currentScannedEmployee as Log
-      const is_in = employee.is_in
-
-      if (dailyLogsStore.warmBodySummary) {
-        if (is_in) dailyLogsStore.warmBodySummary.in_office++
-        else dailyLogsStore.warmBodySummary.out_of_office++
-      }
-
-      interface LogResponseData {
-        captured_image_url?: string
-        [key: string]: unknown
-      }
-
-      const backendImageUrl = (response.data as LogResponseData)?.captured_image_url
-
-      const newLog: Log = {
-        id: employee.id,
-        employee_id: employee.employee_id || employee.id,
-        timestamp: new Date().toISOString(),
-        is_in,
-        name: employee.name,
-        position: employee.position,
-        profile_picture_url: employee.profile_picture_url,
-        captured_image: backendImageUrl ?? captured?.previewUrl ?? undefined,
-      }
-
-      recentLogs.value = [newLog, ...recentLogs.value]
-        .slice(0, 10)
-        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-
-      if (dailyLogsStore.currentScannedEmployee) {
-        dailyLogsStore.currentScannedEmployee.captured_image = backendImageUrl || captured?.previewUrl
-      }
-
-      if (backendImageUrl && captured?.previewUrl) {
-        URL.revokeObjectURL(captured.previewUrl)
-      }
-
-      message = response?.message || (is_in ? 'Timed In!' : 'Timed Out!')
-    } else {
-      message = response?.error_message || 'Invalid scan result.'
-      dailyLogsStore.lastLogMessage = message
-    }
-  } catch (error: unknown) {
-    console.error('Time log error:', error)
-
-    if (error && typeof error === 'object' && 'response' in error) {
-      const e = error as { response?: { data?: { error_message?: string; message?: string } } }
-      message = e.response?.data?.error_message || e.response?.data?.message || 'Network or server error.'
-    } else {
-      message = 'Network or server error.'
+      dailyLogsStore.lastLogMessage = response?.message || 'Failed to log time.'
+      showModal.value = true
+      return
     }
 
-    dailyLogsStore.lastLogMessage = message
-  } finally {
+    const today = getManilaTodayISO()
+    await Promise.all([dailyLogsStore.fetchWarmBodySummary(today), updateDailyLogsState(today)])
+
+    const officeLabel = librariesStore.officeOptions.find((o: WbAutoCompleteOption) => o.value === officeId)?.label || 'N/A'
+
+    const data = response.data as {
+      id: string | number
+      date: string
+      scanned_time: string
+      is_in: boolean
+      daily_time_record?: {
+        employee?: {
+          id_number?: string
+          individual_basic_detail?: { first_name?: string; last_name?: string }
+          item?: { position?: { title?: string } }
+          user_profile?: { profile_picture_url?: string }
+        }
+      }
+      captured_image_url?: string
+      daily_time_record_id?: string | number
+    }
+
+    const newLog: Log = {
+      id: String(data.id ?? ''),
+      employee_id: String(data.daily_time_record?.employee?.id_number ?? data.daily_time_record_id ?? ''),
+      timestamp: `${data.date}T${data.scanned_time}`,
+      is_in: data.is_in ?? false,
+      name:
+        `${data.daily_time_record?.employee?.individual_basic_detail?.first_name ?? ''} ${data.daily_time_record?.employee?.individual_basic_detail?.last_name ?? ''}`.trim() ||
+        'N/A',
+      position: data.daily_time_record?.employee?.item?.position?.title ?? 'N/A',
+      office: officeLabel,
+      captured_image: data.captured_image_url ?? captured?.previewUrl ?? null,
+      photo_url: (data.captured_image_url ?? captured?.previewUrl) || dswdLogoMark,
+    }
+
+    recentLogs.value = [newLog, ...recentLogs.value.filter((l) => l.office === officeLabel)]
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, 10)
+
+    dailyLogsStore.currentScannedEmployee = newLog
     showModal.value = true
+
     setTimeout(() => {
       showModal.value = false
       dailyLogsStore.clearScannedEmployee()
     }, MODAL_DISPLAY_DURATION_MS)
+  } catch (error) {
+    console.error(error)
+    dailyLogsStore.lastLogMessage = 'Network or server error.'
+    showModal.value = true
   }
 }
 
@@ -359,8 +351,9 @@ const onCameraError = (error: unknown) => {
   cameraError.value = error instanceof Error ? error.message : 'Camera stream error.'
 }
 
-const countInToday = computed(() => dailyLogsStore.warmBodySummary?.in_office || 0)
-const countOutToday = computed(() => dailyLogsStore.warmBodySummary?.out_of_office || 0)
+const countInToday = computed(() => dailyLogsStore.warmBodySummary?.in_office ?? 0)
+const countOutToday = computed(() => dailyLogsStore.warmBodySummary?.out_of_office ?? 0)
+
 const checkScreenSize = () => (isMobile.value = window.innerWidth <= 575)
 const dialogDynamicStyle = computed(() =>
   isMobile.value ? { width: '100vw', height: '100vh', maxWidth: 'unset', maxHeight: 'unset' } : { width: '25vw' }
