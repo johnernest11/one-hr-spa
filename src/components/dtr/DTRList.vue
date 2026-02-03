@@ -5,7 +5,7 @@ import Chip from 'primevue/chip'
 import Card from 'primevue/card'
 import Column from 'primevue/column'
 import DataTable from 'primevue/datatable'
-import InputText from 'primevue/inputtext'
+import WbCalendar from '@/components/webkit/WbCalendar.vue'
 import InputGroup from 'primevue/inputgroup'
 import Paginator, { PageState } from 'primevue/paginator'
 import { ApiResponsePagination } from '@/typings/http-resources.types.ts'
@@ -141,11 +141,22 @@ const fullMonthlyRecords = computed(() => {
 /****************************************************************
                  Show Monthly Record
 *****************************************************************/
+const selectedMonth = ref<Date | null>(null)
+
 const paginatedMonthlyRecords = computed(() => {
+  let records = fullMonthlyRecords.value
+
+  // Only filter IF a month is selected
+  if (selectedMonth.value) {
+    const monthName = selectedMonth.value.toLocaleString('default', { month: 'long' })
+    const year = selectedMonth.value.getFullYear()
+    const selectedMonthLabel = `${monthName} ${year}`
+
+    records = records.filter((dtr) => dtr.month === selectedMonthLabel)
+  }
   const start = (currentPage.value - 1) * rowsPerPage
   const end = start + rowsPerPage
-  const records = fullMonthlyRecords.value.slice(start, end)
-  return records
+  return records.slice(start, end)
 })
 
 const handlePaginationPageChange = (event: PageState) => {
@@ -153,7 +164,7 @@ const handlePaginationPageChange = (event: PageState) => {
 }
 
 const roleFilter = ref<number | null>(null)
-const searchQuery = ref<string | null>(null)
+const searchQuery = ref<Date | null>(null)
 const isSearching = ref(false)
 
 watch(
@@ -174,23 +185,30 @@ watch(
                   Search for Monthly  DTRs .
 *****************************************************************/
 const searchSubmitted = ref(false)
+watch(
+  () => searchQuery.value,
+  async (newValue) => {
+    if (!newValue) return
 
-const handleSearchDailyTimeRecord = async () => {
-  dailyTimeRecordIsLoading.value = true
-  searchSubmitted.value = true
+    dailyTimeRecordIsLoading.value = true
+    searchSubmitted.value = true
 
-  try {
-    const rawData = await dailyTimeRecordsStore.searchDailyTimeRecordsByMonthQuery(searchQuery.value)
+    try {
+      selectedMonth.value = new Date(newValue)
+      console.log('Selected Month:', selectedMonth.value)
 
-    searchResults.value = collapseDtrByMonth(rawData) as { month: string; records: DailyTimeRecordResponse[] }[]
+      const rawData = await dailyTimeRecordsStore.searchDailyTimeRecordsByMonthQuery(selectedMonth.value)
+      console.log('Fetched raw data:', rawData)
 
-    searchQuery.value = null
-  } catch (error: unknown) {
-    console.error('Failed to fetch DTRs by month:', error)
-  } finally {
-    dailyTimeRecordIsLoading.value = false
+      searchResults.value = collapseDtrByMonth(rawData)
+      currentPage.value = 1
+    } catch (error) {
+      console.error('Failed to fetch DTRs by month:', error)
+    } finally {
+      dailyTimeRecordIsLoading.value = false
+    }
   }
-}
+)
 
 const toast = useToast()
 
@@ -303,19 +321,7 @@ const getMonthlyStatus = (records: ViewDailyTimeRecordResponse[]): string => {
         <div class="flex w-full items-center justify-end gap-4">
           <div class="flex w-full md:w-auto lg:w-1/2">
             <InputGroup v-model="searchQuery" class="w-full">
-              <InputText
-                v-model="searchQuery"
-                placeholder="Search via Period or Month"
-                class="w-full"
-                :disabled="dailyTimeRecordIsLoading"
-                @keyup.enter="handleSearchDailyTimeRecord"
-              />
-              <Button
-                icon="pi pi-search"
-                :loading="dailyTimeRecordIsLoading"
-                :disabled="dailyTimeRecordIsLoading"
-                @click="handleSearchDailyTimeRecord"
-              />
+              <WbCalendar v-model="searchQuery" placeholder="Select Month and Year" dateFormat="MM yy" label="" view="month" />
             </InputGroup>
           </div>
         </div>
