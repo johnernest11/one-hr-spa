@@ -406,6 +406,9 @@ const updateDTRTimeLogs = async () => {
   IsBeingUpdated.value = true
   formIsSubmitting.value = true
   let hasValidationError = false
+
+  // Track duplicate time entries for toast
+  const duplicatedTimes: { date: string; slot: string; time: string }[] = []
   const dtrPayloads: UpdateDTRPayload['dtr'] = monthDates.value
     .map((item) => {
       const existingDTR = item.row
@@ -427,19 +430,38 @@ const updateDTRTimeLogs = async () => {
       slots.forEach((slot) => {
         const key = `${slot}-${dateKey}`
         const value = enteredTime[key]
-
         if (!value) return
 
         const normalized = normalizeTimeOnly(value)
         if (!normalized) return
 
+        //  Filter existing logs for this date only
+        const existingLogsForDate = existingLogs.filter((log) => formatDateYMD(log.date) === formatDateYMD(item.date))
+
         // Get existing slot (if any)
-        const existingSlot = resolveDTRSlots(existingLogs)[slot]
+        const existingSlot = resolveDTRSlots(existingLogsForDate)[slot]
+
+        // Find if any OTHER slot for this date has the same time
+        const conflict = existingLogsForDate.find((log) => {
+          const isDifferentSlot = existingSlot ? log.id !== existingSlot.id : true
+          return isDifferentSlot && normalizeTimeOnly(log.scanned_time) === normalized
+        })
+
+        if (conflict) {
+          duplicatedTimes.push({
+            date: formatDateYMD(item.date),
+            slot: slot.toUpperCase(),
+            time: normalized,
+          })
+          return
+        }
 
         if (existingSlot) {
           const existingTime = normalizeTimeOnly(existingSlot.scanned_time)
-          // Skip if nothing changed
-          if (existingTime === normalized) return
+          // it's NOT a duplicate error; it's just "no change".
+          if (existingTime === normalized) {
+            return // Just exit the loop for this slot; nothing to update
+          }
 
           // If changed, update instead of adding duplicate
           time_logs.push({
@@ -450,7 +472,73 @@ const updateDTRTimeLogs = async () => {
             is_selected: true,
           })
         } else {
-          // New slot → insert
+          // Check if this new time already exists in OTHER slots for the same day to prevent true duplicates
+          const isActuallyDuplicated = existingLogsForDate.some((log) => normalizeTimeOnly(log.scanned_time) === normalized)
+
+          if (isActuallyDuplicated) {
+            duplicatedTimes.push({
+              date: formatDateYMD(item.date),
+              slot,
+              time: normalized,
+            })
+            return
+          }
+
+          // New slot -> insert
+          time_logs.push({
+            id: 0,
+            date: formatDateYMD(item.date),
+            scanned_time: normalized,
+            is_in: slot === 'in1' || slot === 'in2',
+            is_selected: true,
+          })
+        }
+      })
+
+      slots.forEach((slot) => {
+        const key = `${slot}-${dateKey}`
+        const value = enteredTime[key]
+        if (!value) return
+
+        const normalized = normalizeTimeOnly(value)
+        if (!normalized) return
+
+        const existingLogsForDate = existingLogs.filter((log) => formatDateYMD(log.date) === formatDateYMD(item.date))
+        const existingSlot = resolveDTRSlots(existingLogsForDate)[slot]
+
+        if (existingSlot) {
+          const existingTime = normalizeTimeOnly(existingSlot.scanned_time)
+
+          // If the value hasn't changed at all, we skip it entirely
+          if (existingTime === normalized) return
+
+          // If it HAS changed, we check if the NEW time conflicts with ANOTHER slot
+          const isConflict = existingLogsForDate.some(
+            (log) => log.id !== existingSlot.id && normalizeTimeOnly(log.scanned_time) === normalized
+          )
+
+          if (isConflict) {
+            duplicatedTimes.push({ date: formatDateYMD(item.date), slot, time: normalized })
+            return
+          }
+
+          // Add to logs as an UPDATE (preserving the ID)
+          time_logs.push({
+            id: existingSlot.id,
+            date: formatDateYMD(item.date),
+            scanned_time: normalized,
+            is_in: slot === 'in1' || slot === 'in2',
+            is_selected: true,
+          })
+        } else {
+          // New Slot logic
+          const isActuallyDuplicated = existingLogsForDate.some((log) => normalizeTimeOnly(log.scanned_time) === normalized)
+
+          if (isActuallyDuplicated) {
+            duplicatedTimes.push({ date: formatDateYMD(item.date), slot, time: normalized })
+            return
+          }
+
           time_logs.push({
             id: 0,
             date: formatDateYMD(item.date),
@@ -464,7 +552,6 @@ const updateDTRTimeLogs = async () => {
       // === Existing DTR ===
       if (existingDTR) {
         const existingSlots = resolveDTRSlots(existingDTR.time_log ?? [])
-
         const existingTimestamps = Object.values(existingSlots)
           .filter((slot): slot is TimeLogResponse => slot !== null)
           .map((slot) => toTimestamp(slot.date, slot.scanned_time))
@@ -478,7 +565,6 @@ const updateDTRTimeLogs = async () => {
 
         // Only allow UT/OT changes if route.params.id exists
         const canUpdateUTOT = !!route.params.id
-
         const utChanged = canUpdateUTOT && enteredUT !== (existingDTR.ut ?? 0)
         const otChanged = canUpdateUTOT && enteredOT !== (existingDTR.ot ?? 0)
 
@@ -516,7 +602,41 @@ const updateDTRTimeLogs = async () => {
     formIsSubmitting.value = false
     return
   }
+  // If there are duplicate errors, block the update
+  if (duplicatedTimes.length > 0) {
+    // Group by date for display
+    const grouped = duplicatedTimes.reduce(
+      (acc, dup) => {
+        if (!acc[dup.date]) acc[dup.date] = []
+        // Store just the slot and time info
+        acc[dup.date].push({ slot: dup.slot.toUpperCase(), time: dup.time })
+        return acc
+      },
+      {} as Record<string, { slot: string; time: string }[]>
+    )
 
+    Object.entries(grouped).forEach(([date]) => {
+      // 1. Format the date to "Feb 01, 2026"
+      const dateObj = new Date(date)
+      const formattedDate = dateObj.toLocaleDateString('en-US', {
+        month: 'short',
+        day: '2-digit',
+        year: 'numeric',
+      })
+
+      toast.add({
+        severity: 'error',
+        summary: 'Duplicate Time Entry',
+        // Result: "Feb 01, 2026 Duplicated Time Logs"
+        detail: `${formattedDate} Duplicated Time Logs`,
+        life: 10000,
+      })
+    })
+
+    IsBeingUpdated.value = false
+    formIsSubmitting.value = false
+    return
+  }
   if (!dtrPayloads.length) {
     toast.add({ severity: 'info', summary: 'No Changes', detail: 'No updates to save.', life: 2000 })
     IsBeingUpdated.value = false
