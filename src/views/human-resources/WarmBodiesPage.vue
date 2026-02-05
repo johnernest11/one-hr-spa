@@ -452,7 +452,7 @@ const DateToday = new Date().toLocaleDateString()
                 text
               >
                 <template #icon>
-                  <font-awesome-icon :icon="['fas', 'check']" class="mr-2 text-lg" />
+                  <i class="pi pi-check mr-2 text-lg"></i>
                 </template>
               </Button>
             </div>

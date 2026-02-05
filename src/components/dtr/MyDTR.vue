@@ -458,9 +458,8 @@ const updateDTRTimeLogs = async () => {
 
         if (existingSlot) {
           const existingTime = normalizeTimeOnly(existingSlot.scanned_time)
-          // it's NOT a duplicate error; it's just "no change".
           if (existingTime === normalized) {
-            return // Just exit the loop for this slot; nothing to update
+            return
           }
 
           // If changed, update instead of adding duplicate
