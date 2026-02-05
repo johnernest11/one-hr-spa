@@ -24,6 +24,7 @@ const isSubmitting = ref(false)
 const isImporting = ref(false)
 const tabsLoading = ref(true) // tracks if tabs are loading
 const buttonsVisible = ref(false)
+const selectedTab = ref(0) // Default to the first tab
 const c1FormRef = ref()
 const c2FormRef = ref()
 const c3FormRef = ref()
@@ -275,7 +276,8 @@ const exportToPDF = async (employeeId: string) => {
 
           <div class="flex w-full flex-col gap-4 md:w-auto md:flex-row md:justify-end">
             <Button
-              label="Export DTR"
+              v-if="selectedTab !== 4"
+              label="Export PDS"
               @click="exportToPDF(route.params.id as string)"
               :loading="isSubmitting"
               :disabled="isSubmitting"
@@ -292,7 +294,7 @@ const exportToPDF = async (employeeId: string) => {
 
       <div class="mt-6 flex flex-col">
         <div class="w-full">
-          <TabGroup>
+          <TabGroup :selectedIndex="selectedTab" @change="selectedTab = $event">
             <TabList class="flex">
               <Tab v-slot="{ selected }" as="template">
                 <button
