@@ -1045,6 +1045,13 @@ export const usePdsStore = defineStore('pds', () => {
     return responseBody
   }
 
+  const generateWorkExperienceSheet = async (id: string) => {
+    const url = `/individual-basic-details/${id}/generateWES`
+
+    const { data, fileNameHeader } = await useFetchBlob(url, authStore.authenticationToken)
+    return { data, fileNameHeader }
+  }
+
   /**Generate Personnel Data Sheet to PDF */
   const generatePersonalDataSheet = async (employeeId: string | number) => {
     const id = employeeId ?? authStore.authenticatedUser.user_profile?.individual_basic_detail?.employee?.id
@@ -1066,6 +1073,7 @@ export const usePdsStore = defineStore('pds', () => {
     updatePdsFromPersonnel,
     updatePds,
     updateWES,
+    generateWorkExperienceSheet,
     generatePersonalDataSheet,
     fetchPdsById,
   }

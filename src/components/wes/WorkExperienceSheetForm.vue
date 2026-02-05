@@ -11,10 +11,12 @@ import { TabGroup, TabPanels, TabPanel } from '@headlessui/vue'
 import { formatWesDuration } from '@/utils/helpers.js'
 import { TransitionRoot } from '@headlessui/vue'
 import { PersonnelResponse } from '@/typings/models.types'
+import { useToast } from 'primevue/usetoast'
 const pdsStore = usePdsStore()
 const authStore = useAuthStore()
 const route = useRoute()
 const pdsErrors = ref()
+const toast = useToast()
 const errorMessage = ref()
 const isWESLoading = ref(false)
 const isWESError = ref(false)
@@ -26,6 +28,13 @@ const isMyPds = computed(() => route.path.startsWith('/my-pds'))
 /** Payload */
 const payload = reactive<PersonalDataSheetPayload>({
   ...pdsStore.pdsInfo,
+})
+
+// Add selectedEmployeeId for export
+const selectedEmployeeId = computed(() => {
+  return isMyPds.value
+    ? authStore.authenticatedUser?.user_profile?.individual_basic_detail?.id?.toString() ?? ''
+    : (route.params.id as string) ?? ''
 })
 
 /**************************************************
@@ -106,6 +115,39 @@ const updateWES = async () => {
     return { valid: false, errorTabs: ['C2'] }
   }
 }
+
+/**************************************************
+      Handle Export/Generate WES
+************************************************* */
+const exportToFile = async (employeeId: string) => {
+  toast.add({
+    severity: 'info',
+    summary: 'Exporting...',
+    detail: `Exporting Work Experience Sheet for employee ID ${employeeId}...`,
+    life: 5000,
+  })
+  const reportResponse = await pdsStore.generateWorkExperienceSheet(employeeId)
+
+  const blob = reportResponse.data.value
+
+  if (blob) {
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${reportResponse.fileNameHeader.value}`
+    document.body.appendChild(a)
+    a.click()
+    window.URL.revokeObjectURL(url)
+    document.body.removeChild(a)
+
+    toast.add({
+      severity: 'success',
+      summary: 'Work Experience Sheet Exported',
+      detail: `The Work Experience Sheet for employee ID ${employeeId} was successfully exported.`,
+      life: 5000,
+    })
+  }
+}
 </script>
 <template>
   <template v-if="!isLoading">
@@ -136,13 +178,13 @@ const updateWES = async () => {
                         My Work Experience Sheet
                       </h1>
                       <!-- Button aligned to the end -->
-                      <div class="ml-auto flex flex-row items-center gap-4">
+                      <div class="flex w-full flex-col gap-4 md:w-auto md:flex-row md:justify-end">
+                        <!-- Show Save button only if NO id -->
                         <div>
-                          <!-- Show Save button only if NO id -->
                           <Button
                             v-if="isMyPds"
                             @click.prevent="updateWES"
-                            label="Update Work Experience Sheet"
+                            label="Update WES"
                             type="button"
                             size="large"
                             class="dark:text-secondary-100 mt-4 w-full border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
@@ -153,6 +195,20 @@ const updateWES = async () => {
                             </template>
                           </Button>
                         </div>
+                        <div class="flex w-full flex-col gap-4 md:w-auto md:flex-row md:justify-end">
+                          <Button
+                            label="Export WES"
+                            @click="exportToFile(selectedEmployeeId)"
+                            size="large"
+                            class="dark:text-secondary-100 mt-4 w-full border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+                            text
+                          >
+                            <template #icon>
+                              <i class="pi pi-file-pdf mr-2"></i>
+                            </template>
+                          </Button>
+                        </div>
+
                         <div></div>
                       </div>
                     </div>
