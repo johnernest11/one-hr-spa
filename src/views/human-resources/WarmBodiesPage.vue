@@ -378,6 +378,11 @@ const DateToday = new Date().toLocaleDateString()
           :position="'right'"
           :style="{ width: '20vw', maxWidth: '600px', minWidth: '320px' }"
           :breakpoints="{ '1199px': '75vw', '575px': '90vw' }"
+          :pt="{
+            root: {
+              class: 'relative w-full h-full flex flex-col bg-surface-0 shadow-lg',
+            },
+          }"
         >
           <template #header>
             <div class="flex w-full items-center justify-between p-4 pb-0">
@@ -402,6 +407,8 @@ const DateToday = new Date().toLocaleDateString()
                 v-model="selectedDivision"
                 optionLabel="label"
                 optionValue="value"
+                label-class="mt-4 text-md text-surface-600 dark:lg:text-surface-200"
+                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
                 required
               />
               <WbAutoComplete
@@ -416,6 +423,8 @@ const DateToday = new Date().toLocaleDateString()
                 optionLabel="label"
                 optionValue="value"
                 required
+                label-class="mt-4 text-md text-surface-600 dark:lg:text-surface-200"
+                class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
               />
             </div>
           </div>
@@ -429,7 +438,11 @@ const DateToday = new Date().toLocaleDateString()
                 class="dark:text-secondary-100 w-full border border-surface-400 px-4 py-2 text-surface-500 dark:border-surface-700"
                 @click="showModal = false"
                 text
-              />
+              >
+                <template #icon>
+                  <i class="pi pi-ban mr-2 text-lg"></i>
+                </template>
+              </Button>
               <Button
                 :loading="warmBodiesIsLoading"
                 :disabled="warmBodiesIsLoading"
@@ -437,7 +450,11 @@ const DateToday = new Date().toLocaleDateString()
                 label="Apply"
                 class="dark:text-secondary-100 w-full border border-primary-500 px-4 py-3 text-primary-600 dark:border-surface-700"
                 text
-              />
+              >
+                <template #icon>
+                  <i class="pi pi-check mr-2 text-lg"></i>
+                </template>
+              </Button>
             </div>
           </div>
         </Dialog>
