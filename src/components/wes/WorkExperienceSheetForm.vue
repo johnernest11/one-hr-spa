@@ -18,10 +18,9 @@ const route = useRoute()
 const pdsErrors = ref()
 const toast = useToast()
 const errorMessage = ref()
-const isWESLoading = ref(false)
 const isWESError = ref(false)
-const formIsSubmitting = ref(false)
 const IsBeingUpdated = ref(false)
+const isExporting = ref(false)
 const isLoading = ref(true)
 const activeTab = ref(0)
 const isMyPds = computed(() => route.path.startsWith('/my-pds'))
@@ -90,29 +89,41 @@ watch(
 ***************************************************/
 const updateWES = async () => {
   IsBeingUpdated.value = true
-  isWESLoading.value = true
-  formIsSubmitting.value = true
 
-  const id = pdsStore.isMyPds
-    ? authStore.authenticatedUser?.user_profile?.individual_basic_detail?.id?.toString() ?? 0
-    : (route.params.id as string)
+  try {
+    const id = isMyPds.value
+      ? authStore.authenticatedUser?.user_profile?.individual_basic_detail?.id?.toString()
+      : (route.params.id as string)
 
-  if (!id) {
+    if (!id) {
+      IsBeingUpdated.value = false
+      return { valid: false }
+    }
+
+    const response = await pdsStore.updatePds({ ...payload }, id, 'C2')
+
+    if (!response.success) {
+      const result = parseApiResponseError(response)
+      if (result) {
+        isWESError.value = true
+        errorMessage.value = result.message
+        pdsErrors.value = result.errors
+      }
+      IsBeingUpdated.value = false
+      return { valid: false }
+    }
+
+    toast.add({
+      severity: 'success',
+      summary: 'Saved',
+      detail: 'Work Experience Sheet updated successfully.',
+      life: 3000,
+    })
+
     IsBeingUpdated.value = false
-    isWESLoading.value = false
-    formIsSubmitting.value = false
-    return { valid: false, errorTabs: ['C2'] }
-  }
-
-  const response = await pdsStore.updateWES({ ...payload }, id, 'C2')
-
-  if (!response.success) {
-    const result = parseApiResponseError(response)
-
-    isWESError.value = true
-    errorMessage.value = result?.message
-    pdsErrors.value = result?.errors
-    return { valid: false, errorTabs: ['C2'] }
+    return { valid: true }
+  } finally {
+    IsBeingUpdated.value = false
   }
 }
 
@@ -120,32 +131,37 @@ const updateWES = async () => {
       Handle Export/Generate WES
 ************************************************* */
 const exportToFile = async (employeeId: string) => {
-  toast.add({
-    severity: 'info',
-    summary: 'Exporting...',
-    detail: `Exporting Work Experience Sheet for employee ID ${employeeId}...`,
-    life: 5000,
-  })
-  const reportResponse = await pdsStore.generateWorkExperienceSheet(employeeId)
-
-  const blob = reportResponse.data.value
-
-  if (blob) {
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${reportResponse.fileNameHeader.value}`
-    document.body.appendChild(a)
-    a.click()
-    window.URL.revokeObjectURL(url)
-    document.body.removeChild(a)
-
+  isExporting.value = true
+  try {
     toast.add({
-      severity: 'success',
-      summary: 'Work Experience Sheet Exported',
-      detail: `The Work Experience Sheet for employee ID ${employeeId} was successfully exported.`,
+      severity: 'info',
+      summary: 'Exporting...',
+      detail: `Exporting Work Experience Sheet for employee ID ${employeeId}...`,
       life: 5000,
     })
+    const reportResponse = await pdsStore.generateWorkExperienceSheet(employeeId)
+
+    const blob = reportResponse.data.value
+
+    if (blob) {
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${reportResponse.fileNameHeader.value}`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+
+      toast.add({
+        severity: 'success',
+        summary: 'Work Experience Sheet Exported',
+        detail: `The Work Experience Sheet for employee ID ${employeeId} was successfully exported.`,
+        life: 5000,
+      })
+    }
+  } finally {
+    isExporting.value = false
   }
 }
 </script>
@@ -184,6 +200,8 @@ const exportToFile = async (employeeId: string) => {
                           <Button
                             v-if="isMyPds"
                             @click.prevent="updateWES"
+                            :loading="IsBeingUpdated"
+                            :disabled="IsBeingUpdated || isExporting"
                             label="Update WES"
                             type="button"
                             size="large"
@@ -199,6 +217,8 @@ const exportToFile = async (employeeId: string) => {
                           <Button
                             label="Export WES"
                             @click="exportToFile(selectedEmployeeId)"
+                            :loading="isExporting"
+                            :disabled="isExporting || IsBeingUpdated"
                             size="large"
                             class="dark:text-secondary-100 mt-4 w-full border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
                             text
@@ -276,7 +296,6 @@ const exportToFile = async (employeeId: string) => {
                                 'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
                                 !pdsStore.isMyPds || pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
                               ]"
-                              required
                               label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                             />
                           </div>
@@ -292,14 +311,13 @@ const exportToFile = async (employeeId: string) => {
                                 !pdsStore.isMyPds || pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
                               ]"
                               label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                              required
                             />
                           </div>
 
                           <!-- Name of Office/Unit -->
                           <div class="mb-4 grid grid-cols-1 gap-4">
                             <WbInputText
-                              v-model="payload.individual_work_experience[workExperienceIndex - 1].name_of_office_unit"
+                              v-model="payload.individual_work_experience[workExperienceIndex - 1].office_unit"
                               label="Name of Office/Unit"
                               :readonly="!pdsStore.isMyPds"
                               :class="[
@@ -345,7 +363,7 @@ const exportToFile = async (employeeId: string) => {
                           <div class="mb-4 grid grid-cols-1 gap-4">
                             <!-- WbInputText takes most of the space -->
                             <WbTextArea
-                              v-model="payload.individual_work_experience[workExperienceIndex - 1].list_of_accomplishments"
+                              v-model="payload.individual_work_experience[workExperienceIndex - 1].significant_accomplishments"
                               label="List of Accomplishments and Contributions (if any)"
                               :readonly="!pdsStore.isMyPds"
                               :class="[
@@ -359,7 +377,7 @@ const exportToFile = async (employeeId: string) => {
                           <div class="mb-4 grid grid-cols-1 gap-4">
                             <!-- WbInputText takes most of the space -->
                             <WbTextArea
-                              v-model="payload.individual_work_experience[workExperienceIndex - 1].summary_of_duties"
+                              v-model="payload.individual_work_experience[workExperienceIndex - 1].summary_of_actual_duties"
                               label="Summary of Actual Duties"
                               :readonly="!pdsStore.isMyPds"
                               :class="[
