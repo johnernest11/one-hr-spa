@@ -408,9 +408,9 @@ export type IndividualWorkExperience = {
   status_of_appointment: string | null
   is_gov_service: boolean
   immediate_supervisor: string | null
-  name_of_office_unit: string | null
-  list_of_accomplishments: string | null
-  summary_of_duties: string | null
+  office_unit: string | null
+  significant_accomplishments: string | null
+  summary_of_actual_duties: string | null
   _delete: boolean | null
 } & Omit<ApiResponseData, 'id'>
 

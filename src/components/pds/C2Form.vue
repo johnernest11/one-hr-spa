@@ -338,9 +338,9 @@ const handleAdditionalWorkExperience = () => {
     status_of_appointment: null,
     is_gov_service: false,
     immediate_supervisor: null,
-    name_of_office_unit: null,
-    list_of_accomplishments: null,
-    summary_of_duties: null,
+    office_unit: null,
+    significant_accomplishments: null,
+    summary_of_actual_duties: null,
     _delete: null,
   })
   useCustomSalaryGrade.value.push(false)

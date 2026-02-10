@@ -718,9 +718,9 @@ export const usePdsStore = defineStore('pds', () => {
         status_of_appointment: w.status_of_appointment ?? null,
         is_gov_service: w.is_gov_service ?? false,
         immediate_supervisor: w.immediate_supervisor ?? null,
-        name_of_office_unit: w.name_of_office_unit ?? null,
-        list_of_accomplishments: w.list_of_accomplishments ?? null,
-        summary_of_duties: w.summary_of_duties ?? null,
+        office_unit: w.office_unit ?? null,
+        significant_accomplishments: w.significant_accomplishments ?? null,
+        summary_of_actual_duties: w.summary_of_actual_duties ?? null,
         _delete: w._delete ?? null,
       }))
       : []
@@ -1029,22 +1029,6 @@ export const usePdsStore = defineStore('pds', () => {
     return responseBody
   }
 
-  const updateWES = async (payload: Partial<PersonalDataSheetPayload>, id: string | number, formType: 'C2') => {
-    const { data } = await useApiCall(`/individual-basic-details/${id}`, authStore.authenticationToken)
-      .put({ ...payload, form_type: formType })
-      .json()
-
-    const responseBody: ApiResponseBody = data.value
-    if (responseBody.success) {
-      const index = personnelPds.value.findIndex((personnelPds) => personnelPds?.id === id)
-      if (index !== -1) {
-        personnelPds.value[index] = responseBody.data as PersonnelResponse
-      }
-    }
-
-    return responseBody
-  }
-
   const generateWorkExperienceSheet = async (id: string) => {
     const url = `/individual-basic-details/${id}/generateWES`
 
@@ -1072,7 +1056,6 @@ export const usePdsStore = defineStore('pds', () => {
     fetchPds,
     updatePdsFromPersonnel,
     updatePds,
-    updateWES,
     generateWorkExperienceSheet,
     generatePersonalDataSheet,
     fetchPdsById,
