@@ -456,7 +456,7 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
               {{ dynamicSuccessMessage }}
             </div>
 
-            <div class="mb-4 mt-4 flex justify-center">
+            <div class="my-4 flex justify-center">
               <img
                 :src="scannedEmployee?.photo_url || dswdLogoMark"
                 alt="Employee Profile Photo"
