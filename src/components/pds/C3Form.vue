@@ -209,6 +209,8 @@ watch(currentlyInvolved, (newVal) => {
   })
 })
 
+const iscurrentlyInvolve = computed(() => payload.individual_voluntary_work.some((w) => +w.is_current_org === 1))
+
 const validator = useVuelidate<PersonalDataSheetPayload>(formRules, payload)
 
 const showToast = (
@@ -668,7 +670,7 @@ defineExpose({
                             <div v-if="voluntaryWorkIndex === 1">
                               <!-- If NOT currently involved, show calendar -->
                               <WbCalendar
-                                v-if="!currentlyInvolved"
+                                v-if="!currentlyInvolved && !iscurrentlyInvolve"
                                 v-model="payload.individual_voluntary_work[voluntaryWorkIndex - 1].to"
                                 label="To"
                                 :readonly="pdsStore.isMyPds"

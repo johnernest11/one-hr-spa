@@ -133,24 +133,6 @@ const formRules = computed(() => ({
       ),
       maxLength: globalStringMaxLengthRule,
     },
-    license_date_of_validity: {
-      isAfterOrEqualFromDate: helpers.withMessage(
-        'License Date of Validity should not be earlier than the Date of Examination Conferment',
-        (val: string | number | Date | null, vm: Record<string, unknown>) => {
-          const fromVal = vm.date_of_examination_conferment as string | number | Date | null
-          if (!val || !fromVal) return true
-
-          const licenseDate = new Date(val)
-          const examDate = new Date(fromVal)
-
-          return isNaN(licenseDate.getTime()) || isNaN(examDate.getTime()) || licenseDate >= examDate
-        }
-      ),
-      required: helpers.withMessage('Fill Up License Validity since other information is provided.', (val, vm) =>
-        hasAnyValue(vm) ? helpers.req(val) : true
-      ),
-      maxLength: globalStringMaxLengthRule,
-    },
     rating: {
       mustBeNumber: helpers.withMessage('Rating must be a number', (val: unknown) => {
         if (val === null || val === '') return true // allow empty
@@ -215,6 +197,8 @@ watch(isCurrentlyEmployed, (newVal) => {
     }
   })
 })
+
+const currentlyEmployed = computed(() => payload.individual_work_experience.some((w) => +w.is_current_work === 1))
 
 watch(
   () => payload.individual_work_experience[workExperienceIndex.value - 1]?.salary_grade_id,
@@ -690,6 +674,7 @@ defineExpose({
                             <div class="flex items-end gap-2">
                               <!-- WbInputText takes most of the space -->
                               <WbCalendar
+                                v-if="payload.individual_eligibility[eligibilityIndex - 1].license_date_of_validity"
                                 v-model="payload.individual_eligibility[eligibilityIndex - 1].license_date_of_validity"
                                 label="License Valid Until"
                                 :readonly="pdsStore.isMyPds"
@@ -699,13 +684,6 @@ defineExpose({
                                 ]"
                                 label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
                                 :dateFormat="'yy-mm-dd'"
-                                validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                                :invalidText="
-                                  validator.individual_eligibility[eligibilityIndex - 1].license_date_of_validity.$errors[0]
-                                    ?.$message
-                                "
-                                :invalid="validator.individual_eligibility[eligibilityIndex - 1].license_date_of_validity.$error"
-                                @blur="validator.individual_eligibility[eligibilityIndex - 1].license_date_of_validity.$touch()"
                               />
                               <!-- Delete button aligned right, below label -->
                               <Button
@@ -719,9 +697,7 @@ defineExpose({
                                 severity="danger"
                                 :class="[
                                   'text-lg font-semibold dark:text-primary-100',
-                                  validator.individual_eligibility[eligibilityIndex - 1].license_date_of_validity.$error
-                                    ? 'mb-8'
-                                    : 'mb-2',
+                                  validator.individual_eligibility[eligibilityIndex - 1].license_number.$error ? 'mb-8' : 'mb-2',
                                 ]"
                                 text
                               />
@@ -833,7 +809,7 @@ defineExpose({
                             <div v-if="workExperienceIndex === 1">
                               <!-- If NOT currently employed, show calendar -->
                               <WbCalendar
-                                v-if="!isCurrentlyEmployed"
+                                v-if="!isCurrentlyEmployed && !currentlyEmployed"
                                 v-model="payload.individual_work_experience[workExperienceIndex - 1].inclusive_date_to"
                                 label="To"
                                 :readonly="pdsStore.isMyPds"

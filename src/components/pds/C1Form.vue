@@ -209,6 +209,9 @@ const globalStringMaxLengthRule = helpers.withMessage(
   maxLength(globalStringMaxLength)
 )
 
+const requiredIf = (condition: () => boolean, message: string) =>
+  helpers.withMessage(message, (value) => !condition() || (value !== null && value !== undefined && value !== ''))
+
 const formRules = computed(() => ({
   $lazy: true,
   employee: {
@@ -400,27 +403,34 @@ const formRules = computed(() => ({
 
   individual_family_spouse: {
     last_name: {
+      required: requiredIf(() => payload.individual.civil_status === 'Married', 'Spouse last name is required'),
       maxLength: helpers.withMessage(() => generateMessage('spouse_last_name').maxLength, globalStringMaxLengthRule),
     },
     first_name: {
+      required: requiredIf(() => payload.individual.civil_status === 'Married', 'Spouse first name is required'),
       maxLength: helpers.withMessage(() => generateMessage('spouse_first_name').maxLength, globalStringMaxLengthRule),
     },
     middle_name: {
+      required: requiredIf(() => payload.individual.civil_status === 'Married', 'Spouse first name is required'),
       maxLength: helpers.withMessage(() => generateMessage('spouse_middle_name').maxLength, globalStringMaxLengthRule),
     },
     ext_name: {
       maxLength: helpers.withMessage(() => generateMessage('spouse_ext_name').maxLength, globalStringMaxLengthRule),
     },
     occupation: {
+      required: requiredIf(() => payload.individual.civil_status === 'Married', 'Spouse first name is required'),
       maxLength: helpers.withMessage(() => generateMessage('spouse_occupation').maxLength, globalStringMaxLengthRule),
     },
     employers_business_name: {
+      required: requiredIf(() => payload.individual.civil_status === 'Married', 'Spouse first name is required'),
       maxLength: helpers.withMessage(() => generateMessage('spouse_business_name').maxLength, globalStringMaxLengthRule),
     },
     business_address: {
+      required: requiredIf(() => payload.individual.civil_status === 'Married', 'Spouse first name is required'),
       maxLength: helpers.withMessage(() => generateMessage('spouse_business_address').maxLength, globalStringMaxLengthRule),
     },
     telephone_no: {
+      required: requiredIf(() => payload.individual.civil_status === 'Married', 'Spouse first name is required'),
       maxLength: helpers.withMessage(() => generateMessage('spouse_telephone_no').maxLength, globalStringMaxLengthRule),
     },
   },
@@ -961,11 +971,19 @@ watch(
   (newId) => {
     if (newId) {
       propPosition()
-    } else {
-      payload.employee.position = ''
     }
   },
   { immediate: true }
+)
+
+watch(
+  () => payload.employee,
+  (emp) => {
+    if (emp?.item_id) {
+      propPosition()
+    }
+  },
+  { immediate: true, deep: true }
 )
 
 let stopSpouseWatch: WatchStopHandle | null = null
@@ -978,19 +996,27 @@ const setupSpouseWatch = (immediate: boolean) => {
     (newStatus) => {
       const spouse = payload.individual_family_spouse
 
-      const fill = (v: string) => {
-        spouse.first_name = v
-        spouse.middle_name = v
-        spouse.last_name = v
+      if (newStatus === 'Single') {
+        // When civil_status becomes Single → fill all fields with 'N/A'
+        spouse.first_name = 'N/A'
+        spouse.middle_name = 'N/A'
+        spouse.last_name = 'N/A'
         spouse.ext_name = null
-        spouse.occupation = v
-        spouse.employers_business_name = v
-        spouse.business_address = v
+        spouse.occupation = 'N/A'
+        spouse.employers_business_name = 'N/A'
+        spouse.business_address = 'N/A'
         spouse.telephone_no = null
+      } else if (newStatus === 'Married') {
+        // When changing to Married → clear 'N/A' or empty the fields if they are N/A
+        spouse.first_name = spouse.first_name === 'N/A' ? '' : spouse.first_name
+        spouse.middle_name = spouse.middle_name === 'N/A' ? '' : spouse.middle_name
+        spouse.last_name = spouse.last_name === 'N/A' ? '' : spouse.last_name
+        spouse.ext_name = spouse.ext_name === 'N/A' ? null : spouse.ext_name
+        spouse.occupation = spouse.occupation === 'N/A' ? '' : spouse.occupation
+        spouse.employers_business_name = spouse.employers_business_name === 'N/A' ? '' : spouse.employers_business_name
+        spouse.business_address = spouse.business_address === 'N/A' ? '' : spouse.business_address
+        spouse.telephone_no = spouse.telephone_no === 'N/A' ? null : spouse.telephone_no
       }
-
-      if (newStatus === 'Single') fill('N/A')
-      else fill('')
     },
     { immediate }
   )

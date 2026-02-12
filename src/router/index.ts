@@ -564,7 +564,7 @@ const routes = [
         component: () => import('@/views/commitment/CompensatoryTimeOffPage.vue'),
         meta: <RouteMeta>{
           label: 'CTDos',
-          isSidebarMenu: false,
+          isSidebarMenu: true,
           authType: AuthType.AUTHENTICATED,
           roles: [
             AuthRole.STANDARD_USER,
