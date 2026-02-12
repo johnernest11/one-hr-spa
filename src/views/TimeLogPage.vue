@@ -1,11 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { useStorage } from '@vueuse/core'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { QrcodeStream, DetectedBarcode } from 'vue-qrcode-reader'
 import { useDailyLogsStore, type CustomScannedEmployeeResponse } from '@/stores/daily-logs.store'
 import { useLibrariesStore } from '@/stores/libraries.store'
-import { useAuthStore } from '@/stores/auth.store'
-import { useRoute } from 'vue-router'
 import Dialog from 'primevue/dialog'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { getManilaTodayISO, formatTime } from '@/utils/helpers.ts'
@@ -23,16 +20,6 @@ interface Log {
   office: string
   photo_url: string
   captured_image: string | null
-  daily_time_record?: {
-    employee?: {
-      id_number?: string
-      individual_basic_detail?: {
-        first_name?: string
-        last_name?: string
-      }
-      item?: { position?: { title?: string } }
-    }
-  }
 }
 
 interface BackendLog {
@@ -45,13 +32,21 @@ interface BackendLog {
   captured_photo_url?: string | null
   captured_image_url?: string | null
   position?: string
-  daily_time_record_id?: string | number
   daily_time_record?: {
+    [key: string]: unknown
     employee?: {
+      [key: string]: unknown
       id_number?: string
-      individual_basic_detail?: { first_name?: string; last_name?: string }
+      individual_basic_detail?: {
+        [key: string]: unknown
+        first_name?: string
+        last_name?: string
+        user_profile?: {
+          [key: string]: unknown
+          profile_picture_url?: string
+        }
+      }
       item?: { position?: { title?: string } }
-      user_profile?: { profile_picture_url?: string }
     }
   }
 }
@@ -63,20 +58,16 @@ const seconds = ref('')
 const showModal = ref(false)
 const showOfficeSelectionModal = ref(true)
 const dailyLogsStore = useDailyLogsStore()
-const authStore = useAuthStore()
-const route = useRoute()
 const librariesStore = useLibrariesStore()
 const todayISO = ref('')
 const cameraError = ref<string | null>(null)
 const isMobile = ref(false)
-const MODAL_DISPLAY_DURATION_MS = 10000
-const scanTimeoutId = ref<number | undefined>(undefined)
 const intervalId = ref<number | undefined>(undefined)
 const qrStreamRef = ref<InstanceType<typeof QrcodeStream> | null>(null)
 const selectedOffice = ref<WbAutoCompleteOption | undefined>(undefined)
 const recentLogs = ref<Log[]>([])
-const isScannerResetting = ref(false)
 const scannedEmployee = computed(() => dailyLogsStore.currentScannedEmployee)
+const MODAL_DISPLAY_DURATION_MS = 1000
 
 const paintOutline = (detectedCodes: DetectedBarcode[], ctx: CanvasRenderingContext2D) => {
   for (const detectedCode of detectedCodes) {
@@ -89,6 +80,10 @@ const paintOutline = (detectedCodes: DetectedBarcode[], ctx: CanvasRenderingCont
     ctx.closePath()
     ctx.stroke()
   }
+
+  setTimeout(() => {
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height)
+  }, 1000)
 }
 
 const startTimeLogs = async () => {
@@ -104,14 +99,15 @@ const updateDailyLogsState = async (date: string) => {
   const currentOfficeId = dailyLogsStore.timelogOfficeId
   if (!currentOfficeId) return
 
-  const backendLogs: BackendLog[] = dailyLogsStore.getTodayWarmBodies(date) || []
+  const backendLogs = dailyLogsStore.getTodayWarmBodies(date) as unknown as BackendLog[]
 
   const filteredLogs: Log[] = backendLogs
     .filter((log: BackendLog) => String(log.office_id) === String(currentOfficeId))
-    .map((log: BackendLog): Log => {
+    .map((log: BackendLog) => {
       const employee = log.daily_time_record?.employee
       const empDetails = employee?.individual_basic_detail
       const captured = log.captured_image_url ?? log.captured_photo_url ?? null
+      const profilePhoto = empDetails?.user_profile?.profile_picture_url ?? null
 
       return {
         id: String(log.id ?? ''),
@@ -120,11 +116,9 @@ const updateDailyLogsState = async (date: string) => {
         is_in: log.is_in ?? false,
         name: `${empDetails?.first_name ?? ''} ${empDetails?.last_name ?? ''}`.trim() || 'N/A',
         position: employee?.item?.position?.title ?? 'N/A',
-        office:
-          librariesStore.officeOptions.find((o: WbAutoCompleteOption) => String(o.value) === String(currentOfficeId))?.label ||
-          'N/A',
+        office: librariesStore.officeOptions.find((o) => String(o.value) === String(currentOfficeId))?.label || 'N/A',
         captured_image: captured,
-        photo_url: captured || dswdLogoMark,
+        photo_url: profilePhoto || dswdLogoMark,
       }
     })
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
@@ -163,19 +157,9 @@ onMounted(async () => {
   await librariesStore.fetchOffices()
 
   if (dailyLogsStore.timelogOfficeId) {
-    const matchedOffice = librariesStore.officeOptions.find(
-      (o: WbAutoCompleteOption) => String(o.value) === String(dailyLogsStore.timelogOfficeId)
-    )
-
+    const matchedOffice = librariesStore.officeOptions.find((o) => String(o.value) === String(dailyLogsStore.timelogOfficeId))
     selectedOffice.value = matchedOffice ?? undefined
-
-    if (selectedOffice.value) {
-      showOfficeSelectionModal.value = false
-    } else {
-      showOfficeSelectionModal.value = true
-    }
-  } else {
-    showOfficeSelectionModal.value = true
+    showOfficeSelectionModal.value = !selectedOffice.value
   }
 
   const today = getManilaTodayISO()
@@ -183,50 +167,25 @@ onMounted(async () => {
   updateDateTime()
 
   intervalId.value = window.setInterval(updateDateTime, 1000)
-  checkScreenSize()
   window.addEventListener('resize', checkScreenSize)
+  checkScreenSize()
+
   await dailyLogsStore.fetchWarmBodySummary(today)
   await updateDailyLogsState(today)
 })
 
-watch(
-  () => route.name,
-  (newName) => {
-    const expiration = useStorage('auth-token-expiration', null)
-    const userRoles = authStore.authRoles
-    if (newName === 'time-logs' && expiration.value && userRoles.includes('time_logger')) {
-      authStore.clearScheduledRefresh()
-      authStore.scheduleTokenRefresh(new Date(expiration.value))
-    } else {
-      authStore.clearScheduledRefresh()
-    }
-  },
-  { immediate: true }
-)
-
 onUnmounted(() => {
   if (intervalId.value) clearInterval(intervalId.value)
   window.removeEventListener('resize', checkScreenSize)
-  if (scanTimeoutId.value) clearTimeout(scanTimeoutId.value)
 })
 
 const onDetect = (detectedCodes: DetectedBarcode[]) => {
   if (!detectedCodes.length) return
+
   const decodedString = detectedCodes[0].rawValue
 
-  if (showModal.value) {
-    showModal.value = false
-    dailyLogsStore.clearScannedEmployee()
-  }
-
-  if (isScannerResetting.value) return
-  isScannerResetting.value = true
-
+  dailyLogsStore.clearScannedEmployee()
   onDecode(decodedString)
-
-  setTimeout(() => {
-    isScannerResetting.value = false
-  }, MODAL_DISPLAY_DURATION_MS)
 }
 
 const capturePhoto = async (): Promise<{ file: File; previewUrl: string } | null> => {
@@ -281,11 +240,12 @@ const onDecode = async (result: string) => {
     if (response?.success) {
       const today = getManilaTodayISO()
       await Promise.all([dailyLogsStore.fetchWarmBodySummary(today), updateDailyLogsState(today)])
-
-      showModal.value = true
-    } else {
-      showModal.value = true
     }
+
+    showModal.value = true
+    setTimeout(() => {
+      showModal.value = false
+    }, MODAL_DISPLAY_DURATION_MS)
   } catch (error) {
     console.error('Scan Error:', error)
     dailyLogsStore.lastLogMessage = 'Network or server error.'
@@ -323,9 +283,7 @@ const checkScreenSize = () => (isMobile.value = window.innerWidth <= 575)
 const dialogDynamicStyle = computed(() =>
   isMobile.value ? { width: '100vw', height: '100vh', maxWidth: 'unset', maxHeight: 'unset' } : { width: '25vw' }
 )
-
 const dialogDynamicPosition = computed(() => (isMobile.value ? 'center' : 'right'))
-
 const dynamicSuccessMessage = computed(() =>
   dailyLogsStore.currentScannedEmployee
     ? dailyLogsStore.currentScannedEmployee.is_in
@@ -333,7 +291,6 @@ const dynamicSuccessMessage = computed(() =>
       : 'Timed Out!'
     : dailyLogsStore.lastLogMessage || 'Processing...'
 )
-
 const latestWarmBodyLogs = computed(() => recentLogs.value)
 </script>
 
@@ -395,7 +352,7 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
         <div class="mb-8 flex items-center space-x-2">
           <img src="@/assets/image/fo-bp.png" alt="DSWD Logo" class="h-16" />
         </div>
-        <h2 class="mb-4 text-center text-2xl font-semibold md:text-3xl">WARM BODIES</h2>
+        <h2 class="mb-4 text-center text-2xl font-semibold md:text-3xl">ATTENDANCE TRACKER</h2>
         <div class="mb-4 grid grid-cols-2 gap-4 text-center text-lg md:text-2xl">
           <div>
             <p>IN</p>
@@ -454,7 +411,6 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
               :track="paintOutline"
               @init="onInit"
               @camera-error="onCameraError"
-              :paused="isScannerResetting"
               class="qr-stream h-full w-full object-cover"
             />
 
@@ -500,7 +456,7 @@ const latestWarmBodyLogs = computed(() => recentLogs.value)
               {{ dynamicSuccessMessage }}
             </div>
 
-            <div class="mb-4 flex justify-center">
+            <div class="mb-4 mt-4 flex justify-center">
               <img
                 :src="scannedEmployee?.photo_url || dswdLogoMark"
                 alt="Employee Profile Photo"

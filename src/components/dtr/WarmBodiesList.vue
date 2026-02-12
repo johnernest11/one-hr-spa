@@ -97,7 +97,7 @@ const handleSearchTimeLogs = async () => {
         <div class="flex flex-col font-medium text-primary-700 dark:text-primary-100 md:ml-4 md:mt-2">
           <h1 class="mb-1 text-xl text-surface-700 dark:text-primary-100 md:text-xl lg:text-4xl">
             <font-awesome-icon :icon="['fas', 'users-rectangle']" class="mr-2 text-4xl" />
-            Warm Bodies
+            Attendance Tracker
           </h1>
           <p class="text-base text-surface-500 dark:text-primary-200">
             {{ DateToday }}
@@ -209,7 +209,7 @@ const handleSearchTimeLogs = async () => {
                 <h2
                   class="mb-2 mt-4 flex w-full justify-center text-center text-xl font-semibold text-surface-800 dark:text-primary-100 sm:text-2xl"
                 >
-                  No Active Warm Bodies Found
+                  No Active attendance Found
                 </h2>
                 <h1 class="mb-4 text-center text-base text-surface-600 dark:text-surface-400 sm:text-lg">
                   Employees will appear here once they have scanned in for the day. Try refreshing if you are expecting activity.
