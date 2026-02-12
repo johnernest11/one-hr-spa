@@ -133,24 +133,6 @@ const formRules = computed(() => ({
       ),
       maxLength: globalStringMaxLengthRule,
     },
-    // license_date_of_validity: {
-    //   isAfterOrEqualFromDate: helpers.withMessage(
-    //     'License Date of Validity should not be earlier than the Date of Examination Conferment',
-    //     (val: string | number | Date | null, vm: Record<string, unknown>) => {
-    //       const fromVal = vm.date_of_examination_conferment as string | number | Date | null
-    //       if (!val || !fromVal) return true
-
-    //       const licenseDate = new Date(val)
-    //       const examDate = new Date(fromVal)
-
-    //       return isNaN(licenseDate.getTime()) || isNaN(examDate.getTime()) || licenseDate >= examDate
-    //     }
-    //   ),
-    //   required: helpers.withMessage('Fill Up License Validity since other information is provided.', (val, vm) =>
-    //     hasAnyValue(vm) ? helpers.req(val) : true
-    //   ),
-    //   maxLength: globalStringMaxLengthRule,
-    // },
     rating: {
       mustBeNumber: helpers.withMessage('Rating must be a number', (val: unknown) => {
         if (val === null || val === '') return true // allow empty
