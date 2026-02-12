@@ -7,7 +7,7 @@ import WarmBodiesList from '../../components/dtr/WarmBodiesList.vue'
 
 const mainDTRSections = ref([
   { name: 'Daily Time Record', component: shallowRef(DTRForm) },
-  { name: 'Warm Bodies', component: shallowRef(WarmBodiesList) },
+  { name: 'Attendance Tracker', component: shallowRef(WarmBodiesList) },
 ])
 
 const selectedMainTabIndex = ref(1)

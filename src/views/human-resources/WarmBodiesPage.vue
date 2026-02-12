@@ -57,7 +57,7 @@ const loadWarmBodies = async (page = 1) => {
       detail: 'Something went wrong while fetching data.',
       life: 4000,
     })
-    console.error('Error loading warm bodies:', e)
+    console.error('Error loading attendance tracker:', e)
   } finally {
     warmBodiesIsLoading.value = false
   }
@@ -360,7 +360,7 @@ const DateToday = new Date().toLocaleDateString()
                 <h2
                   class="mb-2 mt-4 flex w-full justify-center text-center text-xl font-semibold text-surface-800 dark:text-primary-100 sm:text-2xl"
                 >
-                  No Active Warm Bodies Found
+                  No Active attendance Found
                 </h2>
                 <h1 class="mb-4 text-center text-base text-surface-600 dark:text-surface-400 sm:text-lg">
                   Employees will appear here once they have scanned in for the day. Try refreshing if you are expecting activity.
