@@ -4,11 +4,13 @@ import { QrcodeStream, DetectedBarcode } from 'vue-qrcode-reader'
 import { useDailyLogsStore, type CustomScannedEmployeeResponse } from '@/stores/daily-logs.store'
 import { useLibrariesStore } from '@/stores/libraries.store'
 import Dialog from 'primevue/dialog'
+import { useToast } from 'primevue/usetoast'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { getManilaTodayISO, formatTime } from '@/utils/helpers.ts'
 import dswdLogoMark from '@/assets/image/DSWD logo_Mark.png'
 import WbAutoComplete from '@/components/webkit/WbAutoComplete.vue'
 import { WbAutoCompleteOption } from '@/components/webkit/WbAutoComplete.vue'
+import { getEcho } from '@/utils/echo'
 
 interface Log {
   id: string
@@ -51,6 +53,7 @@ interface BackendLog {
   }
 }
 
+const toast = useToast()
 const currentDate = ref('')
 const currentTime = ref('')
 const meridiem = ref('')
@@ -292,6 +295,31 @@ const dynamicSuccessMessage = computed(() =>
     : dailyLogsStore.lastLogMessage || 'Processing...'
 )
 const latestWarmBodyLogs = computed(() => recentLogs.value)
+
+onMounted(() => {
+  const echo = getEcho()
+  // Listen for the broadcasts
+  echo.private('timelogs')
+      .listen('TimeLogCreated', async (e: any) => {
+          console.log("Event listen... ", e)
+          toast.add({
+            severity: 'success',
+            summary: 'Time Log Created!',
+            detail: `${e.employee_id} scanned at ${e.scanned_time}`,
+            life: 5000,
+          })
+
+          const today = getManilaTodayISO()
+          await dailyLogsStore.fetchWarmBodySummary(today)
+          await updateDailyLogsState(today) // @todo This is broken. Need to fix the issue regarding the attendance not showing and this will be fixed as well.
+      })
+})
+
+onUnmounted(() => {
+  const echo = getEcho()
+  echo.leave('timelogs')
+})
+
 </script>
 
 <template>
