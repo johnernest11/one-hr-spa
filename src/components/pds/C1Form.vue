@@ -74,6 +74,9 @@ const selectedDivision = ref<WbAutoCompleteOption | null>(null)
 const selectedSectionUnit = ref<WbAutoCompleteOption | null>(null)
 const selectedCountry = ref<WbAutoCompleteOption | null>(null)
 
+const isPasAccount = computed(() => {
+  return authStore.authenticatedUser?.roles?.some((r) => r.name === 'hr_pas_admin')
+})
 const ppmsCanUpdate = computed(() => {
   return authStore.authHasRequiredRole(['hr_pas_admin'])
 })
@@ -181,16 +184,32 @@ onMounted(async () => {
 onBeforeUnmount(() => stopSpouseWatch?.())
 
 const { provinceOptions, cityOptions, barangayOptions } = storeToRefs(publicStore)
-const filteredProvinceOptionsByRegion = useFilterByParentId(
+const filteredResidentialProvinceOptionsByRegion = useFilterByParentId(
   toRef(payload.individual_address_init, 'residential_region_id'),
   provinceOptions
 )
-const filteredCityOptionsByProvince = useFilterByParentId(
+const filteredResidentialCityOptionsByProvince = useFilterByParentId(
   toRef(payload.individual_address_init, 'residential_province_id'),
   cityOptions
 )
-const filteredBarangayOptionsByCity = useFilterByParentId(
+const filteredResidentialBarangayOptionsByCity = useFilterByParentId(
   toRef(payload.individual_address_init, 'residential_citymun_id'),
+  barangayOptions
+)
+
+// PERMANENT ADDRESS FILTERS
+const filteredPermanentProvinceOptionsByRegion = useFilterByParentId(
+  toRef(payload.individual_address_init, 'permanent_region_id'),
+  provinceOptions
+)
+
+const filteredPermanentCityOptionsByProvince = useFilterByParentId(
+  toRef(payload.individual_address_init, 'permanent_province_id'),
+  cityOptions
+)
+
+const filteredPermanentBarangayOptionsByCity = useFilterByParentId(
+  toRef(payload.individual_address_init, 'permanent_citymun_id'),
   barangayOptions
 )
 
@@ -1995,10 +2014,10 @@ defineExpose({
                           optionLabel="label"
                           optionValue="value"
                           required
-                          :readonly="pdsStore.isMyPds"
+                          :readonly="pdsStore.isMyPds || isPasAccount"
                           :class="[
                             'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                            pdsStore.isMyPds ? 'pointer-events-none cursor-default select-text' : '',
+                            pdsStore.isMyPds || isPasAccount ? 'pointer-events-none cursor-default select-text' : '',
                           ]"
                           @on-true-value-computed="
                             (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
@@ -2670,7 +2689,7 @@ defineExpose({
 
                         <WbAutoComplete
                           v-model="selectedResidentialProvince"
-                          :suggestions="filteredProvinceOptionsByRegion"
+                          :suggestions="filteredResidentialProvinceOptionsByRegion"
                           label=" Province "
                           :readonly="pdsStore.isMyPds"
                           :class="[
@@ -2701,7 +2720,7 @@ defineExpose({
                         </WbAutoComplete>
                         <WbAutoComplete
                           v-model="selectedResidentialCity"
-                          :suggestions="filteredCityOptionsByProvince"
+                          :suggestions="filteredResidentialCityOptionsByProvince"
                           label=" City / Municipality "
                           :readonly="pdsStore.isMyPds"
                           :class="[
@@ -2733,7 +2752,7 @@ defineExpose({
                         </WbAutoComplete>
                         <WbAutoComplete
                           v-model="selectedResidentialBarangay"
-                          :suggestions="filteredBarangayOptionsByCity"
+                          :suggestions="filteredResidentialBarangayOptionsByCity"
                           label=" Barangay "
                           :readonly="pdsStore.isMyPds"
                           :class="[
@@ -2882,7 +2901,7 @@ defineExpose({
                         </WbAutoComplete>
                         <WbAutoComplete
                           v-model="selectedPermanentProvince"
-                          :suggestions="filteredProvinceOptionsByRegion"
+                          :suggestions="filteredPermanentProvinceOptionsByRegion"
                           label=" Province "
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -2908,7 +2927,7 @@ defineExpose({
                         </WbAutoComplete>
                         <WbAutoComplete
                           v-model="selectedPermanentCity"
-                          :suggestions="filteredCityOptionsByProvince"
+                          :suggestions="filteredPermanentCityOptionsByProvince"
                           label=" City / Municipality "
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
@@ -2935,7 +2954,7 @@ defineExpose({
                         </WbAutoComplete>
                         <WbAutoComplete
                           v-model="selectedPermanentBarangay"
-                          :suggestions="filteredBarangayOptionsByCity"
+                          :suggestions="filteredPermanentBarangayOptionsByCity"
                           label=" Barangay "
                           label-class="text-md text-surface-600 dark:lg:text-surface-200"
                           validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
