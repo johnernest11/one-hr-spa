@@ -9,6 +9,7 @@ import { getManilaTodayISO, formatTime } from '@/utils/helpers.ts'
 import dswdLogoMark from '@/assets/image/DSWD logo_Mark.png'
 import WbAutoComplete from '@/components/webkit/WbAutoComplete.vue'
 import { WbAutoCompleteOption } from '@/components/webkit/WbAutoComplete.vue'
+import { getEcho } from '@/utils/echo'
 
 interface Log {
   id: string
@@ -292,6 +293,21 @@ const dynamicSuccessMessage = computed(() =>
     : dailyLogsStore.lastLogMessage || 'Processing...'
 )
 const latestWarmBodyLogs = computed(() => recentLogs.value)
+
+onMounted(() => {
+  const echo = getEcho()
+  // Listen for the broadcasts
+  echo.private('timelogs').listen('TimeLogCreated', async () => {
+    const today = getManilaTodayISO()
+    await dailyLogsStore.fetchWarmBodySummary(today)
+    await updateDailyLogsState(today) // @todo This is broken. Need to fix the issue regarding the attendance not showing and this will be fixed as well.
+  })
+})
+
+onUnmounted(() => {
+  const echo = getEcho()
+  echo.leave('timelogs')
+})
 </script>
 
 <template>

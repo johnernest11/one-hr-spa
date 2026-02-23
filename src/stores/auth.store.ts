@@ -5,6 +5,7 @@ import { useApiCall } from '@/composables/network.ts'
 import { ApiResponseBody } from '@/typings/http-resources.types.ts'
 import { UserResponse } from '@/typings/models.types.ts'
 import { RegistrationPayload } from '@/stores/forms.store.ts'
+import { resetEcho } from '@/utils/echo'
 
 /** Typings */
 export type LoginPayload = {
@@ -278,6 +279,9 @@ export const useAuthStore = defineStore('auth', () => {
     authExpired.value = false
     mfaToken.value = null
     mfaSteps.value = null
+
+    // Destroy echo connection to prevent stale instance.
+    resetEcho()
 
     if (refreshToken.value) {
       clearRefreshTokenOnStorage()
