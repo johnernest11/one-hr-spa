@@ -23,35 +23,6 @@ interface Log {
   captured_image: string | null
 }
 
-interface BackendLog {
-  id: number | string
-  employee_id?: string
-  date: string
-  scanned_time: string
-  is_in: boolean
-  office_id?: string | number
-  captured_photo_url?: string | null
-  captured_image_url?: string | null
-  position?: string
-  daily_time_record?: {
-    [key: string]: unknown
-    employee?: {
-      [key: string]: unknown
-      id_number?: string
-      individual_basic_detail?: {
-        [key: string]: unknown
-        first_name?: string
-        last_name?: string
-        user_profile?: {
-          [key: string]: unknown
-          profile_picture_url?: string
-        }
-      }
-      item?: { position?: { title?: string } }
-    }
-  }
-}
-
 const currentDate = ref('')
 const currentTime = ref('')
 const meridiem = ref('')
@@ -68,7 +39,7 @@ const qrStreamRef = ref<InstanceType<typeof QrcodeStream> | null>(null)
 const selectedOffice = ref<WbAutoCompleteOption | undefined>(undefined)
 const recentLogs = ref<Log[]>([])
 const scannedEmployee = computed(() => dailyLogsStore.currentScannedEmployee)
-const MODAL_DISPLAY_DURATION_MS = 1000
+const MODAL_DISPLAY_DURATION_MS = 3000
 
 const paintOutline = (detectedCodes: DetectedBarcode[], ctx: CanvasRenderingContext2D) => {
   for (const detectedCode of detectedCodes) {
@@ -99,27 +70,34 @@ const updateDailyLogsState = async (date: string) => {
   await dailyLogsStore.fetchDailyLogs(date)
   const currentOfficeId = dailyLogsStore.timelogOfficeId
   if (!currentOfficeId) return
+  const officeLabel = librariesStore.officeOptions.find((o) => String(o.value) === String(currentOfficeId))?.label || 'N/A'
 
-  const backendLogs = dailyLogsStore.getTodayWarmBodies(date) as unknown as BackendLog[]
+  const backendLogs = dailyLogsStore.getTodayWarmBodies(date)
 
   const filteredLogs: Log[] = backendLogs
-    .filter((log: BackendLog) => String(log.office_id) === String(currentOfficeId))
-    .map((log: BackendLog) => {
-      const employee = log.daily_time_record?.employee
-      const empDetails = employee?.individual_basic_detail
-      const captured = log.captured_image_url ?? log.captured_photo_url ?? null
-      const profilePhoto = empDetails?.user_profile?.profile_picture_url ?? null
+    .filter((log) => String(log.office_id) === String(currentOfficeId))
+    .map((log) => {
+      const dtr = log.daily_time_record
+      const employee = dtr?.employee
+      const basicDetail = employee?.individual_basic_detail
+      const item = employee?.item
+      const positionData = item?.position
+
+      const resolvedName =
+        log['employee_name' as keyof typeof log] || (basicDetail ? `${basicDetail.first_name} ${basicDetail.last_name}` : 'N/A')
+
+      const resolvedPosition = log['position' as keyof typeof log] || positionData?.title || 'N/A'
 
       return {
         id: String(log.id ?? ''),
-        employee_id: String(employee?.id_number ?? 'N/A'),
-        timestamp: `${log.date}T${log.scanned_time}`,
-        is_in: log.is_in ?? false,
-        name: `${empDetails?.first_name ?? ''} ${empDetails?.last_name ?? ''}`.trim() || 'N/A',
-        position: employee?.item?.position?.title ?? 'N/A',
-        office: librariesStore.officeOptions.find((o) => String(o.value) === String(currentOfficeId))?.label || 'N/A',
-        captured_image: captured,
-        photo_url: profilePhoto || dswdLogoMark,
+        employee_id: String(log.employee_id || employee?.id_number || 'N/A'),
+        timestamp: log.timestamp,
+        is_in: Boolean(log.is_in),
+        name: String(resolvedName),
+        position: String(resolvedPosition),
+        office: officeLabel,
+        captured_image: log.captured_image_url ?? null,
+        photo_url: basicDetail?.user_profile?.profile_picture_url || dswdLogoMark,
       }
     })
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
@@ -299,8 +277,11 @@ onMounted(() => {
   // Listen for the broadcasts
   echo.private('timelogs').listen('TimeLogCreated', async () => {
     const today = getManilaTodayISO()
-    await dailyLogsStore.fetchWarmBodySummary(today)
-    await updateDailyLogsState(today) // @todo This is broken. Need to fix the issue regarding the attendance not showing and this will be fixed as well.
+    try {
+      await Promise.all([dailyLogsStore.fetchWarmBodySummary(today), updateDailyLogsState(today)])
+    } catch (err) {
+      console.error('Broadcast update failed', err)
+    }
   })
 })
 

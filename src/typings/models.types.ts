@@ -545,11 +545,16 @@ export type ViewTimeLogsResponse = {
   is_in: boolean
   scanned_time: string
   time_log_date: string
+  captured_image_path: string | null
+  captured_image_url: string | null
   id_number: string | null
+  position_title: string
   first_name: string
   middle_name: string | null
   last_name: string
   ext_name: string | null
+  office_id: number
+  office_name: string
   division_name: string
   section_name: string
 }
