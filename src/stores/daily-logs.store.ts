@@ -5,7 +5,7 @@ import { useApiCall } from '@/composables/network.ts'
 import { useAuthStore } from '@/stores/auth.store'
 import { ApiErrorCode } from '@/typings/http-resources.types.ts'
 import type { ApiResponseBody, WarmBodyLogEntry, DailyLogEntry, WarmBodyRaw } from '@/typings/http-resources.types.ts'
-import type { ScannedEmployeeResponse } from '@/typings/models.types'
+import type { ScannedEmployeeResponse, ViewTimeLogsResponse } from '@/typings/models.types'
 import type { WbAutoCompleteOption } from '@/components/webkit/WbAutoComplete.vue'
 import dswdLogoMark from '@/assets/image/DSWD logo_Mark.png'
 
@@ -42,11 +42,12 @@ interface DailyLogDisplayEntry {
   id: number
   employee_id: string
   employee_name: string
+  office_id: number
   position: string
   scanned_time: string
   is_in: boolean
   date: string
-  captured_image_url: string
+  captured_image_url?: string | null
   daily_time_record?: WarmBodyLogEntry['daily_time_record']
 }
 
@@ -102,12 +103,10 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
         const validTime = log.scanned_time || '00:00:00'
         const timestamp = `${validDate}T${validTime}`
 
-        const dtr = log.daily_time_record
-
         return {
           ...log,
           timestamp,
-          office_id: log.office_id ?? dtr?.office_id,
+          office_id: log.office_id,
         }
       })
       .filter((log) => !isNaN(new Date(log.timestamp).getTime()))
@@ -142,14 +141,21 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     if (modalTimer.current) clearTimeout(modalTimer.current)
   }
 
-  const updateDailyLogs = (date: string, logs: WarmBodyLogEntry[]) => {
+  const updateDailyLogs = (date: string, logs: DailyLogDisplayEntry[]) => {
     const existingIndex = dailyLogs.value.findIndex((l) => l.date === date)
+
     if (existingIndex !== -1) {
-      const existingIds = new Set(dailyLogs.value[existingIndex].warm_bodies.map((l) => l.id))
+      const existingGroup = dailyLogs.value[existingIndex]
+
+      const existingIds = new Set(existingGroup.warm_bodies.map((l) => l.id))
       const newLogs = logs.filter((l) => !existingIds.has(l.id))
-      dailyLogs.value[existingIndex].warm_bodies.unshift(...newLogs)
+
+      existingGroup.warm_bodies.unshift(...newLogs)
     } else {
-      dailyLogs.value.push({ date, warm_bodies: logs })
+      dailyLogs.value.push({
+        date,
+        warm_bodies: logs,
+      })
     }
   }
 
@@ -161,7 +167,7 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     const responseBody: ApiResponseBody = data.value
 
     if (responseBody?.success) {
-      const warmBodyLog = responseBody.data as WarmBodyLogEntry
+      const warmBodyLog = responseBody.data as DailyLogDisplayEntry
       const emp = warmBodyLog.daily_time_record?.employee
       const empDetails = emp?.individual_basic_detail
       const messageToDisplay = responseBody.message || 'Time log successful!'
@@ -222,21 +228,18 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
       const responseBody: ApiResponseBody = data.value
 
       if (responseBody?.success && Array.isArray(responseBody.data)) {
-        const logs: DailyLogDisplayEntry[] = (responseBody.data as WarmBodyLogEntry[]).map((log) => {
-          const emp = log.daily_time_record?.employee
-          const empDetails = emp?.individual_basic_detail
-          const employeeId = emp?.id_number ?? 'N/A'
-
+        const logs: DailyLogDisplayEntry[] = (responseBody.data as ViewTimeLogsResponse[]).map((log) => {
           return {
-            id: log.id,
-            employee_id: employeeId,
-            employee_name: `${empDetails?.first_name || ''} ${empDetails?.last_name || ''}`.trim() || 'N/A',
-            position: emp?.item?.position?.title || 'N/A',
+            id: log.time_log_id,
+            employee_id: log.id_number || '',
+            employee_name: `${log.first_name || ''} ${log.last_name || ''}`.trim() || 'N/A',
+            position: log.position_title || 'N/A',
             scanned_time: log.scanned_time || '',
             is_in: log.is_in,
-            date: log.date || '',
-            captured_image_url: log.captured_image_url || log.captured_photo_url || '',
-            daily_time_record: log.daily_time_record,
+            date: log.time_log_date || '',
+            captured_image_path: log.captured_image_path || '',
+            captured_image_url: log.captured_image_url || '',
+            office_id: log.office_id,
           }
         })
 
