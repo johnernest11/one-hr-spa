@@ -555,6 +555,7 @@ export type ViewTimeLogsResponse = {
   ext_name: string | null
   office_id: number
   office_name: string
+  employee_office_id: number
   division_name: string
   section_name: string
 }
