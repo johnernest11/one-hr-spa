@@ -68,7 +68,7 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
   const currentScannedEmployee = ref<CustomScannedEmployeeResponse | null>(null)
   const lastLogMessage = ref<string | null>(null)
   const warmBodySummary = useStorage<WarmBodySummary | null>('warmBodySummary', null)
-  const WarmBodyPerStation = useStorage<WarmBodyPerStation | null>('warmBodyPerStation', null)
+  const warmBodyPerStation = useStorage<WarmBodyPerStation | null>('warmBodyPerStation', null)
   const showModal = ref(false)
   const modalTimer: { current: ReturnType<typeof setTimeout> | null } = { current: null }
   const MODAL_DISPLAY_DURATION_MS = 10000
@@ -273,11 +273,11 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
   }
 
   const fetchWarmBodyPerStation = async () => {
-    let url = '/employees/daily-time-records/warm-bodies/count-station?'
+    let url = '/employees/daily-time-records/warm-bodies/station?'
     if (timelogOfficeId) url += `office=${timelogOfficeId.value}`
     const { data } = await useApiCall(url, authStore.authenticationToken).get().json()
     const responseBody: ApiResponseBody = data.value
-    WarmBodyPerStation.value = responseBody?.success ? (responseBody.data as WarmBodyPerStation) : null
+    warmBodyPerStation.value = responseBody?.success ? (responseBody.data as WarmBodyPerStation) : null
     return responseBody
   }
 
@@ -288,7 +288,7 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     currentScannedEmployee,
     lastLogMessage,
     warmBodySummary,
-    WarmBodyPerStation,
+    warmBodyPerStation,
     showModal,
     countIn,
     countOut,

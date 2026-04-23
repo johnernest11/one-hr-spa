@@ -274,8 +274,8 @@ const onCameraError = (error: unknown) => {
   }
 }
 
-const countInTodayPerStation = computed(() => dailyLogsStore.WarmBodyPerStation?.present ?? 0)
-const countOutTodayPerStation = computed(() => dailyLogsStore.WarmBodyPerStation?.absent ?? 0)
+const countInTodayPerStation = computed(() => dailyLogsStore.warmBodyPerStation?.present ?? 0)
+const countOutTodayPerStation = computed(() => dailyLogsStore.warmBodyPerStation?.absent ?? 0)
 
 const checkScreenSize = () => (isMobile.value = window.innerWidth <= 575)
 const dialogDynamicStyle = computed(() =>
