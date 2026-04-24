@@ -40,6 +40,8 @@ const selectedOffice = ref<WbAutoCompleteOption | undefined>(undefined)
 const recentLogs = ref<Log[]>([])
 const scannedEmployee = computed(() => dailyLogsStore.currentScannedEmployee)
 const MODAL_DISPLAY_DURATION_MS = 3000
+const isPaused = ref(false)
+const SCAN_COOLDOWN_MS = 1000 // 1 second cooldown
 
 const paintOutline = (detectedCodes: DetectedBarcode[], ctx: CanvasRenderingContext2D) => {
   for (const detectedCode of detectedCodes) {
@@ -62,8 +64,11 @@ const startTimeLogs = async () => {
   if (selectedOffice.value) dailyLogsStore.setOffice(selectedOffice.value)
   showOfficeSelectionModal.value = false
   const today = getManilaTodayISO()
-  await dailyLogsStore.fetchWarmBodySummary(today)
-  await updateDailyLogsState(today)
+  await Promise.all([
+    dailyLogsStore.fetchWarmBodySummary(today),
+    dailyLogsStore.fetchWarmBodyPerStation(),
+    updateDailyLogsState(today),
+  ])
 }
 
 const updateDailyLogsState = async (date: string) => {
@@ -128,6 +133,7 @@ const updateDateTime = () => {
   if (newTodayISO !== todayISO.value) {
     todayISO.value = newTodayISO
     void dailyLogsStore.fetchWarmBodySummary(todayISO.value)
+    void dailyLogsStore.fetchWarmBodyPerStation()
     void updateDailyLogsState(todayISO.value)
   }
 }
@@ -149,8 +155,11 @@ onMounted(async () => {
   window.addEventListener('resize', checkScreenSize)
   checkScreenSize()
 
-  await dailyLogsStore.fetchWarmBodySummary(today)
-  await updateDailyLogsState(today)
+  await Promise.all([
+    dailyLogsStore.fetchWarmBodySummary(today),
+    dailyLogsStore.fetchWarmBodyPerStation(),
+    updateDailyLogsState(today),
+  ])
 })
 
 onUnmounted(() => {
@@ -159,12 +168,18 @@ onUnmounted(() => {
 })
 
 const onDetect = (detectedCodes: DetectedBarcode[]) => {
-  if (!detectedCodes.length) return
+  if (!detectedCodes.length || isPaused.value) return
+
+  isPaused.value = true
 
   const decodedString = detectedCodes[0].rawValue
 
   dailyLogsStore.clearScannedEmployee()
   onDecode(decodedString)
+
+  setTimeout(() => {
+    isPaused.value = false
+  }, SCAN_COOLDOWN_MS)
 }
 
 const capturePhoto = async (): Promise<{ file: File; previewUrl: string } | null> => {
@@ -218,7 +233,11 @@ const onDecode = async (result: string) => {
 
     if (response?.success) {
       const today = getManilaTodayISO()
-      await Promise.all([dailyLogsStore.fetchWarmBodySummary(today), updateDailyLogsState(today)])
+      await Promise.all([
+        dailyLogsStore.fetchWarmBodySummary(today),
+        dailyLogsStore.fetchWarmBodyPerStation(),
+        updateDailyLogsState(today),
+      ])
     }
 
     showModal.value = true
@@ -255,8 +274,8 @@ const onCameraError = (error: unknown) => {
   }
 }
 
-const countInToday = computed(() => dailyLogsStore.warmBodySummary?.in_office ?? 0)
-const countOutToday = computed(() => dailyLogsStore.warmBodySummary?.out_of_office ?? 0)
+const countInTodayPerStation = computed(() => dailyLogsStore.warmBodyPerStation?.present ?? 0)
+const countOutTodayPerStation = computed(() => dailyLogsStore.warmBodyPerStation?.absent ?? 0)
 
 const checkScreenSize = () => (isMobile.value = window.innerWidth <= 575)
 const dialogDynamicStyle = computed(() =>
@@ -278,7 +297,11 @@ onMounted(() => {
   echo.private('timelogs').listen('TimeLogCreated', async () => {
     const today = getManilaTodayISO()
     try {
-      await Promise.all([dailyLogsStore.fetchWarmBodySummary(today), updateDailyLogsState(today)])
+      await Promise.all([
+        dailyLogsStore.fetchWarmBodySummary(today),
+        dailyLogsStore.fetchWarmBodyPerStation(),
+        updateDailyLogsState(today),
+      ])
     } catch (err) {
       console.error('Broadcast update failed', err)
     }
@@ -353,11 +376,11 @@ onUnmounted(() => {
         <div class="mb-4 grid grid-cols-2 gap-4 text-center text-lg md:text-2xl">
           <div>
             <p>IN</p>
-            <p>{{ countInToday }}</p>
+            <p>{{ countInTodayPerStation }}</p>
           </div>
           <div>
             <p>OUT</p>
-            <p>{{ countOutToday }}</p>
+            <p>{{ countOutTodayPerStation }}</p>
           </div>
         </div>
         <div class="scrollbar-hide flex flex-1 justify-center overflow-y-auto font-mono text-sm md:text-base">
@@ -408,6 +431,7 @@ onUnmounted(() => {
               :track="paintOutline"
               @init="onInit"
               @camera-error="onCameraError"
+              :paused="isPaused"
               class="qr-stream h-full w-full object-cover"
             />
 
