@@ -97,11 +97,11 @@ const routes = [
     },
     children: [
       {
-        path: '/my-pds',
-        name: 'my-pds',
-        component: () => import('@/views/personnel/PdsForm.vue'),
+        path: '/my-employee-profile',
+        name: 'my-employee-profile',
+        component: () => import('@/views/personnel/EmployeeProfilingPage.vue'),
         meta: <RouteMeta>{
-          label: 'Personal Data Sheet',
+          label: 'My Employee Profile',
           isSidebarMenu: true,
           authType: AuthType.AUTHENTICATED,
           roles: [
@@ -314,7 +314,7 @@ const routes = [
         component: () => import('@/components/service-record/ServiceRecordForm.vue'),
         meta: <RouteMeta>{
           label: 'My Service Records',
-          isSidebarMenu: true,
+          isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
           roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
         },
@@ -751,7 +751,7 @@ const routes = [
       {
         path: ':id?/editor',
         name: 'create-personnel',
-        component: () => import('@/views/personnel/PdsForm.vue'),
+        component: () => import('@/views/personnel/EmployeeProfilingPage.vue'),
         meta: <RouteMeta>{
           label: 'Create Personnel',
           isSidebarMenu: false,
