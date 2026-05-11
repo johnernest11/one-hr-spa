@@ -37,10 +37,8 @@ export const useSalaryGradesStore = defineStore('salary-grades', () => {
   const fetchSalaryGrade = async () => {
     if (salaryGradesOptions.value.length > 0) return null
 
-    const uri = '/libraries/salary-grades'
-
     salaryGradesOptionsLoading.value = true
-    const { data } = await useApiCall(uri, authStore.authenticationToken).get().json()
+    const { data } = await useApiCall('/libraries/salary-grades', authStore.authenticationToken).get().json()
     const res: ApiResponseBody = data.value
 
     if (res.success) {

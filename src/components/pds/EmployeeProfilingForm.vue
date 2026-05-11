@@ -25,6 +25,7 @@ import { parseApiResponseError } from '@/utils/error-handle.ts'
 import { IndividualEducBg, PersonnelResponse } from '@/typings/models.types'
 import { SexTypeOptions, ExtensionTypeOptions } from '@/typings/employee-entry.types'
 import { WbAutoCompleteOption, WbAutoCompleteOptionTrueValue } from '@/components/webkit/WbAutoComplete.vue'
+import { isBeforeOrEqualTo } from '@/utils/employee-profiling-helpers.ts'
 
 /** UI COMPONENTS*/
 import WbInputText from '@/components/webkit/WbInputText.vue'
@@ -311,27 +312,16 @@ const formRules = computed(() => ({
         maxLength: helpers.withMessage(() => generateMessage('elementary_from').maxLength, globalStringMaxLengthRule),
         isAfterOrEqualTo: helpers.withMessage(
           'Inclusive "From" date must not be after "To" date.',
-          (
-            val: string | number | Date | null,
-            vm: {
-              period_of_attendance_to: string | number | Date | null
-            }
-          ) => {
-            if (!helpers.req(vm.period_of_attendance_to)) return true
-
-            const from = val ? new Date(val) : null
-            const to = vm.period_of_attendance_to ? new Date(vm.period_of_attendance_to) : null
-
-            if (!from || !to || isNaN(from.getTime()) || isNaN(to.getTime())) return true
-
-            return from <= to
-          }
+          isBeforeOrEqualTo('period_of_attendance_to')
         ),
         notInFuture: helpers.withMessage('Date must not be in the future.', notInFuture),
       },
       period_of_attendance_to: {
         maxLength: helpers.withMessage(() => generateMessage('elementary_to').maxLength, globalStringMaxLengthRule),
-        isAfterOrEqualFromDate,
+        isAfterOrEqualTo: helpers.withMessage(
+          'Inclusive "From" date must not be after "To" date.',
+          isBeforeOrEqualTo('period_of_attendance_to')
+        ),
         notInFuture: helpers.withMessage('Date must not be in the future.', notInFuture),
       },
       highest_level_units_earned: {
@@ -357,27 +347,16 @@ const formRules = computed(() => ({
         required: helpers.withMessage(() => generateMessage('college_from').required, required),
         isAfterOrEqualTo: helpers.withMessage(
           'Inclusive "From" date must not be after "To" date.',
-          (
-            val: string | number | Date | null,
-            vm: {
-              period_of_attendance_to: string | number | Date | null
-            }
-          ) => {
-            if (!helpers.req(vm.period_of_attendance_to)) return true
-
-            const from = val ? new Date(val) : null
-            const to = vm.period_of_attendance_to ? new Date(vm.period_of_attendance_to) : null
-
-            if (!from || !to || isNaN(from.getTime()) || isNaN(to.getTime())) return true
-
-            return from <= to
-          }
+          isBeforeOrEqualTo('period_of_attendance_to')
         ),
         notInFuture: helpers.withMessage('Date must not be in the future.', notInFuture),
       },
       period_of_attendance_to: {
         required: helpers.withMessage(() => generateMessage('college_to').required, required),
-        isAfterOrEqualFromDate,
+        isAfterOrEqualTo: helpers.withMessage(
+          'Inclusive "From" date must not be after "To" date.',
+          isBeforeOrEqualTo('period_of_attendance_to')
+        ),
         notInFuture: helpers.withMessage('Date must not be in the future.', notInFuture),
       },
       highest_level_units_earned: {
@@ -401,21 +380,7 @@ const formRules = computed(() => ({
         maxLength: helpers.withMessage(() => generateMessage('graduate_from').maxLength, globalStringMaxLengthRule),
         isAfterOrEqualTo: helpers.withMessage(
           'Inclusive "From" date must not be after "To" date.',
-          (
-            val: string | number | Date | null,
-            vm: {
-              period_of_attendance_to: string | number | Date | null
-            }
-          ) => {
-            if (!helpers.req(vm.period_of_attendance_to)) return true
-
-            const from = val ? new Date(val) : null
-            const to = vm.period_of_attendance_to ? new Date(vm.period_of_attendance_to) : null
-
-            if (!from || !to || isNaN(from.getTime()) || isNaN(to.getTime())) return true
-
-            return from <= to
-          }
+          isBeforeOrEqualTo('period_of_attendance_to')
         ),
         notInFuture: helpers.withMessage('Date must not be in the future.', notInFuture),
       },
