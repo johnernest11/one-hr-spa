@@ -44,11 +44,12 @@ export const usePositionStore = defineStore('position', () => {
       positionOptions.value = []
       const positionsListResponse = res.data as PositionResponse[]
 
-      positionsListResponse.forEach((position: PositionResponse) => {
-        // Combine title and parenthetical_title into the label
-        const label = position.parenthetical_title ? `${position.title} (${position.parenthetical_title})` : position.title
-        positionOptions.value.push({ value: position.id, label })
-      })
+      positionOptions.value = positionsListResponse.map((position: PositionResponse) => ({
+        value: position.id,
+        label: position.parenthetical_title ? `${position.title} (${position.parenthetical_title})` : position.title,
+        parenthetical_title: position.parenthetical_title,
+        position_level: position.level,
+      }))
     }
     positionOptionsIsLoading.value = false
     return res
@@ -81,6 +82,8 @@ export const usePositionStore = defineStore('position', () => {
       positionOptions.value = positionsListResponse.map((position: PositionResponse) => {
         return {
           value: position.id,
+          parenthetical_title: position.parenthetical_title,
+          position_level: position.level,
           label: position.parenthetical_title ? `${position.title} (${position.parenthetical_title})` : position.title,
         }
       })

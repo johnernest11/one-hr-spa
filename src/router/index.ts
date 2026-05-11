@@ -4,7 +4,6 @@ import Dashboard from '@/views/DashboardPage.vue'
 import SupportPage from '@/views/SupportPage.vue'
 import AccomplishmentReportPage from '@/views/commitment/AccomplishmentReportPage.vue'
 import ItemNumberPage from '@/views/human-resources/ItemNumberPage.vue'
-import ItemNumberForm from '@/components/item-number/ItemNumberForm.vue'
 import AboutUsPage from '@/views/AboutUsPage.vue'
 import { AuthRole, AuthType } from '@/typings/auth.types.ts'
 import { useAuthStore } from '@/stores/auth.store.ts'
@@ -564,7 +563,7 @@ const routes = [
         component: () => import('@/views/commitment/CompensatoryTimeOffPage.vue'),
         meta: <RouteMeta>{
           label: 'CTDos',
-          isSidebarMenu: true,
+          isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
           roles: [
             AuthRole.STANDARD_USER,
@@ -712,7 +711,7 @@ const routes = [
       {
         path: '/items/store',
         name: 'item-numbers/store',
-        component: ItemNumberForm,
+        component: () => import('@/components/item-number/ItemManagementForm.vue'),
         meta: <RouteMeta>{
           isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
@@ -722,7 +721,7 @@ const routes = [
       {
         path: '/item-numbers/:id/editor',
         name: 'item-numbers/editor',
-        component: ItemNumberForm,
+        component: () => import('@/components/item-number/ItemManagementForm.vue'),
         meta: <RouteMeta>{
           isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,

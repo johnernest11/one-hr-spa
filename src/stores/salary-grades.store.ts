@@ -18,16 +18,16 @@ export type SalaryGradePayload = {
 export const useSalaryGradesStore = defineStore('salary-grades', () => {
   /** States */
   const authStore = useAuthStore()
+  const salaryGrade = ref<SalaryGradeResponse[]>([])
+
   const salaryGradesOptions = ref<WbAutoCompleteOption[]>([])
   const salaryGradesOptionsLoading = ref(false)
-  const salaryGrade = ref<SalaryGradeResponse[]>([])
 
   const createSalaryGrade = async (user: Partial<SalaryGradeResponse>) => {
     const { data } = await useApiCall('/libraries/salary-grades/', authStore.authenticationToken).post(user).json()
     const responseBody: ApiResponseBody = data.value
 
     if (responseBody.success) {
-      // Add new user to the beginning of the list
       salaryGrade.value.unshift(responseBody.data as SalaryGradeResponse)
     }
 
@@ -37,19 +37,24 @@ export const useSalaryGradesStore = defineStore('salary-grades', () => {
   const fetchSalaryGrade = async () => {
     if (salaryGradesOptions.value.length > 0) return null
 
+    const uri = '/libraries/salary-grades'
+
     salaryGradesOptionsLoading.value = true
-    const { data } = await useApiCall('/libraries/salary-grades?limit=1000', authStore.authenticationToken).get().json()
+    const { data } = await useApiCall(uri, authStore.authenticationToken).get().json()
     const res: ApiResponseBody = data.value
 
     if (res.success) {
       salaryGradesOptions.value = []
-      const officesListResponse = res.data as SalaryGradeResponse[]
-      officesListResponse.forEach((element: SalaryGradeResponse) => {
-        salaryGradesOptions.value.push({
-          value: element.id,
-          label: `SG-${element.salary_grade}-${element.step} FY: ${element.effective_date} Tranche: ${element.tranche}`,
-        })
-      })
+      const SalaryGradeListResponses = res.data as SalaryGradeResponse[]
+
+      salaryGradesOptions.value = SalaryGradeListResponses.map((salary: SalaryGradeResponse) => ({
+        value: salary.id,
+        label: `SG-${salary.salary_grade}-${salary.step} FY: ${salary.effective_date} Tranche: ${salary.tranche}`,
+        tranche: salary.tranche,
+        salary_grade: salary.salary_grade,
+        step: salary.step,
+        amount: salary.amount,
+      }))
     }
 
     salaryGradesOptionsLoading.value = false
@@ -72,19 +77,31 @@ export const useSalaryGradesStore = defineStore('salary-grades', () => {
     return responseBody
   }
 
-  const searchListSalaryGrade = async (query: string | null) => {
+  const searchSalaryGrade = async (query: string | null) => {
+    salaryGradesOptionsLoading.value = true
     let uri = '/libraries/salary-grades/search?'
     if (query) uri += `query=${query}`
 
     const { data } = await useApiCall(uri, authStore.authenticationToken).get().json()
-    const responseBody: ApiResponseBody = data.value
+    salaryGradesOptionsLoading.value = false
+    const res: ApiResponseBody = data.value
 
-    if (responseBody.success) {
-      const salaryList = responseBody.data as SalaryGradeResponse[]
-      salaryGrade.value = [...salaryList]
+    if (res.success && Array.isArray(res.data)) {
+      const salaryGradesListResponse = res.data as SalaryGradeResponse[]
+      salaryGradesOptions.value = salaryGradesListResponse.map((salary: SalaryGradeResponse) => {
+        return {
+          value: salary.id,
+          label: `SG-${salary.salary_grade}-${salary.step} FY: ${salary.effective_date} Tranche: ${salary.tranche}`,
+          tranche: salary.tranche,
+          salary_grade: salary.salary_grade,
+          step: salary.step,
+          amount: salary.amount,
+        }
+      })
+    } else {
+      salaryGradesOptions.value = []
     }
-
-    return responseBody
+    return res
   }
 
   return {
@@ -93,6 +110,7 @@ export const useSalaryGradesStore = defineStore('salary-grades', () => {
     createSalaryGrade,
     fetchSalaryGrade,
     fetchListSalaryGrade,
-    searchListSalaryGrade,
+    searchSalaryGrade,
+    salaryGradesOptionsLoading,
   }
 })
