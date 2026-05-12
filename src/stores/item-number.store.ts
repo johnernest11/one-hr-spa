@@ -16,14 +16,14 @@ export type ItemNumberPayload = {
   psipop_id?: string | number | null
   // Compensation & Employment Details
   employment_status: string
+  fund_source_id?: string | number | null
   fund_source: string | null
-  fund_source_id?: number | null
-  salary_grade_id?: number | null
+  salary_grade_id?: string | number | null
   salary_grade: string | null
 
   // Position Details
   position: string | null
-  position_id?: number | null
+  position_id?: string | number | null
   item_classification: string | null
   number: string | null
   date_of_creation: string

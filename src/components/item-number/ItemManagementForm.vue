@@ -351,9 +351,9 @@ watch(
       payload.number = ''
       payload.date_of_creation = ''
       payload.status = 'Unfilled'
-      payload.fund_source_id = 0
+      payload.fund_source_id = ''
       payload.employment_status = ''
-      payload.position_id = 0
+      payload.position_id = ''
     }
   },
   { immediate: true }
@@ -624,7 +624,6 @@ const updateButtonSubmission = async () => {
               :id="getId('input-program')"
               optionLabel="label"
               optionValue="value"
-              required
               :readonly="pdsStore.isMyPds"
               :class="[
                 'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
@@ -842,11 +841,7 @@ const updateButtonSubmission = async () => {
                 label="Classification of Status."
                 label-class="text-sm text-surface-600"
                 disabled
-                :invalid="validator.number.$invalid || manualInvalidFields.number"
-                :invalid-text="validator.number.$errors[0]?.$message"
-                @blur="validator.number.$touch"
                 v-tooltip.bottom="!payload.employment_status ? 'Please select Employment Status and Position first' : ''"
-                required
               />
             </div>
           </div>
@@ -869,12 +864,13 @@ const updateButtonSubmission = async () => {
               <WbCalendar
                 v-model="payload.date_of_creation"
                 label="Date of Creation"
-                label-class="text-sm text-surface-600"
                 dateFormat="MM dd, yy"
                 :maxDate="new Date()"
                 :invalid="validator.date_of_creation.$invalid"
                 :invalid-text="validator.date_of_creation.$errors[0]?.$message"
                 @blur="validator.date_of_creation.$touch"
+                @focusin="validator.date_of_creation.$dirty = false"
+                label-class="text-sm text-surface-600 dark:lg:text-surface-200"
                 required
               >
               </WbCalendar>
