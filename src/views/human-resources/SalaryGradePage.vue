@@ -167,7 +167,7 @@ const handleSearchSalary = async () => {
     return
   }
 
-  const response = await salaryGradeStore.searchListSalaryGrade(searchQuery.value)
+  const response = await salaryGradeStore.searchSalaryGrade(searchQuery.value)
   if (response.success && response.pagination) {
     pagination.value = response.pagination
 

@@ -130,7 +130,7 @@ export const useSidebarNavLinks = () => {
                   break
 
                 /*Profile Routes */
-                case 'my-pds':
+                case 'my-employee-profile':
                   childNavLink.icon = 'fas fa-sheet-plastic'
                   break
                 case 'my-wes':

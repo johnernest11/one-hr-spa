@@ -204,10 +204,47 @@ const individual_basic_details = [
 const item_id = [
   {
     id: 1,
-    number: 'ITEM-501',
-    date_of_creation: '2020-01-01',
-    status: 'Active',
-    date_filled_up: '2020-03-01',
+    division_id: 3,
+    division: {
+      id: 3,
+      name: 'FINANCE AND MANAGEMENT DIVISION',
+      head_user_id: null,
+      added_by_user_id: null,
+      last_modified_by_user_id: null,
+    },
+    section_or_unit_id: 5,
+    section_or_unit: {
+      id: 5,
+      name: 'ACCOUNTING SECTION',
+      division_id: null,
+      head_user_id: null,
+      added_by_user_id: null,
+      last_modified_by_user_id: null,
+    },
+    program_id: 1,
+    program: {
+      id: 1,
+      name: 'FO MAIN',
+    },
+    office_id: 1,
+    office: {
+      id: 1,
+      name: 'FO MAIN',
+      head_user_id: null,
+      added_by_user_id: null,
+      last_modified_by_user_id: null,
+    },
+
+    psipop_id: 1,
+    psipop: {
+      id: 1,
+      name: 'FO MAIN',
+      head_user_id: null,
+      added_by_user_id: null,
+      last_modified_by_user_id: null,
+    },
+
+    employment_status: 'Contract of Service',
     fund_source_id: 1,
     fund_source: {
       id: 1,
@@ -215,7 +252,10 @@ const item_id = [
       created_at: '2020-01-01',
       updated_at: '2020-01-01',
     },
-    employment_status: 'Contract of Service',
+
+    salary_id: 1,
+    salary: mockSalaryGrade,
+
     position_id: 1,
     position: {
       id: 1,
@@ -225,15 +265,72 @@ const item_id = [
       created_at: '2020-01-01',
       updated_at: '2020-01-01',
     },
+
+    item_classification: 'Regular',
+    number: 'ITEM-501',
+    date_of_creation: '2020-01-01',
+
+    status: 'Unfilled' as const,
+    mode_of_accession: '',
+    date_filled_up: '2020-01-01',
+    history_of_position: '',
+    former_incumbent: '',
+    mode_of_separation: '',
+    date_of_vacant: '',
+    remarks_of_vacancy: '',
+    status_of_vacant_position: '',
+    direct_contact_exposure_with_client: '',
+    remarks: '',
+
     created_at: '2020-01-01',
     updated_at: '2020-01-01',
   },
   {
     id: 2,
-    number: 'ITEM-501',
-    date_of_creation: '2020-01-01',
-    status: 'Active',
-    date_filled_up: '2020-03-01',
+    division_id: 3,
+    division: {
+      id: 3,
+      name: 'FINANCE AND MANAGEMENT DIVISION',
+      head_user_id: null,
+      added_by_user_id: null,
+      last_modified_by_user_id: null,
+    },
+    section_or_unit_id: 5,
+    section_or_unit: {
+      id: 5,
+      name: 'ACCOUNTING SECTION',
+      division_id: null,
+      head_user_id: null,
+      added_by_user_id: null,
+      last_modified_by_user_id: null,
+    },
+    program_id: 1,
+    program: {
+      id: 1,
+      name: 'FO MAIN',
+      head_user_id: null,
+      added_by_user_id: null,
+      last_modified_by_user_id: null,
+    },
+    office_id: 1,
+    office: {
+      id: 1,
+      name: 'FO MAIN',
+      head_user_id: null,
+      added_by_user_id: null,
+      last_modified_by_user_id: null,
+    },
+
+    psipop_id: 1,
+    psipop: {
+      id: 1,
+      name: 'FO MAIN',
+      head_user_id: null,
+      added_by_user_id: null,
+      last_modified_by_user_id: null,
+    },
+
+    employment_status: 'Contract of Service',
     fund_source_id: 1,
     fund_source: {
       id: 1,
@@ -241,20 +338,39 @@ const item_id = [
       created_at: '2020-01-01',
       updated_at: '2020-01-01',
     },
-    employment_status: 'Permanent',
-    position_id: 2,
+
+    salary_id: 1,
+    salary: mockSalaryGrade,
+
+    position_id: 1,
     position: {
-      id: 2,
-      title: 'Administrative Officer IV',
+      id: 1,
+      title: 'Administrative Officer III',
       parenthetical_title: null,
       level: null,
       created_at: '2020-01-01',
       updated_at: '2020-01-01',
     },
+    item_classification: 'Regular',
+    number: 'ITEM-501',
+    date_of_creation: '2020-01-01',
+
+    status: 'Unfilled' as const,
+    mode_of_accession: '',
+    date_filled_up: '2020-01-01',
+    history_of_position: '',
+    former_incumbent: '',
+    mode_of_separation: '',
+    date_of_vacant: '',
+    remarks_of_vacancy: '',
+    status_of_vacant_position: '',
+    direct_contact_exposure_with_client: '',
+    remarks: '',
     created_at: '2020-01-01',
     updated_at: '2020-01-01',
   },
 ]
+
 const employee_data = [
   {
     id: 1,

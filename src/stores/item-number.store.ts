@@ -8,16 +8,46 @@ import { ref } from 'vue'
 import { WbAutoCompleteOption } from '@/components/webkit/WbAutoComplete.vue'
 
 export type ItemNumberPayload = {
+  // Organizational Data
+  division_id?: string | number | null
+  section_or_unit_id?: string | number | null
+  office_id?: string | number | null
+  program_id?: string | number | null
+  psipop_id?: string | number | null
+  // Compensation & Employment Details
+  employment_status: string
+  fund_source_id?: string | number | null
+  fund_source: string | null
+  salary_grade_id?: string | number | null
+  salary_grade: string | null
+
+  // Position Details
+  position: string | null
+  position_id?: string | number | null
+  item_classification: string | null
   number: string | null
   date_of_creation: string
+
+  // Designation Details
+  designation: string | null
+  date_of_designation: string | null
+  special_order_number: string | null
+
+  // Position History & Vacancy Details
   status: 'Unfilled' | 'Filled'
+  mode_of_accession: string | null
   date_filled_up: string
-  fund_source: number
-  fund_source_id?: string | number | null
-  employment_status: string
-  position: number
-  position_id?: string | number | null
+  history_of_position?: string | null
+  former_incumbent: string | null
+  mode_of_separation: string | null
+  date_of_vacant: string | null
+  remarks_of_vacancy: string | null
+  status_of_vacant_position: string | null
+  direct_contact_exposure_with_client: string | null
+  remarks: string | null
 }
+
+export type LibraryStoreKeys = 'officeOptions' | 'divisionOptions' | 'sectionUnitOptions' | 'programOptions' | 'psipopOptions'
 
 export const useItemNumberStore = defineStore('item-number', () => {
   const auth = useAuthStore()

@@ -36,8 +36,7 @@ export const useLibrariesStore = defineStore('libraries', () => {
   const divisions = ref<DivisionResponse[]>([])
   const sectionsorunits = ref<SectionorUnitResponse[]>([])
   const programs = ref<ProgramResponse[]>([])
-  const officeOptions = ref<WbAutoCompleteOption[]>([])
-  const officeOptionsLoading = ref(false)
+
   const authStore = useAuthStore()
   const sexOptions = ref([
     { value: 'male', label: 'Male' },
@@ -74,6 +73,15 @@ export const useLibrariesStore = defineStore('libraries', () => {
 
   const sectionUnitOptions = ref<WbAutoCompleteOption[]>([])
   const sectionUnitOptionsLoading = ref(false)
+
+  const programOptions = ref<WbAutoCompleteOption[]>([])
+  const programOptionsLoading = ref(false)
+
+  const officeOptions = ref<WbAutoCompleteOption[]>([])
+  const officeOptionsLoading = ref(false)
+
+  const psipopOptions = ref<WbAutoCompleteOption[]>([])
+  const psipopOptionsLoading = ref(false)
 
   const itemsOptions = ref<WbAutoCompleteOption[]>([])
   const itemsOptionsLoading = ref(false)
@@ -386,6 +394,10 @@ export const useLibrariesStore = defineStore('libraries', () => {
     searchListOffices,
     officeOptions,
     officeOptionsLoading,
+    programOptions,
+    programOptionsLoading,
+    psipopOptions,
+    psipopOptionsLoading,
     divisions,
     createDivisions,
     fetchDivisions,

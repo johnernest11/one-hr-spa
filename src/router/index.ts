@@ -4,7 +4,6 @@ import Dashboard from '@/views/DashboardPage.vue'
 import SupportPage from '@/views/SupportPage.vue'
 import AccomplishmentReportPage from '@/views/commitment/AccomplishmentReportPage.vue'
 import ItemNumberPage from '@/views/human-resources/ItemNumberPage.vue'
-import ItemNumberForm from '@/components/item-number/ItemNumberForm.vue'
 import AboutUsPage from '@/views/AboutUsPage.vue'
 import { AuthRole, AuthType } from '@/typings/auth.types.ts'
 import { useAuthStore } from '@/stores/auth.store.ts'
@@ -97,11 +96,11 @@ const routes = [
     },
     children: [
       {
-        path: '/my-pds',
-        name: 'my-pds',
-        component: () => import('@/views/personnel/PdsForm.vue'),
+        path: '/my-employee-profile',
+        name: 'my-employee-profile',
+        component: () => import('@/views/personnel/EmployeeProfilingPage.vue'),
         meta: <RouteMeta>{
-          label: 'Personal Data Sheet',
+          label: 'My Employee Profile',
           isSidebarMenu: true,
           authType: AuthType.AUTHENTICATED,
           roles: [
@@ -314,7 +313,7 @@ const routes = [
         component: () => import('@/components/service-record/ServiceRecordForm.vue'),
         meta: <RouteMeta>{
           label: 'My Service Records',
-          isSidebarMenu: true,
+          isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
           roles: [AuthRole.STANDARD_USER, AuthRole.HR_PPMS_ADMIN, AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],
         },
@@ -564,7 +563,7 @@ const routes = [
         component: () => import('@/views/commitment/CompensatoryTimeOffPage.vue'),
         meta: <RouteMeta>{
           label: 'CTDos',
-          isSidebarMenu: true,
+          isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
           roles: [
             AuthRole.STANDARD_USER,
@@ -712,7 +711,7 @@ const routes = [
       {
         path: '/items/store',
         name: 'item-numbers/store',
-        component: ItemNumberForm,
+        component: () => import('@/components/item-number/ItemManagementForm.vue'),
         meta: <RouteMeta>{
           isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
@@ -722,7 +721,7 @@ const routes = [
       {
         path: '/item-numbers/:id/editor',
         name: 'item-numbers/editor',
-        component: ItemNumberForm,
+        component: () => import('@/components/item-number/ItemManagementForm.vue'),
         meta: <RouteMeta>{
           isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
@@ -751,7 +750,7 @@ const routes = [
       {
         path: ':id?/editor',
         name: 'create-personnel',
-        component: () => import('@/views/personnel/PdsForm.vue'),
+        component: () => import('@/views/personnel/EmployeeProfilingPage.vue'),
         meta: <RouteMeta>{
           label: 'Create Personnel',
           isSidebarMenu: false,

@@ -15,6 +15,7 @@ const allLeaveCreditsData = ref<LeaveCreditsResponse[]>([])
 onMounted(async () => {
   const response = await leaveCreditsStore.fetchLeaveCredits()
   if (response && response.success && Array.isArray(response.data)) {
+    console.log('Full API Response:', response.data)
     allLeaveCreditsData.value = response.data
   }
   isLoading.value = false

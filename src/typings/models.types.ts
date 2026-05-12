@@ -90,15 +90,40 @@ export type ProgramResponse = {
 
 export type ItemNumberResponse = {
   id: number
+  division_id: number | null
+  division: DivisionResponse | null
+  section_or_unit_id: number | null
+  section_or_unit: SectionorUnitResponse | null
+  program_id: number | null
+  program: ProgramResponse | null
+  office_id: number | null
+  office: OfficesResponse | null
+  psipop_id: number | null
+  psipop: DivisionResponse | null
+
+  employment_status: string
+  fund_source_id: number | null
+  fund_source: FundSourceResponse | null
+  salary_id: number | null
+  salary: SalaryGradeResponse | null
+
+  position_id: number | null
+  position: PositionResponse | null
+  item_classification: string | null
   number: string
   date_of_creation: string | null
-  status: string | null
+
+  status: 'Unfilled' | 'Filled'
+  mode_of_accession: string | null
   date_filled_up: string | null
-  fund_source_id: number
-  fund_source: FundSourceResponse | null
-  employment_status: string | null
-  position_id: number
-  position: PositionResponse | null
+  history_of_position?: string | null
+  former_incumbent: string | null
+  mode_of_separation: string | null
+  date_of_vacant: string | null
+  remarks_of_vacancy: string | null
+  status_of_vacant_position: string | null
+  direct_contact_exposure_with_client: string | null
+  remarks: string | null
 } & ApiResponseData
 
 export type FundSourceResponse = {
