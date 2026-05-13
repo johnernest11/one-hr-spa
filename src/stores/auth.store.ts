@@ -6,6 +6,7 @@ import { ApiResponseBody } from '@/typings/http-resources.types.ts'
 import { UserResponse } from '@/typings/models.types.ts'
 import { RegistrationPayload } from '@/stores/forms.store.ts'
 import { resetEcho } from '@/utils/echo'
+import AuthWorker from '@/workers/auth-worker?worker'
 
 /** Typings */
 export type LoginPayload = {
@@ -99,6 +100,8 @@ export const useAuthStore = defineStore('auth', () => {
   const authenticationTokenExpiration = useStorage<Date>('auth-token-expiration', null, localStorage, {
     serializer: StorageSerializers.date,
   })
+
+  const authWorkerInstance = ref<Worker | null>(null)
 
   const refreshToken = useStorage<string>('refresh-token', null, localStorage, {
     serializer: StorageSerializers.string,
@@ -218,7 +221,7 @@ export const useAuthStore = defineStore('auth', () => {
       if (authResponse.refresh_token && authResponse.refresh_token_expires_at) {
         refreshToken.value = authResponse.refresh_token
         refreshTokenExpiration.value = new Date(authResponse.refresh_token_expires_at)
-        scheduleTokenRefresh(authenticationTokenExpiration.value)
+        authWorkerInstance.value = initializeAuthWorker()
       }
 
       authExpired.value = false
@@ -226,6 +229,65 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     return responseData
+  }
+
+  /** Initialize web worker for handling the refresh token */
+  const initializeAuthWorker = () => {
+    const worker = new AuthWorker()
+    const refreshInterval = Number(import.meta.env.VITE_REFRESH_TOKEN_INTERVAL_CHECK)
+    const refreshZone = Number(import.meta.env.VITE_REFRESH_ZONE)
+
+    worker.onmessage = async (e) => {
+      if (e.data === 'TICK') {
+        // If ever for some reason authenticationTokenExpiration is not yet hydrated
+        if (!authenticationTokenExpiration.value) {
+          const rawValue = localStorage.getItem('auth-token-expiration')
+          console.log('Raw Value: ', rawValue)
+
+          if (!rawValue || rawValue === 'null') {
+            console.warn('Worker tick: No expiration found yet.')
+            return
+          }
+
+          try {
+            const expiryDate = new Date(rawValue)
+
+            if (isNaN(expiryDate.getTime())) {
+              console.error('Worker tick: Stored date is invalid.')
+              return
+            }
+
+            await checkTokenExpiration(expiryDate, refreshZone)
+          } catch (err) {
+            console.log('Worker issue: parsing error. ', err)
+          }
+        }
+
+        if (authenticationTokenExpiration.value) {
+          await checkTokenExpiration(authenticationTokenExpiration.value, refreshZone)
+        }
+      }
+    }
+
+    // Start the worker ticking every set interval (e.g., 30 seconds)
+    worker.postMessage({ action: 'start', interval: refreshInterval })
+
+    return worker
+  }
+
+  const checkTokenExpiration = async (expiresAt: Date, refreshZone: number) => {
+    const now = Date.now()
+    const expiry = expiresAt.getTime()
+
+    if (expiry > 0 && now > expiry - refreshZone) {
+      await refreshCurrentTokens()
+      console.log('Worker signaled refresh...')
+      try {
+        await refreshCurrentTokens()
+      } catch (err) {
+        console.error('Worker-initiated refresh failed: ', err)
+      }
+    }
   }
 
   const ssoLogin = async (token: string): Promise<ApiResponseBody> => {
@@ -283,6 +345,10 @@ export const useAuthStore = defineStore('auth', () => {
     // Destroy echo connection to prevent stale instance.
     resetEcho()
 
+    // Terminate worker if it is still active
+    console.log('Auth worker status: ', authWorkerInstance.value)
+    terminateWebWorker()
+
     if (refreshToken.value) {
       clearRefreshTokenOnStorage()
       refreshTokenExpired.value = false
@@ -291,6 +357,15 @@ export const useAuthStore = defineStore('auth', () => {
     if (refreshTimer.value) {
       clearTimeout(refreshTimer.value)
       refreshTimer.value = null
+    }
+  }
+
+  const terminateWebWorker = () => {
+    if (authWorkerInstance.value) {
+      authWorkerInstance.value.postMessage({ action: 'stop' })
+      authWorkerInstance.value.terminate()
+      authWorkerInstance.value = null
+      console.log('Auth worker terminated.')
     }
   }
 
@@ -429,7 +504,6 @@ export const useAuthStore = defineStore('auth', () => {
             : null
           refreshTokenExpired.value = false
 
-          scheduleTokenRefresh(authenticationTokenExpiration.value)
           console.log('Token is refreshed!')
         }
       } else {
@@ -465,37 +539,6 @@ export const useAuthStore = defineStore('auth', () => {
     mfaSteps.value = null
   }
 
-  /**
-   * Schedule proactive refresh
-   */
-  const scheduleTokenRefresh = (expiresAt: Date | null): void => {
-    if (!expiresAt) return
-    if (refreshTokenExpired.value) return
-
-    if (refreshTimer.value) {
-      clearScheduledRefresh()
-    }
-
-    const refreshIntervalSeconds = Number(import.meta.env.VITE_REFRESH_TOKEN_INTERVAL_CHECK)
-    const refreshIntervalMs = refreshIntervalSeconds * 1000
-    const timeUntilExpiry = expiresAt.getTime() - Date.now()
-    const delayMs = timeUntilExpiry - refreshIntervalMs
-    if (delayMs <= 0) return
-
-    console.log('Initializing token refresh scheduler...')
-    console.log(`Refreshing in ${Math.ceil(delayMs / 1000)} seconds.`)
-    refreshTimer.value = window.setTimeout(async () => {
-      try {
-        console.log('Token is nearing expiration. Refreshing...')
-        await refreshCurrentTokens()
-      } catch (err) {
-        console.error('Auto refresh failed', err)
-        refreshTokenExpired.value = true
-        clearScheduledRefresh()
-      }
-    }, delayMs)
-  }
-
   const clearScheduledRefresh = () => {
     if (refreshTimer.value) {
       console.log('Token refresh scheduler cleared.')
@@ -509,6 +552,7 @@ export const useAuthStore = defineStore('auth', () => {
     authenticatedUser,
     authExpired,
     authenticationTokenExpiration,
+    authWorkerInstance,
     refreshToken,
     refreshTokenExpiration,
     refreshTokenExpired,
@@ -520,9 +564,11 @@ export const useAuthStore = defineStore('auth', () => {
     authFullName,
     authFullAddress,
     login,
+    initializeAuthWorker,
     ssoLogin,
     register,
     logout,
+    terminateWebWorker,
     requestForgotPassword,
     resetPassword,
     resendEmailVerification,
@@ -538,7 +584,6 @@ export const useAuthStore = defineStore('auth', () => {
     fetchAllAvailableMfaMethods,
     unEnrollUserFromMfaMethod,
     refreshCurrentTokens,
-    scheduleTokenRefresh,
     clearScheduledRefresh,
     clearAuthTokenOnStorage,
   }

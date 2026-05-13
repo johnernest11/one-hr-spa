@@ -83,6 +83,11 @@ onBeforeMount(async () => {
 
 onMounted(() => {
   applyTheme()
+  if (authStore.refreshToken && !authStore.refreshTokenExpired) {
+    console.log('Time Logger Detected... Reinitializing worker')
+    authStore.terminateWebWorker() // terminate active workers
+    authStore.authWorkerInstance = authStore.initializeAuthWorker() // reinitialize worker if ever the page reloads.
+  }
 })
 </script>
 
