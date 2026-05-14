@@ -18,8 +18,13 @@ export const sleep = (seconds: number): Promise<boolean> => {
 
 export const getManilaTodayISO = (): string => {
   const now = new Date()
-  const manilaDateTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Manila' }))
-  return manilaDateTime.toISOString().split('T')[0]
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Manila',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
+  return formatter.format(now)
 }
 
 export const snakeCaseToTitleCase = (s: string) =>
