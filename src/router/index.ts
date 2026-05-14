@@ -155,6 +155,26 @@ const routes = [
         },
       },
       {
+        path: '/my-qr',
+        name: 'my-qr',
+        component: () => import('@/views/personnel/MyQRPage.vue'),
+        meta: <RouteMeta>{
+          label: 'My QR Code',
+          isSidebarMenu: true,
+          authType: AuthType.AUTHENTICATED,
+          roles: [
+            AuthRole.STANDARD_USER,
+            AuthRole.SECTION_HEAD,
+            AuthRole.DIVISION_HEAD,
+            AuthRole.HR_PPMS_ADMIN,
+            AuthRole.HR_PAS_ADMIN,
+            AuthRole.ADMIN,
+            AuthRole.SUPER_USER,
+            AuthRole.SYSTEM_SUPPORT,
+          ],
+        },
+      },
+      {
         path: '/my-leaveapplications',
         name: 'my-leaveapplications',
         component: () => import('@/views/personnel/LeaveApplicationPage.vue'),
