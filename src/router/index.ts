@@ -98,7 +98,7 @@ const routes = [
       {
         path: '/my-employee-profile',
         name: 'my-employee-profile',
-        component: () => import('@/views/personnel/EmployeeProfilingPage.vue'),
+        component: () => import('@/components/employee-profiling/EmployeeProfilingForm.vue'),
         meta: <RouteMeta>{
           label: 'My Employee Profile',
           isSidebarMenu: true,
@@ -731,7 +731,7 @@ const routes = [
       {
         path: 'employment/:id?',
         name: 'employment',
-        component: () => import('@/views/human-resources/EmployeesPage.vue'),
+        component: () => import('@/views/human-resources/EmployeeProfileListPage.vue'),
         meta: <RouteMeta>{
           label: 'Employment',
           isSidebarMenu: true,
@@ -750,7 +750,7 @@ const routes = [
       {
         path: ':id?/editor',
         name: 'create-personnel',
-        component: () => import('@/views/personnel/EmployeeProfilingPage.vue'),
+        component: () => import('@/components/employee-profiling/EmployeeProfilingForm.vue'),
         meta: <RouteMeta>{
           label: 'Create Personnel',
           isSidebarMenu: false,
@@ -797,7 +797,7 @@ const routes = [
       {
         path: '/employees/:id?',
         name: 'employees',
-        component: () => import('@/views/human-resources/EmployeesPage.vue'),
+        component: () => import('@/views/human-resources/EmployeeProfileListPage.vue'),
         meta: <RouteMeta>{
           label: 'Employee',
           isSidebarMenu: true,

@@ -97,7 +97,8 @@ export const usePayRollStore = defineStore('pay-roll', () => {
         },
         id_number: null,
         item_id: 0,
-        salary_grade_id: {
+        salary_grade_id: 1,
+        salary_grade: {
           id: 1,
           nbc_no: 123,
           effective_date: '2024-07-01',

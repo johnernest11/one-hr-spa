@@ -262,6 +262,7 @@ export const usePdsStore = defineStore('pds', () => {
         year_graduated: getEducationByLevel('Elementary')?.year_graduated ?? null,
         is_current_enrolled: getEducationByLevel('Elementary')?.is_current_enrolled ?? false,
         scholarship_academic_honors_received: getEducationByLevel('Elementary')?.scholarship_academic_honors_received ?? null,
+        _delete: getEducationByLevel('Elementary')?._delete ?? null,
       },
       high_school: {
         id: getEducationByLevel('Secondary')?.id ?? null,
@@ -274,6 +275,7 @@ export const usePdsStore = defineStore('pds', () => {
         year_graduated: getEducationByLevel('Secondary')?.year_graduated ?? null,
         is_current_enrolled: getEducationByLevel('Secondary')?.is_current_enrolled ?? false,
         scholarship_academic_honors_received: getEducationByLevel('Secondary')?.scholarship_academic_honors_received ?? null,
+        _delete: getEducationByLevel('Secondary')?._delete ?? null,
       },
       vocational: {
         id: getEducationByLevel('Vocational')?.id ?? null,
@@ -286,6 +288,7 @@ export const usePdsStore = defineStore('pds', () => {
         year_graduated: getEducationByLevel('Vocational')?.year_graduated ?? null,
         is_current_enrolled: getEducationByLevel('Vocational')?.is_current_enrolled ?? false,
         scholarship_academic_honors_received: getEducationByLevel('Vocational')?.scholarship_academic_honors_received ?? null,
+        _delete: getEducationByLevel('Vocational')?._delete ?? null,
       },
       college: {
         id: getEducationByLevel('College')?.id ?? null,
@@ -298,6 +301,7 @@ export const usePdsStore = defineStore('pds', () => {
         year_graduated: getEducationByLevel('College')?.year_graduated ?? null,
         is_current_enrolled: getEducationByLevel('College')?.is_current_enrolled ?? false,
         scholarship_academic_honors_received: getEducationByLevel('College')?.scholarship_academic_honors_received ?? null,
+        _delete: getEducationByLevel('College')?._delete ?? null,
       },
       graduate: {
         id: getEducationByLevel('Graduate')?.id ?? null,
@@ -310,6 +314,7 @@ export const usePdsStore = defineStore('pds', () => {
         year_graduated: getEducationByLevel('Graduate')?.year_graduated ?? null,
         is_current_enrolled: getEducationByLevel('Graduate')?.is_current_enrolled ?? false,
         scholarship_academic_honors_received: getEducationByLevel('Graduate')?.scholarship_academic_honors_received ?? null,
+        _delete: getEducationByLevel('Graduate')?._delete ?? null,
       },
     },
     individual_educational_background: [],
@@ -473,6 +478,7 @@ export const usePdsStore = defineStore('pds', () => {
       id_number: null,
       item_id: employee?.item_id ?? null,
       salary_grade_id: employee?.salary_grade_id ?? null,
+      salary_grade: employee?.salary_grade ?? null,
       position: null,
       fund_source: {
         id: null,
@@ -637,6 +643,7 @@ export const usePdsStore = defineStore('pds', () => {
         year_graduated: elementary?.year_graduated ?? null,
         is_current_enrolled: elementary?.is_current_enrolled ?? false,
         scholarship_academic_honors_received: elementary?.scholarship_academic_honors_received ?? null,
+        _delete: elementary?._delete ?? null,
       },
       high_school: {
         id: highSchool?.id ?? null,
@@ -649,6 +656,7 @@ export const usePdsStore = defineStore('pds', () => {
         year_graduated: highSchool?.year_graduated ?? null,
         is_current_enrolled: highSchool?.is_current_enrolled ?? false,
         scholarship_academic_honors_received: highSchool?.scholarship_academic_honors_received ?? null,
+        _delete: highSchool?._delete ?? null,
       },
       college: {
         id: college?.id ?? null,
@@ -661,6 +669,7 @@ export const usePdsStore = defineStore('pds', () => {
         year_graduated: college?.year_graduated ?? null,
         is_current_enrolled: college?.is_current_enrolled ?? false,
         scholarship_academic_honors_received: college?.scholarship_academic_honors_received ?? null,
+        _delete: college?._delete ?? null,
       },
       vocational: {
         id: vocational?.id ?? null,
@@ -673,6 +682,7 @@ export const usePdsStore = defineStore('pds', () => {
         year_graduated: vocational?.year_graduated ?? null,
         is_current_enrolled: vocational?.is_current_enrolled ?? false,
         scholarship_academic_honors_received: vocational?.scholarship_academic_honors_received ?? null,
+        _delete: graduate?._delete ?? null,
       },
       graduate: {
         id: graduate?.id ?? null,
@@ -685,6 +695,7 @@ export const usePdsStore = defineStore('pds', () => {
         year_graduated: graduate?.year_graduated ?? null,
         is_current_enrolled: graduate?.is_current_enrolled ?? false,
         scholarship_academic_honors_received: graduate?.scholarship_academic_honors_received ?? null,
+        _delete: graduate?._delete ?? null,
       },
     }
 
