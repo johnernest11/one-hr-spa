@@ -16,7 +16,7 @@ import { ApiResponseBody } from '@/typings/http-resources.types'
 import { formatDateFields, formatYear } from '@/utils/helpers.js'
 
 import { useRoute } from 'vue-router'
-import { CivilStatusType, SexType } from '@/typings/employee-entry.types'
+import { BloodType, CivilStatusType, SexType } from '@/typings/employee-entry.types'
 
 /** Typings */
 export type UploadProfilePictureResponse = { owner_id: string | number; path: string; url: string }
@@ -30,7 +30,11 @@ export type EmployeeProfilingPayload = {
     ext_name?: string | null
     birthday: string | null
     sex: 'male' | 'female' | null
+    place_of_birth: string | null
     civil_status: 'Single' | 'Married' | 'Widowed' | 'Divorced' | 'Separated' | null
+    height: number | null
+    weight: number | null
+    blood_type: 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-' | null
     philhealth_no: string | null
     gsis_no: string | null
     pag_ibig_no: string | null
@@ -96,8 +100,12 @@ export const useProfilingStore = defineStore('profiling', () => {
       ext_name: individual?.ext_name ?? null,
       birthday: individual?.birthday ?? null,
       sex: (individual?.sex as SexType) ?? null,
+      place_of_birth: individual?.place_of_birth ?? null,
       civil_status: (individual?.civil_status as CivilStatusType) ?? null,
+      height: individual?.height ?? null,
+      weight: individual?.weight ?? null,
       tin: individual?.tin ?? null,
+      blood_type: (individual?.blood_type as BloodType) ?? null,
       philhealth_no: individual?.philhealth_no ?? null,
       gsis_no: individual?.gsis_no ?? null,
       pag_ibig_no: individual?.pag_ibig_no ?? null,
