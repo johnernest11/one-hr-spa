@@ -33,6 +33,13 @@ export enum ExtensionType {
   V = 'V',
 }
 
+export enum EducationType {
+  SECONDARY = 'Secondary',
+  VOCATIONAL = 'Vocational',
+  COLLEGE = 'College',
+  GRADUATE = 'Graduate',
+}
+
 export enum EmploymentStatusType {
   PERMANENT = 'Permanent',
   CONTRACTUAL = 'Contractual',
@@ -57,7 +64,15 @@ export enum CountryType {
 
 export interface Option {
   label: string
-  value: BloodType | SexType | CivilStatusType | ExtensionType | EmploymentStatusType | FilipinoByType | CountryType
+  value:
+    | BloodType
+    | SexType
+    | CivilStatusType
+    | ExtensionType
+    | EducationType
+    | EmploymentStatusType
+    | FilipinoByType
+    | CountryType
 }
 
 export const bloodTypeOptions: Option[] = [
@@ -92,6 +107,20 @@ export const ExtensionTypeOptions: Option[] = [
   { label: 'III', value: ExtensionType.III },
   { label: 'IV', value: ExtensionType.IV },
   { label: 'V', value: ExtensionType.V },
+]
+
+export const EducationTypeOptions: Option[] = [
+  { label: 'High School', value: EducationType.SECONDARY },
+  { label: 'Vocational', value: EducationType.VOCATIONAL },
+  { label: 'College', value: EducationType.COLLEGE },
+  { label: 'Graduate', value: EducationType.GRADUATE },
+]
+
+export const EligibilityTypeOptions = [
+  { label: '', value: '' },
+  { label: '1st Level Eligibillity', value: '1st Level Eligibillity' },
+  { label: '2nd Level Eligibility', value: '2nd Level Eligibillity' },
+  { label: '3rd Level Eligibility', value: '3rd Level Eligibillity' },
 ]
 
 export const EmploymentStatusOptions: Option[] = [

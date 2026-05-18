@@ -4,13 +4,16 @@ import {
   IndividualAddress,
   IndividualContactInfo,
   IndividualEducBg,
+  IndividualEligibility,
+  IndividualQuestion,
+  IndividualWorkExperience,
   PersonnelEmployee,
   PersonnelResponse,
 } from '@/typings/models.types.ts'
 import { useApiCall } from '@/composables/network'
 import { useAuthStore } from '@/stores/auth.store.ts'
 import { ApiResponseBody } from '@/typings/http-resources.types'
-import { formatYear } from '@/utils/helpers.js'
+import { formatDateFields, formatYear } from '@/utils/helpers.js'
 
 import { useRoute } from 'vue-router'
 import { CivilStatusType, SexType } from '@/typings/employee-entry.types'
@@ -28,6 +31,10 @@ export type EmployeeProfilingPayload = {
     birthday: string | null
     sex: 'male' | 'female' | null
     civil_status: 'Single' | 'Married' | 'Widowed' | 'Divorced' | 'Separated' | null
+    philhealth_no: string | null
+    gsis_no: string | null
+    pag_ibig_no: string | null
+    sss_no: string | null
     tin: string | null
     agency_employee_no: string | null
     citizenship: string | null
@@ -61,13 +68,10 @@ export type EmployeeProfilingPayload = {
   }
   /**Educational Information */
   individual_educational_background: IndividualEducBg[]
-  educations: {
-    elementary: IndividualEducBg
-    high_school: IndividualEducBg
-    vocational: IndividualEducBg
-    college: IndividualEducBg
-    graduate: IndividualEducBg
-  }
+
+  individual_eligibility: IndividualEligibility[]
+  individual_work_experience: IndividualWorkExperience[]
+  individual_question: IndividualQuestion[]
   employee: PersonnelEmployee
 }
 
@@ -84,14 +88,6 @@ export const useProfilingStore = defineStore('profiling', () => {
   const contactInfo = individual?.individual_contact_info
   const individual_address = individual?.individual_address
 
-  const educations = (individual?.individual_educational_background ?? []) as IndividualEducBg[]
-  const elementary = educations.find((e) => e.level === 'Elementary')
-  const highSchool = educations.find((e) => e.level === 'Secondary')
-  const college = educations.find((e) => e.level === 'College')
-  const vocational = educations.find((e) => e.level === 'Vocational')
-  const graduate = educations.find((e) => e.level === 'Graduate')
-  const getEducationByLevel = (level: string) => educations.find((e) => e.level === level) ?? null
-
   const ProfilingInfo = reactive<EmployeeProfilingPayload>({
     individual: {
       first_name: individual?.first_name ?? null,
@@ -102,8 +98,12 @@ export const useProfilingStore = defineStore('profiling', () => {
       sex: (individual?.sex as SexType) ?? null,
       civil_status: (individual?.civil_status as CivilStatusType) ?? null,
       tin: individual?.tin ?? null,
+      philhealth_no: individual?.philhealth_no ?? null,
+      gsis_no: individual?.gsis_no ?? null,
+      pag_ibig_no: individual?.pag_ibig_no ?? null,
+      sss_no: individual?.sss_no ?? null,
       agency_employee_no: individual?.employee?.agency_employee_no ?? null,
-      citizenship: individual?.citizenship ?? null,
+      citizenship: individual?.citizenship ?? 'Filipino',
       citizenship_acquisition: individual?.citizenship_acquisition ?? null,
       country_id: individual?.country_id ?? null,
     },
@@ -136,69 +136,6 @@ export const useProfilingStore = defineStore('profiling', () => {
       permanent_region_id: individual_address?.permanent_region_id ?? null,
       permanent_zip_code: individual_address?.permanent_zip_code ?? null,
     },
-    educations: {
-      elementary: {
-        id: getEducationByLevel('Elementary')?.id ?? null,
-        level: 'Elementary',
-        schools_name: getEducationByLevel('Elementary')?.schools_name ?? null,
-        education_description: getEducationByLevel('Elementary')?.education_description ?? null,
-        period_of_attendance_from: getEducationByLevel('Elementary')?.period_of_attendance_from ?? null,
-        period_of_attendance_to: getEducationByLevel('Elementary')?.period_of_attendance_to ?? null,
-        highest_level_units_earned: getEducationByLevel('Elementary')?.highest_level_units_earned ?? null,
-        year_graduated: getEducationByLevel('Elementary')?.year_graduated ?? null,
-        is_current_enrolled: getEducationByLevel('Elementary')?.is_current_enrolled ?? false,
-        scholarship_academic_honors_received: getEducationByLevel('Elementary')?.scholarship_academic_honors_received ?? null,
-      },
-      high_school: {
-        id: getEducationByLevel('Secondary')?.id ?? null,
-        level: 'Secondary',
-        schools_name: getEducationByLevel('Secondary')?.schools_name ?? null,
-        education_description: getEducationByLevel('Secondary')?.education_description ?? null,
-        period_of_attendance_from: getEducationByLevel('Secondary')?.period_of_attendance_from ?? null,
-        period_of_attendance_to: getEducationByLevel('Secondary')?.period_of_attendance_to ?? null,
-        highest_level_units_earned: getEducationByLevel('Secondary')?.highest_level_units_earned ?? null,
-        year_graduated: getEducationByLevel('Secondary')?.year_graduated ?? null,
-        is_current_enrolled: getEducationByLevel('Secondary')?.is_current_enrolled ?? false,
-        scholarship_academic_honors_received: getEducationByLevel('Secondary')?.scholarship_academic_honors_received ?? null,
-      },
-      vocational: {
-        id: getEducationByLevel('Vocational')?.id ?? null,
-        level: 'Vocational',
-        schools_name: getEducationByLevel('Vocational')?.schools_name ?? null,
-        education_description: getEducationByLevel('Vocational')?.education_description ?? null,
-        period_of_attendance_from: getEducationByLevel('Vocational')?.period_of_attendance_from ?? null,
-        period_of_attendance_to: getEducationByLevel('Vocational')?.period_of_attendance_to ?? null,
-        highest_level_units_earned: getEducationByLevel('Vocational')?.highest_level_units_earned ?? null,
-        year_graduated: getEducationByLevel('Vocational')?.year_graduated ?? null,
-        is_current_enrolled: getEducationByLevel('Vocational')?.is_current_enrolled ?? false,
-        scholarship_academic_honors_received: getEducationByLevel('Vocational')?.scholarship_academic_honors_received ?? null,
-      },
-      college: {
-        id: getEducationByLevel('College')?.id ?? null,
-        level: 'College',
-        schools_name: getEducationByLevel('College')?.schools_name ?? null,
-        education_description: getEducationByLevel('College')?.education_description ?? null,
-        period_of_attendance_from: getEducationByLevel('College')?.period_of_attendance_from ?? null,
-        period_of_attendance_to: getEducationByLevel('College')?.period_of_attendance_to ?? null,
-        highest_level_units_earned: getEducationByLevel('College')?.highest_level_units_earned ?? null,
-        year_graduated: getEducationByLevel('College')?.year_graduated ?? null,
-        is_current_enrolled: getEducationByLevel('College')?.is_current_enrolled ?? false,
-        scholarship_academic_honors_received: getEducationByLevel('College')?.scholarship_academic_honors_received ?? null,
-      },
-      graduate: {
-        id: getEducationByLevel('Graduate')?.id ?? null,
-        level: 'Graduate',
-        schools_name: getEducationByLevel('Graduate')?.schools_name ?? null,
-        education_description: getEducationByLevel('Graduate')?.education_description ?? null,
-        period_of_attendance_from: getEducationByLevel('Graduate')?.period_of_attendance_from ?? null,
-        period_of_attendance_to: getEducationByLevel('Graduate')?.period_of_attendance_to ?? null,
-        highest_level_units_earned: getEducationByLevel('Graduate')?.highest_level_units_earned ?? null,
-        year_graduated: getEducationByLevel('Graduate')?.year_graduated ?? null,
-        is_current_enrolled: getEducationByLevel('Graduate')?.is_current_enrolled ?? false,
-        scholarship_academic_honors_received: getEducationByLevel('Graduate')?.scholarship_academic_honors_received ?? null,
-      },
-    },
-    individual_educational_background: [],
 
     employee: {
       id: employee?.id ?? 0,
@@ -206,7 +143,9 @@ export const useProfilingStore = defineStore('profiling', () => {
       id_number: null,
       item_id: employee?.item_id ?? null,
       salary_grade_id: employee?.salary_grade_id ?? null,
+      salary_grade: employee?.salary_grade ?? null,
       position: null,
+      parenthetical_position: null,
       fund_source: {
         id: null,
         name: null,
@@ -220,6 +159,176 @@ export const useProfilingStore = defineStore('profiling', () => {
       section_or_unit: employee?.section_or_unit ?? null,
       item: null,
     },
+
+    individual_eligibility: Array.isArray(individual?.individual_eligibility)
+      ? individual.individual_eligibility.map((elgi) => ({
+        ...elgi,
+        id: elgi.id ?? null,
+        eligibility: elgi.eligibility ?? '',
+        rating: elgi.rating ?? '',
+        date_of_examination_conferment: elgi.date_of_examination_conferment ?? '',
+        place_of_examination: elgi.place_of_examination ?? '',
+        license_number: elgi.license_number ?? null,
+        license_date_of_validity: elgi.license_date_of_validity ?? '',
+        _delete: elgi._delete ?? null,
+      }))
+      : [
+        {
+          id: null,
+          eligibility: '',
+          rating: '',
+          date_of_examination_conferment: '',
+          place_of_examination: '',
+          license_number: '',
+          license_date_of_validity: '',
+          _delete: null,
+        },
+      ],
+
+    individual_educational_background: Array.isArray(individual?.individual_educational_background)
+      ? individual.individual_educational_background.map((educ) => ({
+        ...educ,
+        id: educ.id ?? null,
+        schools_name: educ.schools_name ?? '',
+        education_description: educ.education_description ?? '',
+        level: educ.level ?? '',
+        period_of_attendance_from: educ.period_of_attendance_from ?? '',
+        period_of_attendance_to: educ.period_of_attendance_to ?? null,
+        highest_level_units_earned: educ.highest_level_units_earned ?? '',
+        year_graduated: educ.year_graduated ?? null,
+        scholarship_academic_honers_recieved: educ.scholarship_academic_honers_recieved ?? '',
+        _delete: educ._delete ?? null,
+      }))
+      : [
+        {
+          id: null,
+          schools_name: '',
+          education_description: '',
+          level: '',
+          period_of_attendance_from: '',
+          period_of_attendance_to: null,
+          highest_level_units_earned: '',
+          year_graduated: null,
+          scholarship_academic_honers_recieved: '',
+          _delete: null,
+        },
+      ],
+
+    // Temporary Data banking of Employement Details
+    // Date of Original Appointment - inclusive_date_from
+    // Date of Last Promotion - position_title
+    // Entry Date (First Day in Service) - inclusive_date_to
+    individual_work_experience: individual?.individual_work_experience
+      ? [
+        {
+          id: individual.individual_work_experience.id,
+          is_current_work: individual.individual_work_experience.is_current_work ?? false,
+          inclusive_date_from: individual.individual_work_experience.inclusive_date_from ?? '',
+          inclusive_date_to: individual.individual_work_experience.inclusive_date_to ?? '',
+          position_title: individual.individual_work_experience.position_title ?? '',
+          department_agency_office_company: individual.individual_work_experience.department_agency_office_company ?? '',
+          monthly_salary: individual.individual_work_experience.monthly_salary ?? '',
+          salary_grade_id: individual.individual_work_experience.salary_grade_id ?? null,
+          salary_grade: individual.individual_work_experience.salary_grade ?? null,
+          custom_salary_grade: individual.individual_work_experience.custom_salary_grade ?? '',
+          status_of_appointment: individual.individual_work_experience.status_of_appointment ?? null,
+          is_gov_service: individual.individual_work_experience.is_gov_service ?? false,
+          immediate_supervisor: individual.individual_work_experience.immediate_supervisor ?? null,
+          office_unit: individual.individual_work_experience.office_unit ?? null,
+          significant_accomplishments: individual.individual_work_experience.significant_accomplishments ?? null,
+          summary_of_actual_duties: individual.individual_work_experience.summary_of_actual_duties ?? null,
+          _delete: individual.individual_work_experience._delete ?? null,
+        },
+      ]
+      : [
+        {
+          id: null,
+          is_current_work: false,
+          inclusive_date_from: '',
+          inclusive_date_to: '',
+          position_title: '',
+          department_agency_office_company: '',
+          monthly_salary: '',
+          salary_grade_id: null,
+          salary_grade: null,
+          custom_salary_grade: '',
+          status_of_appointment: null,
+          is_gov_service: false,
+          immediate_supervisor: '',
+          office_unit: '',
+          significant_accomplishments: '',
+          summary_of_actual_duties: '',
+          _delete: null,
+        },
+      ],
+
+    // Temporary Data banking of Sectoral Affiliations
+    //Solo Parent - q34_a
+    // Senior Citizen - q35_a
+    // Person with Disability - q36
+    // Type of Disability - q36_details
+    // Member of Indigenous Group - q37
+    // Type of Indigenous Group - q37_details
+    individual_question: individual?.individual_question
+      ? [
+        {
+          id: individual.individual_question.id ?? null,
+          q34_a: individual.individual_question.q34_a ?? false,
+          q34_b: individual.individual_question.q34_b ?? false,
+          q34_details: individual.individual_question.q34_details ?? null,
+          q35_a: individual.individual_question.q35_a ?? false,
+          q35_a_details: individual.individual_question.q35_a_details ?? null,
+          q35_b: individual.individual_question.q35_b ?? false,
+          q35_b_date_filed: individual.individual_question.q35_b_date_filed ?? null,
+          q35_b_status: individual.individual_question.q35_b_status ?? null,
+          q36: individual.individual_question.q36 ?? false,
+          q36_details: individual.individual_question.q36_details ?? null,
+          q37: individual.individual_question.q37 ?? false,
+          q37_details: individual.individual_question.q37_details ?? null,
+          q38_a: individual.individual_question.q38_a ?? false,
+          q38_a_details: individual.individual_question.q38_a_details ?? null,
+          q38_b: individual.individual_question.q38_b ?? false,
+          q38_b_details: individual.individual_question.q38_b_details ?? null,
+          q39: individual.individual_question.q39 ?? false,
+          country_id: individual.individual_question.country_id ?? null,
+          q40_a_indigenous_group: individual.individual_question.q40_a_indigenous_group ?? false,
+          q40_a_details: individual.individual_question.q40_a_details ?? null,
+          q40_b_pwd: individual.individual_question.q40_b_pwd ?? false,
+          q40_b_details: individual.individual_question.q40_b_details ?? null,
+          q40_c_solo_parent: individual.individual_question.q40_c_solo_parent ?? false,
+          q40_c_details: individual.individual_question.q40_c_details ?? null,
+        },
+      ]
+      : [
+        {
+          // DEFAULT OBJECT: This prevents the "property of undefined" error
+          id: null,
+          q34_a: false,
+          q34_b: false,
+          q34_details: null,
+          q35_a: false,
+          q35_a_details: null,
+          q35_b: false,
+          q35_b_date_filed: null,
+          q35_b_status: null,
+          q36: false,
+          q36_details: null,
+          q37: false,
+          q37_details: null,
+          q38_a: false,
+          q38_a_details: null,
+          q38_b: false,
+          q38_b_details: null,
+          q39: false,
+          country_id: null,
+          q40_a_indigenous_group: false,
+          q40_a_details: null,
+          q40_b_pwd: false,
+          q40_b_details: null,
+          q40_c_solo_parent: false,
+          q40_c_details: null,
+        },
+      ],
   })
 
   const updateProfilingFromPersonnel = (personnel: PersonnelResponse | null) => {
@@ -230,6 +339,9 @@ export const useProfilingStore = defineStore('profiling', () => {
     ProfilingInfo.employee.id = employee?.id ?? 0
     ProfilingInfo.employee.individual_basic_detail_id = employee?.individual_basic_detail_id ?? null
     ProfilingInfo.employee.id_number = employee?.id_number ?? null
+    ProfilingInfo.employee.item_id = employee?.item_id ?? null
+    ProfilingInfo.employee.position = null
+    ProfilingInfo.employee.parenthetical_position = null
     ProfilingInfo.employee.agency_employee_no = employee?.agency_employee_no ?? null
 
     // === C1 -  Individual Information ===
@@ -240,6 +352,10 @@ export const useProfilingStore = defineStore('profiling', () => {
     ProfilingInfo.individual.birthday = personnel.birthday ?? null
     ProfilingInfo.individual.sex = (personnel.sex as SexType) ?? null
     ProfilingInfo.individual.civil_status = (personnel.civil_status as CivilStatusType) ?? null
+    ProfilingInfo.individual.philhealth_no = personnel.philhealth_no ?? null
+    ProfilingInfo.individual.gsis_no = personnel.gsis_no ?? null
+    ProfilingInfo.individual.pag_ibig_no = personnel.pag_ibig_no ?? null
+    ProfilingInfo.individual.sss_no = personnel.sss_no ?? null
     ProfilingInfo.individual.tin = personnel.tin ?? null
     ProfilingInfo.individual.agency_employee_no = personnel.employee?.agency_employee_no ?? null
     ProfilingInfo.individual.citizenship = personnel.citizenship ?? null
@@ -273,69 +389,105 @@ export const useProfilingStore = defineStore('profiling', () => {
     ProfilingInfo.individual_address_init.permanent_region_id = address?.permanent_region_id ?? null
     ProfilingInfo.individual_address_init.permanent_zip_code = address?.permanent_zip_code ?? null
 
-    // === C1 - Individual Education Background ===
-    ProfilingInfo.educations = {
-      elementary: {
-        id: elementary?.id ?? null,
-        level: 'Elementary',
-        schools_name: elementary?.schools_name ?? null,
-        education_description: elementary?.education_description ?? null,
-        period_of_attendance_from: elementary?.period_of_attendance_from ?? null,
-        period_of_attendance_to: elementary?.period_of_attendance_to ?? null,
-        highest_level_units_earned: elementary?.highest_level_units_earned ?? null,
-        year_graduated: elementary?.year_graduated ?? null,
-        is_current_enrolled: elementary?.is_current_enrolled ?? false,
-        scholarship_academic_honors_received: elementary?.scholarship_academic_honors_received ?? null,
-      },
-      high_school: {
-        id: highSchool?.id ?? null,
-        level: 'Secondary',
-        schools_name: highSchool?.schools_name ?? null,
-        education_description: highSchool?.education_description ?? null,
-        period_of_attendance_from: highSchool?.period_of_attendance_from ?? null,
-        period_of_attendance_to: highSchool?.period_of_attendance_to ?? null,
-        highest_level_units_earned: highSchool?.highest_level_units_earned ?? null,
-        year_graduated: highSchool?.year_graduated ?? null,
-        is_current_enrolled: highSchool?.is_current_enrolled ?? false,
-        scholarship_academic_honors_received: highSchool?.scholarship_academic_honors_received ?? null,
-      },
-      college: {
-        id: college?.id ?? null,
-        level: 'College',
-        schools_name: college?.schools_name ?? null,
-        education_description: college?.education_description ?? null,
-        period_of_attendance_from: college?.period_of_attendance_from ?? null,
-        period_of_attendance_to: college?.period_of_attendance_to ?? null,
-        highest_level_units_earned: college?.highest_level_units_earned ?? null,
-        year_graduated: college?.year_graduated ?? null,
-        is_current_enrolled: college?.is_current_enrolled ?? false,
-        scholarship_academic_honors_received: college?.scholarship_academic_honors_received ?? null,
-      },
-      vocational: {
-        id: vocational?.id ?? null,
-        level: 'Vocational',
-        schools_name: vocational?.schools_name ?? null,
-        education_description: vocational?.education_description ?? null,
-        period_of_attendance_from: vocational?.period_of_attendance_from ?? null,
-        period_of_attendance_to: vocational?.period_of_attendance_to ?? null,
-        highest_level_units_earned: vocational?.highest_level_units_earned ?? null,
-        year_graduated: vocational?.year_graduated ?? null,
-        is_current_enrolled: vocational?.is_current_enrolled ?? false,
-        scholarship_academic_honors_received: vocational?.scholarship_academic_honors_received ?? null,
-      },
-      graduate: {
-        id: graduate?.id ?? null,
-        level: 'Graduate',
-        schools_name: graduate?.schools_name ?? null,
-        education_description: graduate?.education_description ?? null,
-        period_of_attendance_from: graduate?.period_of_attendance_from ?? null,
-        period_of_attendance_to: graduate?.period_of_attendance_to ?? null,
-        highest_level_units_earned: graduate?.highest_level_units_earned ?? null,
-        year_graduated: graduate?.year_graduated ?? null,
-        is_current_enrolled: graduate?.is_current_enrolled ?? false,
-        scholarship_academic_honors_received: graduate?.scholarship_academic_honors_received ?? null,
-      },
-    }
+    // === C2 -  Individual Eligibility ===
+    ProfilingInfo.individual_eligibility = Array.isArray(personnel.individual_eligibility)
+      ? personnel.individual_eligibility.map((e) => ({
+        id: e.id,
+        eligibility: e.eligibility ?? '',
+        rating: e.rating ?? '',
+        date_of_examination_conferment: e.date_of_examination_conferment ?? '',
+        place_of_examination: e.place_of_examination ?? '',
+        license_number: e.license_number ?? null,
+        license_date_of_validity: e.license_date_of_validity ?? '',
+        _delete: e._delete ?? null,
+      }))
+      : []
+
+    // === C2 - Individual Work Experience ===
+    ProfilingInfo.individual_work_experience = personnel.individual_work_experience
+      ? [
+        {
+          id: personnel.individual_work_experience.id,
+          is_current_work: personnel.individual_work_experience.is_current_work ?? false,
+          inclusive_date_from: personnel.individual_work_experience.inclusive_date_from ?? '',
+          inclusive_date_to: personnel.individual_work_experience.inclusive_date_to ?? '',
+          position_title: personnel.individual_work_experience.position_title ?? '',
+          department_agency_office_company: personnel.individual_work_experience.department_agency_office_company ?? '',
+          monthly_salary: personnel.individual_work_experience.monthly_salary ?? '',
+          salary_grade_id: personnel.individual_work_experience.salary_grade_id ?? null,
+          salary_grade: personnel.individual_work_experience.salary_grade ?? null,
+          custom_salary_grade: personnel.individual_work_experience.custom_salary_grade ?? '',
+          status_of_appointment: personnel.individual_work_experience.status_of_appointment ?? null,
+          is_gov_service: personnel.individual_work_experience.is_gov_service ?? false,
+          immediate_supervisor: personnel.individual_work_experience.immediate_supervisor ?? null,
+          office_unit: personnel.individual_work_experience.office_unit ?? null,
+          significant_accomplishments: personnel.individual_work_experience.significant_accomplishments ?? null,
+          summary_of_actual_duties: personnel.individual_work_experience.summary_of_actual_duties ?? null,
+          _delete: personnel.individual_work_experience._delete ?? null,
+        },
+      ]
+      : []
+
+    // === Individual Questions ===
+    ProfilingInfo.individual_question = personnel.individual_question
+      ? [
+        {
+          id: personnel.individual_question.id ?? null,
+          q34_a: personnel.individual_question.q34_a ?? false,
+          q34_b: personnel.individual_question.q34_b ?? false,
+          q34_details: personnel.individual_question.q34_details ?? null,
+          q35_a: personnel.individual_question.q35_a ?? false,
+          q35_a_details: personnel.individual_question.q35_a_details ?? null,
+          q35_b: personnel.individual_question.q35_b ?? false,
+          q35_b_date_filed: personnel.individual_question.q35_b_date_filed ?? null,
+          q35_b_status: personnel.individual_question.q35_b_status ?? null,
+          q36: personnel.individual_question.q36 ?? false,
+          q36_details: personnel.individual_question.q36_details ?? null,
+          q37: personnel.individual_question.q37 ?? false,
+          q37_details: personnel.individual_question.q37_details ?? null,
+          q38_a: personnel.individual_question.q38_a ?? false,
+          q38_a_details: personnel.individual_question.q38_a_details ?? null,
+          q38_b: personnel.individual_question.q38_b ?? false,
+          q38_b_details: personnel.individual_question.q38_b_details ?? null,
+          q39: personnel.individual_question.q39 ?? false,
+          country_id: personnel.individual_question.country_id ?? null,
+          q40_a_indigenous_group: personnel.individual_question.q40_a_indigenous_group ?? false,
+          q40_a_details: personnel.individual_question.q40_a_details ?? null,
+          q40_b_pwd: personnel.individual_question.q40_b_pwd ?? false,
+          q40_b_details: personnel.individual_question.q40_b_details ?? null,
+          q40_c_solo_parent: personnel.individual_question.q40_c_solo_parent ?? false,
+          q40_c_details: personnel.individual_question.q40_c_details ?? null,
+        },
+      ]
+      : [
+        {
+          id: null,
+          q34_a: false,
+          q34_b: false,
+          q34_details: null,
+          q35_a: false,
+          q35_a_details: null,
+          q35_b: false,
+          q35_b_date_filed: null,
+          q35_b_status: null,
+          q36: false,
+          q36_details: null,
+          q37: false,
+          q37_details: null,
+          q38_a: false,
+          q38_a_details: null,
+          q38_b: false,
+          q38_b_details: null,
+          q39: false,
+          country_id: null,
+          q40_a_indigenous_group: false,
+          q40_a_details: null,
+          q40_b_pwd: false,
+          q40_b_details: null,
+          q40_c_solo_parent: false,
+          q40_c_details: null,
+        },
+      ]
   }
 
   const saveProfiling = async (payload: EmployeeProfilingPayload) => {
@@ -347,6 +499,7 @@ export const useProfilingStore = defineStore('profiling', () => {
       edu.period_of_attendance_to = formatYear(edu.period_of_attendance_to)
       edu.year_graduated = formatYear(edu.year_graduated)
     })
+    formatDateFields(payload.individual_work_experience, ['inclusive_date_from', 'inclusive_date_to'])
 
     const { data } = await useApiCall(uri, authStore.authenticationToken).post(payload).json()
     return data.value as ApiResponseBody
@@ -388,6 +541,9 @@ export const useProfilingStore = defineStore('profiling', () => {
       })
     }
 
+    if (payload.individual_work_experience) {
+      formatDateFields(payload.individual_work_experience, ['inclusive_date_from', 'inclusive_date_to', 'position_title'])
+    }
     const { data } = await useApiCall(`/individual-basic-details/${id}`, authStore.authenticationToken)
       .put({ ...payload, form_type: formType })
       .json()
