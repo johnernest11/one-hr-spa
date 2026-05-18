@@ -752,7 +752,7 @@ const routes = [
         name: 'create-personnel',
         component: () => import('@/components/employee-profiling/EmployeeProfilingForm.vue'),
         meta: <RouteMeta>{
-          label: 'Create Personnel',
+          label: 'Employee Profile',
           isSidebarMenu: false,
           authType: AuthType.AUTHENTICATED,
           roles: [AuthRole.HR_PPMS_ADMIN, AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SYSTEM_SUPPORT, AuthRole.SUPER_USER],

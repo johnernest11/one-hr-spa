@@ -1530,9 +1530,17 @@ const handleSaveProfilingForm = async () => {
                         <div class="mb-4 flex flex-row items-center">
                           <FontAwesomeIcon :icon="['fas', 'users']" class="text-2xl text-primary-700 md:text-4xl" />
                           <span class="flex flex-col justify-center">
-                            <p class="ml-4 text-xl text-primary-700 md:text-3xl">Employee Profile</p>
+                            <p class="ml-4 text-xl text-primary-700 md:text-3xl">
+                              {{
+                                profilingStore.isMyProfile
+                                  ? ' My Employee Profile'
+                                  : route.params.id
+                                    ? 'Update Employee Profile'
+                                    : 'New Employee'
+                              }}
+                            </p>
                             <p v-if="!isEditMode" class="text-surface-500">
-                              {{ lcFirst(String(profilingStore.profilingMode)) }}
+                              {{ lcFirst(profilingStore.profilingMode) }}
                             </p>
                           </span>
                         </div>
