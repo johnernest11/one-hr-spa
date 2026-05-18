@@ -1454,11 +1454,24 @@ const handleSaveProfilingForm = async () => {
     payload.employee.section_or_unit_id ??= 1
   }
 
+  // --- PLACE THIS RIGHT BEFORE THE API CALL ---
   if (payload.individual) {
-    const govKeys = ['philhealth_no', 'gsis_no', 'pag_ibig_no', 'sss_no'] as const
-    govKeys.forEach((key) => (payload.individual![key] ??= ''))
-  }
+    // 1. Double/Numbers (Migration: $table->double)
+    // Convert to number to be safe, or '0' if the backend casts strings
+    payload.individual.height = payload.individual.height || 0
+    payload.individual.weight = payload.individual.weight || 0
 
+    // 2. Enum (Must match your BloodType cases exactly)
+    // Using 'O+' as the safe fallback
+    payload.individual.blood_type = payload.individual.blood_type || 'O+'
+
+    payload.individual.pag_ibig_no = payload.individual.pag_ibig_no || '000-0000-000'
+    payload.individual.philhealth_no = payload.individual.philhealth_no || '000-0000-000'
+    payload.individual.sss_no = payload.individual.sss_no || '000-0000-000'
+
+    // 4. Place of birth
+    payload.individual.place_of_birth = payload.individual.place_of_birth || 'N/A'
+  }
   // External Store Updates & API Call
   if (payload.employee?.item?.number) {
     await itemStore.updateItemStatus(payload.employee.item.number)
