@@ -47,7 +47,7 @@ import Card from 'primevue/card'
 import { useToast } from 'primevue/usetoast'
 
 /** Headless UI */
-import { TabGroup, TabPanels, TabPanel, TransitionRoot } from '@headlessui/vue'
+import { TransitionRoot } from '@headlessui/vue'
 
 /** Icons */
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
@@ -1488,15 +1488,871 @@ const handleSaveProfilingForm = async () => {
 </script>
 <template>
   <template v-if="!isLoading">
-    <div class="flex flex-row" :key="route.fullPath">
-      <form @submit.prevent="" autocomplete="off" class="h-full w-full">
-        <div class="w-full">
-          <Card class="h-full">
-            <template #content>
-              <TabGroup>
-                <TabPanels>
-                  <!-- START PERSONAL INFO SECTION -->
-                  <TabPanel :class="['my-8 md:mx-12 ', ' ring-white/60 focus:outline-none ']">
+    <form @submit.prevent autocomplete="off">
+      <div class="flex w-full flex-col gap-4 pb-4 pl-4 pt-4">
+        <Card class="h-full">
+          <template #content>
+            <div>
+              <div>
+                <transition
+                  enter-active-class="transition duration-200"
+                  enter-from-class="scale-50 opacity-0"
+                  leave-to-class="opacity-0 "
+                >
+                  <Message v-if="isProfilingError" :closable="false" severity="error" class="h-96 space-y-4 overflow-y-auto">
+                    <span>{{ errorMessage }}</span>
+                    <div class="text-md flex flex-col space-y-2">
+                      <div v-for="error in profilingErrors" :key="error.field" class="mt-0.5">{{ '- ' + error }}</div>
+                    </div>
+                  </Message>
+                </transition>
+              </div>
+              <div class="flex w-full flex-col items-start md:flex-row">
+                <Button
+                  icon="pi pi-angle-left"
+                  severity="secondary"
+                  aria-label="Bookmark"
+                  rounded
+                  @click="$router.go(-1)"
+                  size="small"
+                  class="mb-2 ml-4 md:mb-0 md:ml-0"
+                />
+                <h2 class="mb-2 ml-4 pb-6 text-3xl font-semibold text-primary-800 dark:text-primary-100 md:ml-4">
+                  <FontAwesomeIcon :icon="['fas', 'users']" />
+                  {{
+                    profilingStore.isMyProfile
+                      ? ' My Employee Profile'
+                      : route.params.id
+                        ? 'Update Employee Profile'
+                        : 'New Employee'
+                  }}
+                </h2>
+                <p v-if="!isEditMode" class="text-surface-500">
+                  {{ lcFirst(profilingStore.profilingMode) }}
+                </p>
+              </div>
+
+              <!-- START ITEM & POSITION MANAGEMENT -->
+              <span class="flex flex-col justify-center space-y-2 font-medium text-primary-700">
+                <p class="text-lg italic md:text-xl">Item & Position Management</p>
+              </span>
+              <div class="ml-6 mr-6 mt-2">
+                <div class="flex items-start gap-2">
+                  <WbAutoComplete
+                    class="flex-1"
+                    :useApiFilter="true"
+                    :apiEndpoint="'/items/search'"
+                    :apiFilters="{ status: 'Unfilled' }"
+                    :suggestions="itemStore.itemNumbersSuggestions"
+                    @item-select="propPosition"
+                    apiOptionLabel="number"
+                    label="Item Number"
+                    placeholder="Type the item number"
+                    v-model="selectedItemNo"
+                    :id="getId('input-item-no')"
+                    optionLabel="label"
+                    optionValue="value"
+                    required
+                    :readonly="profilingStore.isMyProfile || isPasAccount"
+                    :class="[
+                      'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                      profilingStore.isMyProfile || isPasAccount ? 'pointer-events-none cursor-default select-text' : '',
+                    ]"
+                    @on-true-value-computed="
+                      (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
+                        useWbAutoCompleteHandleTrueValue(value, toRef(payload.employee, 'item_id'))
+                    "
+                    label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                    validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                    :invalid="validator.employee.item_id.$invalid"
+                    :invalid-text="validator.employee.item_id.$errors[0]?.$message"
+                    @blur="validator.employee.item_id.$touch"
+                    @focusin="validator.employee.item_id.$dirty = false"
+                  >
+                  </WbAutoComplete>
+
+                  <RouterLink
+                    v-if="!profilingStore.isMyProfile && !ppmsCanUpdate"
+                    :to="{ name: 'support', state: { from: 'recruitment' } }"
+                    v-tooltip.top="'Add Item Number'"
+                    class="mt-8"
+                  >
+                    <FontAwesomeIcon icon="fa-solid fa-plus" class="text-3xl font-bold text-primary-500" />
+                  </RouterLink>
+                </div>
+              </div>
+              <div class="mb-4 ml-6 mr-6 mt-2 grid grid-cols-1 gap-x-12 gap-y-4 md:grid-cols-2">
+                <WbInputText
+                  v-model="payload.employee.position"
+                  :id="getId('input-item-position')"
+                  label="Position Title"
+                  :loading="isPositionLoading"
+                  readonly
+                  placeholder="Position will be auto populated upon item number selection"
+                  class="lg:text-md lg:placeholder:text-md cursor-not-allowed bg-surface-200 text-sm placeholder:text-sm read-only:cursor-not-allowed disabled:cursor-not-allowed"
+                  label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                  validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                />
+
+                <WbInputText
+                  v-model="payload.employee.parenthetical_position"
+                  :id="getId('input-item-parenthetical_title')"
+                  label="Parenthetical Title"
+                  :loading="isPositionLoading"
+                  readonly
+                  placeholder="Parenthetical Title will be auto populated upon item number selection"
+                  class="lg:text-md lg:placeholder:text-md cursor-not-allowed bg-surface-200 text-sm placeholder:text-sm read-only:cursor-not-allowed disabled:cursor-not-allowed"
+                  label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                  validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                />
+              </div>
+              <!-- END PERSONAL INFO -->
+
+              <!-- START PERSONAL IDENTIFICATION -->
+              <span class="flex flex-col justify-center space-y-2 font-medium text-primary-700">
+                <p class="text-lg italic md:text-xl">Personal Identification</p>
+              </span>
+              <div class="ml-6 mr-6 mt-2 grid grid-cols-1 gap-x-12 gap-y-4 md:grid-cols-2">
+                <WbInputText
+                  v-model="payload.individual.last_name"
+                  label="Last Name"
+                  required
+                  label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                  :readonly="profilingStore.isMyProfile"
+                  :class="[
+                    'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                    profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
+                  ]"
+                  validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                  :invalid="validator.individual.last_name.$invalid"
+                  :invalid-text="validator.individual.last_name.$errors[0]?.$message"
+                  @blur="validator.individual.last_name.$touch"
+                >
+                </WbInputText>
+
+                <WbInputText
+                  v-model="payload.individual.first_name"
+                  label="First Name"
+                  required
+                  label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                  :readonly="profilingStore.isMyProfile"
+                  :class="[
+                    'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                    profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
+                  ]"
+                  validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                  :invalid="validator.individual.first_name.$invalid"
+                  :invalid-text="validator.individual.first_name.$errors[0]?.$message"
+                  @blur="validator.individual.first_name.$touch"
+                >
+                </WbInputText>
+                <WbInputText
+                  v-model="payload.individual.middle_name"
+                  label="Middle Name"
+                  :readonly="profilingStore.isMyProfile"
+                  :class="[
+                    'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                    profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
+                  ]"
+                  label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                  validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                  :invalid="validator.individual.middle_name.$invalid"
+                  :invalid-text="validator.individual.middle_name.$errors[0]?.$message"
+                  @blur="validator.individual.middle_name.$touch"
+                >
+                </WbInputText>
+                <WbDropdown
+                  v-model="payload.individual.ext_name"
+                  optionLabel="label"
+                  optionValue="value"
+                  :options="ExtensionTypeOptions"
+                  :disabled="profilingStore.isMyProfile || payload.individual.sex === 'female'"
+                  label="Extension Name"
+                  label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                  :class="[
+                    'lg:text-md lg:placeholder:text-md text-sm placeholder:text-sm',
+                    payload.individual.sex === 'female' ? 'cursor-not-allowed bg-surface-200' : 'bg-surface-0',
+                    profilingStore.isMyProfile ? 'cursor-not-allowed bg-surface-200' : '',
+                  ]"
+                  validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                  :invalid="validator.individual.ext_name.$invalid"
+                  :invalid-text="validator.individual.ext_name.$errors[0]?.$message"
+                  @blur="validator.individual.ext_name.$touch"
+                >
+                </WbDropdown>
+                <WbCalendar
+                  v-model="payload.individual.birthday"
+                  required
+                  :readonly="profilingStore.isMyProfile"
+                  :class="[
+                    'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                    profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
+                  ]"
+                  label="Date of Birth"
+                  label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                  :invalid="validator.individual.birthday.$invalid"
+                  :invalid-text="validator.individual.birthday.$errors[0]?.$message"
+                  @blur="validator.individual.birthday.$touch"
+                >
+                  <template #prepend-icon>
+                    <i class="pi pi-gift" />
+                  </template>
+                </WbCalendar>
+                <!-- Auto Compute Age -->
+                <WbInputText
+                  v-model="computeAge"
+                  label="Age"
+                  readonly
+                  label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                  :class="[
+                    'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                    profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
+                  ]"
+                >
+                </WbInputText>
+                <!-- Auto Compute Age -->
+                <WbDropdown
+                  v-model="payload.individual.sex"
+                  required
+                  :options="SexTypeOptions"
+                  optionLabel="label"
+                  optionValue="value"
+                  label="Sex"
+                  :readonly="profilingStore.isMyProfile"
+                  :class="[
+                    'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                    profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
+                  ]"
+                  label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                  :invalid="validator.individual.sex.$invalid"
+                  :invalid-text="validator.individual.sex.$errors[0]?.$message"
+                  @blur="validator.individual.sex.$touch"
+                >
+                  <template #prepend-icon>
+                    <FontAwesomeIcon icon="fa-solid fa-mars-and-venus" />
+                  </template>
+                </WbDropdown>
+
+                <div class="flex flex-col gap-4">
+                  <div class="flex flex-row space-x-2">
+                    <h3 class="text-md text-surface-600 dark:lg:text-surface-200">Citizenship</h3>
+                    <span class="text-red-500">*</span>
+                  </div>
+                  <div class="flex flex-row items-center justify-center gap-12 p-4 md:justify-start md:p-2">
+                    <div class="flex items-center">
+                      <RadioButton
+                        v-model="payload.individual.citizenship"
+                        :id="getId('input-citizenship-fil')"
+                        name="citizenship"
+                        value="Filipino"
+                        :disabled="profilingStore.isMyProfile"
+                      />
+                      <label :for="getId('input-citizenship-fil')" class="ml-2 cursor-pointer">Filipino</label>
+                    </div>
+                    <div class="flex items-center">
+                      <RadioButton
+                        v-model="payload.individual.citizenship"
+                        :id="getId('input-citizenship-dual')"
+                        name="citizenship"
+                        value="Dual Citizenship"
+                        :disabled="profilingStore.isMyProfile"
+                      />
+                      <label :for="getId('input-citizenship-dual')" class="ml-2 cursor-pointer">Dual Citizen</label>
+                    </div>
+                  </div>
+                </div>
+
+                <WbDropdown
+                  v-model="payload.individual.civil_status"
+                  required
+                  :options="libraryStore.civilStatusOptions"
+                  optionLabel="label"
+                  optionValue="value"
+                  label="Civil Status"
+                  :readonly="profilingStore.isMyProfile"
+                  :class="[
+                    'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                    profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
+                  ]"
+                  label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                  :invalid="validator.individual.civil_status.$invalid"
+                  :invalid-text="validator.individual.civil_status.$errors[0]?.$message"
+                  @blur="validator.individual.civil_status.$touch"
+                >
+                  <template #prepend-icon>
+                    <FontAwesomeIcon icon="fa-solid fa-people-arrows" />
+                  </template>
+                </WbDropdown>
+                <div
+                  v-if="payload.individual.citizenship === 'Dual Citizenship'"
+                  class="flex flex-col gap-4 md:flex-row md:gap-6"
+                >
+                  <!-- Citizen Type by dropdown -->
+                  <WbDropdown
+                    v-model="payload.individual.citizenship_acquisition"
+                    required
+                    :options="libraryStore.citizenshipAcquisitionOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                    label="Dual Citizen by"
+                    label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                    :readonly="profilingStore.isMyProfile"
+                    class="flex-1"
+                    :class="[
+                      'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                      profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
+                    ]"
+                    :invalid="validator.individual.citizenship_acquisition.$invalid"
+                    :invalid-text="validator.individual.citizenship_acquisition.$errors[0]?.$message"
+                    @blur="validator.individual.citizenship_acquisition.$touch"
+                  >
+                    <template #prepend-icon>
+                      <FontAwesomeIcon icon="fa-solid fa-house-flag" />
+                    </template>
+                  </WbDropdown>
+
+                  <!-- If Dual Citizen, give details (country) -->
+                  <WbAutoComplete
+                    :useApiFilter="true"
+                    :apiEndpoint="'/libraries/countries/search'"
+                    :suggestions="libraryStore.countryOptions"
+                    :loading="libraryStore.countryOptionsLoading"
+                    apiOptionLabel="country_code"
+                    label="If Dual Citizen, Please indicate country:"
+                    :readonly="profilingStore.isMyProfile"
+                    placeholder="Type the Country"
+                    v-model="selectedCountry"
+                    :id="getId('input-country')"
+                    optionLabel="label"
+                    optionValue="value"
+                    required
+                    forceSelection
+                    @on-true-value-computed="
+                      (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
+                        useWbAutoCompleteHandleTrueValue(value, toRef(payload.individual, 'country_id'))
+                    "
+                    label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                    class="flex-1"
+                    :class="[
+                      'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                      profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
+                    ]"
+                    :invalid="validator.individual.country_id.$invalid"
+                    :invalid-text="validator.individual.country_id.$errors[0]?.$message"
+                    @blur="validator.individual.country_id.$touch"
+                  />
+                </div>
+
+                <WbInputText
+                  v-model="payload.individual.tin"
+                  required
+                  label="TIN"
+                  label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                  validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                  :readonly="profilingStore.isMyProfile"
+                  :class="[
+                    'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                    profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
+                  ]"
+                  :invalid="validator.individual.tin.$invalid"
+                  :invalid-text="validator.individual.tin.$errors[0]?.$message"
+                  @blur="validator.individual.tin.$touch"
+                >
+                </WbInputText>
+                <WbInputText
+                  v-model="payload.individual.gsis_no"
+                  label="GSIS No."
+                  label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                  :readonly="profilingStore.isMyProfile"
+                  :class="[
+                    'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                    profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
+                  ]"
+                >
+                </WbInputText>
+
+                <WbInputText
+                  v-model="payload.individual.pag_ibig_no"
+                  label="PAG-IBIG ID No."
+                  label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                  validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                  :readonly="profilingStore.isMyProfile"
+                  :class="[
+                    'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                    profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
+                  ]"
+                >
+                </WbInputText>
+                <WbInputText
+                  v-model="payload.individual.philhealth_no"
+                  label="PHILHEALTH No."
+                  label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                  validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                  :readonly="profilingStore.isMyProfile"
+                  :class="[
+                    'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                    profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
+                  ]"
+                >
+                </WbInputText>
+                <WbInputText
+                  v-model="payload.individual.sss_no"
+                  label="SSS No."
+                  label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                  :readonly="profilingStore.isMyProfile"
+                  :class="[
+                    'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                    profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
+                  ]"
+                >
+                </WbInputText>
+                <WbInputText
+                  v-model="payload.employee.agency_employee_no"
+                  required
+                  label="Agency Employee No."
+                  label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                  validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                  :readonly="profilingStore.isMyProfile"
+                  :class="[
+                    'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                    profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
+                  ]"
+                  :invalid="validator.employee.agency_employee_no.$invalid"
+                  :invalid-text="validator.employee.agency_employee_no.$errors[0]?.$message"
+                  @blur="validator.employee.agency_employee_no.$touch"
+                >
+                </WbInputText>
+              </div>
+              <!-- END PERSONAL INFO -->
+
+              <!-- START CONTACT INFORMATION -->
+              <div class="mt-2">
+                <span class="flex flex-col justify-center space-y-2 font-medium text-primary-700">
+                  <p class="text-lg italic md:text-xl">Contact Information</p>
+                </span>
+
+                <div class="ml-4 mt-4 grid grid-cols-1 gap-x-12 gap-y-4 md:grid-cols-2">
+                  <WbInputMask
+                    v-model="payload.contact_info.mobile_no"
+                    required
+                    label="Mobile Number"
+                    label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                    mask="+639999999999"
+                    placeholder="+63 XXX XXX XXXX"
+                    :readonly="profilingStore.isMyProfile"
+                    :class="[
+                      'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                      profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
+                    ]"
+                    validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                    :invalid="validator.contact_info.mobile_no.$invalid"
+                    :invalid-text="validator.contact_info.mobile_no.$errors[0]?.$message"
+                    @blur="validator.contact_info.mobile_no.$touch"
+                    @focusin="validator.contact_info.mobile_no.$dirty = false"
+                  >
+                    <template #prepend-icon>
+                      <FontAwesomeIcon icon="fa-solid fa-mobile" />
+                    </template>
+                  </WbInputMask>
+
+                  <WbInputText
+                    v-model="payload.contact_info.email_address"
+                    required
+                    label="Email Address"
+                    label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                    validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                    :readonly="profilingStore.isMyProfile"
+                    :class="[
+                      'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                      profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
+                    ]"
+                    :invalid="validator.contact_info.email_address.$invalid"
+                    :invalid-text="validator.contact_info.email_address.$errors[0]?.$message"
+                    @blur="validator.contact_info.email_address.$touch"
+                  >
+                    <template #prepend-icon>
+                      <FontAwesomeIcon icon="fa-solid fa-square-envelope" />
+                    </template>
+                  </WbInputText>
+                </div>
+              </div>
+              <!-- END CONTACT INFORMATION -->
+
+              <!-- START RESIDENTIAL ADDRESS -->
+              <div class="mt-2">
+                <span class="flex flex-col justify-center space-y-2 font-medium text-primary-700">
+                  <p class="text-lg italic md:text-xl">Address Information</p>
+                  <p class="ml-4 text-lg italic md:text-xl">Residential Address</p>
+                </span>
+
+                <div class="ml-4 mt-4 grid grid-cols-1 gap-x-12 gap-y-4 md:grid-cols-2">
+                  <WbAutoComplete
+                    v-model="selectedResidentialRegion"
+                    :suggestions="publicStore.regionOptions"
+                    label=" Region "
+                    :readonly="profilingStore.isMyProfile"
+                    :class="[
+                      'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                      profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
+                    ]"
+                    required
+                    label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                    validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                    optionLabel="label"
+                    :placeholder="'Select or Type your Region'"
+                    forceSelection
+                    @on-true-value-computed="
+                      (value: WbAutoCompleteOptionTrueValue) =>
+                        useWbAutoCompleteHandleTrueValue(value, toRef(payload.individual_address_init, 'residential_region_id'))
+                    "
+                    :loading="publicStore.regionOptionsIsLoading"
+                    dropdown
+                    dropdownClass="bg-transparent"
+                    :invalid="validator.individual_address_init.residential_region_id.$invalid"
+                    :invalid-text="validator.individual_address_init.residential_region_id.$errors[0]?.$message"
+                    @blur="validator.individual_address_init.residential_region_id.$touch"
+                    @focusin="validator.individual_address_init.residential_region_id.$dirty = false"
+                  >
+                  </WbAutoComplete>
+
+                  <WbAutoComplete
+                    v-model="selectedResidentialProvince"
+                    :suggestions="filteredResidentialProvinceOptionsByRegion"
+                    label=" Province "
+                    :readonly="profilingStore.isMyProfile"
+                    :class="[
+                      'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                      profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
+                    ]"
+                    required
+                    label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                    validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                    optionLabel="label"
+                    :placeholder="'Select or Type your Province'"
+                    forceSelection
+                    @on-true-value-computed="
+                      (value: WbAutoCompleteOptionTrueValue) =>
+                        useWbAutoCompleteHandleTrueValue(value, toRef(payload.individual_address_init, 'residential_province_id'))
+                    "
+                    :loading="publicStore.provinceOptionsIsLoading"
+                    dropdown
+                    dropdownClass="bg-transparent"
+                    :invalid="validator.individual_address_init.residential_province_id.$invalid"
+                    :invalid-text="validator.individual_address_init.residential_province_id.$errors[0]?.$message"
+                    @blur="validator.individual_address_init.residential_province_id.$touch"
+                    @focusin="validator.individual_address_init.residential_province_id.$dirty = false"
+                  >
+                  </WbAutoComplete>
+                  <WbAutoComplete
+                    v-model="selectedResidentialCity"
+                    :suggestions="filteredResidentialCityOptionsByProvince"
+                    label=" City / Municipality "
+                    :readonly="profilingStore.isMyProfile"
+                    :class="[
+                      'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                      profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
+                    ]"
+                    required
+                    label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                    validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                    optionLabel="label"
+                    :placeholder="'Select or Type your City/Municipality'"
+                    forceSelection
+                    @on-true-value-computed="
+                      (value: WbAutoCompleteOptionTrueValue) =>
+                        useWbAutoCompleteHandleTrueValue(value, toRef(payload.individual_address_init, 'residential_citymun_id'))
+                    "
+                    :loading="publicStore.cityOptionsIsLoading"
+                    :virtualScrollerOptions="{ itemSize: 38 }"
+                    dropdown
+                    dropdownClass="bg-transparent"
+                    :invalid="validator.individual_address_init.residential_citymun_id.$invalid"
+                    :invalid-text="validator.individual_address_init.residential_citymun_id.$errors[0]?.$message"
+                    @blur="validator.individual_address_init.residential_citymun_id.$touch"
+                    @focusin="validator.individual_address_init.residential_citymun_id.$dirty = false"
+                  >
+                  </WbAutoComplete>
+                  <WbAutoComplete
+                    v-model="selectedResidentialBarangay"
+                    :suggestions="filteredResidentialBarangayOptionsByCity"
+                    label=" Barangay "
+                    :readonly="profilingStore.isMyProfile"
+                    :class="[
+                      'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                      profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
+                    ]"
+                    required
+                    label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                    validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                    optionLabel="label"
+                    :placeholder="'Select your Barangay'"
+                    forceSelection
+                    @on-true-value-computed="
+                      (value: WbAutoCompleteOptionTrueValue) =>
+                        useWbAutoCompleteHandleTrueValue(value, toRef(payload.individual_address_init, 'residential_brgy_id'))
+                    "
+                    :loading="publicStore.barangayOptionsIsLoading"
+                    :virtualScrollerOptions="{ itemSize: 38 }"
+                    dropdown
+                    dropdownClass="bg-transparent"
+                    :invalid="validator.individual_address_init.residential_brgy_id.$invalid"
+                    :invalid-text="validator.individual_address_init.residential_brgy_id.$errors[0]?.$message"
+                    @blur="validator.individual_address_init.residential_brgy_id.$touch"
+                    @focusin="validator.individual_address_init.residential_brgy_id.$dirty = false"
+                  >
+                  </WbAutoComplete>
+                  <WbInputText
+                    v-model="payload.individual_address_init.residential_subdivision_village"
+                    label="Subdivision / Village"
+                    :readonly="profilingStore.isMyProfile"
+                    :class="[
+                      'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                      profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
+                    ]"
+                    label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                  >
+                  </WbInputText>
+                  <WbInputText
+                    v-model="payload.individual_address_init.residential_street"
+                    label="Street"
+                    :readonly="profilingStore.isMyProfile"
+                    :class="[
+                      'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                      profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
+                    ]"
+                    label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                  >
+                  </WbInputText>
+                  <WbInputText
+                    v-model="payload.individual_address_init.residential_house_block_lot_no"
+                    label="House / Block / Lot No."
+                    :readonly="profilingStore.isMyProfile"
+                    :class="[
+                      'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                      profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
+                    ]"
+                    label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                  >
+                  </WbInputText>
+                  <WbInputText
+                    v-model="payload.individual_address_init.residential_zip_code"
+                    required
+                    :readonly="profilingStore.isMyProfile"
+                    :class="[
+                      'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                      profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
+                    ]"
+                    label="ZIP Code"
+                    label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                    validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                    :invalid="validator.individual_address_init.residential_zip_code.$invalid"
+                    :invalid-text="validator.individual_address_init.residential_zip_code.$errors[0]?.$message"
+                    @blur="validator.individual_address_init.residential_zip_code.$touch"
+                  >
+                  </WbInputText>
+                </div>
+              </div>
+              <!-- END RESIDENTIAL ADDRESS -->
+
+              <!-- START PERMANENT ADDRESS -->
+              <div class="mt-2">
+                <span class="flex flex-col justify-center space-y-2 font-medium text-primary-700">
+                  <p class="ml-4 text-lg italic md:text-xl">Permanent Address</p>
+                </span>
+
+                <div class="ml-4 mt-4 grid grid-cols-1 gap-x-12 gap-y-4 md:grid-cols-2">
+                  <div class="col-span-2 my-4 ml-4">
+                    <div class="align-items-center flex items-center">
+                      <Checkbox
+                        :disabled="profilingStore.isMyProfile || !isResidentialComplete"
+                        v-model="isSameResidential"
+                        :id="getId('input-same-residential')"
+                        :inputId="getId('input-same-residential')"
+                        name="sameResidential"
+                        :binary="true"
+                      />
+                      <label :for="getId('input-same-residential')" class="ml-2 text-surface-600">
+                        My permanent address is the same with residential address
+                      </label>
+                    </div>
+                    <small v-if="!isResidentialComplete" class="ml-6 text-error-500">
+                      Please complete your residential address before enabling this option.
+                    </small>
+                  </div>
+                  <WbAutoComplete
+                    v-model="selectedPermanentRegion"
+                    :suggestions="publicStore.regionOptions"
+                    label=" Region "
+                    required
+                    label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                    validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                    optionLabel="label"
+                    :readonly="profilingStore.isMyProfile || isSameResidential"
+                    :class="[
+                      'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                      profilingStore.isMyProfile || isSameResidential ? 'pointer-events-none cursor-default select-text' : '',
+                    ]"
+                    :placeholder="'Select or Type your Region'"
+                    forceSelection
+                    @on-true-value-computed="
+                      (value: WbAutoCompleteOptionTrueValue) =>
+                        useWbAutoCompleteHandleTrueValue(value, toRef(payload.individual_address_init, 'permanent_region_id'))
+                    "
+                    :loading="publicStore.regionOptionsIsLoading"
+                    dropdown
+                    dropdownClass="bg-transparent"
+                    :invalid="validator.individual_address_init.permanent_region_id.$invalid"
+                    :invalid-text="validator.individual_address_init.permanent_region_id.$errors[0]?.$message"
+                    @blur="validator.individual_address_init.permanent_region_id.$touch"
+                    @focusin="validator.individual_address_init.permanent_region_id.$dirty = false"
+                  >
+                  </WbAutoComplete>
+                  <WbAutoComplete
+                    v-model="selectedPermanentProvince"
+                    :suggestions="filteredPermanentProvinceOptionsByRegion"
+                    label=" Province "
+                    label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                    validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                    optionLabel="label"
+                    required
+                    :readonly="profilingStore.isMyProfile || isSameResidential"
+                    :class="[
+                      'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                      profilingStore.isMyProfile || isSameResidential ? 'pointer-events-none cursor-default select-text' : '',
+                    ]"
+                    :placeholder="'Select or Type your Province'"
+                    forceSelection
+                    @on-true-value-computed="
+                      (value: WbAutoCompleteOptionTrueValue) =>
+                        useWbAutoCompleteHandleTrueValue(value, toRef(payload.individual_address_init, 'permanent_province_id'))
+                    "
+                    :loading="publicStore.provinceOptionsIsLoading"
+                    dropdown
+                    dropdownClass="bg-transparent"
+                    :invalid="validator.individual_address_init.permanent_province_id.$invalid"
+                    :invalid-text="validator.individual_address_init.permanent_province_id.$errors[0]?.$message"
+                    @blur="validator.individual_address_init.permanent_province_id.$touch"
+                    @focusin="validator.individual_address_init.permanent_province_id.$dirty = false"
+                  >
+                  </WbAutoComplete>
+                  <WbAutoComplete
+                    v-model="selectedPermanentCity"
+                    :suggestions="filteredPermanentCityOptionsByProvince"
+                    label=" City / Municipality "
+                    label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                    validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                    optionLabel="label"
+                    required
+                    :readonly="profilingStore.isMyProfile || isSameResidential"
+                    :class="[
+                      'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                      profilingStore.isMyProfile || isSameResidential ? 'pointer-events-none cursor-default select-text' : '',
+                    ]"
+                    :placeholder="'Select or Type your City/Municipality'"
+                    forceSelection
+                    @on-true-value-computed="
+                      (value: WbAutoCompleteOptionTrueValue) =>
+                        useWbAutoCompleteHandleTrueValue(value, toRef(payload.individual_address_init, 'permanent_citymun_id'))
+                    "
+                    :loading="publicStore.cityOptionsIsLoading"
+                    :virtualScrollerOptions="{ itemSize: 38 }"
+                    dropdown
+                    dropdownClass="bg-transparent"
+                    :invalid="validator.individual_address_init.permanent_citymun_id.$invalid"
+                    :invalid-text="validator.individual_address_init.permanent_citymun_id.$errors[0]?.$message"
+                    @blur="validator.individual_address_init.permanent_citymun_id.$touch"
+                    @focusin="validator.individual_address_init.permanent_citymun_id.$dirty = false"
+                  >
+                  </WbAutoComplete>
+                  <WbAutoComplete
+                    v-model="selectedPermanentBarangay"
+                    :suggestions="filteredPermanentBarangayOptionsByCity"
+                    label=" Barangay "
+                    required
+                    label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                    validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                    optionLabel="label"
+                    :readonly="profilingStore.isMyProfile || isSameResidential"
+                    :class="[
+                      'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                      profilingStore.isMyProfile || isSameResidential ? 'pointer-events-none cursor-default select-text' : '',
+                    ]"
+                    :placeholder="'Select your Barangay'"
+                    forceSelection
+                    @on-true-value-computed="
+                      (value: WbAutoCompleteOptionTrueValue) =>
+                        useWbAutoCompleteHandleTrueValue(value, toRef(payload.individual_address_init, 'permanent_brgy_id'))
+                    "
+                    :loading="publicStore.barangayOptionsIsLoading"
+                    :virtualScrollerOptions="{ itemSize: 38 }"
+                    dropdown
+                    dropdownClass="bg-transparent"
+                    :invalid="validator.individual_address_init.permanent_brgy_id.$invalid"
+                    :invalid-text="validator.individual_address_init.permanent_brgy_id.$errors[0]?.$message"
+                    @blur="validator.individual_address_init.permanent_brgy_id.$touch"
+                    @focusin="validator.individual_address_init.permanent_brgy_id.$dirty = false"
+                  >
+                  </WbAutoComplete>
+                  <WbInputText
+                    v-model="payload.individual_address_init.permanent_subdivision_village"
+                    label="Subdivision / Village"
+                    label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                    :readonly="profilingStore.isMyProfile || isSameResidential"
+                    :class="[
+                      'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                      profilingStore.isMyProfile || isSameResidential ? 'pointer-events-none cursor-default select-text' : '',
+                    ]"
+                  >
+                  </WbInputText>
+                  <WbInputText
+                    v-model="payload.individual_address_init.permanent_street"
+                    label="Street"
+                    label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                    :readonly="profilingStore.isMyProfile || isSameResidential"
+                    :class="[
+                      'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                      profilingStore.isMyProfile || isSameResidential ? 'pointer-events-none cursor-default select-text' : '',
+                    ]"
+                  >
+                  </WbInputText>
+                  <WbInputText
+                    v-model="payload.individual_address_init.permanent_house_block_lot_no"
+                    label="House / Block / Lot No."
+                    label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                    :readonly="profilingStore.isMyProfile || isSameResidential"
+                    :class="[
+                      'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                      profilingStore.isMyProfile || isSameResidential ? 'pointer-events-none cursor-default select-text' : '',
+                    ]"
+                  >
+                  </WbInputText>
+                  <WbInputText
+                    v-model="payload.individual_address_init.permanent_zip_code"
+                    required
+                    label="ZIP Code"
+                    label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                    validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                    :readonly="profilingStore.isMyProfile || isSameResidential"
+                    :class="[
+                      'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                      profilingStore.isMyProfile || isSameResidential ? 'pointer-events-none cursor-default select-text' : '',
+                    ]"
+                    :invalid="validator.individual_address_init.permanent_zip_code.$invalid"
+                    :invalid-text="validator.individual_address_init.permanent_zip_code.$errors[0]?.$message"
+                    @blur="validator.individual_address_init.permanent_zip_code.$touch"
+                  >
+                  </WbInputText>
+                </div>
+              </div>
+              <!-- END PERMANENT ADDRESS -->
+
+              <!-- START ELIGIBILITY INFORMATION -->
+              <div class="mt-2">
+                <span class="mb-4 flex flex-col justify-center space-y-2 font-medium text-primary-700">
+                  <p class="text-lg italic md:text-xl">Eligibility Information</p>
+                </span>
+                <div class="grid grid-cols-1 md:grid-cols-1">
+                  <template v-for="eligibilityIndex in payload.individual_eligibility.length" :key="eligibilityIndex">
                     <TransitionRoot
                       appear
                       :show="true"
@@ -1507,1366 +2363,440 @@ const handleSaveProfilingForm = async () => {
                       leaveFrom="opacity-100"
                       leaveTo="opacity-0"
                     >
-                      <div class="flex flex-col gap-4">
-                        <div class=" ">
-                          <transition
-                            enter-active-class="transition duration-200"
-                            enter-from-class="scale-50 opacity-0"
-                            leave-to-class="opacity-0 "
-                          >
-                            <Message
-                              v-if="isProfilingError"
-                              :closable="false"
-                              severity="error"
-                              class="h-96 space-y-4 overflow-y-auto"
-                            >
-                              <span>{{ errorMessage }}</span>
-                              <div class="text-md flex flex-col space-y-2">
-                                <div v-for="error in profilingErrors" :key="error.field" class="mt-0.5">{{ '- ' + error }}</div>
-                              </div>
-                            </Message>
-                          </transition>
-                        </div>
-                        <div class="mb-4 flex flex-row items-center">
-                          <FontAwesomeIcon :icon="['fas', 'users']" class="text-2xl text-primary-700 md:text-4xl" />
-                          <span class="flex flex-col justify-center">
-                            <p class="ml-4 text-xl text-primary-700 md:text-3xl">
-                              {{
-                                profilingStore.isMyProfile
-                                  ? ' My Employee Profile'
-                                  : route.params.id
-                                    ? 'Update Employee Profile'
-                                    : 'New Employee'
-                              }}
-                            </p>
-                            <p v-if="!isEditMode" class="text-surface-500">
-                              {{ lcFirst(profilingStore.profilingMode) }}
-                            </p>
-                          </span>
-                        </div>
-
-                        <!-- START ITEM & POSITION MANAGEMENT -->
-                        <span class="flex flex-col justify-center space-y-2 font-medium text-primary-700">
-                          <p class="text-lg italic md:text-xl">Item & Position Management</p>
-                        </span>
-                        <div class="ml-6 mr-6 mt-2">
-                          <div class="flex items-start gap-2">
-                            <WbAutoComplete
-                              class="flex-1"
-                              :useApiFilter="true"
-                              :apiEndpoint="'/items/search'"
-                              :apiFilters="{ status: 'Unfilled' }"
-                              :suggestions="itemStore.itemNumbersSuggestions"
-                              @item-select="propPosition"
-                              apiOptionLabel="number"
-                              label="Item Number"
-                              placeholder="Type the item number"
-                              v-model="selectedItemNo"
-                              :id="getId('input-item-no')"
-                              optionLabel="label"
-                              optionValue="value"
-                              required
-                              :readonly="profilingStore.isMyProfile || isPasAccount"
-                              :class="[
-                                'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                                profilingStore.isMyProfile || isPasAccount
-                                  ? 'pointer-events-none cursor-default select-text'
-                                  : '',
-                              ]"
-                              @on-true-value-computed="
-                                (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
-                                  useWbAutoCompleteHandleTrueValue(value, toRef(payload.employee, 'item_id'))
-                              "
-                              label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                              :invalid="validator.employee.item_id.$invalid"
-                              :invalid-text="validator.employee.item_id.$errors[0]?.$message"
-                              @blur="validator.employee.item_id.$touch"
-                              @focusin="validator.employee.item_id.$dirty = false"
-                            >
-                            </WbAutoComplete>
-
-                            <RouterLink
-                              v-if="!profilingStore.isMyProfile && !ppmsCanUpdate"
-                              :to="{ name: 'support', state: { from: 'recruitment' } }"
-                              v-tooltip.top="'Add Item Number'"
-                              class="mt-8"
-                            >
-                              <FontAwesomeIcon icon="fa-solid fa-plus" class="text-3xl font-bold text-primary-500" />
-                            </RouterLink>
-                          </div>
-                        </div>
-                        <div class="mb-4 ml-6 mr-6 mt-2 grid grid-cols-1 gap-x-12 gap-y-4 md:grid-cols-2">
-                          <WbInputText
-                            v-model="payload.employee.position"
-                            :id="getId('input-item-position')"
-                            label="Position Title"
-                            :loading="isPositionLoading"
-                            readonly
-                            placeholder="Position will be auto populated upon item number selection"
-                            class="lg:text-md lg:placeholder:text-md cursor-not-allowed bg-surface-200 text-sm placeholder:text-sm read-only:cursor-not-allowed disabled:cursor-not-allowed"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                          />
-
-                          <WbInputText
-                            v-model="payload.employee.parenthetical_position"
-                            :id="getId('input-item-parenthetical_title')"
-                            label="Parenthetical Title"
-                            :loading="isPositionLoading"
-                            readonly
-                            placeholder="Parenthetical Title will be auto populated upon item number selection"
-                            class="lg:text-md lg:placeholder:text-md cursor-not-allowed bg-surface-200 text-sm placeholder:text-sm read-only:cursor-not-allowed disabled:cursor-not-allowed"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                          />
-                        </div>
-                        <!-- END PERSONAL INFO -->
-
-                        <!-- START PERSONAL IDENTIFICATION -->
-                        <span class="flex flex-col justify-center space-y-2 font-medium text-primary-700">
-                          <p class="text-lg italic md:text-xl">Personal Identification</p>
-                        </span>
-                        <div class="ml-6 mr-6 mt-2 grid grid-cols-1 gap-x-12 gap-y-4 md:grid-cols-2">
-                          <WbInputText
-                            v-model="payload.individual.last_name"
-                            label="Last Name"
-                            required
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            :readonly="profilingStore.isMyProfile"
-                            :class="[
-                              'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                              profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
-                            ]"
-                            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                            :invalid="validator.individual.last_name.$invalid"
-                            :invalid-text="validator.individual.last_name.$errors[0]?.$message"
-                            @blur="validator.individual.last_name.$touch"
-                          >
-                          </WbInputText>
-
-                          <WbInputText
-                            v-model="payload.individual.first_name"
-                            label="First Name"
-                            required
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            :readonly="profilingStore.isMyProfile"
-                            :class="[
-                              'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                              profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
-                            ]"
-                            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                            :invalid="validator.individual.first_name.$invalid"
-                            :invalid-text="validator.individual.first_name.$errors[0]?.$message"
-                            @blur="validator.individual.first_name.$touch"
-                          >
-                          </WbInputText>
-                          <WbInputText
-                            v-model="payload.individual.middle_name"
-                            label="Middle Name"
-                            :readonly="profilingStore.isMyProfile"
-                            :class="[
-                              'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                              profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
-                            ]"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                            :invalid="validator.individual.middle_name.$invalid"
-                            :invalid-text="validator.individual.middle_name.$errors[0]?.$message"
-                            @blur="validator.individual.middle_name.$touch"
-                          >
-                          </WbInputText>
-                          <WbDropdown
-                            v-model="payload.individual.ext_name"
-                            optionLabel="label"
-                            optionValue="value"
-                            :options="ExtensionTypeOptions"
-                            :disabled="profilingStore.isMyProfile || payload.individual.sex === 'female'"
-                            label="Extension Name"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            :class="[
-                              'lg:text-md lg:placeholder:text-md text-sm placeholder:text-sm',
-                              payload.individual.sex === 'female' ? 'cursor-not-allowed bg-surface-200' : 'bg-surface-0',
-                              profilingStore.isMyProfile ? 'cursor-not-allowed bg-surface-200' : '',
-                            ]"
-                            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                            :invalid="validator.individual.ext_name.$invalid"
-                            :invalid-text="validator.individual.ext_name.$errors[0]?.$message"
-                            @blur="validator.individual.ext_name.$touch"
-                          >
-                          </WbDropdown>
-                          <WbCalendar
-                            v-model="payload.individual.birthday"
-                            required
-                            :readonly="profilingStore.isMyProfile"
-                            :class="[
-                              'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                              profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
-                            ]"
-                            label="Date of Birth"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            :invalid="validator.individual.birthday.$invalid"
-                            :invalid-text="validator.individual.birthday.$errors[0]?.$message"
-                            @blur="validator.individual.birthday.$touch"
-                          >
-                            <template #prepend-icon>
-                              <i class="pi pi-gift" />
-                            </template>
-                          </WbCalendar>
-                          <!-- Auto Compute Age -->
-                          <WbInputText
-                            v-model="computeAge"
-                            label="Age"
-                            readonly
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            :class="[
-                              'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                              profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
-                            ]"
-                          >
-                          </WbInputText>
-                          <!-- Auto Compute Age -->
-                          <WbDropdown
-                            v-model="payload.individual.sex"
-                            required
-                            :options="SexTypeOptions"
-                            optionLabel="label"
-                            optionValue="value"
-                            label="Sex"
-                            :readonly="profilingStore.isMyProfile"
-                            :class="[
-                              'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                              profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
-                            ]"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            :invalid="validator.individual.sex.$invalid"
-                            :invalid-text="validator.individual.sex.$errors[0]?.$message"
-                            @blur="validator.individual.sex.$touch"
-                          >
-                            <template #prepend-icon>
-                              <FontAwesomeIcon icon="fa-solid fa-mars-and-venus" />
-                            </template>
-                          </WbDropdown>
-
-                          <div class="flex flex-col gap-4">
-                            <div class="flex flex-row space-x-2">
-                              <h3 class="text-md text-surface-600 dark:lg:text-surface-200">Citizenship</h3>
-                              <span class="text-red-500">*</span>
-                            </div>
-                            <div class="flex flex-row items-center justify-center gap-12 p-4 md:justify-start md:p-2">
-                              <div class="flex items-center">
-                                <RadioButton
-                                  v-model="payload.individual.citizenship"
-                                  :id="getId('input-citizenship-fil')"
-                                  name="citizenship"
-                                  value="Filipino"
-                                  :disabled="profilingStore.isMyProfile"
-                                />
-                                <label :for="getId('input-citizenship-fil')" class="ml-2 cursor-pointer">Filipino</label>
-                              </div>
-                              <div class="flex items-center">
-                                <RadioButton
-                                  v-model="payload.individual.citizenship"
-                                  :id="getId('input-citizenship-dual')"
-                                  name="citizenship"
-                                  value="Dual Citizenship"
-                                  :disabled="profilingStore.isMyProfile"
-                                />
-                                <label :for="getId('input-citizenship-dual')" class="ml-2 cursor-pointer">Dual Citizen</label>
-                              </div>
-                            </div>
-                          </div>
-
-                          <WbDropdown
-                            v-model="payload.individual.civil_status"
-                            required
-                            :options="libraryStore.civilStatusOptions"
-                            optionLabel="label"
-                            optionValue="value"
-                            label="Civil Status"
-                            :readonly="profilingStore.isMyProfile"
-                            :class="[
-                              'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                              profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
-                            ]"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            :invalid="validator.individual.civil_status.$invalid"
-                            :invalid-text="validator.individual.civil_status.$errors[0]?.$message"
-                            @blur="validator.individual.civil_status.$touch"
-                          >
-                            <template #prepend-icon>
-                              <FontAwesomeIcon icon="fa-solid fa-people-arrows" />
-                            </template>
-                          </WbDropdown>
-                          <div
-                            v-if="payload.individual.citizenship === 'Dual Citizenship'"
-                            class="flex flex-col gap-4 md:flex-row md:gap-6"
-                          >
-                            <!-- Citizen Type by dropdown -->
-                            <WbDropdown
-                              v-model="payload.individual.citizenship_acquisition"
-                              required
-                              :options="libraryStore.citizenshipAcquisitionOptions"
-                              optionLabel="label"
-                              optionValue="value"
-                              label="Dual Citizen by"
+                      <div v-if="!payload.individual_eligibility[eligibilityIndex - 1]?._delete">
+                        <div class="mb-4 ml-4 grid grid-cols-1 items-start gap-12 md:grid-cols-12">
+                          <div :class="['col-span-12', 'md:col-span-6']">
+                            <WbInputText
+                              v-model="payload.individual_eligibility[eligibilityIndex - 1].eligibility"
+                              label="Eligibility"
                               label-class="text-md text-surface-600 dark:lg:text-surface-200"
                               :readonly="profilingStore.isMyProfile"
-                              class="flex-1"
-                              :class="[
-                                'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                                profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
-                              ]"
-                              :invalid="validator.individual.citizenship_acquisition.$invalid"
-                              :invalid-text="validator.individual.citizenship_acquisition.$errors[0]?.$message"
-                              @blur="validator.individual.citizenship_acquisition.$touch"
-                            >
-                              <template #prepend-icon>
-                                <FontAwesomeIcon icon="fa-solid fa-house-flag" />
-                              </template>
-                            </WbDropdown>
-
-                            <!-- If Dual Citizen, give details (country) -->
-                            <WbAutoComplete
-                              :useApiFilter="true"
-                              :apiEndpoint="'/libraries/countries/search'"
-                              :suggestions="libraryStore.countryOptions"
-                              :loading="libraryStore.countryOptionsLoading"
-                              apiOptionLabel="country_code"
-                              label="If Dual Citizen, Please indicate country:"
-                              :readonly="profilingStore.isMyProfile"
-                              placeholder="Type the Country"
-                              v-model="selectedCountry"
-                              :id="getId('input-country')"
-                              optionLabel="label"
-                              optionValue="value"
-                              required
-                              forceSelection
-                              @on-true-value-computed="
-                                (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
-                                  useWbAutoCompleteHandleTrueValue(value, toRef(payload.individual, 'country_id'))
-                              "
-                              label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                              class="flex-1"
-                              :class="[
-                                'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
-                                profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
-                              ]"
-                              :invalid="validator.individual.country_id.$invalid"
-                              :invalid-text="validator.individual.country_id.$errors[0]?.$message"
-                              @blur="validator.individual.country_id.$touch"
                             />
                           </div>
 
-                          <WbInputText
-                            v-model="payload.individual.tin"
-                            required
-                            label="TIN"
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                            :readonly="profilingStore.isMyProfile"
-                            :class="[
-                              'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                              profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
-                            ]"
-                            :invalid="validator.individual.tin.$invalid"
-                            :invalid-text="validator.individual.tin.$errors[0]?.$message"
-                            @blur="validator.individual.tin.$touch"
-                          >
-                          </WbInputText>
-                          <WbInputText
-                            v-model="payload.individual.gsis_no"
-                            label="GSIS No."
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            :readonly="profilingStore.isMyProfile"
-                            :class="[
-                              'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                              profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
-                            ]"
-                          >
-                          </WbInputText>
-
-                          <WbInputText
-                            v-model="payload.individual.pag_ibig_no"
-                            label="PAG-IBIG ID No."
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                            :readonly="profilingStore.isMyProfile"
-                            :class="[
-                              'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                              profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
-                            ]"
-                          >
-                          </WbInputText>
-                          <WbInputText
-                            v-model="payload.individual.philhealth_no"
-                            label="PHILHEALTH No."
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                            :readonly="profilingStore.isMyProfile"
-                            :class="[
-                              'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                              profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
-                            ]"
-                          >
-                          </WbInputText>
-                          <WbInputText
-                            v-model="payload.individual.sss_no"
-                            label="SSS No."
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            :readonly="profilingStore.isMyProfile"
-                            :class="[
-                              'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                              profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
-                            ]"
-                          >
-                          </WbInputText>
-                          <WbInputText
-                            v-model="payload.employee.agency_employee_no"
-                            required
-                            label="Agency Employee No."
-                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                            :readonly="profilingStore.isMyProfile"
-                            :class="[
-                              'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                              profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
-                            ]"
-                            :invalid="validator.employee.agency_employee_no.$invalid"
-                            :invalid-text="validator.employee.agency_employee_no.$errors[0]?.$message"
-                            @blur="validator.employee.agency_employee_no.$touch"
-                          >
-                          </WbInputText>
-                        </div>
-                        <!-- END PERSONAL INFO -->
-
-                        <!-- START CONTACT INFORMATION -->
-                        <div class="mt-2">
-                          <span class="flex flex-col justify-center space-y-2 font-medium text-primary-700">
-                            <p class="text-lg italic md:text-xl">Contact Information</p>
-                          </span>
-
-                          <div class="ml-4 mt-4 grid grid-cols-1 gap-x-12 gap-y-4 md:grid-cols-2">
-                            <WbInputMask
-                              v-model="payload.contact_info.mobile_no"
-                              required
-                              label="Mobile Number"
-                              label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                              mask="+639999999999"
-                              placeholder="+63 XXX XXX XXXX"
-                              :readonly="profilingStore.isMyProfile"
-                              :class="[
-                                'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                                profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
-                              ]"
-                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                              :invalid="validator.contact_info.mobile_no.$invalid"
-                              :invalid-text="validator.contact_info.mobile_no.$errors[0]?.$message"
-                              @blur="validator.contact_info.mobile_no.$touch"
-                              @focusin="validator.contact_info.mobile_no.$dirty = false"
-                            >
-                              <template #prepend-icon>
-                                <FontAwesomeIcon icon="fa-solid fa-mobile" />
-                              </template>
-                            </WbInputMask>
-
-                            <WbInputText
-                              v-model="payload.contact_info.email_address"
-                              required
-                              label="Email Address"
-                              label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                              :readonly="profilingStore.isMyProfile"
-                              :class="[
-                                'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                                profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
-                              ]"
-                              :invalid="validator.contact_info.email_address.$invalid"
-                              :invalid-text="validator.contact_info.email_address.$errors[0]?.$message"
-                              @blur="validator.contact_info.email_address.$touch"
-                            >
-                              <template #prepend-icon>
-                                <FontAwesomeIcon icon="fa-solid fa-square-envelope" />
-                              </template>
-                            </WbInputText>
-                          </div>
-                        </div>
-                        <!-- END CONTACT INFORMATION -->
-
-                        <!-- START RESIDENTIAL ADDRESS -->
-                        <div class="mt-2">
-                          <span class="flex flex-col justify-center space-y-2 font-medium text-primary-700">
-                            <p class="text-lg italic md:text-xl">Address Information</p>
-                            <p class="ml-4 text-lg italic md:text-xl">Residential Address</p>
-                          </span>
-
-                          <div class="ml-4 mt-4 grid grid-cols-1 gap-x-12 gap-y-4 md:grid-cols-2">
-                            <WbAutoComplete
-                              v-model="selectedResidentialRegion"
-                              :suggestions="publicStore.regionOptions"
-                              label=" Region "
-                              :readonly="profilingStore.isMyProfile"
-                              :class="[
-                                'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                                profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
-                              ]"
-                              required
-                              label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                          <div :class="['col-span-12', eligibilityIndex === 1 ? 'md:col-span-6' : 'md:col-span-5']">
+                            <WbDropdown
+                              v-model="payload.individual_eligibility[eligibilityIndex - 1].place_of_examination"
+                              label="Eligibility Level"
                               optionLabel="label"
-                              :placeholder="'Select or Type your Region'"
-                              forceSelection
-                              @on-true-value-computed="
-                                (value: WbAutoCompleteOptionTrueValue) =>
-                                  useWbAutoCompleteHandleTrueValue(
-                                    value,
-                                    toRef(payload.individual_address_init, 'residential_region_id')
-                                  )
-                              "
-                              :loading="publicStore.regionOptionsIsLoading"
-                              dropdown
-                              dropdownClass="bg-transparent"
-                              :invalid="validator.individual_address_init.residential_region_id.$invalid"
-                              :invalid-text="validator.individual_address_init.residential_region_id.$errors[0]?.$message"
-                              @blur="validator.individual_address_init.residential_region_id.$touch"
-                              @focusin="validator.individual_address_init.residential_region_id.$dirty = false"
-                            >
-                            </WbAutoComplete>
-
-                            <WbAutoComplete
-                              v-model="selectedResidentialProvince"
-                              :suggestions="filteredResidentialProvinceOptionsByRegion"
-                              label=" Province "
-                              :readonly="profilingStore.isMyProfile"
-                              :class="[
-                                'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                                profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
-                              ]"
-                              required
-                              label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                              optionLabel="label"
-                              :placeholder="'Select or Type your Province'"
-                              forceSelection
-                              @on-true-value-computed="
-                                (value: WbAutoCompleteOptionTrueValue) =>
-                                  useWbAutoCompleteHandleTrueValue(
-                                    value,
-                                    toRef(payload.individual_address_init, 'residential_province_id')
-                                  )
-                              "
-                              :loading="publicStore.provinceOptionsIsLoading"
-                              dropdown
-                              dropdownClass="bg-transparent"
-                              :invalid="validator.individual_address_init.residential_province_id.$invalid"
-                              :invalid-text="validator.individual_address_init.residential_province_id.$errors[0]?.$message"
-                              @blur="validator.individual_address_init.residential_province_id.$touch"
-                              @focusin="validator.individual_address_init.residential_province_id.$dirty = false"
-                            >
-                            </WbAutoComplete>
-                            <WbAutoComplete
-                              v-model="selectedResidentialCity"
-                              :suggestions="filteredResidentialCityOptionsByProvince"
-                              label=" City / Municipality "
-                              :readonly="profilingStore.isMyProfile"
-                              :class="[
-                                'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                                profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
-                              ]"
-                              required
-                              label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                              optionLabel="label"
-                              :placeholder="'Select or Type your City/Municipality'"
-                              forceSelection
-                              @on-true-value-computed="
-                                (value: WbAutoCompleteOptionTrueValue) =>
-                                  useWbAutoCompleteHandleTrueValue(
-                                    value,
-                                    toRef(payload.individual_address_init, 'residential_citymun_id')
-                                  )
-                              "
-                              :loading="publicStore.cityOptionsIsLoading"
-                              :virtualScrollerOptions="{ itemSize: 38 }"
-                              dropdown
-                              dropdownClass="bg-transparent"
-                              :invalid="validator.individual_address_init.residential_citymun_id.$invalid"
-                              :invalid-text="validator.individual_address_init.residential_citymun_id.$errors[0]?.$message"
-                              @blur="validator.individual_address_init.residential_citymun_id.$touch"
-                              @focusin="validator.individual_address_init.residential_citymun_id.$dirty = false"
-                            >
-                            </WbAutoComplete>
-                            <WbAutoComplete
-                              v-model="selectedResidentialBarangay"
-                              :suggestions="filteredResidentialBarangayOptionsByCity"
-                              label=" Barangay "
-                              :readonly="profilingStore.isMyProfile"
-                              :class="[
-                                'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                                profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
-                              ]"
-                              required
-                              label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                              optionLabel="label"
-                              :placeholder="'Select your Barangay'"
-                              forceSelection
-                              @on-true-value-computed="
-                                (value: WbAutoCompleteOptionTrueValue) =>
-                                  useWbAutoCompleteHandleTrueValue(
-                                    value,
-                                    toRef(payload.individual_address_init, 'residential_brgy_id')
-                                  )
-                              "
-                              :loading="publicStore.barangayOptionsIsLoading"
-                              :virtualScrollerOptions="{ itemSize: 38 }"
-                              dropdown
-                              dropdownClass="bg-transparent"
-                              :invalid="validator.individual_address_init.residential_brgy_id.$invalid"
-                              :invalid-text="validator.individual_address_init.residential_brgy_id.$errors[0]?.$message"
-                              @blur="validator.individual_address_init.residential_brgy_id.$touch"
-                              @focusin="validator.individual_address_init.residential_brgy_id.$dirty = false"
-                            >
-                            </WbAutoComplete>
-                            <WbInputText
-                              v-model="payload.individual_address_init.residential_subdivision_village"
-                              label="Subdivision / Village"
-                              :readonly="profilingStore.isMyProfile"
-                              :class="[
-                                'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                                profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
-                              ]"
-                              label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            >
-                            </WbInputText>
-                            <WbInputText
-                              v-model="payload.individual_address_init.residential_street"
-                              label="Street"
-                              :readonly="profilingStore.isMyProfile"
-                              :class="[
-                                'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                                profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
-                              ]"
-                              label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            >
-                            </WbInputText>
-                            <WbInputText
-                              v-model="payload.individual_address_init.residential_house_block_lot_no"
-                              label="House / Block / Lot No."
-                              :readonly="profilingStore.isMyProfile"
-                              :class="[
-                                'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                                profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
-                              ]"
-                              label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                            >
-                            </WbInputText>
-                            <WbInputText
-                              v-model="payload.individual_address_init.residential_zip_code"
-                              required
-                              :readonly="profilingStore.isMyProfile"
-                              :class="[
-                                'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                                profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
-                              ]"
-                              label="ZIP Code"
-                              label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                              :invalid="validator.individual_address_init.residential_zip_code.$invalid"
-                              :invalid-text="validator.individual_address_init.residential_zip_code.$errors[0]?.$message"
-                              @blur="validator.individual_address_init.residential_zip_code.$touch"
-                            >
-                            </WbInputText>
-                          </div>
-                        </div>
-                        <!-- END RESIDENTIAL ADDRESS -->
-
-                        <!-- START PERMANENT ADDRESS -->
-                        <div class="mt-2">
-                          <span class="flex flex-col justify-center space-y-2 font-medium text-primary-700">
-                            <p class="ml-4 text-lg italic md:text-xl">Permanent Address</p>
-                          </span>
-
-                          <div class="ml-4 mt-4 grid grid-cols-1 gap-x-12 gap-y-4 md:grid-cols-2">
-                            <div class="col-span-2 my-4 ml-4">
-                              <div class="align-items-center flex items-center">
-                                <Checkbox
-                                  :disabled="profilingStore.isMyProfile || !isResidentialComplete"
-                                  v-model="isSameResidential"
-                                  :id="getId('input-same-residential')"
-                                  :inputId="getId('input-same-residential')"
-                                  name="sameResidential"
-                                  :binary="true"
-                                />
-                                <label :for="getId('input-same-residential')" class="ml-2 text-surface-600">
-                                  My permanent address is the same with residential address
-                                </label>
-                              </div>
-                              <small v-if="!isResidentialComplete" class="ml-6 text-error-500">
-                                Please complete your residential address before enabling this option.
-                              </small>
-                            </div>
-                            <WbAutoComplete
-                              v-model="selectedPermanentRegion"
-                              :suggestions="publicStore.regionOptions"
-                              label=" Region "
-                              required
-                              label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                              optionLabel="label"
-                              :readonly="profilingStore.isMyProfile || isSameResidential"
-                              :class="[
-                                'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                                profilingStore.isMyProfile || isSameResidential
-                                  ? 'pointer-events-none cursor-default select-text'
-                                  : '',
-                              ]"
-                              :placeholder="'Select or Type your Region'"
-                              forceSelection
-                              @on-true-value-computed="
-                                (value: WbAutoCompleteOptionTrueValue) =>
-                                  useWbAutoCompleteHandleTrueValue(
-                                    value,
-                                    toRef(payload.individual_address_init, 'permanent_region_id')
-                                  )
-                              "
-                              :loading="publicStore.regionOptionsIsLoading"
-                              dropdown
-                              dropdownClass="bg-transparent"
-                              :invalid="validator.individual_address_init.permanent_region_id.$invalid"
-                              :invalid-text="validator.individual_address_init.permanent_region_id.$errors[0]?.$message"
-                              @blur="validator.individual_address_init.permanent_region_id.$touch"
-                              @focusin="validator.individual_address_init.permanent_region_id.$dirty = false"
-                            >
-                            </WbAutoComplete>
-                            <WbAutoComplete
-                              v-model="selectedPermanentProvince"
-                              :suggestions="filteredPermanentProvinceOptionsByRegion"
-                              label=" Province "
-                              label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                              optionLabel="label"
-                              required
-                              :readonly="profilingStore.isMyProfile || isSameResidential"
-                              :class="[
-                                'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                                profilingStore.isMyProfile || isSameResidential
-                                  ? 'pointer-events-none cursor-default select-text'
-                                  : '',
-                              ]"
-                              :placeholder="'Select or Type your Province'"
-                              forceSelection
-                              @on-true-value-computed="
-                                (value: WbAutoCompleteOptionTrueValue) =>
-                                  useWbAutoCompleteHandleTrueValue(
-                                    value,
-                                    toRef(payload.individual_address_init, 'permanent_province_id')
-                                  )
-                              "
-                              :loading="publicStore.provinceOptionsIsLoading"
-                              dropdown
-                              dropdownClass="bg-transparent"
-                              :invalid="validator.individual_address_init.permanent_province_id.$invalid"
-                              :invalid-text="validator.individual_address_init.permanent_province_id.$errors[0]?.$message"
-                              @blur="validator.individual_address_init.permanent_province_id.$touch"
-                              @focusin="validator.individual_address_init.permanent_province_id.$dirty = false"
-                            >
-                            </WbAutoComplete>
-                            <WbAutoComplete
-                              v-model="selectedPermanentCity"
-                              :suggestions="filteredPermanentCityOptionsByProvince"
-                              label=" City / Municipality "
-                              label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                              optionLabel="label"
-                              required
-                              :readonly="profilingStore.isMyProfile || isSameResidential"
-                              :class="[
-                                'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                                profilingStore.isMyProfile || isSameResidential
-                                  ? 'pointer-events-none cursor-default select-text'
-                                  : '',
-                              ]"
-                              :placeholder="'Select or Type your City/Municipality'"
-                              forceSelection
-                              @on-true-value-computed="
-                                (value: WbAutoCompleteOptionTrueValue) =>
-                                  useWbAutoCompleteHandleTrueValue(
-                                    value,
-                                    toRef(payload.individual_address_init, 'permanent_citymun_id')
-                                  )
-                              "
-                              :loading="publicStore.cityOptionsIsLoading"
-                              :virtualScrollerOptions="{ itemSize: 38 }"
-                              dropdown
-                              dropdownClass="bg-transparent"
-                              :invalid="validator.individual_address_init.permanent_citymun_id.$invalid"
-                              :invalid-text="validator.individual_address_init.permanent_citymun_id.$errors[0]?.$message"
-                              @blur="validator.individual_address_init.permanent_citymun_id.$touch"
-                              @focusin="validator.individual_address_init.permanent_citymun_id.$dirty = false"
-                            >
-                            </WbAutoComplete>
-                            <WbAutoComplete
-                              v-model="selectedPermanentBarangay"
-                              :suggestions="filteredPermanentBarangayOptionsByCity"
-                              label=" Barangay "
-                              required
-                              label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                              optionLabel="label"
-                              :readonly="profilingStore.isMyProfile || isSameResidential"
-                              :class="[
-                                'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                                profilingStore.isMyProfile || isSameResidential
-                                  ? 'pointer-events-none cursor-default select-text'
-                                  : '',
-                              ]"
-                              :placeholder="'Select your Barangay'"
-                              forceSelection
-                              @on-true-value-computed="
-                                (value: WbAutoCompleteOptionTrueValue) =>
-                                  useWbAutoCompleteHandleTrueValue(
-                                    value,
-                                    toRef(payload.individual_address_init, 'permanent_brgy_id')
-                                  )
-                              "
-                              :loading="publicStore.barangayOptionsIsLoading"
-                              :virtualScrollerOptions="{ itemSize: 38 }"
-                              dropdown
-                              dropdownClass="bg-transparent"
-                              :invalid="validator.individual_address_init.permanent_brgy_id.$invalid"
-                              :invalid-text="validator.individual_address_init.permanent_brgy_id.$errors[0]?.$message"
-                              @blur="validator.individual_address_init.permanent_brgy_id.$touch"
-                              @focusin="validator.individual_address_init.permanent_brgy_id.$dirty = false"
-                            >
-                            </WbAutoComplete>
-                            <WbInputText
-                              v-model="payload.individual_address_init.permanent_subdivision_village"
-                              label="Subdivision / Village"
-                              label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                              :readonly="profilingStore.isMyProfile || isSameResidential"
-                              :class="[
-                                'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                                profilingStore.isMyProfile || isSameResidential
-                                  ? 'pointer-events-none cursor-default select-text'
-                                  : '',
-                              ]"
-                            >
-                            </WbInputText>
-                            <WbInputText
-                              v-model="payload.individual_address_init.permanent_street"
-                              label="Street"
-                              label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                              :readonly="profilingStore.isMyProfile || isSameResidential"
-                              :class="[
-                                'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                                profilingStore.isMyProfile || isSameResidential
-                                  ? 'pointer-events-none cursor-default select-text'
-                                  : '',
-                              ]"
-                            >
-                            </WbInputText>
-                            <WbInputText
-                              v-model="payload.individual_address_init.permanent_house_block_lot_no"
-                              label="House / Block / Lot No."
-                              label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                              :readonly="profilingStore.isMyProfile || isSameResidential"
-                              :class="[
-                                'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                                profilingStore.isMyProfile || isSameResidential
-                                  ? 'pointer-events-none cursor-default select-text'
-                                  : '',
-                              ]"
-                            >
-                            </WbInputText>
-                            <WbInputText
-                              v-model="payload.individual_address_init.permanent_zip_code"
-                              required
-                              label="ZIP Code"
-                              label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                              validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                              :readonly="profilingStore.isMyProfile || isSameResidential"
-                              :class="[
-                                'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                                profilingStore.isMyProfile || isSameResidential
-                                  ? 'pointer-events-none cursor-default select-text'
-                                  : '',
-                              ]"
-                              :invalid="validator.individual_address_init.permanent_zip_code.$invalid"
-                              :invalid-text="validator.individual_address_init.permanent_zip_code.$errors[0]?.$message"
-                              @blur="validator.individual_address_init.permanent_zip_code.$touch"
-                            >
-                            </WbInputText>
-                          </div>
-                        </div>
-                        <!-- END PERMANENT ADDRESS -->
-
-                        <!-- START ELIGIBILITY INFORMATION -->
-                        <div class="mt-2">
-                          <span class="mb-4 flex flex-col justify-center space-y-2 font-medium text-primary-700">
-                            <p class="text-lg italic md:text-xl">Eligibility Information</p>
-                          </span>
-                          <div class="grid grid-cols-1 md:grid-cols-1">
-                            <template v-for="eligibilityIndex in payload.individual_eligibility.length" :key="eligibilityIndex">
-                              <TransitionRoot
-                                appear
-                                :show="true"
-                                enter="transition-all ease-in-out duration-500 "
-                                enterFrom="opacity-0 translate-y-6"
-                                enterTo="opacity-100 translate-y-0"
-                                leave="transition-all ease-in-out duration-800"
-                                leaveFrom="opacity-100"
-                                leaveTo="opacity-0"
-                              >
-                                <div v-if="!payload.individual_eligibility[eligibilityIndex - 1]?._delete">
-                                  <div class="mb-4 ml-4 grid grid-cols-1 items-start gap-12 md:grid-cols-12">
-                                    <div :class="['col-span-12', 'md:col-span-6']">
-                                      <WbInputText
-                                        v-model="payload.individual_eligibility[eligibilityIndex - 1].eligibility"
-                                        label="Eligibility"
-                                        label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                                        :readonly="profilingStore.isMyProfile"
-                                      />
-                                    </div>
-
-                                    <div :class="['col-span-12', eligibilityIndex === 1 ? 'md:col-span-6' : 'md:col-span-5']">
-                                      <WbDropdown
-                                        v-model="payload.individual_eligibility[eligibilityIndex - 1].place_of_examination"
-                                        label="Eligibility Level"
-                                        optionLabel="label"
-                                        optionValue="value"
-                                        :options="EligibilityTypeOptions"
-                                        :disabled="profilingStore.isMyProfile"
-                                        label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                                      ></WbDropdown>
-                                    </div>
-
-                                    <div
-                                      v-if="eligibilityIndex > 1"
-                                      class="col-span-12 flex items-center justify-center pt-8 md:col-span-1"
-                                    >
-                                      <Button
-                                        v-if="!profilingStore.isMyProfile"
-                                        icon="pi pi-trash"
-                                        severity="danger"
-                                        text
-                                        rounded
-                                        @click="handleRemoveEligibility(eligibilityIndex)"
-                                        class="hover:bg-red-50"
-                                      />
-                                    </div>
-                                  </div>
-                                </div>
-                              </TransitionRoot>
-                            </template>
-
-                            <Button
-                              v-if="payload.individual_eligibility.length < 7 && !profilingStore.isMyProfile"
+                              optionValue="value"
+                              :options="EligibilityTypeOptions"
                               :disabled="profilingStore.isMyProfile"
-                              label="Add additional Eligibility field"
-                              @click="handleAdditionalEligibility"
-                              size="large"
-                              class="dark:text-secondary-100 mt-4 !w-64 border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
-                              text
-                            >
-                              <template #icon>
-                                <i class="pi pi-plus mr-2"></i>
-                              </template>
-                            </Button>
+                              label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                            ></WbDropdown>
                           </div>
-                        </div>
-                        <!-- END ELIGIBILITY INFORMATION -->
 
-                        <!-- START EDUCATION INFORMATION -->
-                        <div class="mt-2">
-                          <span class="mb-4 flex flex-col justify-center space-y-2 font-medium text-primary-700">
-                            <p class="text-lg italic md:text-xl">Educational Attainment</p>
-                          </span>
-
-                          <template
-                            v-for="educationalIndex in payload.individual_educational_background.length"
-                            :key="educationalIndex"
+                          <div
+                            v-if="eligibilityIndex > 1"
+                            class="col-span-12 flex items-center justify-center pt-8 md:col-span-1"
                           >
-                            <TransitionRoot
-                              appear
-                              :show="true"
-                              enter="transition-all ease-in-out duration-500 "
-                              enterFrom="opacity-0 translate-y-6"
-                              enterTo="opacity-100 translate-y-0"
-                              leave="transition-all ease-in-out duration-800"
-                              leaveFrom="opacity-100"
-                              leaveTo="opacity-0"
-                            >
-                              <div v-if="!payload.individual_educational_background[educationalIndex - 1]?._delete">
-                                <div class="mb-4 ml-4 grid grid-cols-1 items-start gap-12 md:grid-cols-12">
-                                  <div :class="['col-span-12', 'md:col-span-6']">
-                                    <WbInputText
-                                      v-model="
-                                        payload.individual_educational_background[educationalIndex - 1].education_description
-                                      "
-                                      label="Basic Education / Degree / Course"
-                                      required
-                                      label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                                      :readonly="profilingStore.isMyProfile"
-                                      validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                                      :invalid="
-                                        validator.individual_educational_background[educationalIndex - 1].education_description
-                                          .$invalid
-                                      "
-                                      :invalid-text="
-                                        validator.individual_educational_background[educationalIndex - 1].education_description
-                                          .$errors[0]?.$message
-                                      "
-                                      @blur="
-                                        validator.individual_educational_background[educationalIndex - 1].education_description
-                                          .$touch
-                                      "
-                                    />
-                                  </div>
-
-                                  <div :class="['col-span-12', educationalIndex === 1 ? 'md:col-span-6' : 'md:col-span-5']">
-                                    <WbDropdown
-                                      v-model="payload.individual_educational_background[educationalIndex - 1].level"
-                                      optionLabel="label"
-                                      optionValue="value"
-                                      required
-                                      :options="EducationTypeOptions"
-                                      :disabled="profilingStore.isMyProfile"
-                                      label="Education Level"
-                                      label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                                      validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
-                                      :invalid="validator.individual_educational_background[educationalIndex - 1].level.$invalid"
-                                      :invalid-text="
-                                        validator.individual_educational_background[educationalIndex - 1].level.$errors[0]
-                                          ?.$message
-                                      "
-                                      @blur="validator.individual_educational_background[educationalIndex - 1].level.$touch"
-                                    ></WbDropdown>
-                                  </div>
-
-                                  <div
-                                    v-if="educationalIndex > 1"
-                                    class="col-span-12 flex items-center justify-center pt-8 md:col-span-1"
-                                  >
-                                    <Button
-                                      v-if="!profilingStore.isMyProfile"
-                                      icon="pi pi-trash"
-                                      severity="danger"
-                                      text
-                                      rounded
-                                      @click="handleRemoveEducation(educationalIndex)"
-                                      class="hover:bg-red-50"
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-                            </TransitionRoot>
-                          </template>
-
-                          <Button
-                            v-if="payload.individual_eligibility.length < 7 && !profilingStore.isMyProfile"
-                            :disabled="profilingStore.isMyProfile"
-                            label="Add additional Education field"
-                            @click="handleAdditionalEducation"
-                            size="large"
-                            class="dark:text-secondary-100 mt-4 !w-64 border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
-                            text
-                          >
-                            <template #icon>
-                              <i class="pi pi-plus mr-2"></i>
-                            </template>
-                          </Button>
-                        </div>
-                        <!-- END EDUCATION INFORMATION -->
-
-                        <!-- START SECTORAL AFFILIATIONS -->
-                        <div class="mt-2">
-                          <span class="flex flex-col justify-center space-y-2 font-medium text-primary-700">
-                            <p class="ml-4 text-lg italic md:text-xl">Sectoral Affiliations</p>
-                          </span>
-
-                          <div class="ml-4 mt-4 grid grid-cols-1 gap-x-12 gap-y-4 md:grid-cols-2">
-                            <div class="flex flex-col gap-2 p-4">
-                              <p class="text-base font-medium text-surface-600">Solo Parent</p>
-
-                              <div class="flex flex-row items-center gap-24">
-                                <div class="flex items-center">
-                                  <RadioButton
-                                    v-model="payload.individual_question[0].q34_a"
-                                    :id="getId('input-question-34a-yes')"
-                                    :readonly="profilingStore.isMyProfile"
-                                    name="q34_a"
-                                    :value="true"
-                                    :class="[
-                                      'scale-150 transform',
-                                      profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
-                                    ]"
-                                  />
-                                  <label :for="getId('input-question-34a-yes')" class="ml-2 cursor-pointer">Yes</label>
-                                </div>
-                                <div class="flex items-center">
-                                  <RadioButton
-                                    v-model="payload.individual_question[0].q34_a"
-                                    :id="getId('input-question-34a-no')"
-                                    :readonly="profilingStore.isMyProfile"
-                                    name="q34_a"
-                                    :value="false"
-                                    :class="[
-                                      'scale-150 transform',
-                                      profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
-                                    ]"
-                                  />
-                                  <label :for="getId('input-question-34a-no')" class="ml-2 cursor-pointer">No</label>
-                                </div>
-                              </div>
-                            </div>
-                            <div class="flex flex-col gap-2 p-4">
-                              <p class="text-base font-medium text-surface-600">Senior Citizen</p>
-
-                              <div class="flex flex-row items-center justify-center gap-12 p-4 md:justify-start md:p-2">
-                                <div class="flex items-center">
-                                  <RadioButton
-                                    v-model="payload.individual_question[0].q35_a"
-                                    :id="getId('input-question-35a-yes')"
-                                    :readonly="profilingStore.isMyProfile"
-                                    name="q35_a"
-                                    :value="true"
-                                    :class="[
-                                      'scale-150 transform',
-                                      profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
-                                    ]"
-                                  />
-                                  <label :for="getId('input-question-35a-yes')" class="ml-2 cursor-pointer">Yes</label>
-                                </div>
-                                <div class="flex items-center">
-                                  <RadioButton
-                                    v-model="payload.individual_question[0].q35_a"
-                                    :id="getId('input-question-35a-no')"
-                                    :readonly="profilingStore.isMyProfile"
-                                    name="q35_a"
-                                    :value="false"
-                                    :class="[
-                                      'scale-150 transform',
-                                      profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
-                                    ]"
-                                  />
-                                  <label :for="getId('input-question-35a-no')" class="ml-2 cursor-pointer">No</label>
-                                </div>
-                              </div>
-                            </div>
-                            <div class="flex flex-col gap-2 p-4">
-                              <p class="text-base font-medium text-surface-600">Person with Disability</p>
-
-                              <div class="flex flex-row items-center justify-center gap-12 p-4 md:justify-start md:p-2">
-                                <div class="flex items-center">
-                                  <RadioButton
-                                    v-model="payload.individual_question[0].q36"
-                                    :id="getId('input-question-36-yes')"
-                                    :readonly="profilingStore.isMyProfile"
-                                    name="q36"
-                                    :value="true"
-                                    :class="[
-                                      'scale-150 transform',
-                                      profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
-                                    ]"
-                                  />
-                                  <label :for="getId('input-question-36-yes')" class="ml-2 cursor-pointer">Yes</label>
-                                </div>
-                                <div class="flex items-center">
-                                  <RadioButton
-                                    v-model="payload.individual_question[0].q36"
-                                    :id="getId('input-question-36-no')"
-                                    :readonly="profilingStore.isMyProfile"
-                                    name="q36"
-                                    :value="false"
-                                    :class="[
-                                      'scale-150 transform',
-                                      profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
-                                    ]"
-                                  />
-                                  <label :for="getId('input-question-36-no')" class="ml-2 cursor-pointer">No</label>
-                                </div>
-                              </div>
-                              <!-- Conditional input shown only if any answer is "Yes" -->
-                              <div
-                                v-if="payload.individual_question[0].q36 === true"
-                                class="mb-2 flex items-start gap-2 md:col-span-4"
-                              >
-                                <WbInputText
-                                  v-model="payload.individual_question[0].q36_details"
-                                  label="If YES, Type of Disability"
-                                  :readonly="profilingStore.isMyProfile"
-                                  label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                  :class="[
-                                    'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
-                                    profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
-                                  ]"
-                                  required
-                                />
-                              </div>
-                            </div>
-                            <div class="flex flex-col gap-2 p-4">
-                              <p class="text-base font-medium text-surface-600">Member of Indigenous Group</p>
-
-                              <div class="flex flex-row items-center justify-center gap-12 p-4 md:justify-start md:p-2">
-                                <div class="flex items-center">
-                                  <RadioButton
-                                    v-model="payload.individual_question[0].q37"
-                                    :id="getId('input-question-37-yes')"
-                                    :readonly="profilingStore.isMyProfile"
-                                    name="q37"
-                                    :value="true"
-                                    :class="[
-                                      'scale-150 transform',
-                                      profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
-                                    ]"
-                                  />
-                                  <label :for="getId('input-question-37-yes')" class="ml-2 cursor-pointer">Yes</label>
-                                </div>
-                                <div class="flex items-center">
-                                  <RadioButton
-                                    v-model="payload.individual_question[0].q37"
-                                    :id="getId('input-question-37-no')"
-                                    :readonly="profilingStore.isMyProfile"
-                                    name="q37"
-                                    :value="false"
-                                    :class="[
-                                      'scale-150 transform',
-                                      profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
-                                    ]"
-                                  />
-                                  <label :for="getId('input-question-37-no')" class="ml-2 cursor-pointer">No</label>
-                                </div>
-                              </div>
-                              <!-- Conditional input shown only if any answer is "Yes" -->
-                              <div
-                                v-if="payload.individual_question[0].q37 === true"
-                                class="mb-2 flex items-start gap-2 md:col-span-4"
-                              >
-                                <WbInputText
-                                  v-model="payload.individual_question[0].q37_details"
-                                  label="If YES, Type of IG"
-                                  :readonly="profilingStore.isMyProfile"
-                                  label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
-                                  :class="[
-                                    'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
-                                    profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
-                                  ]"
-                                  required
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <!-- END SECTORAL AFFILIATIONS -->
-
-                        <!-- START EMPLOYEMENT DETAILS -->
-                        <div class="mt-2">
-                          <span class="mb-4 flex flex-col justify-center space-y-2 font-medium text-primary-700">
-                            <p class="text-lg italic md:text-xl">Employement Details</p>
-                          </span>
-                          <div v-if="!payload.individual_work_experience[0]?._delete">
-                            <div class="mb-4 ml-4 grid grid-cols-1 items-start gap-4 md:grid-cols-12">
-                              <div :class="['col-span-12', 'md:col-span-4']">
-                                <WbCalendar
-                                  v-model="payload.individual_work_experience[0].inclusive_date_from"
-                                  :readonly="profilingStore.isMyProfile"
-                                  :class="[
-                                    'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                                    profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
-                                  ]"
-                                  label="Date of Original Appointment"
-                                  required
-                                  :invalid="validator.individual_work_experience[0].inclusive_date_from.$invalid"
-                                  :invalid-text="validator.individual_work_experience[0].inclusive_date_from.$errors[0]?.$message"
-                                  @blur="validator.individual_work_experience[0].inclusive_date_from.$touch"
-                                ></WbCalendar>
-                              </div>
-
-                              <div :class="['col-span-12', 'md:col-span-4']">
-                                <WbCalendar
-                                  v-model="payload.individual_work_experience[0].position_title"
-                                  :readonly="profilingStore.isMyProfile"
-                                  :class="[
-                                    'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                                    profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
-                                  ]"
-                                  label="Date of Last Promotion"
-                                >
-                                  <template #prepend-icon>
-                                    <i class="pi pi-gift" />
-                                  </template>
-                                </WbCalendar>
-                              </div>
-                              <div
-                                v-if="payload.individual_work_experience && payload.individual_work_experience[0]"
-                                :class="['col-span-12', 'md:col-span-4']"
-                              >
-                                <WbCalendar
-                                  v-model="payload.individual_work_experience[0].inclusive_date_to"
-                                  :readonly="profilingStore.isMyProfile"
-                                  :class="[
-                                    'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
-                                    profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
-                                  ]"
-                                  label="Entry Date (First Day in Service)"
-                                >
-                                  <template #prepend-icon>
-                                    <i class="pi pi-gift" />
-                                  </template>
-                                </WbCalendar>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        <!-- END EMPLOYEMENT DETAILS -->
-                        <div class="ml-auto flex flex-row items-center gap-4">
-                          <div>
-                            <!-- Show Save button only if NO id -->
                             <Button
-                              v-if="!profilingStore.isMyProfile && !route.params.id"
-                              label="Save"
-                              @click="handleSaveProfilingForm"
-                              :loading="formIsSubmitting"
-                              :disabled="formIsSubmitting"
-                              size="large"
-                              class="dark:text-secondary-100 mt-4 w-full border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+                              v-if="!profilingStore.isMyProfile"
+                              icon="pi pi-trash"
+                              severity="danger"
                               text
-                            >
-                              <template #icon>
-                                <i class="pi pi-save mr-2"></i>
-                              </template>
-                            </Button>
-                            <!-- Show Update button only if id exists -->
-                            <Button
-                              v-if="!profilingStore.isMyProfile && route.params.id"
-                              label="Update"
-                              @click="updateProfilingForm"
-                              :loading="formIsSubmitting"
-                              :disabled="formIsSubmitting"
-                              type="button"
-                              size="large"
-                              class="dark:text-secondary-100 mt-4 w-full border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
-                              text
-                            >
-                              <template #icon>
-                                <i class="pi pi-save mr-2"></i>
-                              </template>
-                            </Button>
+                              rounded
+                              @click="handleRemoveEligibility(eligibilityIndex)"
+                              class="hover:bg-red-50"
+                            />
                           </div>
                         </div>
                       </div>
                     </TransitionRoot>
-                  </TabPanel>
-                  <!-- END PERSONAL INFO SECTION -->
-                </TabPanels>
-              </TabGroup>
-            </template>
-          </Card>
-        </div>
-      </form>
-    </div>
+                  </template>
+
+                  <Button
+                    v-if="payload.individual_eligibility.length < 7 && !profilingStore.isMyProfile"
+                    :disabled="profilingStore.isMyProfile"
+                    label="Add additional Eligibility field"
+                    @click="handleAdditionalEligibility"
+                    size="large"
+                    class="dark:text-secondary-100 ml-4 mt-4 !w-64 border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+                    text
+                  >
+                    <template #icon>
+                      <i class="pi pi-plus mr-2"></i>
+                    </template>
+                  </Button>
+                </div>
+              </div>
+              <!-- END ELIGIBILITY INFORMATION -->
+
+              <!-- START EDUCATION INFORMATION -->
+              <div class="mt-2">
+                <span class="mb-4 flex flex-col justify-center space-y-2 font-medium text-primary-700">
+                  <p class="text-lg italic md:text-xl">Educational Attainment</p>
+                </span>
+
+                <template v-for="educationalIndex in payload.individual_educational_background.length" :key="educationalIndex">
+                  <TransitionRoot
+                    appear
+                    :show="true"
+                    enter="transition-all ease-in-out duration-500 "
+                    enterFrom="opacity-0 translate-y-6"
+                    enterTo="opacity-100 translate-y-0"
+                    leave="transition-all ease-in-out duration-800"
+                    leaveFrom="opacity-100"
+                    leaveTo="opacity-0"
+                  >
+                    <div v-if="!payload.individual_educational_background[educationalIndex - 1]?._delete">
+                      <div class="mb-4 ml-4 grid grid-cols-1 items-start gap-12 md:grid-cols-12">
+                        <div :class="['col-span-12', 'md:col-span-6']">
+                          <WbInputText
+                            v-model="payload.individual_educational_background[educationalIndex - 1].education_description"
+                            label="Basic Education / Degree / Course"
+                            required
+                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                            :readonly="profilingStore.isMyProfile"
+                            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                            :invalid="
+                              validator.individual_educational_background[educationalIndex - 1].education_description.$invalid
+                            "
+                            :invalid-text="
+                              validator.individual_educational_background[educationalIndex - 1].education_description.$errors[0]
+                                ?.$message
+                            "
+                            @blur="validator.individual_educational_background[educationalIndex - 1].education_description.$touch"
+                          />
+                        </div>
+
+                        <div :class="['col-span-12', educationalIndex === 1 ? 'md:col-span-6' : 'md:col-span-5']">
+                          <WbDropdown
+                            v-model="payload.individual_educational_background[educationalIndex - 1].level"
+                            optionLabel="label"
+                            optionValue="value"
+                            required
+                            :options="EducationTypeOptions"
+                            :disabled="profilingStore.isMyProfile"
+                            label="Education Level"
+                            label-class="text-md text-surface-600 dark:lg:text-surface-200"
+                            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+                            :invalid="validator.individual_educational_background[educationalIndex - 1].level.$invalid"
+                            :invalid-text="
+                              validator.individual_educational_background[educationalIndex - 1].level.$errors[0]?.$message
+                            "
+                            @blur="validator.individual_educational_background[educationalIndex - 1].level.$touch"
+                          ></WbDropdown>
+                        </div>
+
+                        <div v-if="educationalIndex > 1" class="col-span-12 flex items-center justify-center pt-8 md:col-span-1">
+                          <Button
+                            v-if="!profilingStore.isMyProfile"
+                            icon="pi pi-trash"
+                            severity="danger"
+                            text
+                            rounded
+                            @click="handleRemoveEducation(educationalIndex)"
+                            class="hover:bg-red-50"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </TransitionRoot>
+                </template>
+
+                <Button
+                  v-if="payload.individual_eligibility.length < 7 && !profilingStore.isMyProfile"
+                  :disabled="profilingStore.isMyProfile"
+                  label="Add additional Education field"
+                  @click="handleAdditionalEducation"
+                  size="large"
+                  class="dark:text-secondary-100 ml-4 mt-4 !w-64 border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+                  text
+                >
+                  <template #icon>
+                    <i class="pi pi-plus mr-2"></i>
+                  </template>
+                </Button>
+              </div>
+              <!-- END EDUCATION INFORMATION -->
+
+              <!-- START SECTORAL AFFILIATIONS -->
+              <div class="mt-2">
+                <span class="flex flex-col justify-center space-y-2 font-medium text-primary-700">
+                  <p class="ml-4 text-lg italic md:text-xl">Sectoral Affiliations</p>
+                </span>
+
+                <div class="ml-4 mt-4 grid grid-cols-1 gap-x-12 gap-y-4 md:grid-cols-2">
+                  <div class="flex flex-col gap-2 p-4">
+                    <p class="text-base font-medium text-surface-600">Solo Parent</p>
+
+                    <div class="flex flex-row items-center gap-24">
+                      <div class="flex items-center">
+                        <RadioButton
+                          v-model="payload.individual_question[0].q34_a"
+                          :id="getId('input-question-34a-yes')"
+                          :readonly="profilingStore.isMyProfile"
+                          name="q34_a"
+                          :value="true"
+                          :class="[
+                            'scale-150 transform',
+                            profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
+                          ]"
+                        />
+                        <label :for="getId('input-question-34a-yes')" class="ml-2 cursor-pointer">Yes</label>
+                      </div>
+                      <div class="flex items-center">
+                        <RadioButton
+                          v-model="payload.individual_question[0].q34_a"
+                          :id="getId('input-question-34a-no')"
+                          :readonly="profilingStore.isMyProfile"
+                          name="q34_a"
+                          :value="false"
+                          :class="[
+                            'scale-150 transform',
+                            profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
+                          ]"
+                        />
+                        <label :for="getId('input-question-34a-no')" class="ml-2 cursor-pointer">No</label>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="flex flex-col gap-2 p-4">
+                    <p class="text-base font-medium text-surface-600">Senior Citizen</p>
+
+                    <div class="flex flex-row items-center justify-center gap-12 p-4 md:justify-start md:p-2">
+                      <div class="flex items-center">
+                        <RadioButton
+                          v-model="payload.individual_question[0].q35_a"
+                          :id="getId('input-question-35a-yes')"
+                          :readonly="profilingStore.isMyProfile"
+                          name="q35_a"
+                          :value="true"
+                          :class="[
+                            'scale-150 transform',
+                            profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
+                          ]"
+                        />
+                        <label :for="getId('input-question-35a-yes')" class="ml-2 cursor-pointer">Yes</label>
+                      </div>
+                      <div class="flex items-center">
+                        <RadioButton
+                          v-model="payload.individual_question[0].q35_a"
+                          :id="getId('input-question-35a-no')"
+                          :readonly="profilingStore.isMyProfile"
+                          name="q35_a"
+                          :value="false"
+                          :class="[
+                            'scale-150 transform',
+                            profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
+                          ]"
+                        />
+                        <label :for="getId('input-question-35a-no')" class="ml-2 cursor-pointer">No</label>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="flex flex-col gap-2 p-4">
+                    <p class="text-base font-medium text-surface-600">Person with Disability</p>
+
+                    <div class="flex flex-row items-center justify-center gap-12 p-4 md:justify-start md:p-2">
+                      <div class="flex items-center">
+                        <RadioButton
+                          v-model="payload.individual_question[0].q36"
+                          :id="getId('input-question-36-yes')"
+                          :readonly="profilingStore.isMyProfile"
+                          name="q36"
+                          :value="true"
+                          :class="[
+                            'scale-150 transform',
+                            profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
+                          ]"
+                        />
+                        <label :for="getId('input-question-36-yes')" class="ml-2 cursor-pointer">Yes</label>
+                      </div>
+                      <div class="flex items-center">
+                        <RadioButton
+                          v-model="payload.individual_question[0].q36"
+                          :id="getId('input-question-36-no')"
+                          :readonly="profilingStore.isMyProfile"
+                          name="q36"
+                          :value="false"
+                          :class="[
+                            'scale-150 transform',
+                            profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
+                          ]"
+                        />
+                        <label :for="getId('input-question-36-no')" class="ml-2 cursor-pointer">No</label>
+                      </div>
+                    </div>
+                    <!-- Conditional input shown only if any answer is "Yes" -->
+                    <div v-if="payload.individual_question[0].q36 === true" class="mb-2 flex items-start gap-2 md:col-span-4">
+                      <WbInputText
+                        v-model="payload.individual_question[0].q36_details"
+                        label="If YES, Type of Disability"
+                        :readonly="profilingStore.isMyProfile"
+                        label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                        :class="[
+                          'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                          profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
+                        ]"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div class="flex flex-col gap-2 p-4">
+                    <p class="text-base font-medium text-surface-600">Member of Indigenous Group</p>
+
+                    <div class="flex flex-row items-center justify-center gap-12 p-4 md:justify-start md:p-2">
+                      <div class="flex items-center">
+                        <RadioButton
+                          v-model="payload.individual_question[0].q37"
+                          :id="getId('input-question-37-yes')"
+                          :readonly="profilingStore.isMyProfile"
+                          name="q37"
+                          :value="true"
+                          :class="[
+                            'scale-150 transform',
+                            profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
+                          ]"
+                        />
+                        <label :for="getId('input-question-37-yes')" class="ml-2 cursor-pointer">Yes</label>
+                      </div>
+                      <div class="flex items-center">
+                        <RadioButton
+                          v-model="payload.individual_question[0].q37"
+                          :id="getId('input-question-37-no')"
+                          :readonly="profilingStore.isMyProfile"
+                          name="q37"
+                          :value="false"
+                          :class="[
+                            'scale-150 transform',
+                            profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
+                          ]"
+                        />
+                        <label :for="getId('input-question-37-no')" class="ml-2 cursor-pointer">No</label>
+                      </div>
+                    </div>
+                    <!-- Conditional input shown only if any answer is "Yes" -->
+                    <div v-if="payload.individual_question[0].q37 === true" class="mb-2 flex items-start gap-2 md:col-span-4">
+                      <WbInputText
+                        v-model="payload.individual_question[0].q37_details"
+                        label="If YES, Type of IG"
+                        :readonly="profilingStore.isMyProfile"
+                        label-class="text-md text-surface-600 dark:lg:text-surface-200 md:text-sm"
+                        :class="[
+                          'lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm',
+                          profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
+                        ]"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- END SECTORAL AFFILIATIONS -->
+
+              <!-- START EMPLOYEMENT DETAILS -->
+              <div class="mt-2">
+                <span class="mb-4 flex flex-col justify-center space-y-2 font-medium text-primary-700">
+                  <p class="text-lg italic md:text-xl">Employement Details</p>
+                </span>
+                <div v-if="!payload.individual_work_experience[0]?._delete">
+                  <div class="mb-4 ml-4 grid grid-cols-1 items-start gap-4 md:grid-cols-12">
+                    <div :class="['col-span-12', 'md:col-span-4']">
+                      <WbCalendar
+                        v-model="payload.individual_work_experience[0].inclusive_date_from"
+                        :readonly="profilingStore.isMyProfile"
+                        :class="[
+                          'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                          profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
+                        ]"
+                        label="Date of Original Appointment"
+                        required
+                        :invalid="validator.individual_work_experience[0].inclusive_date_from.$invalid"
+                        :invalid-text="validator.individual_work_experience[0].inclusive_date_from.$errors[0]?.$message"
+                        @blur="validator.individual_work_experience[0].inclusive_date_from.$touch"
+                      ></WbCalendar>
+                    </div>
+
+                    <div :class="['col-span-12', 'md:col-span-4']">
+                      <WbCalendar
+                        v-model="payload.individual_work_experience[0].position_title"
+                        :readonly="profilingStore.isMyProfile"
+                        :class="[
+                          'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                          profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
+                        ]"
+                        label="Date of Last Promotion"
+                      >
+                        <template #prepend-icon>
+                          <i class="pi pi-gift" />
+                        </template>
+                      </WbCalendar>
+                    </div>
+                    <div
+                      v-if="payload.individual_work_experience && payload.individual_work_experience[0]"
+                      :class="['col-span-12', 'md:col-span-4']"
+                    >
+                      <WbCalendar
+                        v-model="payload.individual_work_experience[0].inclusive_date_to"
+                        :readonly="profilingStore.isMyProfile"
+                        :class="[
+                          'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
+                          profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
+                        ]"
+                        label="Entry Date (First Day in Service)"
+                      >
+                        <template #prepend-icon>
+                          <i class="pi pi-gift" />
+                        </template>
+                      </WbCalendar>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- END EMPLOYEMENT DETAILS -->
+
+              <!-- SAVE/UPDATE BUTTONS -->
+              <div class="ml-auto flex w-full flex-row items-center justify-end gap-4">
+                <Button
+                  label="Cancel"
+                  class="dark:text-secondary-100 border border-surface-400 text-base text-surface-500 dark:border-surface-700 lg:text-surface-500 dark:lg:text-surface-400"
+                  text
+                  @click="$router.go(-1)"
+                >
+                  <template #icon>
+                    <i class="pi pi-ban mr-2"></i>
+                  </template>
+                </Button>
+
+                <Button
+                  v-if="!profilingStore.isMyProfile && !route.params.id"
+                  label="Save"
+                  @click="handleSaveProfilingForm"
+                  :loading="formIsSubmitting"
+                  :disabled="formIsSubmitting"
+                  size="large"
+                  class="dark:text-secondary-100 border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+                  text
+                >
+                  <template #icon>
+                    <i class="pi pi-save mr-2"></i>
+                  </template>
+                </Button>
+
+                <Button
+                  v-if="!profilingStore.isMyProfile && route.params.id"
+                  label="Update"
+                  @click="updateProfilingForm"
+                  :loading="formIsSubmitting"
+                  :disabled="formIsSubmitting"
+                  type="button"
+                  size="large"
+                  class="dark:text-secondary-100 border border-primary-500 text-base text-primary-600 dark:border-surface-700 lg:text-primary-400 dark:lg:text-surface-400"
+                  text
+                >
+                  <template #icon>
+                    <i class="pi pi-save mr-2"></i>
+                  </template>
+                </Button>
+              </div>
+            </div>
+          </template>
+        </Card>
+      </div>
+    </form>
   </template>
   <template v-else-if="isLoading">
     <div class="bg-surface-2 h-full w-full animate-pulse rounded-md p-6">
