@@ -261,8 +261,10 @@ export type PersonnelEmployee = {
   individual_basic_detail_id: PersonnelResponse | null
   id_number: string | null
   item_id: number | null
-  salary_grade_id: SalaryGradeResponse | null
+  salary_grade_id: number | null
+  salary_grade: SalaryGradeResponse | null
   position?: string | null
+  parenthetical_position?: string | null
   fund_source?: {
     id: number | null
     name: string | null
@@ -405,7 +407,8 @@ export type IndividualEducBg = {
   year_graduated: string | null
   is_current_enrolled: boolean
   scholarship_academic_honors_received: string | null
-}
+  _delete: boolean | null
+} & Omit<ApiResponseData, 'id'>
 
 /**Personnel Data Sheet (C2 FORM) (HTTP Responses) */
 export type IndividualEligibility = {
