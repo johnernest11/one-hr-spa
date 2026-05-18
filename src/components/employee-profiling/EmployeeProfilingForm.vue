@@ -1433,17 +1433,25 @@ const handleSaveProfilingForm = async () => {
   // Normalize Questionnaire (Defaults to false/empty strings)
   const q = payload.individual_question?.[0]
   if (q) {
+    // 1. Ensure Boolean values (prevents null on radio buttons)
     q.q34_a = q.q34_a ?? false
     q.q35_a = q.q35_a ?? false
-    if (q.q34_a) q.q34_details ??= ''
-    if (q.q35_a) q.q35_a_details ??= ''
+    q.q36 = q.q36 ?? false
+    q.q37 = q.q37 ?? false
+
+    // 2. Ensure detail strings are not null if the answer is Yes
+    if (q.q34_a) q.q34_details = q.q34_details?.trim() || 'N/A'
+    if (q.q35_a) q.q35_a_details = q.q35_a_details?.trim() || 'N/A'
+    if (q.q36) q.q36_details ??= '' // Match your v-model
+    if (q.q37) q.q37_details ??= '' // Match your v-model
   }
 
-  // Apply Organizational & Gov ID Defaults
-  const defaults = { salary_grade_id: 1, office_id: 1, division_id: 1, section_or_unit_id: 1 }
-
   if (payload.employee) {
-    Object.assign(payload.employee, { ...defaults, ...payload.employee })
+    // Use ??= to only assign if the current value is null or undefined
+    payload.employee.salary_grade_id ??= 1
+    payload.employee.office_id ??= 1
+    payload.employee.division_id ??= 1
+    payload.employee.section_or_unit_id ??= 1
   }
 
   if (payload.individual) {
@@ -1522,9 +1530,9 @@ const handleSaveProfilingForm = async () => {
                         <div class="mb-4 flex flex-row items-center">
                           <FontAwesomeIcon :icon="['fas', 'users']" class="text-2xl text-primary-700 md:text-4xl" />
                           <span class="flex flex-col justify-center">
-                            <p class="text-xl text-primary-700 md:text-3xl">Employee Profile</p>
+                            <p class="ml-4 text-xl text-primary-700 md:text-3xl">Employee Profile</p>
                             <p v-if="!isEditMode" class="text-surface-500">
-                              {{ lcFirst(String(profilingStore.isMyProfile)) }}
+                              {{ lcFirst(String(profilingStore.profilingMode)) }}
                             </p>
                           </span>
                         </div>
@@ -2620,7 +2628,7 @@ const handleSaveProfilingForm = async () => {
                                       profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
                                     ]"
                                   />
-                                  <label :for="getId('input-question-34a-yes')" class="ml-2 cursor-pointer">Yes</label>
+                                  <label :for="getId('input-question-35a-yes')" class="ml-2 cursor-pointer">Yes</label>
                                 </div>
                                 <div class="flex items-center">
                                   <RadioButton
