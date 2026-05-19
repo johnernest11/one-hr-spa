@@ -519,3 +519,16 @@ export const parseMonth = (q: string): number | null => {
   const num = q.match(/(?:^|\D)(0?[1-9]|1[0-2])(?:\D|$)/)
   return num ? +num[1] - 1 : null
 }
+
+/**
+ * Simple record type for DTR slot string values.
+ *
+ * Example:
+ * {
+ *   in1: '08:00:00',
+ *   out1: '12:00:00',
+ *   in2: '13:00:00',
+ *   out2: '17:00:00'
+ * }
+ */
+export type DTRSlotValues = Record<'in1' | 'out1' | 'in2' | 'out2', string>

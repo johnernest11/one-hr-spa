@@ -143,10 +143,18 @@ const fullMonthlyRecords = computed(() => {
 *****************************************************************/
 const selectedMonth = ref<Date | null>(null)
 
-const paginatedMonthlyRecords = computed(() => {
-  let records = fullMonthlyRecords.value
+const getMonthDate = (monthStr: string) => {
+  const [month, year] = monthStr.split(' ')
+  return new Date(`${month} 1, ${year}`)
+}
 
-  // Only filter IF a month is selected
+const paginatedMonthlyRecords = computed(() => {
+  let records = [...fullMonthlyRecords.value]
+
+  records.sort((a, b) => {
+    return getMonthDate(b.month).getTime() - getMonthDate(a.month).getTime()
+  })
+
   if (selectedMonth.value) {
     const monthName = selectedMonth.value.toLocaleString('default', { month: 'long' })
     const year = selectedMonth.value.getFullYear()
@@ -154,8 +162,10 @@ const paginatedMonthlyRecords = computed(() => {
 
     records = records.filter((dtr) => dtr.month === selectedMonthLabel)
   }
+
   const start = (currentPage.value - 1) * rowsPerPage
   const end = start + rowsPerPage
+
   return records.slice(start, end)
 })
 
@@ -163,23 +173,7 @@ const handlePaginationPageChange = (event: PageState) => {
   currentPage.value = event.page + 1
 }
 
-const roleFilter = ref<number | null>(null)
 const searchQuery = ref<Date | null>(null)
-const isSearching = ref(false)
-
-watch(
-  () => roleFilter.value,
-  async () => {
-    dailyTimeRecordIsLoading.value = true
-    searchQuery.value = null
-    isSearching.value = false
-    const response = await dailyTimeRecordsStore.fetchDailyTimeRecords()
-    if (response.success && response.pagination) {
-      pagination.value = response.pagination
-    }
-    dailyTimeRecordIsLoading.value = false
-  }
-)
 
 /****************************************************************
                   Search for Monthly  DTRs .
@@ -400,7 +394,15 @@ const getMonthlyStatus = (records: ViewDailyTimeRecordResponse[]): string => {
             <Paginator
               v-if="paginatedMonthlyRecords.length"
               :rows="rowsPerPage"
-              :total-records="paginatedMonthlyRecords.length"
+              :total-records="
+                selectedMonth
+                  ? fullMonthlyRecords.filter(
+                      (dtr) =>
+                        dtr.month ===
+                        selectedMonth!.toLocaleString('default', { month: 'long' }) + ' ' + selectedMonth!.getFullYear()
+                    ).length
+                  : fullMonthlyRecords.length
+              "
               template="CurrentPageReport FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink"
               currentPageReportTemplate="Showing {first} to {last} of {totalRecords}"
               @page="handlePaginationPageChange"
