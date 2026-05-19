@@ -1586,7 +1586,7 @@ const handleSaveProfilingForm = async () => {
 
                   <RouterLink
                     v-if="!profilingStore.isMyProfile && !ppmsCanUpdate"
-                    :to="{ name: 'support', state: { from: 'recruitment' } }"
+                    :to="{ name: 'item-numbers/store', state: { from: 'recruitment' } }"
                     v-tooltip.top="'Add Item Number'"
                     class="mt-8"
                   >
