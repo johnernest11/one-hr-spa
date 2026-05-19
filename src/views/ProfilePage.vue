@@ -159,11 +159,11 @@ const downloadQrCode = async () => {
                 <WbAvatarFileInput />
               </template>
               <div class="mt-8 flex flex-col text-center text-lg md:ml-8 md:mt-0 md:text-left lg:text-2xl">
-                <span class="font-bold text-surface-900">{{ fullName }}</span>
-                <span v-if="employeeIdNumber" class="mt-0.5 text-xs font-semibold text-primary-600 sm:text-sm"
+                <span class="font-bold text-gray-900">{{ fullName }}</span>
+                <span v-if="employeeIdNumber" class="mt-0.5 text-xs font-semibold text-blue-600 sm:text-sm"
                   >ID No: {{ employeeIdNumber }}</span
                 >
-                <span class="mt-1 text-xs text-surface-500 sm:text-sm">{{ fullAddress }}</span>
+                <span class="mt-1 text-xs text-gray-500 sm:text-sm">{{ fullAddress }}</span>
               </div>
             </div>
 
@@ -226,7 +226,7 @@ const downloadQrCode = async () => {
         </div>
 
         <div class="mb-1 w-full">
-          <p class="text-lg font-extrabold uppercase leading-tight text-surface-900 sm:text-xl">
+          <p class="text-lg font-extrabold uppercase leading-tight text-gray-900 sm:text-xl">
             {{ payload.individual.last_name }}, {{ payload.individual.first_name }}
             {{ payload.individual.middle_name ? payload.individual.middle_name + ' ' : '' }}
             {{ payload.individual.ext_name ? payload.individual.ext_name : '' }}
@@ -234,11 +234,11 @@ const downloadQrCode = async () => {
         </div>
 
         <div class="mb-1 w-full" v-if="employeeIdNumber">
-          <p class="text-sm font-bold uppercase tracking-wider text-primary-600">ID: {{ employeeIdNumber }}</p>
+          <p class="text-sm font-bold uppercase tracking-wider text-blue-600">ID: {{ employeeIdNumber }}</p>
         </div>
 
         <div class="mb-4 w-full">
-          <p class="mt-1 text-xs font-medium uppercase text-surface-600 sm:text-sm">
+          <p class="mt-1 text-xs font-medium uppercase text-gray-600 sm:text-sm">
             {{ payload.employee?.item?.position?.title || '' }}
           </p>
         </div>
@@ -252,7 +252,7 @@ const downloadQrCode = async () => {
         ></div>
 
         <div class="my-6 flex justify-center" v-if="qrCodeIsLoading">
-          <i class="pi pi-spinner animate-spin text-2xl text-surface-400" />
+          <i class="pi pi-spinner animate-spin text-2xl text-gray-400" />
         </div>
       </div>
 
@@ -264,7 +264,7 @@ const downloadQrCode = async () => {
           size="large"
           outlined
           :disabled="!canDownload"
-          class="w-full border-2 border-primary-500 font-semibold text-primary-500 transition-colors hover:bg-primary-50"
+          class="w-full border-2 border-primary-500 font-semibold text-blue-500 transition-colors hover:bg-primary-50"
           label="Download QR Code"
           icon="pi pi-download"
         />
@@ -286,7 +286,7 @@ const downloadQrCode = async () => {
 
       <div class="mb-[2px] w-full !border-0 !shadow-none !outline-none">
         <div class="!border-0 bg-surface-0 p-[5px_20px]">
-          <p class="!border-0 text-[32px] font-black uppercase leading-[1.2] text-surface-900">
+          <p class="text-[32px] font-black uppercase leading-[1.2] text-gray-900">
             {{ payload.individual.last_name }}, {{ payload.individual.first_name }}
             {{ payload.individual.middle_name ? payload.individual.middle_name + ' ' : '' }}
             {{ payload.individual.ext_name ? payload.individual.ext_name : '' }}
@@ -296,13 +296,13 @@ const downloadQrCode = async () => {
 
       <div v-if="employeeIdNumber" class="mb-5 w-full !border-0 !shadow-none !outline-none">
         <div class="!border-0 bg-surface-0 p-[2px_20px]">
-          <p class="!border-0 text-[20px] font-bold uppercase tracking-wide text-primary-600">ID: {{ employeeIdNumber }}</p>
+          <p class="!border-0 text-[20px] font-bold uppercase tracking-wide text-blue-600">ID: {{ employeeIdNumber }}</p>
         </div>
       </div>
 
       <div class="mb-[25px] w-full !border-0 !shadow-none !outline-none">
         <div class="!border-0 bg-surface-0 p-[5px_20px]">
-          <p class="text-[22px] font-medium uppercase leading-[1.2] text-surface-600">
+          <p class="text-[22px] font-medium uppercase leading-[1.2] text-gray-600">
             {{ payload.employee?.item?.position?.title || '' }}
           </p>
         </div>
