@@ -24,6 +24,7 @@ import {
   normalizeTimeOnly,
   generateUTOTTooltip,
   computeRemarks,
+  DTRSlotValues,
 } from '@/utils/dtr-helpers'
 import { useRoute } from 'vue-router'
 import { getMonthAndYear } from '@/utils/helpers'
@@ -389,7 +390,7 @@ Update all DTRs but only send updates for rows that actually changed.
 /*
  * Validation Form for Duplicate Entry
  */
-const validateRealtiDuplicateTimeLogs = (slots: Record<'in1' | 'out1' | 'in2' | 'out2', string>): string | null => {
+const validateRealtiDuplicateTimeLogs = (slots: DTRSlotValues): string | null => {
   const entries = [
     { label: 'Time In (AM)', value: slots.in1 },
     { label: 'Time Out (AM)', value: slots.out1 },
@@ -487,7 +488,7 @@ const updateDTRTimeLogs = async () => {
       /************************************************************
        * Validate duplicates inside FORM (NOT DB)
        ************************************************************/
-      const validationResult = validateRealtiDuplicateTimeLogs(enteredSlots as Record<'in1' | 'out1' | 'in2' | 'out2', string>)
+      const validationResult = validateRealtiDuplicateTimeLogs(enteredSlots as DTRSlotValues)
 
       if (validationResult) {
         duplicatedTimes.push({
@@ -965,7 +966,8 @@ const exportToPDF = async (
                   :showIcon="false"
                   placeholder="HH:mm"
                   v-tooltip.bottom="'This time logs is edited'"
-                  class="h-10 md:h-8 md:w-24"
+                  class="h-10 md:h-12 md:w-24"
+                  inputClass="text-center"
                   :invalid="validator.remarksMap?.[getRemarksKey('in1', dtr.date)]?.$error"
                   :invalidText="validator.remarksMap?.[getRemarksKey('in1', dtr.date)]?.$errors[0]?.$message"
                   @blur="validator.remarksMap[getRemarksKey('in1', dtr.date)]?.$touch()"
@@ -1006,7 +1008,8 @@ const exportToPDF = async (
                   :showIcon="false"
                   placeholder="HH:mm"
                   v-tooltip.bottom="'This time logs is edited'"
-                  class="h-10 md:h-8 md:w-24"
+                  class="h-10 md:h-12 md:w-24"
+                  inputClass="text-center"
                   :invalid="validator.remarksMap?.[getRemarksKey('out1', dtr.date)]?.$error"
                   :invalidText="validator.remarksMap?.[getRemarksKey('out1', dtr.date)]?.$errors[0]?.$message"
                   @blur="validator.remarksMap[getRemarksKey('out1', dtr.date)]?.$touch()"
@@ -1045,7 +1048,8 @@ const exportToPDF = async (
                   :showIcon="false"
                   placeholder="HH:mm"
                   v-tooltip.bottom="'This time logs is edited'"
-                  class="h-10 md:h-8 md:w-24"
+                  class="h-10 md:h-12 md:w-24"
+                  inputClass="text-center"
                   :invalid="validator.remarksMap?.[getRemarksKey('in2', dtr.date)]?.$error"
                   :invalidText="validator.remarksMap?.[getRemarksKey('in2', dtr.date)]?.$errors[0]?.$message"
                   @blur="validator.remarksMap[getRemarksKey('in2', dtr.date)]?.$touch()"
@@ -1086,7 +1090,8 @@ const exportToPDF = async (
                   :showIcon="false"
                   placeholder="HH:mm"
                   v-tooltip.top="resolveDTRSlots(dtr.row?.time_log ?? []).out2 ? 'This time log is Edited' : ''"
-                  class="h-10 md:h-8 md:w-24"
+                  class="h-10 md:h-12 md:w-24"
+                  inputClass="text-center"
                   :invalid="validator.remarksMap?.[getRemarksKey('out2', dtr.date)]?.$error"
                   :invalidText="validator.remarksMap?.[getRemarksKey('out2', dtr.date)]?.$errors[0]?.$message"
                   @blur="validator.remarksMap[getRemarksKey('out2', dtr.date)]?.$touch()"
