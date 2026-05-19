@@ -101,6 +101,10 @@ const toggleAvatarMenu = (event: Event) => {
   avatarMenu.value.toggle(event)
 }
 
+const closeAvatarMenu = () => {
+  avatarMenu.value?.hide?.()
+}
+
 const handleLogout = async () => {
   await authStore.logout()
   await router.replace({ name: 'login' })
@@ -136,7 +140,12 @@ const handleLogout = async () => {
           <template #start>
             <button
               class="p-link relative mb-2 flex w-full items-center overflow-hidden rounded-md p-2 pl-3 hover:bg-surface-100 dark:hover:bg-surface-400/10"
-              @click="router.push({ name: 'profile' })"
+              @click="
+                async () => {
+                  closeAvatarMenu()
+                  await router.push({ name: 'profile' })
+                }
+              "
             >
               <Avatar
                 :image="authStore.authenticatedUser.user_profile?.profile_picture_url ?? undefined"
