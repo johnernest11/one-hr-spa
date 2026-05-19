@@ -172,8 +172,8 @@ const downloadQrCode = async () => {
                 type="button"
                 icon="pi pi-qrcode"
                 label="My QR Code"
-                raised
-                class="px-5 text-sm font-semibold"
+                outlined
+                class="bg-surface-500 px-5 text-sm font-semibold"
                 @click="showQrModal = true"
               />
             </div>
@@ -254,17 +254,16 @@ const downloadQrCode = async () => {
         <div class="my-6 flex justify-center" v-if="qrCodeIsLoading">
           <i class="pi pi-spinner animate-spin text-2xl text-surface-400" />
         </div>
-      </div>
 
-      <div class="mx-auto mt-6 w-full max-w-xs" v-if="canDownload && !qrCodeIsLoading">
         <Button
+          v-if="canDownload && !qrCodeIsLoading"
           @click="downloadQrCode"
           severity="primary"
           type="button"
           size="large"
           outlined
           :disabled="!canDownload"
-          class="w-full border-2 border-primary-500 font-semibold text-primary-500 transition-colors hover:bg-primary-50"
+          class="mt-2 w-full border-2 border-primary-500 font-semibold text-primary-500 transition-colors hover:bg-primary-50"
           label="Download QR Code"
           icon="pi pi-download"
         />
