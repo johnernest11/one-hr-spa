@@ -7,8 +7,6 @@ import WbAvatarFileInput from '@/components/webkit/WbAvatarFileInput.vue'
 import PersonalInformation from '@/components/profile-page/PersonalInformation.vue'
 import { usePdsStore, PersonalDataSheetPayload } from '@/stores/pds.store.ts'
 import EmploymentHistory from '@/components/profile-page/EmploymentHistory.vue'
-
-// QR & High-Resolution Export Engine Dependencies
 import QRCodeStyling from 'qr-code-styling'
 import * as domToImage from 'dom-to-image-more'
 import { useToast } from 'primevue/usetoast'
@@ -72,7 +70,6 @@ const canDownload = computed(() => !!employeeIdNumber.value)
 const qrCodeDisplay = ref<QRCodeStyling | null>(null)
 const qrCodeDownload = ref<QRCodeStyling | null>(null)
 
-/** QR Config Factory */
 const qrConfig = (size: number, data: string) => ({
   width: size,
   height: size,
@@ -86,12 +83,10 @@ const qrConfig = (size: number, data: string) => ({
   cornersDotOptions: { type: 'square' as const, color: '#000000' },
 })
 
-/** Dynamic QR Value Generation Tracking Target */
 const qrCodeValue = computed(() => {
   return employeeIdNumber.value ? `EMPLOYEE_ID:${employeeIdNumber.value}` : ''
 })
 
-/** Specialized on-demand canvas injection engine triggered when Dialog opens */
 const generateQrOnDemand = () => {
   if (!qrCodeValue.value) return
 
@@ -104,7 +99,6 @@ const generateQrOnDemand = () => {
       qrCodeDisplay.value.append(qrContainerRef.value)
     }
 
-    // 2. Compile and mount high-definition export canvas
     if (hiddenQrContainerRef.value) {
       hiddenQrContainerRef.value.innerHTML = ''
       qrCodeDownload.value = new QRCodeStyling(qrConfig(500, qrCodeValue.value))
@@ -115,7 +109,6 @@ const generateQrOnDemand = () => {
   }, 100)
 }
 
-/** Handles clean capture array generation via dom-to-image matrix */
 const downloadQrCode = async () => {
   if (!qrCodeValue.value) return
 
@@ -136,7 +129,6 @@ const downloadQrCode = async () => {
     link.href = dataUrl
     link.click()
 
-    // Balanced wording to specify it is the unified Card layout being saved
     toast.add({
       severity: 'success',
       summary: 'Success',
@@ -168,11 +160,13 @@ const downloadQrCode = async () => {
                 <WbAvatarFileInput />
               </template>
               <div class="mt-8 flex flex-col text-center text-lg md:ml-8 md:mt-0 md:text-left lg:text-2xl">
-                <span class="font-bold">{{ fullName }}</span>
-                <span v-if="employeeIdNumber" class="mt-0.5 text-xs font-semibold text-primary-600 sm:text-sm"
+                <span class="font-bold text-surface-900 dark:text-surface-0">{{ fullName }}</span>
+                <span
+                  v-if="employeeIdNumber"
+                  class="mt-0.5 text-xs font-semibold text-primary-600 dark:text-primary-400 sm:text-sm"
                   >ID No: {{ employeeIdNumber }}</span
                 >
-                <span class="mt-1 text-xs text-surface-500 sm:text-sm">{{ fullAddress }}</span>
+                <span class="mt-1 text-xs text-surface-500 dark:text-surface-400 sm:text-sm">{{ fullAddress }}</span>
               </div>
             </div>
 
@@ -228,14 +222,14 @@ const downloadQrCode = async () => {
       <div
         v-if="payload.individual"
         ref="qrCardRef"
-        class="mx-auto flex w-full max-w-sm flex-col items-center bg-white p-6 text-center sm:max-w-md"
+        class="mx-auto flex w-full max-w-sm flex-col items-center bg-surface-0 p-6 text-center dark:bg-surface-900 sm:max-w-md"
       >
         <div class="mb-4 flex w-full flex-col items-center">
           <img src="@/assets/image/dswd-logo.png" alt="DSWD Logo" class="object-contain" />
         </div>
 
         <div class="mb-1 w-full">
-          <p class="text-lg font-extrabold uppercase leading-tight text-gray-900 sm:text-xl">
+          <p class="text-lg font-extrabold uppercase leading-tight text-surface-900 dark:text-surface-0 sm:text-xl">
             {{ payload.individual.last_name }}, {{ payload.individual.first_name }}
             {{ payload.individual.middle_name ? payload.individual.middle_name + ' ' : '' }}
             {{ payload.individual.ext_name ? payload.individual.ext_name : '' }}
@@ -243,11 +237,13 @@ const downloadQrCode = async () => {
         </div>
 
         <div class="mb-1 w-full" v-if="employeeIdNumber">
-          <p class="text-sm font-bold uppercase tracking-wider text-primary-600">ID: {{ employeeIdNumber }}</p>
+          <p class="text-sm font-bold uppercase tracking-wider text-primary-600 dark:text-primary-400">
+            ID: {{ employeeIdNumber }}
+          </p>
         </div>
 
         <div class="mb-4 w-full">
-          <p class="mt-1 text-xs font-medium uppercase text-gray-700 sm:text-sm">
+          <p class="mt-1 text-xs font-medium uppercase text-surface-600 dark:text-surface-400 sm:text-sm">
             {{ payload.employee?.item?.position?.title || '' }}
           </p>
         </div>
@@ -268,23 +264,22 @@ const downloadQrCode = async () => {
       <div class="mx-auto mt-6 w-full max-w-xs" v-if="canDownload && !qrCodeIsLoading">
         <Button
           @click="downloadQrCode"
-          severity="info"
+          severity="primary"
           type="button"
           size="large"
           outlined
           :disabled="!canDownload"
-          class="w-full border-2 border-primary-500 text-base font-semibold transition-colors hover:bg-primary-50"
-          text
-        >
-          <i class="pi pi-download mr-2"></i> Download QR Code
-        </Button>
+          class="w-full text-base font-semibold"
+          label="Download QR Card"
+          icon="pi pi-download"
+        />
       </div>
     </Dialog>
 
     <div
       v-if="payload.individual"
       ref="hiddenQrCardRef"
-      class="absolute left-[-9999px] box-border flex h-[950px] w-[650px] flex-col items-center !border-0 bg-white p-10 text-center !shadow-none !outline-none"
+      class="absolute left-[-9999px] box-border flex h-[950px] w-[650px] flex-col items-center !border-0 bg-surface-0 p-10 text-center !shadow-none !outline-none"
     >
       <div class="mb-[30px] flex w-full justify-center !border-0 !shadow-none !outline-none">
         <img
@@ -295,8 +290,8 @@ const downloadQrCode = async () => {
       </div>
 
       <div class="mb-[2px] w-full !border-0 !shadow-none !outline-none">
-        <div class="!border-0 !bg-white bg-white p-[5px_20px]">
-          <p class="!border-0 text-[32px] font-black uppercase leading-[1.2] text-[#1f2937]">
+        <div class="!border-0 !bg-surface-0 bg-surface-0 p-[5px_20px]">
+          <p class="!border-0 text-[32px] font-black uppercase leading-[1.2] text-surface-900">
             {{ payload.individual.last_name }}, {{ payload.individual.first_name }}
             {{ payload.individual.middle_name ? payload.individual.middle_name + ' ' : '' }}
             {{ payload.individual.ext_name ? payload.individual.ext_name : '' }}
@@ -305,14 +300,14 @@ const downloadQrCode = async () => {
       </div>
 
       <div v-if="employeeIdNumber" class="mb-5 w-full !border-0 !shadow-none !outline-none">
-        <div class="!border-0 !bg-white bg-white p-[2px_20px]">
-          <p class="!border-0 text-[20px] font-bold uppercase tracking-wide text-[#3b82f6]">ID: {{ employeeIdNumber }}</p>
+        <div class="!border-0 !bg-surface-0 bg-surface-0 p-[2px_20px]">
+          <p class="!border-0 text-[20px] font-bold uppercase tracking-wide text-primary-600">ID: {{ employeeIdNumber }}</p>
         </div>
       </div>
 
       <div class="mb-[25px] w-full !border-0 !shadow-none !outline-none">
-        <div class="!border-0 !bg-white bg-white p-[5px_20px]">
-          <p class="!border-0 text-[22px] font-medium uppercase leading-[1.2] text-[#4b5563]">
+        <div class="!border-0 !bg-surface-0 bg-surface-0 p-[5px_20px]">
+          <p class="!border-0 text-[22px] font-medium uppercase leading-[1.2] text-surface-600">
             {{ payload.employee?.item?.position?.title || '' }}
           </p>
         </div>
