@@ -536,27 +536,28 @@ const updateDTRTimeLogs = async () => {
       /************************************************************
        * Existing DTR update logic
        ************************************************************/
+      const hasTimeLogs = time_logs.length > 0
+      const hasRemarks = enteredRemarks !== (existingDTR?.employee_remarks ?? '')
+
+      const hasHRRemarks = enteredHRRemarks !== (existingDTR?.hr_remarks ?? '')
+
+      const hasUT = !!route.params.id && enteredUT !== (existingDTR?.ut ?? 0)
+
+      const hasOT = !!route.params.id && enteredOT !== (existingDTR?.ot ?? 0)
+
+      const hasChanges = hasTimeLogs || hasRemarks || hasHRRemarks || hasUT || hasOT
       if (existingDTR) {
-        const remarksChanged = enteredRemarks !== (existingDTR.employee_remarks ?? '')
-        const remarksHrChanged = enteredHRRemarks !== (existingDTR.hr_remarks ?? '')
+        if (!hasChanges) return null
 
-        const canUpdateUTOT = !!route.params.id
-        const utChanged = canUpdateUTOT && enteredUT !== (existingDTR.ut ?? 0)
-        const otChanged = canUpdateUTOT && enteredOT !== (existingDTR.ot ?? 0)
-
-        if (remarksChanged || remarksHrChanged || utChanged || otChanged || time_logs.length > 0) {
-          return {
-            id: existingDTR.id,
-            date: formatDateYMD(item.date),
-            ...(remarksChanged ? { employee_remarks: enteredRemarks } : {}),
-            ...(remarksHrChanged ? { hr_remarks: enteredHRRemarks } : {}),
-            ...(utChanged ? { ut: enteredUT } : {}),
-            ...(otChanged ? { ot: enteredOT } : {}),
-            ...(time_logs.length > 0 ? { time_logs } : {}),
-          }
+        return {
+          id: existingDTR.id,
+          date: formatDateYMD(item.date),
+          ...(hasRemarks ? { employee_remarks: enteredRemarks } : {}),
+          ...(hasHRRemarks ? { hr_remarks: enteredHRRemarks } : {}),
+          ...(hasUT ? { ut: enteredUT } : {}),
+          ...(hasOT ? { ot: enteredOT } : {}),
+          ...(hasTimeLogs ? { time_logs } : {}),
         }
-
-        return null
       }
 
       /************************************************************
