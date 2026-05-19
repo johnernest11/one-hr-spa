@@ -264,8 +264,8 @@ const downloadQrCode = async () => {
           size="large"
           outlined
           :disabled="!canDownload"
-          class="w-full text-base font-semibold"
-          label="Download QR Card"
+          class="w-full border-2 border-primary-500 font-semibold text-primary-500 transition-colors hover:bg-primary-50"
+          label="Download QR Code"
           icon="pi pi-download"
         />
       </div>
