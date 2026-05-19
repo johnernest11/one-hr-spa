@@ -143,10 +143,18 @@ const fullMonthlyRecords = computed(() => {
 *****************************************************************/
 const selectedMonth = ref<Date | null>(null)
 
-const paginatedMonthlyRecords = computed(() => {
-  let records = fullMonthlyRecords.value
+const getMonthDate = (monthStr: string) => {
+  const [month, year] = monthStr.split(' ')
+  return new Date(`${month} 1, ${year}`)
+}
 
-  // Only filter IF a month is selected
+const paginatedMonthlyRecords = computed(() => {
+  let records = [...fullMonthlyRecords.value]
+
+  records.sort((a, b) => {
+    return getMonthDate(b.month).getTime() - getMonthDate(a.month).getTime()
+  })
+
   if (selectedMonth.value) {
     const monthName = selectedMonth.value.toLocaleString('default', { month: 'long' })
     const year = selectedMonth.value.getFullYear()
@@ -154,8 +162,10 @@ const paginatedMonthlyRecords = computed(() => {
 
     records = records.filter((dtr) => dtr.month === selectedMonthLabel)
   }
+
   const start = (currentPage.value - 1) * rowsPerPage
   const end = start + rowsPerPage
+
   return records.slice(start, end)
 })
 

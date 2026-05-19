@@ -25,7 +25,6 @@ import { ApiResponsePagination } from '@/typings/http-resources.types.ts'
 import Paginator, { PageState } from 'primevue/paginator'
 import { useAccomplishmentReportStore } from '@/stores/personnel-accomplishment-report.store'
 import { useLocatorSlipStore } from '@/stores/locator-slip.store'
-import WbCalendar from '@/components/webkit/WbCalendar.vue'
 import HappyBirthdayGreetingPage from './misc/HappyBirthdayGreetingPage.vue'
 const authStore = useAuthStore()
 const accomplishmentReportStore = useAccomplishmentReportStore()
@@ -329,20 +328,6 @@ onBeforeMount(async () => {
             <div class="mb-2 flex items-center justify-between">
               <!-- Left side: text -->
               <div class="text-2xl text-primary-700">Attendance for {{ selectedMonthName }} {{ selectedYear }}</div>
-
-              <!-- Right side: calendar -->
-              <div class="text-2xl text-primary-700">
-                <WbCalendar
-                  v-model="monthDate"
-                  dateFormat="MM yy"
-                  :maxDate="new Date()"
-                  view="month"
-                  label="Filter Month"
-                  showIcon
-                  iconClass="!text-3xl !p-3 !text-primary-700 hover:!text-primary-900"
-                  class="w-2 border-0 bg-transparent p-0"
-                />
-              </div>
             </div>
 
             <!-- Weekday headers -->
