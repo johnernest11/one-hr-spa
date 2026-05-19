@@ -101,10 +101,6 @@ const toggleAvatarMenu = (event: Event) => {
   avatarMenu.value.toggle(event)
 }
 
-const closeAvatarMenu = () => {
-  avatarMenu.value?.hide?.()
-}
-
 const handleLogout = async () => {
   await authStore.logout()
   await router.replace({ name: 'login' })
@@ -118,7 +114,6 @@ const handleLogout = async () => {
     </template>
 
     <template #end>
-      <!-- Start Avatar Menu -->
       <template v-if="authStore.isAuthenticated">
         <Avatar
           :image="authStore.authenticatedUser.user_profile?.profile_picture_url ?? undefined"
@@ -130,6 +125,7 @@ const handleLogout = async () => {
           aria-haspopup="true"
           aria-controls="avatar-menu"
         />
+
         <Menu
           ref="avatarMenu"
           id="avatar-menu"
@@ -138,41 +134,40 @@ const handleLogout = async () => {
           @focus="() => $nextTick(() => (avatarMenu.focusedOptionIndex = -1))"
         >
           <template #start>
-            <button
-              class="p-link relative mb-2 flex w-full items-center overflow-hidden rounded-md p-2 pl-3 hover:bg-surface-100 dark:hover:bg-surface-400/10"
-              @click="
-                async () => {
-                  closeAvatarMenu()
-                  await router.push({ name: 'profile' })
-                }
-              "
-            >
-              <Avatar
-                :image="authStore.authenticatedUser.user_profile?.profile_picture_url ?? undefined"
-                :label="`${!authStore.authenticatedUser.user_profile?.profile_picture_url ? AvatarDisplayNamePlaceholder : ''}`"
-                class="mr-2.5 overflow-hidden dark:!bg-primary-500"
-                shape="square"
-                size="large"
-              />
-              <span class="inline-flex flex-col justify-start">
-                <span class="mx-1 text-sm">{{ fullName }}</span>
-                <span class="mx-1 mt-2 flex flex-wrap gap-1">
-                  <Tag v-for="role in authStore.authRoles" :value="snakeCaseToTitleCase(role)" :key="role"></Tag>
+            <div @mouseleave="(e) => avatarMenu.hide(e)">
+              <button
+                class="p-link relative mb-2 flex w-full items-center overflow-hidden rounded-md p-2 pl-3 hover:bg-surface-100 dark:hover:bg-surface-400/10"
+                @click="router.push({ name: 'profile' })"
+              >
+                <Avatar
+                  :image="authStore.authenticatedUser.user_profile?.profile_picture_url ?? undefined"
+                  :label="`${!authStore.authenticatedUser.user_profile?.profile_picture_url ? AvatarDisplayNamePlaceholder : ''}`"
+                  class="mr-2.5 overflow-hidden dark:!bg-primary-500"
+                  shape="square"
+                  size="large"
+                />
+                <span class="inline-flex flex-col justify-start">
+                  <span class="mx-1 text-left text-sm">{{ fullName }}</span>
+                  <span class="mx-1 mt-2 flex flex-wrap gap-1">
+                    <Tag v-for="role in authStore.authRoles" :value="snakeCaseToTitleCase(role)" :key="role"></Tag>
+                  </span>
                 </span>
-              </span>
-            </button>
+              </button>
+            </div>
           </template>
+
           <template #item="{ item, props }">
-            <a class="flex items-center text-sm" v-bind="props.action">
-              <span :class="item.icon" />
-              <span class="ml-2 font-normal">{{ item.label }}</span>
-              <Badge v-if="item.badge" class="ml-auto" :value="item.badge" />
-              <i v-if="!item.noArrow" class="pi pi-angle-right ml-auto text-xs"></i>
-            </a>
+            <div @mouseleave="(e) => avatarMenu.hide(e)">
+              <a class="flex items-center text-sm" v-bind="props.action">
+                <span :class="item.icon" />
+                <span class="ml-2 font-normal">{{ item.label }}</span>
+                <Badge v-if="item.badge" class="ml-auto" :value="item.badge" />
+                <i v-if="!item.noArrow" class="pi pi-angle-right ml-auto text-xs"></i>
+              </a>
+            </div>
           </template>
         </Menu>
       </template>
-      <!-- End Avatar Menu -->
     </template>
   </Toolbar>
 </template>
