@@ -63,7 +63,13 @@ const { navLinks, toggleExpanded } = useSidebarNavLinks()
                   : ''
               }`"
               >
-                <FontAwesomeIcon class="text-surface-600" :icon="[child.icon.split(' ')[0], child.icon.split(' ')[1]]" />
+                <FontAwesomeIcon
+                  v-if="child.icon && child.icon.includes(' ')"
+                  class="text-surface-600"
+                  :icon="[child.icon.split(' ')[0], child.icon.split(' ')[1]]"
+                />
+                <i v-else-if="child.icon" :class="`${child.icon} text-surface-600`"></i>
+
                 <span class="mx-2 text-sm font-medium text-surface-600">{{ child.label }}</span>
               </RouterLink>
             </div>
