@@ -69,8 +69,8 @@ const hiddenQrContainerRef = ref<HTMLElement | null>(null)
 const qrCodeIsLoading = ref(false)
 const canDownload = computed(() => !!employeeIdNumber.value)
 
-let qrCodeDisplay: QRCodeStyling | null = null
-let qrCodeDownload: QRCodeStyling | null = null
+const qrCodeDisplay = ref<QRCodeStyling | null>(null)
+const qrCodeDownload = ref<QRCodeStyling | null>(null)
 
 /** QR Config Factory */
 const qrConfig = (size: number, data: string) => ({
@@ -97,20 +97,18 @@ const generateQrOnDemand = () => {
 
   qrCodeIsLoading.value = true
 
-  // Short timeout provides essential execution delay for PrimeVue to finish mounting the DOM content
   setTimeout(() => {
-    // 1. Compile and mount standard display canvas
     if (qrContainerRef.value) {
       qrContainerRef.value.innerHTML = ''
-      qrCodeDisplay = new QRCodeStyling(qrConfig(350, qrCodeValue.value))
-      qrCodeDisplay.append(qrContainerRef.value)
+      qrCodeDisplay.value = new QRCodeStyling(qrConfig(350, qrCodeValue.value))
+      qrCodeDisplay.value.append(qrContainerRef.value)
     }
 
     // 2. Compile and mount high-definition export canvas
     if (hiddenQrContainerRef.value) {
       hiddenQrContainerRef.value.innerHTML = ''
-      qrCodeDownload = new QRCodeStyling(qrConfig(500, qrCodeValue.value))
-      qrCodeDownload.append(hiddenQrContainerRef.value)
+      qrCodeDownload.value = new QRCodeStyling(qrConfig(500, qrCodeValue.value))
+      qrCodeDownload.value.append(hiddenQrContainerRef.value)
     }
 
     qrCodeIsLoading.value = false
@@ -131,15 +129,27 @@ const downloadQrCode = async () => {
       quality: 1,
       bgcolor: '#ffffff',
       width: 650,
-      height: 950, // Expanded slightly to prevent text clipping from ID number injection
+      height: 950,
     })
     const link = document.createElement('a')
     link.download = filename
     link.href = dataUrl
     link.click()
-    toast.add({ severity: 'success', summary: 'Success', detail: 'QR Card downloaded successfully.', life: 3000 })
+
+    // Balanced wording to specify it is the unified Card layout being saved
+    toast.add({
+      severity: 'success',
+      summary: 'Success',
+      detail: 'QR Card downloaded successfully.',
+      life: 3000,
+    })
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Export Failed', detail: 'Unable to save high-resolution card layout.', life: 3000 })
+    toast.add({
+      severity: 'error',
+      summary: 'Export Failed',
+      detail: 'Unable to save high-resolution card layout.',
+      life: 3000,
+    })
   }
 }
 </script>
@@ -170,7 +180,7 @@ const downloadQrCode = async () => {
               <Button
                 type="button"
                 icon="pi pi-qrcode"
-                label="MY QR CODE"
+                label="My QR Code"
                 raised
                 class="px-5 text-sm font-semibold"
                 @click="showQrModal = true"
@@ -261,11 +271,12 @@ const downloadQrCode = async () => {
           severity="info"
           type="button"
           size="large"
+          outlined
           :disabled="!canDownload"
           class="w-full border-2 border-primary-500 text-base font-semibold transition-colors hover:bg-primary-50"
           text
         >
-          <i class="pi pi-download mr-2"></i> Download QR Card
+          <i class="pi pi-download mr-2"></i> Download QR Code
         </Button>
       </div>
     </Dialog>
@@ -273,53 +284,19 @@ const downloadQrCode = async () => {
     <div
       v-if="payload.individual"
       ref="hiddenQrCardRef"
-      style="
-        position: absolute;
-        left: -9999px;
-        width: 650px;
-        height: 950px;
-        background-color: white;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-        padding: 40px;
-        box-sizing: border-box;
-        border: 0 !important;
-        box-shadow: none !important;
-        outline: none !important;
-      "
+      class="absolute left-[-9999px] box-border flex h-[950px] w-[650px] flex-col items-center !border-0 bg-white p-10 text-center !shadow-none !outline-none"
     >
-      <div
-        style="
-          margin-bottom: 30px;
-          width: 100%;
-          display: flex;
-          justify-content: center;
-          border: 0 !important;
-          box-shadow: none !important;
-          outline: none !important;
-        "
-      >
+      <div class="mb-[30px] flex w-full justify-center !border-0 !shadow-none !outline-none">
         <img
           src="@/assets/image/dswd-logo.png"
           alt="DSWD Logo"
-          style="width: 412.5px; height: auto; object-fit: contain; border: 0 !important; box-shadow: none !important"
+          class="h-auto w-[412.5px] !border-0 object-contain !shadow-none"
         />
       </div>
 
-      <div style="margin-bottom: 2px; width: 100%; border: 0 !important; box-shadow: none !important; outline: none !important">
-        <div style="background-color: white !important; padding: 5px 20px; border: 0 !important">
-          <p
-            style="
-              font-size: 32px;
-              font-weight: 900;
-              text-transform: uppercase;
-              color: #1f2937;
-              line-height: 1.2;
-              border: 0 !important;
-            "
-          >
+      <div class="mb-[2px] w-full !border-0 !shadow-none !outline-none">
+        <div class="!border-0 !bg-white bg-white p-[5px_20px]">
+          <p class="!border-0 text-[32px] font-black uppercase leading-[1.2] text-[#1f2937]">
             {{ payload.individual.last_name }}, {{ payload.individual.first_name }}
             {{ payload.individual.middle_name ? payload.individual.middle_name + ' ' : '' }}
             {{ payload.individual.ext_name ? payload.individual.ext_name : '' }}
@@ -327,38 +304,15 @@ const downloadQrCode = async () => {
         </div>
       </div>
 
-      <div
-        v-if="employeeIdNumber"
-        style="margin-bottom: 5px; width: 100%; border: 0 !important; box-shadow: none !important; outline: none !important"
-      >
-        <div style="background-color: white !important; padding: 2px 20px; border: 0 !important">
-          <p
-            style="
-              font-size: 20px;
-              font-weight: 700;
-              text-transform: uppercase;
-              color: #3b82f6;
-              letter-spacing: 0.05em;
-              border: 0 !important;
-            "
-          >
-            ID: {{ employeeIdNumber }}
-          </p>
+      <div v-if="employeeIdNumber" class="mb-5 w-full !border-0 !shadow-none !outline-none">
+        <div class="!border-0 !bg-white bg-white p-[2px_20px]">
+          <p class="!border-0 text-[20px] font-bold uppercase tracking-wide text-[#3b82f6]">ID: {{ employeeIdNumber }}</p>
         </div>
       </div>
 
-      <div style="margin-bottom: 25px; width: 100%; border: 0 !important; box-shadow: none !important; outline: none !important">
-        <div style="background-color: white !important; padding: 5px 20px; border: 0 !important">
-          <p
-            style="
-              font-size: 22px;
-              font-weight: 500;
-              text-transform: uppercase;
-              color: #4b5563;
-              line-height: 1.2;
-              border: 0 !important;
-            "
-          >
+      <div class="mb-[25px] w-full !border-0 !shadow-none !outline-none">
+        <div class="!border-0 !bg-white bg-white p-[5px_20px]">
+          <p class="!border-0 text-[22px] font-medium uppercase leading-[1.2] text-[#4b5563]">
             {{ payload.employee?.item?.position?.title || '' }}
           </p>
         </div>
@@ -366,14 +320,7 @@ const downloadQrCode = async () => {
 
       <div
         ref="hiddenQrContainerRef"
-        :style="{
-          display: qrCodeIsLoading ? 'none' : 'flex',
-          justifyContent: 'center',
-          backgroundColor: 'white',
-          width: '500px',
-          height: '500px',
-          border: '0 !important',
-        }"
+        :class="[qrCodeIsLoading ? 'hidden' : 'flex', 'h-[500px] w-[500px] justify-center !border-0 bg-white']"
       ></div>
     </div>
   </div>
