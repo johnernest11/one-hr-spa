@@ -125,6 +125,7 @@ const handleLogout = async () => {
           :popup="true"
           @mouseleave="(e: Event) => avatarMenu.hide(e)"
           @focus="() => $nextTick(() => (avatarMenu.focusedOptionIndex = -1))"
+          @mouseleave="avatarMenu?.hide()"
         >
           <template #start>
             <button

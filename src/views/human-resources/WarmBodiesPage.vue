@@ -200,7 +200,7 @@ const DateToday = new Date().toLocaleDateString()
     <template v-if="!warmBodiesIsLoading || isSearching">
       <div class="h-full w-full rounded-md bg-surface-0 p-6">
         <div class="flex flex-col font-medium text-primary-700 dark:text-primary-100 md:ml-4 md:mt-2">
-          <h1 class="mb-1 text-xl text-surface-700 dark:text-primary-100 md:text-xl lg:text-4xl">Daily Time-in/Time-out</h1>
+          <h1 class="mb-1 text-xl text-surface-700 dark:text-primary-100 md:text-xl lg:text-4xl">Attendance Tracker</h1>
           <p class="text-base text-surface-500 dark:text-primary-200">{{ DateToday }}</p>
         </div>
 
@@ -299,6 +299,16 @@ const DateToday = new Date().toLocaleDateString()
                       </p>
                       <p class="text-sm text-surface-500">{{ props.data.id_number || 'N/A' }}</p>
                     </div>
+                  </template>
+                </Column>
+
+                <Column
+                  field="official station"
+                  header="Official Station"
+                  headerClass="w-80 bg-surface-100 border-surface-300 opacity-70 font-bold py-2"
+                >
+                  <template #body="props">
+                    <p class="uppercase text-surface-600">{{ props.data.office_name }}</p>
                   </template>
                 </Column>
 

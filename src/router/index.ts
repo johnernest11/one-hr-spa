@@ -784,11 +784,11 @@ const routes = [
         },
       },
       {
-        path: '/warm-bodies',
-        name: 'warm-bodies',
+        path: '/attendance-tracker',
+        name: 'attendance-tracker',
         component: () => import('@/views/human-resources/WarmBodiesPage.vue'),
         meta: <RouteMeta>{
-          label: 'Warm Bodies',
+          label: 'Attendance Tracker',
           isSidebarMenu: true,
           authType: AuthType.AUTHENTICATED,
           roles: [AuthRole.HR_PAS_ADMIN, AuthRole.ADMIN, AuthRole.SUPER_USER],

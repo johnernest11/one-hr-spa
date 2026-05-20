@@ -243,6 +243,37 @@ export const computeOT = (worked: number, weekend = false): number => {
   return worked > 8 ? parseFloat((worked - 8).toFixed(2)) : 0
 }
 
+/**
+ * Computes OT and UT for Monday based on worked hours.
+ */
+export const computeUTOTFlex = (inTime: string, outTime: string): { ut: number; ot: number } => {
+  const start = new Date(inTime)
+  const end = new Date(outTime)
+
+  const refStart = new Date(start)
+  refStart.setHours(8, 0, 0, 0)
+
+  let ut = 0
+  let ot = 0
+
+  if (start > refStart) {
+    ut = (start.getTime() - refStart.getTime()) / 36e5
+  }
+
+  const total = (end.getTime() - start.getTime()) / 36e5
+
+  const effectiveHours = total - 1
+
+  if (effectiveHours > 8) {
+    ot = effectiveHours - 8
+  }
+
+  return {
+    ut: +ut.toFixed(2),
+    ot: +ot.toFixed(2),
+  }
+}
+
 /**************************************
  * Compute Remarks for DTR
  * ------------------------
