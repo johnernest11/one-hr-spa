@@ -128,7 +128,7 @@ const handleLogout = async () => {
         >
           <template #start>
             <button
-              class="p-link relative mb-2 flex w-full items-center overflow-hidden rounded-md p-2 pl-3 hover:bg-surface-100 dark:hover:bg-surface-400/10"
+              class="p-link relative mb-2 flex w-full items-center overflow-hidden rounded-md p-2 pl-3 hover:bg-surface-100"
               @click="router.push({ name: 'profile' })"
             >
               <Avatar
@@ -139,7 +139,7 @@ const handleLogout = async () => {
                 size="large"
               />
               <span class="inline-flex flex-col justify-start">
-                <span class="mx-1 text-left text-sm text-gray-900 dark:text-surface-0">{{ fullName }}</span>
+                <span class="mx-1 text-left text-sm text-surface-900">{{ fullName }}</span>
                 <span class="mx-1 mt-2 flex flex-wrap gap-1">
                   <Tag v-for="role in authStore.authRoles" :value="snakeCaseToTitleCase(role)" :key="role"></Tag>
                 </span>
