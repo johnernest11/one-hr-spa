@@ -73,6 +73,7 @@ const qrConfig = (size: number, data: string) => ({
   width: size,
   height: size,
   data: data,
+  margin: 0,
   image: DSWDIcon,
   dotsOptions: { color: '#000000', type: 'square' as const },
   backgroundOptions: { color: '#FFFFFF' },
@@ -271,7 +272,7 @@ const downloadQrCode = async () => {
       ref="hiddenQrCardRef"
       class="absolute left-[-9999px] box-border flex h-[950px] w-[650px] flex-col items-center !border-0 !border-none bg-surface-0 p-10 text-center !shadow-none !outline-none !ring-0"
     >
-      <div class="mb-[30px] flex w-full justify-center !border-0 !border-none !shadow-none !outline-none !ring-0">
+      <div class="mb-8 flex w-full justify-center !border-0 !border-none !shadow-none !outline-none !ring-0">
         <img
           src="@/assets/image/dswd-logo.png"
           alt="DSWD Logo"
@@ -279,9 +280,9 @@ const downloadQrCode = async () => {
         />
       </div>
 
-      <div class="mb-[2px] w-full !border-0 !border-none !shadow-none !outline-none !ring-0">
+      <div class="mb-2 w-full !border-0 !border-none !shadow-none !outline-none !ring-0">
         <div class="!border-0 !border-none bg-surface-0 p-[5px_20px] !shadow-none !outline-none !ring-0">
-          <p class="!border-0 !border-none text-[32px] font-black uppercase leading-[1.2] text-surface-900 !shadow-none">
+          <p class="!border-0 !border-none text-3xl font-black uppercase leading-[1.2] text-surface-900 !shadow-none">
             {{ payload.individual.last_name }}, {{ payload.individual.first_name }}
             {{ payload.individual.middle_name ? payload.individual.middle_name + ' ' : '' }}
             {{ payload.individual.ext_name ? payload.individual.ext_name : '' }}
@@ -291,15 +292,15 @@ const downloadQrCode = async () => {
 
       <div v-if="employeeIdNumber" class="mb-5 w-full !border-0 !border-none !shadow-none !outline-none !ring-0">
         <div class="!border-0 !border-none bg-surface-0 p-[2px_20px] !shadow-none !outline-none !ring-0">
-          <p class="!border-0 !border-none text-[20px] font-bold uppercase tracking-wide text-primary-600 !shadow-none">
+          <p class="!border-0 !border-none text-xl font-bold uppercase tracking-wide text-primary-600 !shadow-none">
             ID: {{ employeeIdNumber }}
           </p>
         </div>
       </div>
 
-      <div class="mb-[25px] w-full !border-0 !border-none !shadow-none !outline-none !ring-0">
+      <div class="mb-2 w-full !border-0 !border-none !shadow-none !outline-none !ring-0">
         <div class="!border-0 !border-none bg-surface-0 p-[5px_20px] !shadow-none !outline-none !ring-0">
-          <p class="!border-0 !border-none text-[22px] font-medium uppercase leading-[1.2] text-surface-600 !shadow-none">
+          <p class="!border-0 !border-none text-xl font-medium uppercase leading-[1.2] text-surface-600 !shadow-none">
             {{ payload.employee?.item?.position?.title || '' }}
           </p>
         </div>
