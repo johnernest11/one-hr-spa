@@ -72,8 +72,10 @@ const qrCodeDownload = ref<QRCodeStyling | null>(null)
 const qrConfig = (size: number, data: string) => ({
   width: size,
   height: size,
+  type: 'canvas' as const,
   data: data,
   image: DSWDIcon,
+  margin: 0,
   dotsOptions: { color: '#000000', type: 'square' as const },
   backgroundOptions: { color: '#FFFFFF' },
   imageOptions: { crossOrigin: 'anonymous', margin: 4, imageSize: 0.4 },
@@ -273,44 +275,51 @@ const downloadQrCode = async () => {
     <div
       v-if="payload.individual"
       ref="hiddenQrCardRef"
-      class="absolute left-[-9999px] box-border flex h-[950px] w-[650px] flex-col items-center !border-0 bg-surface-0 p-10 text-center !shadow-none !outline-none"
+      class="fixed left-[-9999px] top-[-9999px] flex h-[950px] w-[650px] flex-col items-center bg-[#ffffff] p-10 text-center"
+      style="background-color: #ffffff !important; border: none !important; outline: none !important; box-shadow: none !important"
     >
-      <div class="mb-[30px] flex w-full justify-center !border-0 !shadow-none !outline-none">
+      <div
+        class="mb-[30px] flex w-[420px] justify-center overflow-hidden bg-[#ffffff]"
+        style="background-color: #ffffff !important; border: none !important"
+      >
         <img
           src="@/assets/image/dswd-logo.png"
           alt="DSWD Logo"
-          class="h-auto w-[412.5px] !border-0 object-contain !shadow-none"
+          class="h-auto w-[412.5px] object-contain"
+          style="border: none !important; outline: none !important; box-shadow: inset 0 0 0 1px #ffffff !important"
         />
       </div>
 
-      <div class="mb-[2px] w-full !border-0 !shadow-none !outline-none">
-        <div class="!border-0 bg-surface-0 p-[5px_20px]">
-          <p class="text-[32px] font-black uppercase leading-[1.2] text-surface-900">
-            {{ payload.individual.last_name }}, {{ payload.individual.first_name }}
-            {{ payload.individual.middle_name ? payload.individual.middle_name + ' ' : '' }}
-            {{ payload.individual.ext_name ? payload.individual.ext_name : '' }}
-          </p>
-        </div>
-      </div>
+      <div class="w-full bg-[#ffffff] px-5" style="background-color: #ffffff !important; border: none !important">
+        <p class="m-0 text-[32px] font-black uppercase leading-[1.2] text-surface-900" style="border: none !important">
+          {{ payload.individual.last_name }}, {{ payload.individual.first_name }}
+          {{ payload.individual.middle_name ? payload.individual.middle_name + ' ' : '' }}
+          {{ payload.individual.ext_name ? payload.individual.ext_name : '' }}
+        </p>
 
-      <div v-if="employeeIdNumber" class="mb-5 w-full !border-0 !shadow-none !outline-none">
-        <div class="!border-0 bg-surface-0 p-[2px_20px]">
-          <p class="!border-0 text-[20px] font-bold uppercase tracking-wide text-primary-600">ID: {{ employeeIdNumber }}</p>
-        </div>
-      </div>
+        <p
+          v-if="payload.individual?.agency_employee_no"
+          class="m-0 mt-[15px] text-[20px] font-bold uppercase tracking-wide text-primary-600"
+          style="border: none !important"
+        >
+          ID: {{ employeeIdNumber }}
+        </p>
 
-      <div class="mb-[25px] w-full !border-0 !shadow-none !outline-none">
-        <div class="!border-0 bg-surface-0 p-[5px_20px]">
-          <p class="text-[22px] font-medium uppercase leading-[1.2] text-surface-600">
-            {{ payload.employee?.item?.position?.title || '' }}
-          </p>
-        </div>
+        <p class="m-0 mt-[15px] text-[22px] font-medium uppercase leading-[1.2] text-surface-600" style="border: none !important">
+          {{ payload.employee?.item?.position?.title || '' }}
+        </p>
       </div>
 
       <div
-        ref="hiddenQrContainerRef"
-        :class="[qrCodeIsLoading ? 'hidden' : 'flex', 'h-[500px] w-[500px] justify-center !border-0 bg-white']"
-      ></div>
+        class="mx-auto mt-[50px] flex h-[500px] w-[500px] items-center justify-center overflow-hidden bg-[#ffffff]"
+        style="background-color: #ffffff !important; border: none !important; outline: none !important; clip-path: inset(1px)"
+      >
+        <div
+          ref="hiddenQrContainerRef"
+          :class="[qrCodeIsLoading ? 'hidden' : 'flex', 'h-[502px] w-[502px] justify-center bg-[#ffffff]']"
+          style="background-color: #ffffff !important; border: none !important; outline: none !important; margin: -1px"
+        ></div>
+      </div>
     </div>
   </div>
 </template>
