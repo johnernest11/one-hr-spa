@@ -15,6 +15,7 @@ import {
   toTimestamp,
   computeOT,
   computeUT,
+  computeUTOTFlex,
   computeWorkedHours,
   isWeekend,
   resolveDTRSlots,
@@ -291,19 +292,53 @@ const getRemarksKey = (prefix: string, date?: Date | null): string => {
 }
 
 const computeUTValue = computed(() => {
-  return (item: { is_missing: string; date: Date; row: ViewDailyTimeRecordResponse | null }) => {
+  return (item: { date: string | Date; row: ViewDailyTimeRecordResponse | null }) => {
     if (!item.row) return 0
-    if (item.row.ut && item.row.ut > 0) return item.row.ut
-    return computeUT(computeWorkedHours(item.row.time_log ?? []), isWeekend(item.row.date))
+
+    const date = new Date(item.date ?? item.row.date)
+    const day = date.getDay()
+
+    const timeLog = item.row.time_log ?? []
+
+    // MONDAY (special rule)
+    if (day === 1) {
+      const { in1, out2 } = resolveDTRSlots(timeLog)
+
+      if (!in1 || !out2) return 0
+
+      const { ut } = computeUTOTFlex(toTimestamp(in1.date, in1.scanned_time), toTimestamp(out2.date, out2.scanned_time))
+
+      return ut
+    }
+    const worked = computeWorkedHours(timeLog)
+    return computeUT(worked, isWeekend(date.toISOString()))
   }
 })
 
 const computeOTValue = computed(() => {
-  return (item: { is_missing: string; date: Date; row: ViewDailyTimeRecordResponse | null }) => {
+  return (item: { row: ViewDailyTimeRecordResponse | null }) => {
     if (!item.row) return 0
-    return computeOT(computeWorkedHours(item.row.time_log ?? []), isWeekend(item.row.date))
+
+    const date = new Date(item.row.date)
+    const day = date.getDay()
+
+    const timeLog = item.row.time_log ?? []
+
+    if (day === 1) {
+      const { in1, out2 } = resolveDTRSlots(timeLog)
+
+      if (!in1 || !out2) return 0
+
+      const { ot } = computeUTOTFlex(toTimestamp(in1.date, in1.scanned_time), toTimestamp(out2.date, out2.scanned_time))
+
+      return ot
+    }
+
+    const worked = computeWorkedHours(timeLog)
+    return computeOT(worked, isWeekend(item.row.date))
   }
 })
+
 const computeRemarksValue = computed(() => {
   return (item: { row: ViewDailyTimeRecordResponse | null }) => {
     if (!item.row) return ''
