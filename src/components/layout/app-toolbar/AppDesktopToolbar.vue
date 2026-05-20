@@ -131,7 +131,7 @@ const handleLogout = async () => {
           id="avatar-menu"
           :model="avatarMenuItems"
           :popup="true"
-          @focus="() => $nextTick(() => (avatarMenu.focusedOptionIndex = -1))"
+          @show="$nextTick(() => (avatarMenu.focusedOptionIndex = -1))"
           @mouseleave="avatarMenu?.hide()"
         >
           <template #start>
