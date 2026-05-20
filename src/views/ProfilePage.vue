@@ -72,10 +72,8 @@ const qrCodeDownload = ref<QRCodeStyling | null>(null)
 const qrConfig = (size: number, data: string) => ({
   width: size,
   height: size,
-  type: 'canvas' as const,
   data: data,
   image: DSWDIcon,
-  margin: 0,
   dotsOptions: { color: '#000000', type: 'square' as const },
   backgroundOptions: { color: '#FFFFFF' },
   imageOptions: { crossOrigin: 'anonymous', margin: 4, imageSize: 0.4 },
@@ -271,43 +269,44 @@ const downloadQrCode = async () => {
     <div
       v-if="payload.individual"
       ref="hiddenQrCardRef"
-      class="fixed left-[-9999px] top-[-9999px] flex h-[950px] w-[650px] flex-col items-center border-none bg-white p-10 text-center shadow-none outline-none"
+      class="absolute left-[-9999px] box-border flex h-[950px] w-[650px] flex-col items-center !border-0 bg-surface-0 p-10 text-center !shadow-none !outline-none"
     >
-      <div class="mb-[30px] flex w-[420px] justify-center overflow-hidden border-none bg-white">
+      <div class="mb-[30px] flex w-full justify-center !border-0 !shadow-none !outline-none">
         <img
           src="@/assets/image/dswd-logo.png"
           alt="DSWD Logo"
-          class="h-auto w-[412.5px] border-none object-contain outline-none"
+          class="h-auto w-[412.5px] !border-0 object-contain !shadow-none"
         />
       </div>
 
-      <div class="w-full border-none bg-white px-5">
-        <p class="m-0 border-none text-[32px] font-black uppercase leading-[1.2] text-surface-900">
-          {{ payload.individual.last_name }}, {{ payload.individual.first_name }}
-          {{ payload.individual.middle_name ? payload.individual.middle_name + ' ' : '' }}
-          {{ payload.individual.ext_name ? payload.individual.ext_name : '' }}
-        </p>
+      <div class="mb-[2px] w-full !border-0 !shadow-none !outline-none">
+        <div class="!border-0 bg-surface-0 p-[5px_20px]">
+          <p class="text-[32px] font-black uppercase leading-[1.2] text-surface-900">
+            {{ payload.individual.last_name }}, {{ payload.individual.first_name }}
+            {{ payload.individual.middle_name ? payload.individual.middle_name + ' ' : '' }}
+            {{ payload.individual.ext_name ? payload.individual.ext_name : '' }}
+          </p>
+        </div>
+      </div>
 
-        <p
-          v-if="payload.individual?.agency_employee_no"
-          class="m-0 mt-[15px] border-none text-[20px] font-bold uppercase tracking-wide text-primary-600"
-        >
-          ID: {{ employeeIdNumber }}
-        </p>
+      <div v-if="employeeIdNumber" class="mb-5 w-full !border-0 !shadow-none !outline-none">
+        <div class="!border-0 bg-surface-0 p-[2px_20px]">
+          <p class="!border-0 text-[20px] font-bold uppercase tracking-wide text-primary-600">ID: {{ employeeIdNumber }}</p>
+        </div>
+      </div>
 
-        <p class="m-0 mt-[15px] border-none text-[22px] font-medium uppercase leading-[1.2] text-surface-600">
-          {{ payload.employee?.item?.position?.title || '' }}
-        </p>
+      <div class="mb-[25px] w-full !border-0 !shadow-none !outline-none">
+        <div class="!border-0 bg-surface-0 p-[5px_20px]">
+          <p class="text-[22px] font-medium uppercase leading-[1.2] text-surface-600">
+            {{ payload.employee?.item?.position?.title || '' }}
+          </p>
+        </div>
       </div>
 
       <div
-        class="mx-auto mt-[50px] flex h-[500px] w-[500px] items-center justify-center overflow-hidden border-none bg-white outline-none"
-      >
-        <div
-          ref="hiddenQrContainerRef"
-          :class="[qrCodeIsLoading ? 'hidden' : 'flex', 'h-[500px] w-[500px] justify-center border-none bg-white outline-none']"
-        ></div>
-      </div>
+        ref="hiddenQrContainerRef"
+        :class="[qrCodeIsLoading ? 'hidden' : 'flex', 'h-[500px] w-[500px] justify-center !border-0 bg-white']"
+      ></div>
     </div>
   </div>
 </template>
