@@ -208,7 +208,7 @@ export const useSidebarNavLinks = () => {
                 case 'hrpas-dashboard':
                   childNavLink.icon = 'fas fa-file-circle-xmark'
                   break
-                case 'warm-bodies':
+                case 'attendance-tracker':
                   childNavLink.icon = 'fas fa-pie-chart'
                   break
                 case 'employees':
