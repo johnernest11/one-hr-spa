@@ -148,7 +148,7 @@ const downloadQrCode = async () => {
 </script>
 
 <template>
-  <div class="mx-auto flex h-[100%] w-full flex-col">
+  <div class="mx-auto flex h-full w-full flex-col">
     <Card>
       <template #header>
         <div class="h-2 w-full rounded-t-lg bg-primary-500"></div>
@@ -162,9 +162,9 @@ const downloadQrCode = async () => {
               </template>
               <div class="mt-8 flex flex-col text-center text-lg md:ml-8 md:mt-0 md:text-left lg:text-2xl">
                 <span class="font-bold text-surface-900">{{ fullName }}</span>
-                <span v-if="employeeIdNumber" class="mt-0.5 text-xs font-semibold text-primary-600 sm:text-sm"
-                  >ID No: {{ employeeIdNumber }}</span
-                >
+                <span v-if="employeeIdNumber" class="mt-0.5 text-xs font-semibold text-primary-600 sm:text-sm">
+                  ID No: {{ employeeIdNumber }}
+                </span>
                 <span class="mt-1 text-xs text-surface-500 sm:text-sm">{{ fullAddress }}</span>
               </div>
             </div>
@@ -220,7 +220,6 @@ const downloadQrCode = async () => {
     >
       <div
         v-if="payload.individual"
-        ref="qrCardRef"
         class="mx-auto flex w-full max-w-sm flex-col items-center bg-surface-0 p-6 text-center sm:max-w-md"
       >
         <div class="mb-4 flex w-full flex-col items-center">
@@ -247,10 +246,7 @@ const downloadQrCode = async () => {
 
         <div
           ref="qrContainerRef"
-          :class="[
-            'h-[250px] w-[250px] justify-center bg-white sm:h-[300px] sm:w-[300px] md:h-[350px] md:w-[350px]',
-            qrCodeIsLoading ? 'hidden' : 'flex',
-          ]"
+          :class="['h-[350px] w-[350px] justify-center bg-white', qrCodeIsLoading ? 'hidden' : 'flex']"
         ></div>
 
         <div class="my-6 flex justify-center" v-if="qrCodeIsLoading">
@@ -265,7 +261,7 @@ const downloadQrCode = async () => {
           size="large"
           outlined
           :disabled="!canDownload"
-          class="mt-2 w-full border-2 border-primary-500 font-semibold text-primary-500 transition-colors hover:bg-primary-50"
+          class="mt-2 w-full border-none font-semibold text-primary-500 ring-2 ring-primary-500 transition-colors hover:bg-primary-50"
           label="Download QR Code"
           icon="pi pi-download"
         />
@@ -275,23 +271,18 @@ const downloadQrCode = async () => {
     <div
       v-if="payload.individual"
       ref="hiddenQrCardRef"
-      class="fixed left-[-9999px] top-[-9999px] flex h-[950px] w-[650px] flex-col items-center bg-[#ffffff] p-10 text-center"
-      style="background-color: #ffffff !important; border: none !important; outline: none !important; box-shadow: none !important"
+      class="fixed left-[-9999px] top-[-9999px] flex h-[950px] w-[650px] flex-col items-center border-none bg-white p-10 text-center shadow-none outline-none"
     >
-      <div
-        class="mb-[30px] flex w-[420px] justify-center overflow-hidden bg-[#ffffff]"
-        style="background-color: #ffffff !important; border: none !important"
-      >
+      <div class="mb-[30px] flex w-[420px] justify-center overflow-hidden border-none bg-white">
         <img
           src="@/assets/image/dswd-logo.png"
           alt="DSWD Logo"
-          class="h-auto w-[412.5px] object-contain"
-          style="border: none !important; outline: none !important; box-shadow: inset 0 0 0 1px #ffffff !important"
+          class="h-auto w-[412.5px] border-none object-contain outline-none"
         />
       </div>
 
-      <div class="w-full bg-[#ffffff] px-5" style="background-color: #ffffff !important; border: none !important">
-        <p class="m-0 text-[32px] font-black uppercase leading-[1.2] text-surface-900" style="border: none !important">
+      <div class="w-full border-none bg-white px-5">
+        <p class="m-0 border-none text-[32px] font-black uppercase leading-[1.2] text-surface-900">
           {{ payload.individual.last_name }}, {{ payload.individual.first_name }}
           {{ payload.individual.middle_name ? payload.individual.middle_name + ' ' : '' }}
           {{ payload.individual.ext_name ? payload.individual.ext_name : '' }}
@@ -299,25 +290,22 @@ const downloadQrCode = async () => {
 
         <p
           v-if="payload.individual?.agency_employee_no"
-          class="m-0 mt-[15px] text-[20px] font-bold uppercase tracking-wide text-primary-600"
-          style="border: none !important"
+          class="m-0 mt-[15px] border-none text-[20px] font-bold uppercase tracking-wide text-primary-600"
         >
           ID: {{ employeeIdNumber }}
         </p>
 
-        <p class="m-0 mt-[15px] text-[22px] font-medium uppercase leading-[1.2] text-surface-600" style="border: none !important">
+        <p class="m-0 mt-[15px] border-none text-[22px] font-medium uppercase leading-[1.2] text-surface-600">
           {{ payload.employee?.item?.position?.title || '' }}
         </p>
       </div>
 
       <div
-        class="mx-auto mt-[50px] flex h-[500px] w-[500px] items-center justify-center overflow-hidden bg-[#ffffff]"
-        style="background-color: #ffffff !important; border: none !important; outline: none !important; clip-path: inset(1px)"
+        class="mx-auto mt-[50px] flex h-[500px] w-[500px] items-center justify-center overflow-hidden border-none bg-white outline-none"
       >
         <div
           ref="hiddenQrContainerRef"
-          :class="[qrCodeIsLoading ? 'hidden' : 'flex', 'h-[502px] w-[502px] justify-center bg-[#ffffff]']"
-          style="background-color: #ffffff !important; border: none !important; outline: none !important; margin: -1px"
+          :class="[qrCodeIsLoading ? 'hidden' : 'flex', 'h-[500px] w-[500px] justify-center border-none bg-white outline-none']"
         ></div>
       </div>
     </div>
