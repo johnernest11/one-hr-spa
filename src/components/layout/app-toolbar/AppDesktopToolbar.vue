@@ -25,12 +25,8 @@ const isLoading = ref(true)
 
 /***
  * Always fetch and display the authenticated user's own PDS information.
- * Even if the user is currently viewing another employee's record,
- * this section ensures that only the logged-in user's data populates
- * their personal profile and related UI components.
  ***/
 onMounted(async () => {
-  // Always derive ID from authenticated user, not from route or selection
   const id = authStore.authenticatedUser?.user_profile?.individual_basic_detail_id
 
   if (id) {
@@ -39,7 +35,6 @@ onMounted(async () => {
 
       if (response?.success) {
         const data = response.data as PersonnelResponse
-        // Update Pinia store and payload to always reflect logged-in user
         pdsStore.updatePdsFromPersonnel(data)
         Object.assign(payload, pdsStore.pdsInfo)
       } else {
@@ -74,10 +69,7 @@ const avatarMenuItems = ref<MenuItem[]>([
 const fullName = computed(() => {
   const user = authStore.authenticatedUser?.user_profile?.individual_basic_detail
   if (!user) return ''
-
-  const initials = [user.first_name, user.middle_name, user.last_name, user.ext_name].filter(Boolean).join(' ')
-
-  return initials
+  return [user.first_name, user.middle_name, user.last_name, user.ext_name].filter(Boolean).join(' ')
 })
 
 // Computed AvatarDisplayNamePlaceholder
@@ -136,18 +128,18 @@ const handleLogout = async () => {
         >
           <template #start>
             <button
-              class="p-link relative mb-2 flex w-full items-center overflow-hidden rounded-md p-2 pl-3 hover:bg-surface-100 dark:hover:bg-surface-400/10"
+              class="p-link relative mb-2 flex w-full items-center overflow-hidden rounded-md p-2 pl-3 hover:bg-surface-100"
               @click="router.push({ name: 'profile' })"
             >
               <Avatar
                 :image="authStore.authenticatedUser.user_profile?.profile_picture_url ?? undefined"
                 :label="`${!authStore.authenticatedUser.user_profile?.profile_picture_url ? AvatarDisplayNamePlaceholder : ''}`"
-                class="mr-2.5 overflow-hidden dark:!bg-primary-500"
+                class="mr-2.5 overflow-hidden"
                 shape="square"
                 size="large"
               />
               <span class="inline-flex flex-col justify-start">
-                <span class="mx-1 text-left text-sm">{{ fullName }}</span>
+                <span class="mx-1 text-left text-sm text-surface-900">{{ fullName }}</span>
                 <span class="mx-1 mt-2 flex flex-wrap gap-1">
                   <Tag v-for="role in authStore.authRoles" :value="snakeCaseToTitleCase(role)" :key="role"></Tag>
                 </span>
