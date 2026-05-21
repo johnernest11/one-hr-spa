@@ -1175,6 +1175,7 @@ const exportToPDF = async (
                 <template v-else>
                   <WbInputText
                     v-if="new Date(dtr.date) < new Date(new Date().setHours(0, 0, 0, 0))"
+                    v-tooltip.bottom="'Reset to 0.00 to enable auto-computation'"
                     label=""
                     type="number"
                     v-model="remarksMap[getRemarksKey('ut', dtr.date)]"
@@ -1196,6 +1197,7 @@ const exportToPDF = async (
                 <template v-else>
                   <WbInputText
                     v-if="new Date(dtr.date) < new Date(new Date().setHours(0, 0, 0, 0))"
+                    v-tooltip.bottom="'Reset to 0.00 to enable auto-computation'"
                     label=""
                     type="number"
                     v-model="remarksMap[getRemarksKey('ot', dtr.date)]"
