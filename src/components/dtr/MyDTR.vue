@@ -291,42 +291,59 @@ const getRemarksKey = (prefix: string, date?: Date | null): string => {
   return `${prefix}-${date ? date.toISOString() : 'no-date'}`
 }
 
+/**
+ * Compute UT (Undertime) for a DTR row
+ */
 const computeUTValue = computed(() => {
   return (item: { date: string | Date; row: ViewDailyTimeRecordResponse | null }) => {
     if (!item.row) return 0
 
+    if (item.row.ut !== null && item.row.ut !== undefined && Number(item.row.ut) > 0) {
+      return Number(item.row.ut)
+    }
+
     const date = new Date(item.date ?? item.row.date)
     const day = date.getDay()
-
     const timeLog = item.row.time_log ?? []
 
-    // MONDAY (special rule)
+    // MONDAY (special flex schedule rule)
     if (day === 1) {
       const { in1, out2 } = resolveDTRSlots(timeLog)
 
+      // Missing required logs means no UT
       if (!in1 || !out2) return 0
 
       const { ut } = computeUTOTFlex(toTimestamp(in1.date, in1.scanned_time), toTimestamp(out2.date, out2.scanned_time))
 
       return ut
     }
+
+    // Regular UT computation for other days
     const worked = computeWorkedHours(timeLog)
     return computeUT(worked, isWeekend(date.toISOString()))
   }
 })
 
+/**
+ * Compute OT (Overtime) for a DTR row
+ */
 const computeOTValue = computed(() => {
   return (item: { row: ViewDailyTimeRecordResponse | null }) => {
     if (!item.row) return 0
 
+    if (item.row.ot !== null && item.row.ot !== undefined && Number(item.row.ot) > 0) {
+      return Number(item.row.ot)
+    }
+
     const date = new Date(item.row.date)
     const day = date.getDay()
-
     const timeLog = item.row.time_log ?? []
 
+    // MONDAY (special flex schedule rule)
     if (day === 1) {
       const { in1, out2 } = resolveDTRSlots(timeLog)
 
+      // Missing required logs means no OT
       if (!in1 || !out2) return 0
 
       const { ot } = computeUTOTFlex(toTimestamp(in1.date, in1.scanned_time), toTimestamp(out2.date, out2.scanned_time))
@@ -334,6 +351,7 @@ const computeOTValue = computed(() => {
       return ot
     }
 
+    // Regular OT computation for other days
     const worked = computeWorkedHours(timeLog)
     return computeOT(worked, isWeekend(item.row.date))
   }
@@ -708,16 +726,28 @@ watch(
   () => {
     const today = new Date(new Date().setHours(0, 0, 0, 0))
 
-    monthDates.value.forEach(({ date, row }) => {
+    monthDates.value.forEach((dtr) => {
+      const { date, row } = dtr
+
+      // Skip empty rows and future dates
       if (!row || new Date(date) >= today) return
 
-      const worked = computeWorkedHours(row.time_log ?? [])
-      const weekend = isWeekend(formatDateYMD(date))
       const utKey = getRemarksKey('ut', date)
       const otKey = getRemarksKey('ot', date)
 
-      remarksMap[utKey] = computeUT(worked, weekend)
-      remarksMap[otKey] = computeOT(worked, weekend)
+      /**
+       * Use the same logic as your compute functions:
+       * - If database value is non-zero, use it.
+       * - If database value is 0/null/undefined, auto-compute.
+       */
+      remarksMap[utKey] = computeUTValue.value({
+        date,
+        row,
+      })
+
+      remarksMap[otKey] = computeOTValue.value({
+        row,
+      })
     })
   },
   { deep: true, immediate: true }
