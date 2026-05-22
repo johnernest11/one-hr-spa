@@ -14,6 +14,7 @@ import {
   toTimestamp,
   computeOT,
   computeUT,
+  computeUTOTFlex,
   computeWorkedHours,
   isWeekend,
   resolveDTRSlots,
@@ -208,20 +209,69 @@ const monthDates = computed(() => {
   return arr
 })
 
-/** Compute UT (Undertime) for a DTR row **/
+/**
+ * Compute UT (Undertime) for a DTR row
+ */
 const computeUTValue = computed(() => {
-  return (item: { is_missing: string; date: Date; row: ViewDailyTimeRecordResponse | null }) => {
+  return (item: { date: string | Date; row: ViewDailyTimeRecordResponse | null }) => {
     if (!item.row) return 0
-    if (item.row.ut && item.row.ut > 0) return item.row.ut
-    return computeUT(computeWorkedHours(item.row.time_log ?? []), isWeekend(item.row.date))
+
+    if (item.row.ut !== null && item.row.ut !== undefined && Number(item.row.ut) > 0) {
+      return Number(item.row.ut)
+    }
+
+    const date = new Date(item.date ?? item.row.date)
+    const day = date.getDay()
+    const timeLog = item.row.time_log ?? []
+
+    // MONDAY (special flex schedule rule)
+    if (day === 1) {
+      const { in1, out2 } = resolveDTRSlots(timeLog)
+
+      // Missing required logs means no UT
+      if (!in1 || !out2) return 0
+
+      const { ut } = computeUTOTFlex(toTimestamp(in1.date, in1.scanned_time), toTimestamp(out2.date, out2.scanned_time))
+
+      return ut
+    }
+
+    // Regular UT computation for other days
+    const worked = computeWorkedHours(timeLog)
+    return computeUT(worked, isWeekend(date.toISOString()))
   }
 })
 
-/** Compute OT (Overtime) for a DTR row **/
+/**
+ * Compute OT (Overtime) for a DTR row
+ */
 const computeOTValue = computed(() => {
-  return (item: { is_missing: string; date: Date; row: ViewDailyTimeRecordResponse | null }) => {
+  return (item: { row: ViewDailyTimeRecordResponse | null }) => {
     if (!item.row) return 0
-    return computeOT(computeWorkedHours(item.row.time_log ?? []), isWeekend(item.row.date))
+
+    if (item.row.ot !== null && item.row.ot !== undefined && Number(item.row.ot) > 0) {
+      return Number(item.row.ot)
+    }
+
+    const date = new Date(item.row.date)
+    const day = date.getDay()
+    const timeLog = item.row.time_log ?? []
+
+    // MONDAY (special flex schedule rule)
+    if (day === 1) {
+      const { in1, out2 } = resolveDTRSlots(timeLog)
+
+      // Missing required logs means no OT
+      if (!in1 || !out2) return 0
+
+      const { ot } = computeUTOTFlex(toTimestamp(in1.date, in1.scanned_time), toTimestamp(out2.date, out2.scanned_time))
+
+      return ot
+    }
+
+    // Regular OT computation for other days
+    const worked = computeWorkedHours(timeLog)
+    return computeOT(worked, isWeekend(item.row.date))
   }
 })
 
