@@ -50,7 +50,7 @@ interface DailyLogDisplayEntry {
   employee_id: string
   employee_name: string
   office_id: number
-  device_id?: string | null
+  browser_uid?: string | null
   position: string
   scanned_time: string
   is_in: boolean
@@ -66,7 +66,7 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
   const recentLogs = useStorage<CustomScannedEmployeeResponse[]>('recentLogs', [])
   const dailyLogs = useStorage<DailyLogEntry[]>('dailyLogs', [])
 
-  const deviceId = useStorage<string>('device-id', null, localStorage, {
+  const browserUid = useStorage<string>('browser-uid', null, localStorage, {
     serializer: StorageSerializers.string,
   })
 
@@ -238,7 +238,7 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     try {
       let url = `/employees/daily-time-records/time-logs?date=${date}&`
       if (timelogOfficeId) url += `office=${timelogOfficeId.value}&`
-      if (deviceId) url += `device-id=${deviceId.value}`
+      if (browserUid) url += `browser-uid=${browserUid.value}`
       const { data } = await useApiCall(url, authStore.authenticationToken).get().json()
       const responseBody: ApiResponseBody = data.value
 
@@ -255,7 +255,7 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
             captured_image_path: log.captured_image_path || '',
             captured_image_url: log.captured_image_url || '',
             office_id: log.office_id,
-            device_id: log.device_id,
+            browser_uid: log.browser_uid,
           }
         })
 
@@ -288,15 +288,15 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     return responseBody
   }
 
-  const checkDeviceId = () => {
-    if (!deviceId.value) {
-      deviceId.value = `DEVICE-${Math.random().toString(36).slice(2, 9).toUpperCase()}`
+  const checkBrowserUid = () => {
+    if (!browserUid.value) {
+      browserUid.value = `BROWSER-${Math.random().toString(36).slice(2, 9).toUpperCase()}`
     }
   }
 
   return {
     timelogOfficeId,
-    deviceId,
+    browserUid,
     recentLogs,
     dailyLogs,
     currentScannedEmployee,
@@ -320,6 +320,6 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     clearRecentLogs,
     setOffice,
     clearOffice,
-    checkDeviceId,
+    checkBrowserUid,
   }
 })

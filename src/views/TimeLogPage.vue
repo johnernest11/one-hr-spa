@@ -139,7 +139,7 @@ const updateDateTime = () => {
 }
 
 onMounted(async () => {
-  await dailyLogsStore.checkDeviceId()
+  await dailyLogsStore.checkBrowserUid()
 
   await librariesStore.fetchOffices()
 
@@ -231,8 +231,8 @@ const onDecode = async (result: string) => {
 
     formData.append('office_id', officeId.toString())
 
-    if (dailyLogsStore.deviceId) {
-      formData.append('device_id', dailyLogsStore.deviceId)
+    if (dailyLogsStore.browserUid) {
+      formData.append('browser_uid', dailyLogsStore.browserUid)
     }
 
     const response = await dailyLogsStore.logEmployeeTime(formData, captured?.previewUrl)
