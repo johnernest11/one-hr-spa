@@ -16,10 +16,16 @@ import { UserProfilePayload } from '@/stores/profile.store.ts'
  * const filteredBarangays = useFilterByParentId(toRef(payload, 'city_id'), barangayOptions)
  *
  */
-export const useFilterByParentId = (parentId: Ref<number | string | null>, fullOptionsList: Ref<WbAutoCompleteOption[]>) => {
+export const useFilterByParentId = (
+  parentId: Ref<number | string | { value: number | string } | null>,
+  fullOptionsList: Ref<WbAutoCompleteOption[]>
+) => {
   return computed(() => {
-    if (!parentId.value) return fullOptionsList.value
-    return fullOptionsList.value.filter((option: WbAutoCompleteOption) => option.parent_value === parentId.value)
+    const id = typeof parentId.value === 'object' ? parentId.value?.value : parentId.value
+
+    if (id === null || id === undefined) return []
+
+    return fullOptionsList.value.filter((option) => Number(option.parent_value) === Number(id))
   })
 }
 

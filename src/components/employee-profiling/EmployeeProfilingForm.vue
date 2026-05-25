@@ -129,34 +129,16 @@ onBeforeMount(async () => {
 })
 
 const { provinceOptions, cityOptions, barangayOptions } = storeToRefs(publicStore)
-const filteredResidentialProvinceOptionsByRegion = useFilterByParentId(
-  toRef(payload.individual_address_init, 'residential_region_id'),
-  provinceOptions
-)
-const filteredResidentialCityOptionsByProvince = useFilterByParentId(
-  toRef(payload.individual_address_init, 'residential_province_id'),
-  cityOptions
-)
-const filteredResidentialBarangayOptionsByCity = useFilterByParentId(
-  toRef(payload.individual_address_init, 'residential_citymun_id'),
-  barangayOptions
-)
+const filteredResidentialProvinceOptionsByRegion = useFilterByParentId(selectedResidentialRegion, provinceOptions)
+const filteredResidentialCityOptionsByProvince = useFilterByParentId(selectedResidentialProvince, cityOptions)
+const filteredResidentialBarangayOptionsByCity = useFilterByParentId(selectedResidentialCity, barangayOptions)
 
 // PERMANENT ADDRESS FILTERS
-const filteredPermanentProvinceOptionsByRegion = useFilterByParentId(
-  toRef(payload.individual_address_init, 'permanent_region_id'),
-  provinceOptions
-)
+const filteredPermanentProvinceOptionsByRegion = useFilterByParentId(selectedPermanentRegion, provinceOptions)
 
-const filteredPermanentCityOptionsByProvince = useFilterByParentId(
-  toRef(payload.individual_address_init, 'permanent_province_id'),
-  cityOptions
-)
+const filteredPermanentCityOptionsByProvince = useFilterByParentId(selectedPermanentProvince, cityOptions)
 
-const filteredPermanentBarangayOptionsByCity = useFilterByParentId(
-  toRef(payload.individual_address_init, 'permanent_citymun_id'),
-  barangayOptions
-)
+const filteredPermanentBarangayOptionsByCity = useFilterByParentId(selectedPermanentCity, barangayOptions)
 
 /**  ══════════════════════════════════════════════════════
       FORM RULES / VALIDATIONS
