@@ -190,6 +190,31 @@ const formRules = {
   office_id: {
     required: helpers.withMessage('Office is Required', required),
   },
+
+  designation: {
+    maxLength: globalStringMaxLengthRule,
+  },
+  special_order_number: {
+    maxLength: globalStringMaxLengthRule,
+  },
+  former_incumbent: {
+    maxLength: globalStringMaxLengthRule,
+  },
+  history_of_position: {
+    maxLength: globalStringMaxLengthRule,
+  },
+
+  mode_of_separation: {
+    maxLength: globalStringMaxLengthRule,
+  },
+
+  status_of_vacant_position: {
+    maxLength: globalStringMaxLengthRule,
+  },
+
+  direct_contact_exposure_with_client: {
+    maxLength: globalStringMaxLengthRule,
+  },
 }
 
 const validator = useVuelidate<Partial<ItemNumberPayload>>(formRules, payload)
@@ -931,7 +956,14 @@ const updateButtonSubmission = async () => {
           </span>
           <div class="ml-6 mr-6 flex flex-col gap-4 pb-6 md:flex-row">
             <div class="flex w-full flex-col">
-              <WbInputText v-model="payload.designation" label="Designation" label-class="text-sm text-surface-600" />
+              <WbInputText
+                v-model="payload.designation"
+                label="Designation"
+                label-class="text-sm text-surface-600"
+                :invalid="validator.designation.$invalid"
+                :invalid-text="validator.designation.$errors[0]?.$message"
+                @blur="validator.designation.$touch"
+              />
             </div>
             <div class="flex w-full flex-col">
               <WbCalendar
@@ -948,6 +980,9 @@ const updateButtonSubmission = async () => {
                 v-model="payload.special_order_number"
                 label="Special Order Number (if applicable)"
                 label-class="text-sm text-surface-600"
+                :invalid="validator.special_order_number.$invalid"
+                :invalid-text="validator.special_order_number.$errors[0]?.$message"
+                @blur="validator.special_order_number.$touch"
               />
             </div>
           </div>
@@ -988,6 +1023,9 @@ const updateButtonSubmission = async () => {
                 v-model="payload.history_of_position"
                 label="History of Position"
                 label-class="text-sm text-surface-600"
+                :invalid="validator.history_of_position.$invalid"
+                :invalid-text="validator.history_of_position.$errors[0]?.$message"
+                @blur="validator.history_of_position.$touch"
               >
               </WbInputText>
             </div>
@@ -998,6 +1036,9 @@ const updateButtonSubmission = async () => {
                 v-model="payload.former_incumbent"
                 label="Former Incumbent (if applicable)"
                 label-class="text-sm text-surface-600"
+                :invalid="validator.former_incumbent.$invalid"
+                :invalid-text="validator.former_incumbent.$errors[0]?.$message"
+                @blur="validator.former_incumbent.$touch"
               >
               </WbInputText>
             </div>
@@ -1006,6 +1047,9 @@ const updateButtonSubmission = async () => {
                 v-model="payload.mode_of_separation"
                 label="Mode of Separation (if applicable)"
                 label-class="text-sm text-surface-600"
+                :invalid="validator.mode_of_separation.$invalid"
+                :invalid-text="validator.mode_of_separation.$errors[0]?.$message"
+                @blur="validator.mode_of_separation.$touch"
               >
               </WbInputText>
             </div>
@@ -1036,6 +1080,9 @@ const updateButtonSubmission = async () => {
                 v-model="payload.status_of_vacant_position"
                 label="Status of Vacant Position (if applicable)"
                 label-class="text-sm text-surface-600"
+                :invalid="validator.status_of_vacant_position.$invalid"
+                :invalid-text="validator.status_of_vacant_position.$errors[0]?.$message"
+                @blur="validator.status_of_vacant_position.$touch"
               >
               </WbInputText>
             </div>
@@ -1044,6 +1091,9 @@ const updateButtonSubmission = async () => {
                 v-model="payload.direct_contact_exposure_with_client"
                 label="Personnel is Direct Contact/Exposure with Client"
                 label-class="text-sm text-surface-600"
+                :invalid="validator.direct_contact_exposure_with_client.$invalid"
+                :invalid-text="validator.direct_contact_exposure_with_client.$errors[0]?.$message"
+                @blur="validator.direct_contact_exposure_with_client.$touch"
               >
               </WbInputText>
             </div>
