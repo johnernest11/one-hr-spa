@@ -811,27 +811,6 @@ watch(isSameResidential, (newVal) => {
 })
 
 /**
- * Check if residential matches permanent address
- */
-watch(
-  () => payload.individual_address_init,
-  (addr) => {
-    const sameAddress =
-      addr.residential_house_block_lot_no === addr.permanent_house_block_lot_no &&
-      addr.residential_street === addr.permanent_street &&
-      addr.residential_subdivision_village === addr.permanent_subdivision_village &&
-      addr.residential_zip_code === addr.permanent_zip_code &&
-      addr.residential_region_id === addr.permanent_region_id &&
-      addr.residential_province_id === addr.permanent_province_id &&
-      addr.residential_citymun_id === addr.permanent_citymun_id &&
-      addr.residential_brgy_id === addr.permanent_brgy_id
-
-    isSameResidential.value = sameAddress
-  },
-  { deep: true, immediate: true }
-)
-
-/**
  * Check if residential fields are complete
  */
 watch(
