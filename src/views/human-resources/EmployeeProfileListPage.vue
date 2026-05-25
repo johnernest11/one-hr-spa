@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeMount, ref, computed, watchEffect, toRef, reactive, nextTick, toRaw} from 'vue'
+import { onBeforeMount, ref, computed, watchEffect, toRef, reactive, nextTick, toRaw } from 'vue'
 import { useAuthStore } from '@/stores/auth.store.ts'
 import { usePersonnelStore, FilterEmployeePayload } from '@/stores/personnel.store'
 import { useLibrariesStore } from '@/stores/libraries.store'
@@ -74,10 +74,20 @@ const openBatchQrModal = () => {
 }
 
 const handleBatchDownload = async () => {
-  const rawDivisionValue = toRaw(payload.division)
-  const divisionId = typeof rawDivisionValue === 'object' && rawDivisionValue !== null
-    ? (rawDivisionValue as any).id || (rawDivisionValue as any).value
-    : rawDivisionValue
+  const rawDivisionValue = toRaw(payload.division) as WbAutoCompleteOption | WbAutoCompleteOption[] | null
+
+  let divisionId: string | number | null = null
+
+  if (rawDivisionValue && typeof rawDivisionValue === 'object') {
+    if (Array.isArray(rawDivisionValue)) {
+      const firstOpt = rawDivisionValue[0]
+      divisionId = firstOpt ? firstOpt.value : null
+    } else {
+      divisionId = (rawDivisionValue as WbAutoCompleteOption).value
+    }
+  } else {
+    divisionId = rawDivisionValue
+  }
 
   const parsedDivisionId = divisionId ? Number(divisionId) : null
 
@@ -96,14 +106,11 @@ const handleBatchDownload = async () => {
 
   const zip = new JSZip()
 
-  const response = await personnelStore.filterEmployees(
-    parsedDivisionId,
-    undefined, 
-    500
-  )
-  
-  const employeeSourceArray = (response as any).data || personnelStore.employees
-  
+  const response = await personnelStore.filterEmployees(parsedDivisionId, undefined, 500)
+
+  const responseData = response.data as PersonnelResponse[] | undefined
+  const employeeSourceArray = responseData || personnelStore.employees
+
   if (!response.success || !employeeSourceArray || !employeeSourceArray.length) {
     toast.add({
       severity: 'error',
@@ -115,8 +122,8 @@ const handleBatchDownload = async () => {
     return
   }
 
-  const targetRecords = (employeeSourceArray as any[]).filter(emp => emp.employee?.id)
-  
+  const targetRecords = employeeSourceArray.filter((emp): emp is PersonnelResponse => !!emp?.employee?.id)
+
   if (!targetRecords.length) {
     toast.add({
       severity: 'warn',
@@ -133,12 +140,17 @@ const handleBatchDownload = async () => {
     batchProgressText.value = `Processing (${index + 1}/${targetRecords.length}): ${employeeRecord.first_name} ${employeeRecord.last_name}`
 
     try {
-      const initialResp = await personnelStore.fetchQrCode(employeeRecord.employee!.id) as any
-      const qrResp = (initialResp.error_message === 'Employee has no QR code yet.' && !initialResp.success)
-        ? await personnelStore.generateQrCode(employeeRecord.employee!.id) as any
-        : initialResp
+      // Fetch response returns an ApiResponseBody wrapper
+      const initialResp = await personnelStore.fetchQrCode(employeeRecord.employee!.id)
 
-      if (!qrResp.success || !qrResp.data?.qr_code_value) return successCount
+      const qrResp =
+        initialResp.error_message === 'Employee has no QR code yet.' && !initialResp.success
+          ? await personnelStore.generateQrCode(employeeRecord.employee!.id)
+          : initialResp
+
+      // Provide a clear localized interface check rather than bailing to any
+      const qrData = qrResp.data as QrCodeResponse | undefined
+      if (!qrResp.success || !qrData?.qr_code_value) return successCount
 
       batchActiveEmployee.value = employeeRecord
       await nextTick()
@@ -149,7 +161,7 @@ const handleBatchDownload = async () => {
           width: 500,
           height: 500,
           type: 'canvas',
-          data: qrResp.data.qr_code_value,
+          data: qrData.qr_code_value, // fixed any access
           image: DSWDIcon,
           dotsOptions: { color: '#000000', type: 'square' },
           backgroundOptions: { color: '#FFFFFF' },
@@ -159,7 +171,7 @@ const handleBatchDownload = async () => {
           cornersDotOptions: { type: 'square', color: '#000000' },
         })
         qrCanvas.append(batchQrContainerRef.value)
-        
+
         await new Promise((resolve) => setTimeout(resolve, 250))
       }
 
@@ -173,8 +185,8 @@ const handleBatchDownload = async () => {
             transform: 'none',
             left: '0',
             top: '0',
-            position: 'static'
-          }
+            position: 'static',
+          },
         })
 
         const base64Data = urlStr.split(',')[1]
@@ -182,7 +194,7 @@ const handleBatchDownload = async () => {
         return successCount + 1
       }
     } catch (err) {
-      console.error(`Error processing badge render layer`, err)
+      console.error('Error processing badge render layer', err)
     }
     return successCount
   }, Promise.resolve(0))
@@ -207,7 +219,7 @@ const handleBatchDownload = async () => {
   batchActiveEmployee.value = null
   batchProcessing.value = false
   showBatchQrModal.value = false
-  
+
   selectedBatchDivision.value = null
   payload.division = null
 
@@ -724,7 +736,9 @@ const downloadQrCode = async () => {
       :closable="!batchProcessing"
     >
       <div class="p-4">
-        <p class="mb-4 text-sm text-surface-500">Select a division to download the compiled layout QR Cards for all its active personnel.</p>
+        <p class="mb-4 text-sm text-surface-500">
+          Select a division to download the compiled layout QR Cards for all its active personnel.
+        </p>
         <WbAutoComplete
           :useApiFilter="true"
           :apiEndpoint="'/libraries/divisions/search'"
@@ -746,9 +760,12 @@ const downloadQrCode = async () => {
           class="w-full text-sm"
         />
 
-        <div v-if="batchProcessing" class="mt-6 flex flex-col items-center justify-center space-y-3 rounded-lg bg-surface-50 p-4 dark:bg-surface-800">
-          <i class="pi pi-qr-code animate-pulse text-3xl text-warning-500" />
-          <p class="text-center text-xs font-medium text-surface-600 dark:text-surface-300 animate-pulse">
+        <div
+          v-if="batchProcessing"
+          class="mt-6 flex flex-col items-center justify-center space-y-3 rounded-lg bg-surface-50 p-4 dark:bg-surface-800"
+        >
+          <i class="pi pi-qr-code text-warning-500 animate-pulse text-3xl" />
+          <p class="animate-pulse text-center text-xs font-medium text-surface-600 dark:text-surface-300">
             {{ batchProgressText }}
           </p>
         </div>
@@ -765,19 +782,19 @@ const downloadQrCode = async () => {
     <div v-if="batchActiveEmployee" class="absolute left-[-9999px]">
       <div
         ref="batchCardRef"
-        class="w-[650px] h-[900px] bg-white flex flex-col items-center text-center p-10 box-border border-0 !border-none !shadow-none !outline-none"
+        class="box-border flex h-[900px] w-[650px] flex-col items-center border-0 !border-none bg-white p-10 text-center !shadow-none !outline-none"
       >
-        <div class="mb-[30px] w-full flex justify-center border-0 !border-none !shadow-none !outline-none">
+        <div class="mb-[30px] flex w-full justify-center border-0 !border-none !shadow-none !outline-none">
           <img
             src="@/assets/image/dswd-logo.png"
             alt="DSWD Logo"
-            class="w-[412.5px] h-auto object-contain border-0 !border-none !shadow-none"
+            class="h-auto w-[412.5px] border-0 !border-none object-contain !shadow-none"
           />
         </div>
 
         <div class="mb-1 w-full border-0 !border-none !shadow-none !outline-none">
-          <div class="!bg-white py-1 px-5 border-0 !border-none">
-            <p class="text-[32px] font-black uppercase text-[#1f2937] leading-[1.2] border-0 !border-none">
+          <div class="border-0 !border-none !bg-white px-5 py-1">
+            <p class="border-0 !border-none text-[32px] font-black uppercase leading-[1.2] text-[#1f2937]">
               {{ batchActiveEmployee.last_name }}, {{ batchActiveEmployee.first_name }}
               {{ batchActiveEmployee.middle_name ? batchActiveEmployee.middle_name + ' ' : '' }}
               {{ batchActiveEmployee.ext_name ? batchActiveEmployee.ext_name : '' }}
@@ -786,17 +803,14 @@ const downloadQrCode = async () => {
         </div>
 
         <div class="mb-[30px] w-full border-0 !border-none !shadow-none !outline-none">
-          <div class="!bg-white py-1 px-5 border-0 !border-none">
-            <p class="text-[22px] font-medium uppercase text-[#1f2937] leading-[1.2] border-0 !border-none">
+          <div class="border-0 !border-none !bg-white px-5 py-1">
+            <p class="border-0 !border-none text-[22px] font-medium uppercase leading-[1.2] text-[#1f2937]">
               {{ batchActiveEmployee.employee?.item?.position?.title || '' }}
             </p>
           </div>
         </div>
 
-        <div
-          ref="batchQrContainerRef"
-          class="flex justify-center bg-white w-[500px] h-[500px] border-0 !border-none"
-        ></div>
+        <div ref="batchQrContainerRef" class="flex h-[500px] w-[500px] justify-center border-0 !border-none bg-white"></div>
       </div>
     </div>
 
