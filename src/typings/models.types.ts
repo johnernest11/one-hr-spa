@@ -104,14 +104,18 @@ export type ItemNumberResponse = {
   employment_status: string
   fund_source_id: number | null
   fund_source: FundSourceResponse | null
-  salary_id: number | null
-  salary: SalaryGradeResponse | null
+  salary_grade_id: number | null
+  salary_grade: SalaryGradeResponse | null
 
   position_id: number | null
   position: PositionResponse | null
   item_classification: string | null
   number: string
   date_of_creation: string | null
+
+  designation: string | null
+  date_of_designation: string | null
+  special_order_number: string | null
 
   status: 'Unfilled' | 'Filled'
   mode_of_accession: string | null

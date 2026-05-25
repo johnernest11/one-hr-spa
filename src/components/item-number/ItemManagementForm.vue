@@ -152,7 +152,7 @@ const formRules = {
       helpers.withMessage(
         'This Item Number already exists.',
         uniqueItemNumberRuleLocal(
-          itemNumberStore.itemNumbers.map((el) => el.number ?? ''),
+          itemNumberStore.itemNumbers.filter((el) => el.id !== Number(route.params.id)).map((el) => el.number ?? ''),
           payload.number ?? ''
         )
       )
@@ -229,27 +229,72 @@ onMounted(async () => {
 /** --- HELPER FUNCTIONS --- **/
 const updatePayloadFromReport = (itemNumber: ItemNumberResponse | null) => {
   if (!itemNumber) return
+  // Reusable helper to safely parse IDs to number or null
+  const extractId = (
+    relation: { id?: string | number | null } | null | undefined,
+    fallbackId: number | null | undefined
+  ): number | null => {
+    const id = relation?.id ?? fallbackId
+    return id ? Number(id) : null
+  }
+  // Organization Data
+  payload.division_id = extractId(itemNumber.division, itemNumber.division_id)
+  payload.section_or_unit_id = extractId(itemNumber.section_or_unit, itemNumber.section_or_unit_id)
+  payload.program_id = extractId(itemNumber.program, itemNumber.program_id)
+  payload.office_id = extractId(itemNumber.office, itemNumber.office_id)
 
-  payload.number = itemNumber.number ?? null
-  payload.date_of_creation = itemNumber.date_of_creation ?? ''
-  payload.date_filled_up = itemNumber.date_filled_up ?? ''
+  // Since psipop_id points to division_id, we look at the division relation
+  payload.psipop_id = extractId(itemNumber.psipop, itemNumber.psipop_id)
+
+  // Compensation, Position, & Employment Details
   payload.employment_status = itemNumber.employment_status ?? ''
+  payload.fund_source_id = extractId(itemNumber.fund_source, itemNumber.fund_source_id)
+  payload.salary_grade_id = extractId(itemNumber.salary_grade, itemNumber.salary_grade_id)
+  payload.position_id = extractId(itemNumber.position, itemNumber.position_id)
+  payload.item_classification = itemNumber.item_classification ?? null
+  payload.number = itemNumber.number ?? ''
+  payload.date_of_creation = itemNumber.date_of_creation ?? ''
 
-  payload.fund_source_id = itemNumber.fund_source?.id ? Number(itemNumber.fund_source.id) : null
+  payload.designation = itemNumber.designation ?? ''
+  payload.date_of_designation = itemNumber.date_of_designation ?? ''
+  payload.special_order_number = itemNumber.special_order_number ?? ''
 
-  payload.position_id =
-    itemNumber.position?.id ?? itemNumber.position_id ? Number(itemNumber.position?.id ?? itemNumber.position_id) : null
+  // Position History and Vacancy Tracking
+  payload.status = itemNumber.status ?? 'Unfilled'
+  payload.mode_of_accession = itemNumber.mode_of_accession ?? null
+  payload.date_filled_up = itemNumber.date_filled_up ?? ''
+  payload.history_of_position = itemNumber.history_of_position ?? null
+  payload.former_incumbent = itemNumber.former_incumbent ?? null
+  payload.mode_of_separation = itemNumber.mode_of_separation ?? null
+  payload.date_of_vacant = itemNumber.date_of_vacant ?? null
+  payload.remarks_of_vacancy = itemNumber.remarks_of_vacancy ?? null
+  payload.status_of_vacant_position = itemNumber.status_of_vacant_position ?? null
+  payload.direct_contact_exposure_with_client = itemNumber.direct_contact_exposure_with_client ?? null
+  payload.remarks = itemNumber.remarks ?? null
 
+  // Front-end UI State & Metric Displays
   displayParenthetical.value = String(itemNumber.position?.parenthetical_title ?? 'N/A')
   displayPositionLevel.value = String(itemNumber.position?.level ?? 'N/A')
+  displayTranche.value = String(itemNumber.salary_grade?.tranche ?? 'N/A')
+  displayStep.value = String(itemNumber.salary_grade?.step ?? 'N/A')
+  displayAmount.value = String(itemNumber.salary_grade?.amount ?? 'N/A')
 
-  payload.status = itemNumber.status ?? 'Unfilled'
-
+  // Standard Dropdown Select Objects
   selectedFundSource.value = itemNumber.fund_source
     ? { label: itemNumber.fund_source.name, value: itemNumber.fund_source.id }
     : null
 
   selectedPosition.value = itemNumber.position ? { label: itemNumber.position.title, value: itemNumber.position.id } : null
+
+  selectedSalaryGrade.value = itemNumber.salary_grade
+    ? {
+      // Force convert the numeric salary grade into a string representation
+      label: itemNumber.salary_grade.salary_grade?.toString() ?? 'N/A',
+      value: itemNumber.salary_grade.id,
+    }
+    : null
+
+  selectedProgram.value = itemNumber.program ? { label: itemNumber.program.name, value: itemNumber.program.id } : null
 }
 
 const generateItemClassification = (employment_status: string): string => {
@@ -336,11 +381,12 @@ const syncFromLibrary = <K extends LibraryStoreKeys>(
   )
 }
 
-syncFromLibrary(() => payload.office_id, selectedOffice, 'officeOptions')
 syncFromLibrary(() => payload.division_id, selectedDivision, 'divisionOptions')
 syncFromLibrary(() => payload.section_or_unit_id, selectedSectionUnit, 'sectionUnitOptions')
+
 syncFromLibrary(() => payload.program_id, selectedProgram, 'programOptions')
-syncFromLibrary(() => payload.psipop_id, selectedPSIPOP, 'psipopOptions')
+syncFromLibrary(() => payload.office_id, selectedOffice, 'officeOptions')
+syncFromLibrary(() => payload.psipop_id, selectedPSIPOP, 'divisionOptions')
 
 /** Watch for Props change **/
 watch(
@@ -452,7 +498,6 @@ const saveButtonSubmission = async () => {
     })
     return
   }
-
   formIsSubmitting.value = true
   const response = await itemNumberStore.createItemNumber(payload)
   if (!response.success) {
@@ -674,8 +719,8 @@ const updateButtonSubmission = async () => {
               <WbAutoComplete
                 :useApiFilter="true"
                 :apiEndpoint="'/libraries/divisions/search'"
-                :suggestions="libraryStore.psipopOptions"
-                :loading="libraryStore.psipopOptionsLoading"
+                :suggestions="libraryStore.divisionOptions"
+                :loading="libraryStore.divisionOptionsLoading"
                 apiOptionLabel="name"
                 label="Office/Bureau/Service/Program (Plantilla Assignment based on PSIPOP)"
                 placeholder="Type the Office/Bureau/Service/Program"
