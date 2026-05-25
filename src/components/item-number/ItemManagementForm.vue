@@ -798,17 +798,19 @@ const updateButtonSubmission = async () => {
           <div class="ml-6 mr-6 flex flex-col gap-4 pb-6 md:flex-row">
             <div class="flex w-full flex-col">
               <WbAutoComplete
+                :useApiFilter="true"
+                :apiEndpoint="'/libraries/salary-grades/search'"
                 v-model="selectedSalaryGrade"
-                :key="JSON.stringify(salaryGradesStore.salaryGradesOptions)"
                 :suggestions="salaryGradesStore.salaryGradesOptions"
                 :loading="salaryGradesStore.salaryGradesOptionsLoading"
-                @complete="salaryGradesStore.searchSalaryGrade($event.query)"
+                apiOptionLabel="salary_grade"
                 label="Salary Grade"
                 placeholder="Type the Salary Grade with its tranche here"
                 optionLabel="label"
                 optionValue="value"
                 :auto-filter="false"
                 required
+                @complete="(event: any) => salaryGradesStore.searchSalaryGrade(event.query)"
                 @on-true-value-computed="handleSalaryGradeSelection"
                 :id="getId('input-salary-grade')"
                 :invalid="validator.salary_grade_id.$invalid"
