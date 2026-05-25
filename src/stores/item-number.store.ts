@@ -90,6 +90,8 @@ export const useItemNumberStore = defineStore('item-number', () => {
 
     item.date_of_creation = formatDate(item.date_of_creation)
     item.date_filled_up = formatDate(item.date_filled_up)
+    item.date_of_designation = formatDate(item.date_of_designation)
+    item.date_of_vacant = formatDate(item.date_of_vacant)
     const { data } = await useApiCall('/items/', auth.authenticationToken).post(item).json()
     const responseBody: ApiResponseBody = data.value
 
@@ -106,6 +108,8 @@ export const useItemNumberStore = defineStore('item-number', () => {
 
     item.date_of_creation = formatDate(item.date_of_creation)
     item.date_filled_up = formatDate(item.date_filled_up)
+    item.date_of_designation = formatDate(item.date_of_designation)
+    item.date_of_vacant = formatDate(item.date_of_vacant)
     const { data } = await useApiCall(`/items/${id}`, auth.authenticationToken).put(item).json()
     const responseBody: ApiResponseBody = data.value
     if (responseBody.success) {

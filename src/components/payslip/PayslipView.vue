@@ -219,8 +219,8 @@ const updatePayloadFromReport = (payRoll: PayrollResponse | null) => {
             updated_at: '2020-01-01',
           },
 
-          salary_id: 1,
-          salary: {
+          salary_grade_id: 1,
+          salary_grade: {
             id: 1,
             nbc_no: 123,
             effective_date: '2024-07-01',
@@ -243,6 +243,10 @@ const updatePayloadFromReport = (payRoll: PayrollResponse | null) => {
           item_classification: 'Regular',
           number: 'ITEM-501',
           date_of_creation: '2020-01-01',
+
+          designation: 'N/A',
+          date_of_designation: '2020-01-01',
+          special_order_number: 'N/A',
 
           status: 'Unfilled' as const,
           mode_of_accession: '',
