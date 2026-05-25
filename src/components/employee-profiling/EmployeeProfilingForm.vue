@@ -135,9 +135,7 @@ const filteredResidentialBarangayOptionsByCity = useFilterByParentId(selectedRes
 
 // PERMANENT ADDRESS FILTERS
 const filteredPermanentProvinceOptionsByRegion = useFilterByParentId(selectedPermanentRegion, provinceOptions)
-
 const filteredPermanentCityOptionsByProvince = useFilterByParentId(selectedPermanentProvince, cityOptions)
-
 const filteredPermanentBarangayOptionsByCity = useFilterByParentId(selectedPermanentCity, barangayOptions)
 
 /**  ══════════════════════════════════════════════════════
@@ -853,232 +851,86 @@ watch(
 )
 
 /**
- * Sync region with store options
+ * Clear dependent residential address fields
  */
 watch(
-  () => publicStore.regionOptions,
-  (options) => {
-    if (!selectedResidentialRegion.value && payload.individual_address_init.residential_region_id) {
-      selectedResidentialRegion.value =
-        options.find((opt) => opt.value === payload.individual_address_init.residential_region_id) ?? null
-    }
-  },
-  { immediate: true }
-)
+  () => selectedResidentialRegion.value,
+  (newValue, oldValue) => {
+    if (!oldValue || newValue?.value === oldValue?.value) return
 
-/**
- * Clear region selection on ID removal
- */
-watch(
-  () => payload.individual_address_init.residential_region_id,
-  (newSelectedItem) => {
-    if (!newSelectedItem) {
-      selectedResidentialRegion.value = null
-      return
-    }
+    selectedResidentialProvince.value = null
+    selectedResidentialCity.value = null
+    selectedResidentialBarangay.value = null
+
+    payload.individual_address_init.residential_province_id = null
+    payload.individual_address_init.residential_citymun_id = null
+    payload.individual_address_init.residential_brgy_id = null
   }
 )
 
-/**
- * Sync province with store options
- */
-watch(
-  () => publicStore.provinceOptions,
-  (options) => {
-    if (!selectedResidentialProvince.value && payload.individual_address_init.residential_province_id) {
-      selectedResidentialProvince.value =
-        options.find((opt) => opt.value === payload.individual_address_init.residential_province_id) ?? null
-    }
-  },
-  { immediate: true }
-)
-
-/**
- * Sync province selection with payload
- */
 watch(
   () => selectedResidentialProvince.value,
-  (newSelectedItem) => {
-    if (!newSelectedItem) {
-      selectedResidentialProvince.value = null
-      payload.individual_address_init.residential_province_id = null
-    } else {
-      payload.individual_address_init.residential_province_id = newSelectedItem.value
-    }
+  (newValue, oldValue) => {
+    if (!oldValue || newValue?.value === oldValue?.value) return
+
+    selectedResidentialCity.value = null
+    selectedResidentialBarangay.value = null
+
+    payload.individual_address_init.residential_citymun_id = null
+    payload.individual_address_init.residential_brgy_id = null
   }
 )
 
-/**
- * Sync city with store options
- * */
-watch(
-  () => publicStore.cityOptions,
-  (options) => {
-    if (!selectedResidentialCity.value && payload.individual_address_init.residential_citymun_id) {
-      selectedResidentialCity.value =
-        options.find((opt) => opt.value === payload.individual_address_init.residential_citymun_id) ?? null
-    }
-  },
-  { immediate: true }
-)
-
-/**
- * Sync city selection with payload
- */
 watch(
   () => selectedResidentialCity.value,
-  (newSelectedItem) => {
-    if (!newSelectedItem) {
-      selectedResidentialCity.value = null
-      payload.individual_address_init.residential_citymun_id = null
-    } else {
-      payload.individual_address_init.residential_citymun_id = newSelectedItem.value
-    }
+  (newValue, oldValue) => {
+    if (!oldValue || newValue?.value === oldValue?.value) return
+
+    selectedResidentialBarangay.value = null
+
+    payload.individual_address_init.residential_brgy_id = null
   }
 )
 
 /**
- * Sync barangay with store options
- * */
-watch(
-  () => publicStore.barangayOptions,
-  (options) => {
-    if (!selectedResidentialBarangay.value && payload.individual_address_init.residential_brgy_id) {
-      selectedResidentialBarangay.value =
-        options.find((opt) => opt.value === payload.individual_address_init.residential_brgy_id) ?? null
-    }
-  },
-  { immediate: true }
-)
-
-/**
- * Sync barangay selection with payload
- * */
-watch(
-  () => selectedResidentialBarangay.value,
-  (newSelectedItem) => {
-    if (!newSelectedItem) {
-      selectedResidentialBarangay.value = null
-      payload.individual_address_init.residential_brgy_id = null
-    } else {
-      payload.individual_address_init.residential_brgy_id = newSelectedItem.value
-    }
-  }
-)
-
-/**
- * Sync permanent region with store options
- */
-watch(
-  () => publicStore.regionOptions,
-  (options) => {
-    if (!selectedPermanentRegion.value && payload.individual_address_init.permanent_region_id) {
-      selectedPermanentRegion.value =
-        options.find((opt) => opt.value === payload.individual_address_init.permanent_region_id) ?? null
-    }
-  },
-  { immediate: true }
-)
-
-/**
- * Sync permanent region selection with payload
+ * Clear dependent permanent address fields
  */
 watch(
   () => selectedPermanentRegion.value,
-  (newSelectedItem) => {
-    if (!newSelectedItem) {
-      selectedPermanentRegion.value = null
-      payload.individual_address_init.permanent_region_id = null
-    } else {
-      payload.individual_address_init.permanent_region_id = newSelectedItem.value
-    }
+  (newValue, oldValue) => {
+    if (!oldValue || newValue?.value === oldValue?.value) return
+
+    selectedPermanentProvince.value = null
+    selectedPermanentCity.value = null
+    selectedPermanentBarangay.value = null
+
+    payload.individual_address_init.permanent_province_id = null
+    payload.individual_address_init.permanent_citymun_id = null
+    payload.individual_address_init.permanent_brgy_id = null
   }
 )
 
-/**
- * Sync permanent province with store options
- */
-watch(
-  () => publicStore.provinceOptions,
-  (options) => {
-    if (!selectedPermanentProvince.value && payload.individual_address_init.permanent_province_id) {
-      selectedPermanentProvince.value =
-        options.find((opt) => opt.value === payload.individual_address_init.permanent_province_id) ?? null
-    }
-  },
-  { immediate: true }
-)
-
-/**
- * Sync permanent province selection with payload
- */
 watch(
   () => selectedPermanentProvince.value,
-  (newSelectedItem) => {
-    if (!newSelectedItem) {
-      selectedPermanentProvince.value = null
-      payload.individual_address_init.permanent_province_id = null
-    } else {
-      payload.individual_address_init.permanent_province_id = newSelectedItem.value
-    }
+  (newValue, oldValue) => {
+    if (!oldValue || newValue?.value === oldValue?.value) return
+
+    selectedPermanentCity.value = null
+    selectedPermanentBarangay.value = null
+
+    payload.individual_address_init.permanent_citymun_id = null
+    payload.individual_address_init.permanent_brgy_id = null
   }
 )
 
-/**
- * Sync permanent city with store options
- */
-watch(
-  () => publicStore.cityOptions,
-  (options) => {
-    if (!selectedPermanentCity.value && payload.individual_address_init.permanent_citymun_id) {
-      selectedPermanentCity.value =
-        options.find((opt) => opt.value === payload.individual_address_init.permanent_citymun_id) ?? null
-    }
-  },
-  { immediate: true }
-)
-
-/**
- * Sync permanent city selection with payload
- */
 watch(
   () => selectedPermanentCity.value,
-  (newSelectedItem) => {
-    if (!newSelectedItem) {
-      selectedPermanentCity.value = null
-      payload.individual_address_init.permanent_citymun_id = null
-    } else {
-      payload.individual_address_init.permanent_citymun_id = newSelectedItem.value
-    }
-  }
-)
+  (newValue, oldValue) => {
+    if (!oldValue || newValue?.value === oldValue?.value) return
 
-/**
- * Sync permanent barangay with store options
- */
-watch(
-  () => publicStore.barangayOptions,
-  (options) => {
-    if (!selectedPermanentBarangay.value && payload.individual_address_init.permanent_brgy_id) {
-      selectedPermanentBarangay.value =
-        options.find((opt) => opt.value === payload.individual_address_init.permanent_brgy_id) ?? null
-    }
-  },
-  { immediate: true }
-)
+    selectedPermanentBarangay.value = null
 
-/**
- * Sync permanent barangay selection with payload
- */
-watch(
-  () => selectedPermanentBarangay.value,
-  (newSelectedItem) => {
-    if (!newSelectedItem) {
-      selectedPermanentBarangay.value = null
-      payload.individual_address_init.permanent_brgy_id = null
-    } else {
-      payload.individual_address_init.permanent_brgy_id = newSelectedItem.value
-    }
+    payload.individual_address_init.permanent_brgy_id = null
   }
 )
 
@@ -1357,6 +1209,25 @@ const updateProfilingForm = async () => {
     : (route.params.id as string)
 
   if (!(await validateForm()).valid) return (formIsSubmitting.value = false)
+
+  // --- PLACE THIS RIGHT BEFORE THE API CALL ---
+  if (payload.individual) {
+    // 1. Double/Numbers (Migration: $table->double)
+    // Convert to number to be safe, or '0' if the backend casts strings
+    payload.individual.height = payload.individual.height || 0
+    payload.individual.weight = payload.individual.weight || 0
+
+    // 2. Enum (Must match your BloodType cases exactly)
+    // Using 'O+' as the safe fallback
+    payload.individual.blood_type = payload.individual.blood_type || 'O+'
+
+    payload.individual.pag_ibig_no = payload.individual.pag_ibig_no || '000-0000-000'
+    payload.individual.philhealth_no = payload.individual.philhealth_no || '000-0000-000'
+    payload.individual.sss_no = payload.individual.sss_no || '000-0000-000'
+
+    // 4. Place of birth
+    payload.individual.place_of_birth = payload.individual.place_of_birth || 'N/A'
+  }
 
   // Mapping Organizational Defaults directly
   if (payload.employee) {
