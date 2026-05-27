@@ -47,7 +47,7 @@ export const useSalaryGradesStore = defineStore('salary-grades', () => {
 
       salaryGradesOptions.value = SalaryGradeListResponses.map((salary: SalaryGradeResponse) => ({
         value: salary.id,
-        label: `SG-${salary.salary_grade}-${salary.step} FY: ${salary.effective_date} Tranche: ${salary.tranche}`,
+        label: `SG-${salary.salary_grade}-${salary.step} FY: ${salary.effective_date} Tranche: ${salary.tranche} NBC NO: ${salary.nbc_no}(${salary.amount})`,
         tranche: salary.tranche,
         salary_grade: salary.salary_grade,
         step: salary.step,
@@ -89,7 +89,7 @@ export const useSalaryGradesStore = defineStore('salary-grades', () => {
       salaryGradesOptions.value = salaryGradesListResponse.map((salary: SalaryGradeResponse) => {
         return {
           value: salary.id,
-          label: `SG-${salary.salary_grade}-${salary.step} FY: ${salary.effective_date} Tranche: ${salary.tranche}`,
+          label: `SG-${salary.salary_grade}-${salary.step} FY: ${salary.effective_date} Tranche: ${salary.tranche} NBC NO: ${salary.nbc_no}(${salary.amount})`,
           tranche: salary.tranche,
           salary_grade: salary.salary_grade,
           step: salary.step,

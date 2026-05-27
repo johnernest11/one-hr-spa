@@ -794,9 +794,21 @@ watch(isSameResidential, (newVal) => {
     selectedPermanentProvince.value = selectedResidentialProvince.value
     selectedPermanentCity.value = selectedResidentialCity.value
     selectedPermanentBarangay.value = selectedResidentialBarangay.value
+
+    payload.individual_address_init.permanent_region_id = residential.residential_region_id
+
+    payload.individual_address_init.permanent_province_id = residential.residential_province_id
+
+    payload.individual_address_init.permanent_citymun_id = residential.residential_citymun_id
+
+    payload.individual_address_init.permanent_brgy_id = residential.residential_brgy_id
+
     payload.individual_address_init.permanent_house_block_lot_no = residential.residential_house_block_lot_no
+
     payload.individual_address_init.permanent_street = residential.residential_street
+
     payload.individual_address_init.permanent_subdivision_village = residential.residential_subdivision_village
+
     payload.individual_address_init.permanent_zip_code = residential.residential_zip_code
   } else {
     selectedPermanentRegion.value = null

@@ -507,7 +507,7 @@ export const useProfilingStore = defineStore('profiling', () => {
       edu.period_of_attendance_to = formatYear(edu.period_of_attendance_to)
       edu.year_graduated = formatYear(edu.year_graduated)
     })
-    formatDateFields(payload.individual_work_experience, ['inclusive_date_from', 'inclusive_date_to'])
+    formatDateFields(payload.individual_work_experience, ['inclusive_date_from', 'inclusive_date_to', 'position_title'])
 
     const { data } = await useApiCall(uri, authStore.authenticationToken).post(payload).json()
     return data.value as ApiResponseBody

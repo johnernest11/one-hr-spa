@@ -132,40 +132,36 @@ const handleLogout = async () => {
           :model="avatarMenuItems"
           :popup="true"
           @show="$nextTick(() => (avatarMenu.focusedOptionIndex = -1))"
-          @mouseleave="avatarMenu?.hide()"
+          @mouseleave="avatarMenu.hide()"
         >
           <template #start>
-            <div @mouseleave="(e) => avatarMenu.hide(e)">
-              <button
-                class="p-link relative mb-2 flex w-full items-center overflow-hidden rounded-md p-2 pl-3 hover:bg-surface-100 dark:hover:bg-surface-400/10"
-                @click="router.push({ name: 'profile' })"
-              >
-                <Avatar
-                  :image="authStore.authenticatedUser.user_profile?.profile_picture_url ?? undefined"
-                  :label="`${!authStore.authenticatedUser.user_profile?.profile_picture_url ? AvatarDisplayNamePlaceholder : ''}`"
-                  class="mr-2.5 overflow-hidden dark:!bg-primary-500"
-                  shape="square"
-                  size="large"
-                />
-                <span class="inline-flex flex-col justify-start">
-                  <span class="mx-1 text-left text-sm">{{ fullName }}</span>
-                  <span class="mx-1 mt-2 flex flex-wrap gap-1">
-                    <Tag v-for="role in authStore.authRoles" :value="snakeCaseToTitleCase(role)" :key="role"></Tag>
-                  </span>
+            <button
+              class="p-link relative mb-2 flex w-full items-center overflow-hidden rounded-md p-2 pl-3 hover:bg-surface-100 dark:hover:bg-surface-400/10"
+              @click="router.push({ name: 'profile' })"
+            >
+              <Avatar
+                :image="authStore.authenticatedUser.user_profile?.profile_picture_url ?? undefined"
+                :label="`${!authStore.authenticatedUser.user_profile?.profile_picture_url ? AvatarDisplayNamePlaceholder : ''}`"
+                class="mr-2.5 overflow-hidden dark:!bg-primary-500"
+                shape="square"
+                size="large"
+              />
+              <span class="inline-flex flex-col justify-start">
+                <span class="mx-1 text-left text-sm">{{ fullName }}</span>
+                <span class="mx-1 mt-2 flex flex-wrap gap-1">
+                  <Tag v-for="role in authStore.authRoles" :value="snakeCaseToTitleCase(role)" :key="role"></Tag>
                 </span>
-              </button>
-            </div>
+              </span>
+            </button>
           </template>
 
           <template #item="{ item, props }">
-            <div @mouseleave="(e) => avatarMenu.hide(e)">
-              <a class="flex items-center text-sm" v-bind="props.action">
-                <span :class="item.icon" />
-                <span class="ml-2 font-normal">{{ item.label }}</span>
-                <Badge v-if="item.badge" class="ml-auto" :value="item.badge" />
-                <i v-if="!item.noArrow" class="pi pi-angle-right ml-auto text-xs"></i>
-              </a>
-            </div>
+            <a class="flex items-center text-sm" v-bind="props.action">
+              <span :class="item.icon" />
+              <span class="ml-2 font-normal">{{ item.label }}</span>
+              <Badge v-if="item.badge" class="ml-auto" :value="item.badge" />
+              <i v-if="!item.noArrow" class="pi pi-angle-right ml-auto text-xs"></i>
+            </a>
           </template>
         </Menu>
       </template>
