@@ -319,9 +319,7 @@ const computeUTValue = computed(() => {
 
     const isComplete = !!in1 && !!out2
 
-    if (isEdited) {
-      // skip DB entirely → go auto-compute below
-    } else if ((hasLogs && !isComplete && hasValidDB) || (!hasLogs && hasValidDB)) {
+    if (!isEdited && ((hasLogs && !isComplete && hasValidDB) || (!hasLogs && hasValidDB))) {
       return Number(dbUT)
     }
 
