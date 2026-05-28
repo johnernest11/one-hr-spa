@@ -828,7 +828,7 @@ const downloadQrCode = async () => {
           <div class="flex items-center justify-center gap-3 sm:flex-row">
             <Button
               :disabled="batchProcessing"
-              class="flex h-12 flex-1 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+              class="flex h-12 flex-1 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-surface-700 transition-colors hover:bg-surface-50"
               @click="showBatchQrModal = false"
               text
             >
