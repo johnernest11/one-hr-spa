@@ -379,6 +379,7 @@ onUnmounted(() => {
           <img src="@/assets/image/fo-bp.png" alt="DSWD Logo" class="h-16" />
         </div>
         <h2 class="mb-4 text-center text-2xl font-semibold md:text-3xl">ATTENDANCE TRACKER</h2>
+        <h3 class="text-l mb-4 text-center font-semibold md:text-xl">{{ selectedOffice?.label }}</h3>
         <div class="mb-4 grid grid-cols-2 gap-4 text-center text-lg md:text-2xl">
           <div>
             <p>IN</p>
