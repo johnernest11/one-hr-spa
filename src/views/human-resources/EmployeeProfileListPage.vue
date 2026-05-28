@@ -231,7 +231,7 @@ const handleBatchDownload = async () => {
     toast.add({
       severity: 'success',
       summary: 'Batch Operation Completed',
-      detail: `Successfully processed and compressed ${results} records inside Batch_QR_Codes_${sanitizedDivisionName}.zip.`,
+      detail: `Successfully processed ${sanitizedDivisionName}. The Batch_QR_Codes_${sanitizedDivisionName}.zip download will begin shortly.`,
       life: 5000,
     })
   }
@@ -810,14 +810,13 @@ const downloadQrCode = async () => {
           </div>
 
           <div
-            class="flex items-start space-x-3 rounded-md border border-red-200 bg-red-50 p-3 dark:border-red-900/50 dark:bg-red-950/30"
+            class="flex items-start space-x-3 rounded-md border border-amber-200 bg-amber-50 p-3 dark:border-amber-900/50 dark:bg-amber-950/30"
           >
-            <i class="pi pi-exclamation-triangle text-md mt-0.5 text-red-600 dark:text-red-400" />
+            <i class="pi pi-exclamation-triangle text-md mt-0.5 text-amber-600 dark:text-amber-400" />
             <div class="flex-1">
-              <h4 class="text-xs font-bold uppercase tracking-wider text-red-700 dark:text-red-400">System Notice</h4>
-              <p class="mt-0.5 text-xs font-medium leading-normal text-red-600 dark:text-red-300/90">
-                Do not close or refresh this window/tab. Disconnecting will corrupt the batch rendering process and abort the ZIP
-                package compilation.
+              <h4 class="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-400">System Notice</h4>
+              <p class="mt-0.5 text-xs font-medium leading-normal text-amber-700 dark:text-amber-300/90">
+                Please wait for the process to complete, do not refresh or close this window/tab.
               </p>
             </div>
           </div>
@@ -828,29 +827,29 @@ const downloadQrCode = async () => {
         <div
           class="absolute bottom-0 left-0 right-0 w-full border-t border-surface-300 bg-surface-0 px-4 py-3 dark:border-surface-700 dark:bg-surface-900"
         >
-          <div class="flex flex-col items-center justify-center gap-2 sm:flex-row">
+          <div class="flex items-center justify-center gap-3 sm:flex-row">
             <Button
-              label="Cancel"
               :disabled="batchProcessing"
-              class="dark:text-secondary-100 w-full border border-surface-400 px-4 py-2 text-surface-500 dark:border-surface-700"
+              class="flex h-12 flex-1 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
               @click="showBatchQrModal = false"
               text
             >
-              <template #icon>
-                <i class="pi pi-ban mr-2 text-lg"></i>
-              </template>
+              <div class="flex items-center justify-center">
+                <i class="pi pi-ban mr-2 text-base"></i>
+                <span>Cancel</span>
+              </div>
             </Button>
 
             <Button
               :label="batchProcessing ? 'Downloading QR Codes...' : 'Download QR Codes'"
-              :icon="batchProcessing ? 'pi pi-spinner pi-spin' : 'pi pi-download'"
               :loading="batchProcessing"
               :disabled="batchProcessing || !selectedBatchDivision"
-              class="dark:text-secondary-100 w-full border border-primary-500 px-4 py-3 text-primary-600 dark:border-surface-700"
+              class="flex h-12 flex-1 items-center justify-center whitespace-nowrap rounded-lg border border-primary-500 bg-primary-500 px-4 text-sm font-semibold text-white transition-colors hover:bg-primary-600 dark:border-surface-700"
               @click="handleBatchDownload"
             >
               <template #icon>
-                <font-awesome-icon :icon="['fas', 'check']" class="mr-2 text-lg" />
+                <i v-if="batchProcessing" class="pi pi-spinner mr-2 animate-spin text-base" />
+                <FontAwesomeIcon v-else icon="fa-solid fa-download" class="mr-2" />
               </template>
             </Button>
           </div>
