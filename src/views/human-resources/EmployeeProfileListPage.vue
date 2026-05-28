@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeMount, ref, computed, watchEffect, toRef, reactive } from 'vue'
+import { onBeforeMount, ref, computed, watchEffect, toRef, reactive, nextTick, toRaw } from 'vue'
 import { useAuthStore } from '@/stores/auth.store.ts'
 import { usePersonnelStore, FilterEmployeePayload } from '@/stores/personnel.store'
 import { useLibrariesStore } from '@/stores/libraries.store'
@@ -26,6 +26,15 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { usePrependOrAppendOnce } from '@/utils/helpers.js'
 import { useRouter } from 'vue-router'
 import { useRoute } from 'vue-router'
+import JSZip from 'jszip'
+
+const showBatchQrModal = ref(false)
+const batchProcessing = ref(false)
+const batchProgressText = ref('')
+const selectedBatchDivision = ref<WbAutoCompleteOption[] | null>(null)
+const batchActiveEmployee = ref<PersonnelResponse | null>(null)
+const batchQrContainerRef = ref<HTMLElement | null>(null)
+const batchCardRef = ref<HTMLElement | null>(null)
 
 const route = useRoute()
 const authStore = useAuthStore()
@@ -33,6 +42,10 @@ const personnelStore = usePersonnelStore()
 const libraryStore = useLibrariesStore()
 const router = useRouter()
 const getId = usePrependOrAppendOnce('employee-filter')
+
+const navigateToCreate = () => {
+  router.push({ name: 'employee-profile-create' })
+}
 
 const employeeListIsLoading = ref(false)
 const searchSubmitted = ref(false)
@@ -59,8 +72,176 @@ const hiddenQrContainerRef = ref<HTMLElement | null>(null)
 const selectedEmployeeForQr = ref<PersonnelResponse | null>(null)
 const canDownload = ref(false)
 
-const navigateToCreate = () => {
-  router.push({ name: 'create-personnel' })
+const openBatchQrModal = () => {
+  selectedBatchDivision.value = null
+  showBatchQrModal.value = true
+}
+
+const handleBatchDownload = async () => {
+  const targetDivisionSource = selectedBatchDivision.value || payload.division
+  const rawDivisionValue = toRaw(targetDivisionSource) as WbAutoCompleteOption | WbAutoCompleteOption[] | null
+
+  const isArrayPayload = Array.isArray(rawDivisionValue)
+  const singleOption =
+    !isArrayPayload && rawDivisionValue && typeof rawDivisionValue === 'object'
+      ? (rawDivisionValue as WbAutoCompleteOption)
+      : null
+
+  const divisionId: string | number | null = isArrayPayload
+    ? rawDivisionValue[0]?.value ?? null
+    : singleOption
+      ? singleOption.value
+      : (rawDivisionValue as string | number | null)
+
+  const divisionName = isArrayPayload
+    ? rawDivisionValue[0]?.label ?? 'Unknown_Division'
+    : singleOption
+      ? singleOption.label ?? 'Unknown_Division'
+      : 'Unknown_Division'
+
+  const sanitizedDivisionName = divisionName.replace(/[^a-zA-Z0-9-_]/g, '_')
+  const parsedDivisionId = divisionId ? Number(divisionId) : null
+
+  if (!parsedDivisionId || isNaN(parsedDivisionId)) {
+    toast.add({
+      severity: 'warn',
+      summary: 'Selection Required',
+      detail: 'Please select a valid division first.',
+      life: 3000,
+    })
+    return
+  }
+
+  const preventWindowClose = (e: BeforeUnloadEvent) => {
+    e.preventDefault()
+    const eventRef = e as BeforeUnloadEvent & { returnValue: string }
+    eventRef.returnValue = ''
+
+    return ''
+  }
+  window.addEventListener('beforeunload', preventWindowClose)
+
+  batchProcessing.value = true
+  batchProgressText.value = 'Fetching data for employees...'
+
+  const zip = new JSZip()
+  const response = await personnelStore.filterEmployees(parsedDivisionId, undefined, 500)
+  const responseData = response.data as PersonnelResponse[] | undefined
+  const employeeSourceArray = responseData || personnelStore.employees
+
+  if (!response.success || !employeeSourceArray || !employeeSourceArray.length) {
+    toast.add({
+      severity: 'error',
+      summary: 'No employees found',
+      detail: 'Could not find any personnel records associated with this division.',
+      life: 4000,
+    })
+    batchProcessing.value = false
+    return
+  }
+
+  const targetRecords = employeeSourceArray.filter((emp): emp is PersonnelResponse => !!emp?.employee?.id)
+
+  if (!targetRecords.length) {
+    toast.add({
+      severity: 'warn',
+      summary: 'No Active Personnel Profiles',
+      detail: 'No employees found in this Division.',
+      life: 4000,
+    })
+    batchProcessing.value = false
+    return
+  }
+
+  const results = await targetRecords.reduce(async (accumulatorPromise, employeeRecord, index) => {
+    const successCount = await accumulatorPromise
+    batchProgressText.value = `Processing (${index + 1}/${targetRecords.length}): ${employeeRecord.first_name} ${employeeRecord.last_name}`
+
+    try {
+      const initialResp = await personnelStore.fetchQrCode(employeeRecord.employee!.id)
+      const qrResp =
+        initialResp.error_message === 'Employee has no QR code yet.' && !initialResp.success
+          ? await personnelStore.generateQrCode(employeeRecord.employee!.id)
+          : initialResp
+
+      const qrData = qrResp.data as QrCodeResponse | undefined
+      if (!qrResp.success || !qrData?.qr_code_value) return successCount
+
+      batchActiveEmployee.value = employeeRecord
+      await nextTick() // Let Vue render the HTML template block with new text fields
+
+      // 2. Clear out the previous canvas and append the new QR code styling canvas
+      if (batchQrContainerRef.value) {
+        batchQrContainerRef.value.innerHTML = ''
+        const qrCanvas = new QRCodeStyling({
+          width: 500,
+          height: 500,
+          type: 'canvas',
+          data: qrData.qr_code_value,
+          image: DSWDIcon,
+          dotsOptions: { color: '#000000', type: 'square' },
+          backgroundOptions: { color: '#FFFFFF' },
+          imageOptions: { crossOrigin: 'anonymous', margin: 5 },
+          qrOptions: { errorCorrectionLevel: 'H' },
+          cornersSquareOptions: { type: 'square', color: '#000000' },
+          cornersDotOptions: { type: 'square', color: '#000000' },
+        })
+        qrCanvas.append(batchQrContainerRef.value)
+
+        // Wait a small beat for the image asset to render into the canvas context
+        await new Promise((resolve) => setTimeout(resolve, 250))
+      }
+
+      // 3. Take a strict cropped screenshot of only the target container element
+      if (batchCardRef.value) {
+        const urlStr = await domToImage.toPng(batchCardRef.value, {
+          width: 650, // Force hard crop width to match your style rules
+          height: 950, // Force hard crop height to match your style rules
+          quality: 1, // Keeps vector details ultra-crisp
+          bgcolor: '#FFFFFF',
+          style: {
+            transform: 'none',
+            left: '0',
+            top: '0',
+            position: 'static',
+            margin: '0',
+            padding: '0',
+          },
+        })
+
+        const base64Data = urlStr.split(',')[1]
+        zip.file(`${employeeRecord.last_name}_${employeeRecord.first_name}_QRCode.png`, base64Data, { base64: true })
+        return successCount + 1
+      }
+    } catch (err) {
+      console.error('Error processing badge render layer', err)
+    }
+    return successCount
+  }, Promise.resolve(0))
+
+  if (results > 0) {
+    batchProgressText.value = 'Generating final compressed archive ZIP file...'
+    const zipBlob = await zip.generateAsync({ type: 'blob' })
+    const zipAnchor = document.createElement('a')
+    zipAnchor.download = `Batch_QR_Codes_${sanitizedDivisionName}.zip`
+    zipAnchor.href = URL.createObjectURL(zipBlob)
+    zipAnchor.click()
+    URL.revokeObjectURL(zipAnchor.href)
+
+    toast.add({
+      severity: 'success',
+      summary: 'Batch Operation Completed',
+      detail: `Successfully processed ${sanitizedDivisionName}. The Batch_QR_Codes_${sanitizedDivisionName}.zip download will begin shortly.`,
+      life: 5000,
+    })
+  }
+
+  batchActiveEmployee.value = null
+  batchProcessing.value = false
+  showBatchQrModal.value = false
+  selectedBatchDivision.value = null
+  payload.division = null
+  router.push({ name: 'employment-recruitment' })
 }
 
 const navigateToDetails = (personnelPds: PersonnelResponse) => {
@@ -340,15 +521,15 @@ const downloadQrCode = async () => {
     toast.add({
       severity: 'success',
       summary: 'Download Successful',
-      detail: `QR Card downloaded as ${filename}.`,
+      detail: `QR Code downloaded as ${filename}.`,
       life: 3000,
     })
   } catch (error) {
-    console.error('Error generating QR card image with dom-to-image:', error)
+    console.error('Error generating QR Code image with dom-to-image:', error)
     toast.add({
       severity: 'error',
       summary: 'Download Failed',
-      detail: 'Could not generate the QR image. The image library failed to capture the element.',
+      detail: 'Could not generate the QR Code image. The image library failed to capture the element.',
       life: 7000,
     })
   }
@@ -377,6 +558,15 @@ const downloadQrCode = async () => {
               </div>
               <div class="flex w-full items-center justify-end gap-4">
                 <div class="flex space-x-2 whitespace-nowrap md:w-auto">
+                  <Button
+                    icon="pi pi-download"
+                    v-tooltip.top="'Batch Download QR'"
+                    severity="info"
+                    size="large"
+                    class="border border-primary-400 text-lg font-semibold text-primary-400 dark:text-primary-100"
+                    text
+                    @click="openBatchQrModal"
+                  />
                   <Button
                     icon="pi pi-filter-fill"
                     v-tooltip.top="'Filter Item'"
@@ -552,6 +742,168 @@ const downloadQrCode = async () => {
       </template>
     </Card>
 
+    <Dialog
+      v-model:visible="showBatchQrModal"
+      :modal="true"
+      :closable="!batchProcessing"
+      :dismissableMask="!batchProcessing"
+      :position="'right'"
+      :style="{ width: '20vw', maxWidth: '600px', minWidth: '320px' }"
+      :breakpoints="{ '1199px': '75vw', '575px': '90vw' }"
+      :pt="{
+        root: {
+          class: 'h-full flex flex-col bg-surface-0 shadow-lg dark:bg-surface-900 relative',
+        },
+      }"
+    >
+      <template #header>
+        <div class="flex w-full items-center justify-between p-4 pb-0">
+          <h1 class="text-xl font-semibold text-surface-600 dark:text-primary-100">
+            <font-awesome-icon :icon="['fas', 'qrcode']" class="mr-2" />
+            Batch Download QR Codes
+          </h1>
+        </div>
+      </template>
+
+      <div class="flex-1 overflow-y-auto px-4 pb-32">
+        <div v-if="!batchProcessing">
+          <h2 class="mb-2 mt-4 text-lg font-semibold text-surface-500 dark:text-primary-100">Target Source</h2>
+          <p class="mb-4 text-sm leading-normal text-surface-500">
+            Select a division to download the compiled layout QR Code for all its active personnel.
+          </p>
+        </div>
+
+        <div class="mb-4">
+          <WbAutoComplete
+            :useApiFilter="true"
+            :apiEndpoint="'/libraries/divisions/search'"
+            :suggestions="libraryStore.divisionOptions"
+            :loading="libraryStore.divisionOptionsLoading"
+            apiOptionLabel="name"
+            label="Target Division"
+            placeholder="Search and select division"
+            v-model="selectedBatchDivision"
+            :id="getId('batch-input-division')"
+            optionLabel="label"
+            optionValue="value"
+            :disabled="batchProcessing"
+            @on-true-value-computed="
+              (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) => {
+                useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'division'))
+              }
+            "
+            label-class="mt-4 text-md text-surface-600 dark:lg:text-surface-200"
+            class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+          />
+        </div>
+
+        <div
+          v-if="batchProcessing"
+          class="mt-6 flex flex-col space-y-4 rounded-lg border border-surface-200 bg-surface-50 p-6 dark:border-surface-700 dark:bg-surface-800"
+        >
+          <div class="flex flex-col items-center justify-center space-y-2">
+            <i class="pi pi-qrcode animate-pulse text-3xl text-primary-500" />
+            <p class="animate-pulse text-center text-sm font-medium text-surface-600 dark:text-surface-300">
+              {{ batchProgressText }}
+            </p>
+          </div>
+
+          <div class="flex items-start space-x-3 rounded-md border border-warn-200 bg-warn-50 p-3 dark:border-warn-900/50">
+            <i class="pi pi-exclamation-triangle text-md mt-0.5 text-warn-600" />
+            <div class="flex-1">
+              <h4 class="text-xs font-bold uppercase tracking-wider text-warn-800">System Notice</h4>
+              <p class="mt-0.5 text-xs font-medium leading-normal text-warn-700">
+                Please wait for the process to complete, do not refresh or close this window/tab.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <template #footer>
+        <div
+          class="absolute bottom-0 left-0 right-0 w-full border-t border-surface-300 bg-surface-0 px-4 py-3 dark:border-surface-700 dark:bg-surface-900"
+        >
+          <div class="flex items-center justify-center gap-3 sm:flex-row">
+            <Button
+              :disabled="batchProcessing"
+              class="flex h-12 flex-1 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-surface-700 transition-colors hover:bg-surface-50"
+              @click="showBatchQrModal = false"
+              text
+            >
+              <div class="flex items-center justify-center">
+                <i class="pi pi-ban mr-2 text-base"></i>
+                <span>Cancel</span>
+              </div>
+            </Button>
+
+            <Button
+              :label="batchProcessing ? 'Downloading QR Codes...' : 'Download QR Codes'"
+              :loading="batchProcessing"
+              :disabled="batchProcessing || !selectedBatchDivision"
+              class="flex h-12 flex-1 items-center justify-center whitespace-nowrap rounded-lg border border-primary-500 bg-primary-500 px-4 text-sm font-semibold text-white transition-colors hover:bg-primary-600 dark:border-surface-700"
+              @click="handleBatchDownload"
+            >
+              <template #icon>
+                <i v-if="batchProcessing" class="pi pi-spinner mr-2 animate-spin text-base" />
+                <FontAwesomeIcon v-else icon="fa-solid fa-download" class="mr-2" />
+              </template>
+            </Button>
+          </div>
+        </div>
+      </template>
+    </Dialog>
+
+    <div v-if="batchActiveEmployee" class="absolute left-[-9999px]">
+      <div
+        ref="batchCardRef"
+        class="box-border flex h-[950px] max-h-[950px] min-h-[950px] w-[650px] min-w-[650px] max-w-[650px] flex-col items-center overflow-hidden !border-0 !border-none !bg-white p-10 text-center !shadow-none !outline-none !ring-0"
+      >
+        <div class="mb-8 flex w-full justify-center !border-0 !border-none !shadow-none !outline-none !ring-0">
+          <img
+            src="@/assets/image/dswd-logo.png"
+            alt="DSWD Logo"
+            class="h-auto w-[412.5px] !border-0 !border-none object-contain !shadow-none !outline-none !ring-0"
+          />
+        </div>
+
+        <div class="mb-2 w-full !border-0 !border-none !shadow-none !outline-none !ring-0">
+          <div class="!border-0 !border-none !bg-white p-[5px_20px] !shadow-none !outline-none !ring-0">
+            <p class="!border-0 !border-none text-3xl font-black uppercase leading-[1.2] text-[#1f2937] !shadow-none">
+              {{ batchActiveEmployee.last_name }}, {{ batchActiveEmployee.first_name }}
+              {{ batchActiveEmployee.middle_name ? batchActiveEmployee.middle_name + ' ' : '' }}
+              {{ batchActiveEmployee.ext_name ? batchActiveEmployee.ext_name : '' }}
+            </p>
+          </div>
+        </div>
+
+        <div
+          v-if="batchActiveEmployee.employee?.id"
+          class="mb-5 w-full !border-0 !border-none !shadow-none !outline-none !ring-0"
+        >
+          <div class="!border-0 !border-none !bg-white p-[2px_20px] !shadow-none !outline-none !ring-0">
+            <p class="!border-0 !border-none text-xl font-bold uppercase tracking-wide text-primary-600 !shadow-none">
+              ID: {{ batchActiveEmployee.employee.agency_employee_no }}
+            </p>
+          </div>
+        </div>
+
+        <div class="mb-2 w-full !border-0 !border-none !shadow-none !outline-none !ring-0">
+          <div class="!border-0 !border-none !bg-white p-[5px_20px] !shadow-none !outline-none !ring-0">
+            <p class="!border-0 !border-none text-xl font-medium uppercase leading-[1.2] text-[#4b5563] !shadow-none">
+              {{ batchActiveEmployee.employee?.item?.position?.title || '' }}
+            </p>
+          </div>
+        </div>
+
+        <div
+          ref="batchQrContainerRef"
+          class="mt-8 flex h-[500px] w-[500px] justify-center !border-0 !border-none !bg-white !shadow-none !outline-none !ring-0"
+        ></div>
+      </div>
+    </div>
+
     <!-- Modal of Filter -->
     <Dialog
       v-model:visible="showModal"
@@ -710,7 +1062,7 @@ const downloadQrCode = async () => {
             class="w-full border-2 border-primary-500 text-base font-semibold transition-colors hover:bg-primary-50"
             text
           >
-            <FontAwesomeIcon icon="fa-solid fa-download" class="mr-2" /> Download QR Card
+            <FontAwesomeIcon icon="fa-solid fa-download" class="mr-2" /> Download QR Code
           </Button>
         </div>
       </Dialog>
