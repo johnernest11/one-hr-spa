@@ -298,49 +298,40 @@ const computeUTValue = computed(() => {
   return (item: { date: string | Date; row: ViewDailyTimeRecordResponse | null }) => {
     if (!item.row) return 0
 
-    if (item.row.ut !== null && item.row.ut !== undefined && Number(item.row.ut) > 0) {
-      return Number(item.row.ut)
-    }
-
     const date = new Date(item.date ?? item.row.date)
 
-    if (isWeekend(date.toISOString())) {
-      return 0
-    }
+    if (isWeekend(date.toISOString())) return 0
 
     const timeLog = item.row.time_log ?? []
+
+    const isEdited =
+      timeLog.length > 0 &&
+      formatDateYMD(new Date(item.row.date)) !== formatDateYMD(new Date(toTimestamp(timeLog[0].date, timeLog[0].scanned_time)))
+
+    /**
+     * DB wins ONLY if NOT edited
+     */
+    if (!isEdited && item.row.ut != null && Number(item.row.ut) > 0) {
+      return Number(item.row.ut)
+    }
 
     const { in1, out1, in2, out2 } = resolveDTRSlots(timeLog)
 
     let inTime: string | null = null
     let outTime: string | null = null
 
-    /**
-     * Whole day
-     */
     if (in1 && out2) {
       inTime = toTimestamp(in1.date, in1.scanned_time)
       outTime = toTimestamp(out2.date, out2.scanned_time)
     } else if (in1 && out1) {
-    /**
-     * Morning half-day
-     */
       inTime = toTimestamp(in1.date, in1.scanned_time)
       outTime = toTimestamp(out1.date, out1.scanned_time)
     } else if (in2 && out2) {
-    /**
-     * Afternoon half-day
-     */
       inTime = toTimestamp(in2.date, in2.scanned_time)
       outTime = toTimestamp(out2.date, out2.scanned_time)
     }
 
-    /**
-     * Missing entries
-     */
-    if (!inTime || !outTime) {
-      return 8
-    }
+    if (!inTime || !outTime) return 8
 
     const { ut } = computeUTOTFlex(inTime, outTime)
 
@@ -355,19 +346,26 @@ const computeOTValue = computed(() => {
   return (item: { row: ViewDailyTimeRecordResponse | null }) => {
     if (!item.row) return 0
 
-    if (item.row.ot !== null && item.row.ot !== undefined && Number(item.row.ot) > 0) {
-      return Number(item.row.ot)
-    }
-
     const date = new Date(item.row.date)
     const day = date.getDay()
-    const timeLog = item.row.time_log ?? []
 
-    // MONDAY (special flex schedule rule)
+    const timeLog = item.row.time_log ?? []
+    const isEdited =
+      timeLog.length > 0 &&
+      formatDateYMD(new Date(item.row.date)) !== formatDateYMD(new Date(toTimestamp(timeLog[0].date, timeLog[0].scanned_time)))
+
+    /**
+     *  DB wins ONLY if NOT edited
+     */
+    if (!isEdited && item.row.ot != null && Number(item.row.ot) > 0) {
+      return Number(item.row.ot)
+    }
+    /**
+     * MONDAY FLEX RULE
+     */
     if (day === 1) {
       const { in1, out2 } = resolveDTRSlots(timeLog)
 
-      // Missing required logs means no OT
       if (!in1 || !out2) return 0
 
       const { ot } = computeUTOTFlex(toTimestamp(in1.date, in1.scanned_time), toTimestamp(out2.date, out2.scanned_time))
@@ -375,7 +373,9 @@ const computeOTValue = computed(() => {
       return ot
     }
 
-    // Regular OT computation for other days
+    /**
+     * REGULAR OT
+     */
     const worked = computeWorkedHours(timeLog)
     return computeOT(worked, isWeekend(item.row.date))
   }
