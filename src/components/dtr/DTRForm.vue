@@ -239,18 +239,9 @@ const computeUTValue = computed(() => {
     const isComplete = !!in1 && !!out2
 
     if (isEdited) {
-      // skip DB entirely → continue to auto-compute below
-    } else {
-      /**
-       * DB RULES (ONLY when NOT edited)
-       */
-      if (hasLogs && !isComplete && hasValidDB) {
-        return Number(dbUT)
-      }
-
-      if (!hasLogs && hasValidDB) {
-        return Number(dbUT)
-      }
+      // skip DB entirely → go auto-compute below
+    } else if ((hasLogs && !isComplete && hasValidDB) || (!hasLogs && hasValidDB)) {
+      return Number(dbUT)
     }
 
     let inTime: string | null = null
