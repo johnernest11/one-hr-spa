@@ -44,7 +44,7 @@ const router = useRouter()
 const getId = usePrependOrAppendOnce('employee-filter')
 
 const navigateToCreate = () => {
-  router.push({ name: 'employee-profile-create' })
+  router.push({ name: 'create-personnel' })
 }
 
 const employeeListIsLoading = ref(false)
