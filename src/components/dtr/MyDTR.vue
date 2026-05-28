@@ -303,24 +303,48 @@ const computeUTValue = computed(() => {
     }
 
     const date = new Date(item.date ?? item.row.date)
-    const day = date.getDay()
-    const timeLog = item.row.time_log ?? []
 
-    // MONDAY (special flex schedule rule)
-    if (day === 1) {
-      const { in1, out2 } = resolveDTRSlots(timeLog)
-
-      // Missing required logs means no UT
-      if (!in1 || !out2) return 0
-
-      const { ut } = computeUTOTFlex(toTimestamp(in1.date, in1.scanned_time), toTimestamp(out2.date, out2.scanned_time))
-
-      return ut
+    if (isWeekend(date.toISOString())) {
+      return 0
     }
 
-    // Regular UT computation for other days
-    const worked = computeWorkedHours(timeLog)
-    return computeUT(worked, isWeekend(date.toISOString()))
+    const timeLog = item.row.time_log ?? []
+
+    const { in1, out1, in2, out2 } = resolveDTRSlots(timeLog)
+
+    let inTime: string | null = null
+    let outTime: string | null = null
+
+    /**
+     * Whole day
+     */
+    if (in1 && out2) {
+      inTime = toTimestamp(in1.date, in1.scanned_time)
+      outTime = toTimestamp(out2.date, out2.scanned_time)
+    } else if (in1 && out1) {
+    /**
+     * Morning half-day
+     */
+      inTime = toTimestamp(in1.date, in1.scanned_time)
+      outTime = toTimestamp(out1.date, out1.scanned_time)
+    } else if (in2 && out2) {
+    /**
+     * Afternoon half-day
+     */
+      inTime = toTimestamp(in2.date, in2.scanned_time)
+      outTime = toTimestamp(out2.date, out2.scanned_time)
+    }
+
+    /**
+     * Missing entries
+     */
+    if (!inTime || !outTime) {
+      return 8
+    }
+
+    const { ut } = computeUTOTFlex(inTime, outTime)
+
+    return ut
   }
 })
 
