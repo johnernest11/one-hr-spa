@@ -304,18 +304,35 @@ const computeUTValue = computed(() => {
 
     const timeLog = item.row.time_log ?? []
 
+    /**
+     * ADDED LOGIC (rule support)
+     */
+    const dbUT = item.row.ut
+    const hasValidDB = dbUT != null && Number(dbUT) > 0
+    const hasLogs = timeLog.length > 0
+
     const isEdited =
       timeLog.length > 0 &&
       formatDateYMD(new Date(item.row.date)) !== formatDateYMD(new Date(toTimestamp(timeLog[0].date, timeLog[0].scanned_time)))
 
-    /**
-     * DB wins ONLY if NOT edited
-     */
-    if (!isEdited && item.row.ut != null && Number(item.row.ut) > 0) {
-      return Number(item.row.ut)
-    }
-
     const { in1, out1, in2, out2 } = resolveDTRSlots(timeLog)
+
+    const isComplete = !!in1 && !!out2
+
+    if (isEdited) {
+      // skip DB entirely → continue to auto-compute below
+    } else {
+      /**
+       * DB RULES (ONLY when NOT edited)
+       */
+      if (hasLogs && !isComplete && hasValidDB) {
+        return Number(dbUT)
+      }
+
+      if (!hasLogs && hasValidDB) {
+        return Number(dbUT)
+      }
+    }
 
     let inTime: string | null = null
     let outTime: string | null = null
@@ -331,14 +348,19 @@ const computeUTValue = computed(() => {
       outTime = toTimestamp(out2.date, out2.scanned_time)
     }
 
-    if (!inTime || !outTime) return 8
+    /**
+     * If incomplete logs → fallback to regular UT computation
+     */
+    if (!inTime || !outTime) {
+      const worked = computeWorkedHours(timeLog)
+      return computeUT(worked, isWeekend(item.row.date))
+    }
 
     const { ut } = computeUTOTFlex(inTime, outTime)
 
     return ut
   }
 })
-
 /**
  * Compute OT (Overtime) for a DTR row
  */
@@ -348,18 +370,20 @@ const computeOTValue = computed(() => {
 
     const date = new Date(item.row.date)
     const day = date.getDay()
+    const dbOT = item.row.ot
 
     const timeLog = item.row.time_log ?? []
+
     const isEdited =
       timeLog.length > 0 &&
       formatDateYMD(new Date(item.row.date)) !== formatDateYMD(new Date(toTimestamp(timeLog[0].date, timeLog[0].scanned_time)))
 
-    /**
-     *  DB wins ONLY if NOT edited
-     */
-    if (!isEdited && item.row.ot != null && Number(item.row.ot) > 0) {
-      return Number(item.row.ot)
+    const hasValidDB = dbOT != null && Number(dbOT) > 0
+
+    if (!isEdited && hasValidDB) {
+      return Number(dbOT)
     }
+
     /**
      * MONDAY FLEX RULE
      */
