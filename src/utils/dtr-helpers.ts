@@ -155,31 +155,38 @@ export const resolveDTRSlots = (entries: TimeLogResponse[] = []): DTRSlots => {
  */
 export const computeWorkedHours = (timeLog: TimeLogResponse[]): number => {
   const { in1, out1, in2, out2 } = resolveDTRSlots(timeLog ?? [])
-  if (!in1 || !out1) return 0
 
-  // Convert log -> timestamp string
+  // If there is no check-in at all, they didn't work (0 hours worked -> 8 hours UT)
+  if (!in1) return 0
+
   const toDate = (log: TimeLogResponse) => new Date(toTimestamp(log.date, log.scanned_time))
+  const baseDate = toDate(in1)
+  const isWeekend = [0, 6].includes(baseDate.getDay())
 
+  // --- MORNING SESSION ---
   let amStart = toDate(in1)
-  let amEnd = toDate(out1)
 
-  const isWeekend = [0, 6].includes(amStart.getDay())
-  const minStartHour = isWeekend ? 8 : 7
-  const minStart = new Date(amStart)
-  minStart.setHours(minStartHour, 0, 0, 0)
-  if (amStart < minStart) amStart = new Date(minStart.getTime())
+  // FIX: If out1 is missing because they worked a continuous shift or left late,
+  // fallback to out2, or default to a 4-hour max morning shift (12:00 PM)
+  const amEnd = out1 ? toDate(out1) : out2 ? toDate(out2) : null
 
-  if (isWeekend) {
-    const maxEnd = new Date(amEnd)
-    maxEnd.setHours(17, 0, 0, 0)
-    if (amEnd > maxEnd) amEnd = maxEnd
+  if (!amEnd) {
+    // If they have no checkout logs at all, they get 0 worked hours
+    return 0
   }
 
-  const lunchStart = new Date(amEnd)
+  // Handle standard weekday 7 AM start limit
+  const minStart = new Date(baseDate)
+  minStart.setHours(isWeekend ? 8 : 7, 0, 0, 0)
+  if (amStart < minStart) amStart = new Date(minStart.getTime())
+
+  // Lunch Break boundaries
+  const lunchStart = new Date(baseDate)
   lunchStart.setHours(12, 0, 0, 0)
-  const lunchEnd = new Date(amEnd)
+  const lunchEnd = new Date(baseDate)
   lunchEnd.setHours(13, 0, 0, 0)
 
+  // Adjust morning end if it leaks into lunch hours
   let adjustedAmEnd = amEnd
   if (amEnd > lunchStart) {
     const overlap = Math.min(amEnd.getTime(), lunchEnd.getTime()) - lunchStart.getTime()
@@ -187,31 +194,30 @@ export const computeWorkedHours = (timeLog: TimeLogResponse[]): number => {
   }
 
   let morningHours = (adjustedAmEnd.getTime() - amStart.getTime()) / 36e5
-  if (!isWeekend) {
-    if (morningHours < 2) morningHours = 0 // < 2 hrs → 0
-  }
+  morningHours = Math.max(morningHours, 0)
 
+  // --- AFTERNOON SESSION ---
   let afternoonHours = 0
-  if (in2 && out2) {
+  // Only calculate afternoon if a distinct second session exists
+  if (in2 && out2 && out1) {
     let pmStart = toDate(in2)
     let pmEnd = toDate(out2)
+
     if (pmStart < lunchEnd) pmStart = new Date(lunchEnd.getTime())
     if (pmEnd < pmStart) pmEnd = new Date(pmStart.getTime())
 
-    if (isWeekend && pmStart < minStart) pmStart = new Date(minStart.getTime())
-    if (isWeekend) {
-      const maxEnd = new Date(pmEnd)
-      maxEnd.setHours(17, 0, 0, 0)
-      if (pmEnd > maxEnd) pmEnd = maxEnd
-    }
-
     afternoonHours = (pmEnd.getTime() - pmStart.getTime()) / 36e5
-    if (!isWeekend) {
-      if (afternoonHours < 2) afternoonHours = 0 // < 2 hrs → 0
-    }
+    afternoonHours = Math.max(afternoonHours, 0)
   }
 
-  const totalHours = morningHours + afternoonHours
+  let totalHours = morningHours + afternoonHours
+
+  // --- FIX: Strict Half-Day Protection Rule ---
+  // If they only completed their morning logs (missing afternoon completely),
+  // force their worked hours to be exactly 4.00, resulting in exactly 4.00 UT hours.
+  if (!isWeekend && (!in2 || !out2) && totalHours >= 2) {
+    totalHours = 4
+  }
 
   return +(totalHours > 0 ? totalHours : 0).toFixed(2)
 }
@@ -261,12 +267,26 @@ export const computeUTOTFlex = (inTime: string, outTime: string): { ut: number; 
     ut = (start.getTime() - refStart.getTime()) / 36e5
   }
 
-  const total = (end.getTime() - start.getTime()) / 36e5
+  const adjustedStart = new Date(start)
 
-  const effectiveHours = total - 1
+  if (start.getHours() >= 12) {
+    adjustedStart.setHours(13, 0, 0, 0)
+  }
 
-  if (effectiveHours > 8) {
-    ot = effectiveHours - 8
+  const total = (end.getTime() - adjustedStart.getTime()) / 36e5
+
+  const deductLunch = start.getHours() < 12 && end.getHours() >= 13
+
+  const effectiveHours = deductLunch ? total - 1 : total
+
+  const isHalfDay = start.getHours() >= 12 || end.getHours() <= 12
+
+  const cappedHours = isHalfDay ? Math.min(effectiveHours, 4) : effectiveHours
+
+  if (cappedHours < 8) {
+    ut = 8 - cappedHours
+  } else if (cappedHours > 8) {
+    ot = cappedHours - 8
   }
 
   return {
