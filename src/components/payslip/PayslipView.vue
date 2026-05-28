@@ -126,7 +126,8 @@ const updatePayloadFromReport = (payRoll: PayrollResponse | null) => {
         id_number: payRoll.employee_id.id_number ?? null,
         item_id: 0,
         // Salary grade details
-        salary_grade_id: payRoll.employee_id.salary_grade_id ?? {
+        salary_grade_id: payRoll.employee_id.salary_grade_id,
+        salary_grade: {
           id: '',
           nbc_no: 0,
           effective_date: '',
@@ -218,8 +219,8 @@ const updatePayloadFromReport = (payRoll: PayrollResponse | null) => {
             updated_at: '2020-01-01',
           },
 
-          salary_id: 1,
-          salary: {
+          salary_grade_id: 1,
+          salary_grade: {
             id: 1,
             nbc_no: 123,
             effective_date: '2024-07-01',
@@ -242,6 +243,10 @@ const updatePayloadFromReport = (payRoll: PayrollResponse | null) => {
           item_classification: 'Regular',
           number: 'ITEM-501',
           date_of_creation: '2020-01-01',
+
+          designation: 'N/A',
+          date_of_designation: '2020-01-01',
+          special_order_number: 'N/A',
 
           status: 'Unfilled' as const,
           mode_of_accession: '',
@@ -327,7 +332,7 @@ watch(
             <div class="flex flex-col items-start gap-2 px-4 md:w-2/3 lg:w-1/2">
               <div class="flex w-full flex-col">
                 <h2 class="text-lg font-semibold text-surface-600 dark:text-primary-100">
-                  Gross Monthly Salary - {{ formatAmount(payload.payroll.employee_id.salary_grade_id?.amount) }}
+                  Gross Monthly Salary - {{ formatAmount(payload.payroll.employee_id.salary_grade?.amount) }}
                 </h2>
                 <h1 class="text-lg font-semibold text-surface-600 dark:text-primary-100">
                   Net Pay - {{ formatAmount(payload.payroll.amount_earned_whole) }}

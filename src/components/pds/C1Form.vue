@@ -1180,7 +1180,7 @@ watch(
 )
 
 watch(
-  () => payload.employee.salary_grade_id,
+  () => payload.employee.salary_grade,
   (newSelected) => {
     isSalaryGradeLoading.value = true
     if (!newSelected) {

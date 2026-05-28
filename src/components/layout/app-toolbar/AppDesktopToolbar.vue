@@ -114,7 +114,6 @@ const handleLogout = async () => {
     </template>
 
     <template #end>
-      <!-- Start Avatar Menu -->
       <template v-if="authStore.isAuthenticated">
         <Avatar
           :image="authStore.authenticatedUser.user_profile?.profile_picture_url ?? undefined"
@@ -126,12 +125,14 @@ const handleLogout = async () => {
           aria-haspopup="true"
           aria-controls="avatar-menu"
         />
+
         <Menu
           ref="avatarMenu"
           id="avatar-menu"
           :model="avatarMenuItems"
           :popup="true"
-          @focus="() => $nextTick(() => (avatarMenu.focusedOptionIndex = -1))"
+          @show="$nextTick(() => (avatarMenu.focusedOptionIndex = -1))"
+          @mouseleave="avatarMenu.hide()"
         >
           <template #start>
             <button
@@ -146,13 +147,14 @@ const handleLogout = async () => {
                 size="large"
               />
               <span class="inline-flex flex-col justify-start">
-                <span class="mx-1 text-sm">{{ fullName }}</span>
+                <span class="mx-1 text-left text-sm">{{ fullName }}</span>
                 <span class="mx-1 mt-2 flex flex-wrap gap-1">
                   <Tag v-for="role in authStore.authRoles" :value="snakeCaseToTitleCase(role)" :key="role"></Tag>
                 </span>
               </span>
             </button>
           </template>
+
           <template #item="{ item, props }">
             <a class="flex items-center text-sm" v-bind="props.action">
               <span :class="item.icon" />
@@ -163,7 +165,6 @@ const handleLogout = async () => {
           </template>
         </Menu>
       </template>
-      <!-- End Avatar Menu -->
     </template>
   </Toolbar>
 </template>

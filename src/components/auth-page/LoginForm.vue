@@ -93,7 +93,7 @@ const handleLogin = async () => {
         break
       case ApiErrorCode.FORBIDDEN_ERROR:
         credsErrorMessage.value =
-          "We're Sorry, only Super Admin accounts can log in here, use the Sign in using your Active Directory(AD) Account."
+          "We're Sorry, only Super Admin accounts can log in here. To login, please click on the Sign in using your Active Directory (AD) account button."
         break
       case ApiErrorCode.TOO_MANY_REQUESTS_ERROR:
         credsErrorMessage.value = "We've received too many attempts from you. Please try again after a few minutes."

@@ -15,6 +15,7 @@ import {
   toTimestamp,
   computeOT,
   computeUT,
+  computeUTOTFlex,
   computeWorkedHours,
   isWeekend,
   resolveDTRSlots,
@@ -24,6 +25,7 @@ import {
   normalizeTimeOnly,
   generateUTOTTooltip,
   computeRemarks,
+  DTRSlotValues,
 } from '@/utils/dtr-helpers'
 import { useRoute } from 'vue-router'
 import { getMonthAndYear } from '@/utils/helpers'
@@ -289,20 +291,72 @@ const getRemarksKey = (prefix: string, date?: Date | null): string => {
   return `${prefix}-${date ? date.toISOString() : 'no-date'}`
 }
 
+/**
+ * Compute UT (Undertime) for a DTR row
+ */
 const computeUTValue = computed(() => {
-  return (item: { is_missing: string; date: Date; row: ViewDailyTimeRecordResponse | null }) => {
+  return (item: { date: string | Date; row: ViewDailyTimeRecordResponse | null }) => {
     if (!item.row) return 0
-    if (item.row.ut && item.row.ut > 0) return item.row.ut
-    return computeUT(computeWorkedHours(item.row.time_log ?? []), isWeekend(item.row.date))
+
+    if (item.row.ut !== null && item.row.ut !== undefined && Number(item.row.ut) > 0) {
+      return Number(item.row.ut)
+    }
+
+    const date = new Date(item.date ?? item.row.date)
+    const day = date.getDay()
+    const timeLog = item.row.time_log ?? []
+
+    // MONDAY (special flex schedule rule)
+    if (day === 1) {
+      const { in1, out2 } = resolveDTRSlots(timeLog)
+
+      // Missing required logs means no UT
+      if (!in1 || !out2) return 0
+
+      const { ut } = computeUTOTFlex(toTimestamp(in1.date, in1.scanned_time), toTimestamp(out2.date, out2.scanned_time))
+
+      return ut
+    }
+
+    // Regular UT computation for other days
+    const worked = computeWorkedHours(timeLog)
+    return computeUT(worked, isWeekend(date.toISOString()))
   }
 })
 
+/**
+ * Compute OT (Overtime) for a DTR row
+ */
 const computeOTValue = computed(() => {
-  return (item: { is_missing: string; date: Date; row: ViewDailyTimeRecordResponse | null }) => {
+  return (item: { row: ViewDailyTimeRecordResponse | null }) => {
     if (!item.row) return 0
-    return computeOT(computeWorkedHours(item.row.time_log ?? []), isWeekend(item.row.date))
+
+    if (item.row.ot !== null && item.row.ot !== undefined && Number(item.row.ot) > 0) {
+      return Number(item.row.ot)
+    }
+
+    const date = new Date(item.row.date)
+    const day = date.getDay()
+    const timeLog = item.row.time_log ?? []
+
+    // MONDAY (special flex schedule rule)
+    if (day === 1) {
+      const { in1, out2 } = resolveDTRSlots(timeLog)
+
+      // Missing required logs means no OT
+      if (!in1 || !out2) return 0
+
+      const { ot } = computeUTOTFlex(toTimestamp(in1.date, in1.scanned_time), toTimestamp(out2.date, out2.scanned_time))
+
+      return ot
+    }
+
+    // Regular OT computation for other days
+    const worked = computeWorkedHours(timeLog)
+    return computeOT(worked, isWeekend(item.row.date))
   }
 })
+
 const computeRemarksValue = computed(() => {
   return (item: { row: ViewDailyTimeRecordResponse | null }) => {
     if (!item.row) return ''
@@ -386,8 +440,39 @@ const validator = useVuelidate(formRules, { remarksMap }, { $lazy: true })
 Update all DTRs but only send updates for rows that actually changed.
 ********************************************************************* */
 
+/*
+ * Validation Form for Duplicate Entry
+ */
+const validateRealtiDuplicateTimeLogs = (slots: DTRSlotValues): string | null => {
+  const entries = [
+    { label: 'Time In (AM)', value: slots.in1 },
+    { label: 'Time Out (AM)', value: slots.out1 },
+    { label: 'Time In (PM)', value: slots.in2 },
+    { label: 'Time Out (PM)', value: slots.out2 },
+  ].filter((entry) => entry.value)
+
+  const seen = new Map<string, string>()
+
+  for (const entry of entries) {
+    const normalized = normalizeTimeOnly(entry.value)
+    if (!normalized) continue
+
+    if (seen.has(normalized)) {
+      const previousLabel = seen.get(normalized)
+      return `${previousLabel} and ${entry.label} cannot be the same`
+    }
+
+    seen.set(normalized, entry.label)
+  }
+
+  return null
+}
+/*
+ * Update Function
+ */
 const updateDTRTimeLogs = async () => {
   let valid = true
+
   if (!isEditingOtherEmployee.value) {
     validator.value.$touch()
     valid = await validator.value.$validate()
@@ -405,7 +490,6 @@ const updateDTRTimeLogs = async () => {
 
   IsBeingUpdated.value = true
   formIsSubmitting.value = true
-  let hasValidationError = false
 
   // Track duplicate time entries for toast
   const duplicatedTimes: { date: string; slot: string; time: string }[] = []
@@ -417,171 +501,122 @@ const updateDTRTimeLogs = async () => {
       const remarksHrKey = `hr_remarks-${dateKey}`
       const utKey = `ut-${dateKey}`
       const otKey = `ot-${dateKey}`
+
       const enteredRemarks = remarksMap[remarksKey] ?? ''
       const enteredHRRemarks = remarksMap[remarksHrKey] ?? ''
       const enteredUT = Number(remarksMap[utKey] ?? 0)
       const enteredOT = Number(remarksMap[otKey] ?? 0)
+
       const enteredTime = remarksMap as Record<string, string | Date>
 
       const slots = ['in1', 'out1', 'in2', 'out2'] as const
-      const time_logs: { id: number; date: string; scanned_time: string; is_in: boolean; is_selected: boolean }[] = []
+
+      const time_logs: {
+        id: number
+        date: string
+        scanned_time: string
+        is_in: boolean
+        is_selected: boolean
+      }[] = []
+
       const existingLogs = existingDTR?.time_log ?? []
 
-      slots.forEach((slot) => {
+      /************************************************************
+       * Normalize entered slots
+       ************************************************************/
+      const enteredSlots: Partial<Record<(typeof slots)[number], string>> = {}
+
+      for (const slot of slots) {
         const key = `${slot}-${dateKey}`
         const value = enteredTime[key]
-        if (!value) return
+
+        if (!value) continue
 
         const normalized = normalizeTimeOnly(value)
-        if (!normalized) return
+        if (!normalized) continue
 
-        //  Filter existing logs for this date only
-        const existingLogsForDate = existingLogs.filter((log) => formatDateYMD(log.date) === formatDateYMD(item.date))
+        enteredSlots[slot] = normalized
+      }
 
-        // Get existing slot (if any)
-        const existingSlot = resolveDTRSlots(existingLogsForDate)[slot]
+      /************************************************************
+       * Validate duplicates inside FORM (NOT DB)
+       ************************************************************/
+      const validationResult = validateRealtiDuplicateTimeLogs(enteredSlots as DTRSlotValues)
 
-        // Find if any OTHER slot for this date has the same time
-        const conflict = existingLogsForDate.find((log) => {
-          const isDifferentSlot = existingSlot ? log.id !== existingSlot.id : true
-          return isDifferentSlot && normalizeTimeOnly(log.scanned_time) === normalized
+      if (validationResult) {
+        duplicatedTimes.push({
+          date: formatDateYMD(item.date),
+          slot: 'FORM',
+          time: validationResult,
         })
 
-        if (conflict) {
-          duplicatedTimes.push({
-            date: formatDateYMD(item.date),
-            slot: slot.toUpperCase(),
-            time: normalized,
-          })
-          return
-        }
-
-        if (existingSlot) {
-          const existingTime = normalizeTimeOnly(existingSlot.scanned_time)
-          if (existingTime === normalized) {
-            return
-          }
-
-          // If changed, update instead of adding duplicate
-          time_logs.push({
-            id: existingSlot.id,
-            date: formatDateYMD(item.date),
-            scanned_time: normalized,
-            is_in: slot === 'in1' || slot === 'in2',
-            is_selected: true,
-          })
-        } else {
-          // Check if this new time already exists in OTHER slots for the same day to prevent true duplicates
-          const isActuallyDuplicated = existingLogsForDate.some((log) => normalizeTimeOnly(log.scanned_time) === normalized)
-
-          if (isActuallyDuplicated) {
-            duplicatedTimes.push({
-              date: formatDateYMD(item.date),
-              slot,
-              time: normalized,
-            })
-            return
-          }
-
-          // New slot -> insert
-          time_logs.push({
-            id: 0,
-            date: formatDateYMD(item.date),
-            scanned_time: normalized,
-            is_in: slot === 'in1' || slot === 'in2',
-            is_selected: true,
-          })
-        }
-      })
-
-      slots.forEach((slot) => {
-        const key = `${slot}-${dateKey}`
-        const value = enteredTime[key]
-        if (!value) return
-
-        const normalized = normalizeTimeOnly(value)
-        if (!normalized) return
-
-        const existingLogsForDate = existingLogs.filter((log) => formatDateYMD(log.date) === formatDateYMD(item.date))
-        const existingSlot = resolveDTRSlots(existingLogsForDate)[slot]
-
-        if (existingSlot) {
-          const existingTime = normalizeTimeOnly(existingSlot.scanned_time)
-
-          // If the value hasn't changed at all, we skip it entirely
-          if (existingTime === normalized) return
-
-          // If it HAS changed, we check if the NEW time conflicts with ANOTHER slot
-          const isConflict = existingLogsForDate.some(
-            (log) => log.id !== existingSlot.id && normalizeTimeOnly(log.scanned_time) === normalized
-          )
-
-          if (isConflict) {
-            duplicatedTimes.push({ date: formatDateYMD(item.date), slot, time: normalized })
-            return
-          }
-
-          // Add to logs as an UPDATE (preserving the ID)
-          time_logs.push({
-            id: existingSlot.id,
-            date: formatDateYMD(item.date),
-            scanned_time: normalized,
-            is_in: slot === 'in1' || slot === 'in2',
-            is_selected: true,
-          })
-        } else {
-          // New Slot logic
-          const isActuallyDuplicated = existingLogsForDate.some((log) => normalizeTimeOnly(log.scanned_time) === normalized)
-
-          if (isActuallyDuplicated) {
-            duplicatedTimes.push({ date: formatDateYMD(item.date), slot, time: normalized })
-            return
-          }
-
-          time_logs.push({
-            id: 0,
-            date: formatDateYMD(item.date),
-            scanned_time: normalized,
-            is_in: slot === 'in1' || slot === 'in2',
-            is_selected: true,
-          })
-        }
-      })
-
-      // === Existing DTR ===
-      if (existingDTR) {
-        const existingSlots = resolveDTRSlots(existingDTR.time_log ?? [])
-        const existingTimestamps = Object.values(existingSlots)
-          .filter((slot): slot is TimeLogResponse => slot !== null)
-          .map((slot) => toTimestamp(slot.date, slot.scanned_time))
-
-        const timeLogsToAdd = time_logs
-          .filter((log) => !existingTimestamps.includes(toTimestamp(log.date, log.scanned_time)))
-          .map((log) => ({ ...log }))
-
-        const remarksChanged = enteredRemarks !== (existingDTR.employee_remarks ?? '')
-        const remarksHrChanged = enteredHRRemarks !== (existingDTR.hr_remarks ?? '')
-
-        // Only allow UT/OT changes if route.params.id exists
-        const canUpdateUTOT = !!route.params.id
-        const utChanged = canUpdateUTOT && enteredUT !== (existingDTR.ut ?? 0)
-        const otChanged = canUpdateUTOT && enteredOT !== (existingDTR.ot ?? 0)
-
-        if (remarksChanged || remarksHrChanged || utChanged || otChanged || timeLogsToAdd.length > 0) {
-          return {
-            id: existingDTR.id,
-            date: formatDateYMD(item.date),
-            ...(remarksChanged ? { employee_remarks: enteredRemarks } : {}),
-            ...(remarksHrChanged ? { hr_remarks: enteredHRRemarks } : {}),
-            ...(utChanged ? { ut: enteredUT } : {}),
-            ...(otChanged ? { ot: enteredOT } : {}),
-            ...(timeLogsToAdd.length > 0 ? { time_logs: timeLogsToAdd } : {}),
-          }
-        }
         return null
       }
 
-      // === New DTR (only if no row exists) ===
+      /************************************************************
+       * Build time logs
+       ************************************************************/
+      for (const slot of slots) {
+        const normalized = enteredSlots[slot]
+        if (!normalized) continue
+
+        const existingLogsForDate = existingLogs.filter((log) => formatDateYMD(log.date) === formatDateYMD(item.date))
+
+        const existingSlot = resolveDTRSlots(existingLogsForDate)[slot]
+
+        if (existingSlot) {
+          const existingTime = normalizeTimeOnly(existingSlot.scanned_time)
+
+          if (existingTime === normalized) continue
+
+          time_logs.push({
+            id: existingSlot.id,
+            date: formatDateYMD(item.date),
+            scanned_time: normalized,
+            is_in: slot === 'in1' || slot === 'in2',
+            is_selected: true,
+          })
+        } else {
+          time_logs.push({
+            id: 0,
+            date: formatDateYMD(item.date),
+            scanned_time: normalized,
+            is_in: slot === 'in1' || slot === 'in2',
+            is_selected: true,
+          })
+        }
+      }
+
+      /************************************************************
+       * Existing DTR update logic
+       ************************************************************/
+      const hasTimeLogs = time_logs.length > 0
+      const hasRemarks = enteredRemarks !== (existingDTR?.employee_remarks ?? '')
+
+      const hasHRRemarks = enteredHRRemarks !== (existingDTR?.hr_remarks ?? '')
+
+      const hasUT = !!route.params.id && enteredUT !== (existingDTR?.ut ?? 0)
+
+      const hasOT = !!route.params.id && enteredOT !== (existingDTR?.ot ?? 0)
+
+      const hasChanges = hasTimeLogs || hasRemarks || hasHRRemarks || hasUT || hasOT
+      if (existingDTR) {
+        if (!hasChanges) return null
+
+        return {
+          id: existingDTR.id,
+          date: formatDateYMD(item.date),
+          ...(hasRemarks ? { employee_remarks: enteredRemarks } : {}),
+          ...(hasHRRemarks ? { hr_remarks: enteredHRRemarks } : {}),
+          ...(hasUT ? { ut: enteredUT } : {}),
+          ...(hasOT ? { ot: enteredOT } : {}),
+          ...(hasTimeLogs ? { time_logs } : {}),
+        }
+      }
+
+      /************************************************************
+       * New DTR
+       ************************************************************/
       if (enteredRemarks || enteredHRRemarks || enteredUT > 0 || enteredOT > 0 || time_logs.length > 0) {
         return {
           date: formatDateYMD(item.date),
@@ -592,42 +627,40 @@ const updateDTRTimeLogs = async () => {
           time_logs,
         }
       }
+
       return null
     })
     .filter(Boolean) as UpdateDTRPayload['dtr']
 
-  if (hasValidationError) {
-    IsBeingUpdated.value = false
-    formIsSubmitting.value = false
-    return
-  }
-  // If there are duplicate errors, block the update
+  /************************************************************
+   * Handle validation errors
+   ************************************************************/
   if (duplicatedTimes.length > 0) {
-    // Group by date for display
     const grouped = duplicatedTimes.reduce(
       (acc, dup) => {
         if (!acc[dup.date]) acc[dup.date] = []
-        // Store just the slot and time info
-        acc[dup.date].push({ slot: dup.slot.toUpperCase(), time: dup.time })
+        acc[dup.date].push({ slot: dup.slot, time: dup.time })
         return acc
       },
       {} as Record<string, { slot: string; time: string }[]>
     )
 
-    Object.entries(grouped).forEach(([date]) => {
-      // 1. Format the date to "Feb 01, 2026"
-      const dateObj = new Date(date)
-      const formattedDate = dateObj.toLocaleDateString('en-US', {
+    Object.entries(grouped).forEach(([date, duplicates]) => {
+      const formattedDate = new Date(date).toLocaleDateString('en-US', {
         month: 'short',
         day: '2-digit',
         year: 'numeric',
       })
 
+      const detail =
+        duplicates[0].slot === 'FORM'
+          ? `${formattedDate} - ${duplicates[0].time}`
+          : `${formattedDate} - Duplicate time entries detected`
+
       toast.add({
         severity: 'error',
-        summary: 'Duplicate Time Entry',
-        // Result: "Feb 01, 2026 Duplicated Time Logs"
-        detail: `${formattedDate} Duplicated Time Logs`,
+        summary: 'Invalid Time Entry',
+        detail,
         life: 10000,
       })
     })
@@ -636,13 +669,26 @@ const updateDTRTimeLogs = async () => {
     formIsSubmitting.value = false
     return
   }
+
+  /************************************************************
+   * No changes
+   ************************************************************/
   if (!dtrPayloads.length) {
-    toast.add({ severity: 'info', summary: 'No Changes', detail: 'No updates to save.', life: 2000 })
+    toast.add({
+      severity: 'info',
+      summary: 'No Changes',
+      detail: 'No updates to save.',
+      life: 2000,
+    })
+
     IsBeingUpdated.value = false
     formIsSubmitting.value = false
     return
   }
 
+  /************************************************************
+   * Submit
+   ************************************************************/
   const updatePayload: UpdateDTRPayload = {
     month: formatDateToYearMonth(monthDate.value),
     dtr: dtrPayloads,
@@ -656,6 +702,7 @@ const updateDTRTimeLogs = async () => {
 
   if (!response.success) {
     const result = parseApiResponseError(response)
+
     if (result) {
       showErrorAlert.value = true
       errorMessage.value = result.message
@@ -669,7 +716,6 @@ const updateDTRTimeLogs = async () => {
   IsBeingUpdated.value = false
   formIsSubmitting.value = false
 }
-
 /*******************************************************************
   Watch all DTR rows' time logs and always recompute UT/OT
 ********************************************************************* */
@@ -680,16 +726,28 @@ watch(
   () => {
     const today = new Date(new Date().setHours(0, 0, 0, 0))
 
-    monthDates.value.forEach(({ date, row }) => {
+    monthDates.value.forEach((dtr) => {
+      const { date, row } = dtr
+
+      // Skip empty rows and future dates
       if (!row || new Date(date) >= today) return
 
-      const worked = computeWorkedHours(row.time_log ?? [])
-      const weekend = isWeekend(formatDateYMD(date))
       const utKey = getRemarksKey('ut', date)
       const otKey = getRemarksKey('ot', date)
 
-      remarksMap[utKey] = computeUT(worked, weekend)
-      remarksMap[otKey] = computeOT(worked, weekend)
+      /**
+       * Use the same logic as your compute functions:
+       * - If database value is non-zero, use it.
+       * - If database value is 0/null/undefined, auto-compute.
+       */
+      remarksMap[utKey] = computeUTValue.value({
+        date,
+        row,
+      })
+
+      remarksMap[otKey] = computeOTValue.value({
+        row,
+      })
     })
   },
   { deep: true, immediate: true }
@@ -973,7 +1031,8 @@ const exportToPDF = async (
                   :showIcon="false"
                   placeholder="HH:mm"
                   v-tooltip.bottom="'This time logs is edited'"
-                  class="h-10 md:h-8 md:w-24"
+                  class="h-10 md:h-12 md:w-24"
+                  inputClass="text-center"
                   :invalid="validator.remarksMap?.[getRemarksKey('in1', dtr.date)]?.$error"
                   :invalidText="validator.remarksMap?.[getRemarksKey('in1', dtr.date)]?.$errors[0]?.$message"
                   @blur="validator.remarksMap[getRemarksKey('in1', dtr.date)]?.$touch()"
@@ -1014,7 +1073,8 @@ const exportToPDF = async (
                   :showIcon="false"
                   placeholder="HH:mm"
                   v-tooltip.bottom="'This time logs is edited'"
-                  class="h-10 md:h-8 md:w-24"
+                  class="h-10 md:h-12 md:w-24"
+                  inputClass="text-center"
                   :invalid="validator.remarksMap?.[getRemarksKey('out1', dtr.date)]?.$error"
                   :invalidText="validator.remarksMap?.[getRemarksKey('out1', dtr.date)]?.$errors[0]?.$message"
                   @blur="validator.remarksMap[getRemarksKey('out1', dtr.date)]?.$touch()"
@@ -1053,7 +1113,8 @@ const exportToPDF = async (
                   :showIcon="false"
                   placeholder="HH:mm"
                   v-tooltip.bottom="'This time logs is edited'"
-                  class="h-10 md:h-8 md:w-24"
+                  class="h-10 md:h-12 md:w-24"
+                  inputClass="text-center"
                   :invalid="validator.remarksMap?.[getRemarksKey('in2', dtr.date)]?.$error"
                   :invalidText="validator.remarksMap?.[getRemarksKey('in2', dtr.date)]?.$errors[0]?.$message"
                   @blur="validator.remarksMap[getRemarksKey('in2', dtr.date)]?.$touch()"
@@ -1094,7 +1155,8 @@ const exportToPDF = async (
                   :showIcon="false"
                   placeholder="HH:mm"
                   v-tooltip.top="resolveDTRSlots(dtr.row?.time_log ?? []).out2 ? 'This time log is Edited' : ''"
-                  class="h-10 md:h-8 md:w-24"
+                  class="h-10 md:h-12 md:w-24"
+                  inputClass="text-center"
                   :invalid="validator.remarksMap?.[getRemarksKey('out2', dtr.date)]?.$error"
                   :invalidText="validator.remarksMap?.[getRemarksKey('out2', dtr.date)]?.$errors[0]?.$message"
                   @blur="validator.remarksMap[getRemarksKey('out2', dtr.date)]?.$touch()"
@@ -1113,6 +1175,7 @@ const exportToPDF = async (
                 <template v-else>
                   <WbInputText
                     v-if="new Date(dtr.date) < new Date(new Date().setHours(0, 0, 0, 0))"
+                    v-tooltip.bottom="'Reset to 0.00 to enable auto-computation'"
                     label=""
                     type="number"
                     v-model="remarksMap[getRemarksKey('ut', dtr.date)]"
@@ -1134,6 +1197,7 @@ const exportToPDF = async (
                 <template v-else>
                   <WbInputText
                     v-if="new Date(dtr.date) < new Date(new Date().setHours(0, 0, 0, 0))"
+                    v-tooltip.bottom="'Reset to 0.00 to enable auto-computation'"
                     label=""
                     type="number"
                     v-model="remarksMap[getRemarksKey('ot', dtr.date)]"

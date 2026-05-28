@@ -1,24 +1,37 @@
 <script setup lang="ts">
 import Card from 'primevue/card'
 import { useAuthStore } from '@/stores/auth.store.ts'
-import { computed, reactive } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { useAddressStore } from '@/stores/address.store.ts'
 import WbAvatarFileInput from '@/components/webkit/WbAvatarFileInput.vue'
 import PersonalInformation from '@/components/profile-page/PersonalInformation.vue'
 import { usePdsStore, PersonalDataSheetPayload } from '@/stores/pds.store.ts'
 import EmploymentHistory from '@/components/profile-page/EmploymentHistory.vue'
+import QRCodeStyling from 'qr-code-styling'
+import * as domToImage from 'dom-to-image-more'
+import { useToast } from 'primevue/usetoast'
+import Button from 'primevue/button'
+import Dialog from 'primevue/dialog'
+import DSWDIcon from '@/assets/image/hrcares-icon.png'
 
 const authStore = useAuthStore()
 const pdsStore = usePdsStore()
+const toast = useToast()
+
 /** Payload */
 const payload = reactive<PersonalDataSheetPayload>({
   ...pdsStore.pdsInfo,
 })
 
-// Computed Full Name
+// Computed Full Name (Standard Header Banner View)
 const fullName = computed(() => {
   const individual = payload.individual
   return [individual.first_name, individual.middle_name, individual.last_name, individual.ext_name].filter(Boolean).join(' ')
+})
+
+// Computed Display ID Tracker Number (Falls back elegantly to ID if agency no is absent)
+const employeeIdNumber = computed(() => {
+  return payload.individual?.agency_employee_no || ''
 })
 
 /** Initialize Address Options List */
@@ -44,29 +57,133 @@ const fullAddress = computed(() => {
 
   return parts.join(', ')
 })
+
+const showQrModal = ref(false)
+const qrContainerRef = ref<HTMLElement | null>(null)
+const hiddenQrCardRef = ref<HTMLElement | null>(null)
+const hiddenQrContainerRef = ref<HTMLElement | null>(null)
+
+const qrCodeIsLoading = ref(false)
+const canDownload = computed(() => !!employeeIdNumber.value)
+
+const qrCodeDisplay = ref<QRCodeStyling | null>(null)
+const qrCodeDownload = ref<QRCodeStyling | null>(null)
+
+const qrConfig = (size: number, data: string) => ({
+  width: size,
+  height: size,
+  data: data,
+  margin: 0,
+  image: DSWDIcon,
+  dotsOptions: { color: '#000000', type: 'square' as const },
+  backgroundOptions: { color: '#FFFFFF' },
+  imageOptions: { crossOrigin: 'anonymous', margin: 4, imageSize: 0.4 },
+  qrOptions: { errorCorrectionLevel: 'H' as const },
+  cornersSquareOptions: { type: 'square' as const, color: '#000000' },
+  cornersDotOptions: { type: 'square' as const, color: '#000000' },
+})
+
+const qrCodeValue = computed(() => {
+  return employeeIdNumber.value ? `EMPLOYEE_ID:${employeeIdNumber.value}` : ''
+})
+
+const generateQrOnDemand = () => {
+  if (!qrCodeValue.value) return
+
+  qrCodeIsLoading.value = true
+
+  setTimeout(() => {
+    if (qrContainerRef.value) {
+      qrContainerRef.value.innerHTML = ''
+      qrCodeDisplay.value = new QRCodeStyling(qrConfig(350, qrCodeValue.value))
+      qrCodeDisplay.value.append(qrContainerRef.value)
+    }
+
+    if (hiddenQrContainerRef.value) {
+      hiddenQrContainerRef.value.innerHTML = ''
+      qrCodeDownload.value = new QRCodeStyling(qrConfig(500, qrCodeValue.value))
+      qrCodeDownload.value.append(hiddenQrContainerRef.value)
+    }
+
+    qrCodeIsLoading.value = false
+  }, 100)
+}
+
+const downloadQrCode = async () => {
+  if (!qrCodeValue.value) return
+
+  const node = hiddenQrCardRef.value
+  if (!node) return
+  const lastName = payload.individual?.last_name || 'Employee'
+  const filename = `${lastName}_Official_QR.png`
+
+  try {
+    const dataUrl = await domToImage.toPng(node, {
+      quality: 1,
+      bgcolor: '#ffffff',
+      width: 650,
+      height: 950,
+    })
+    const link = document.createElement('a')
+    link.download = filename
+    link.href = dataUrl
+    link.click()
+
+    toast.add({
+      severity: 'success',
+      summary: 'Success',
+      detail: 'QR Card downloaded successfully.',
+      life: 3000,
+    })
+  } catch (error) {
+    toast.add({
+      severity: 'error',
+      summary: 'Export Failed',
+      detail: 'Unable to save high-resolution card layout.',
+      life: 3000,
+    })
+  }
+}
 </script>
 
 <template>
-  <div class="mx-auto flex h-[100%] w-full flex-col">
+  <div class="mx-auto flex h-full w-full flex-col">
     <Card>
       <template #header>
         <div class="h-2 w-full rounded-t-lg bg-primary-500"></div>
       </template>
       <template #content>
         <div class="flex flex-col px-4">
-          <div class="flex flex-col items-center md:flex-row">
-            <template v-if="authStore.isAuthenticated">
-              <WbAvatarFileInput />
-            </template>
-            <div class="mt-8 flex flex-col text-center text-lg md:ml-8 md:mt-0 md:text-left lg:text-2xl">
-              <span class="font-bold">{{ fullName }}</span>
-              <span class="text-xs sm:text-sm">{{ fullAddress }}</span>
+          <div class="flex w-full flex-col items-center justify-between gap-6 md:flex-row">
+            <div class="flex flex-col items-center md:flex-row">
+              <template v-if="authStore.isAuthenticated">
+                <WbAvatarFileInput />
+              </template>
+              <div class="mt-8 flex flex-col text-center text-lg md:ml-8 md:mt-0 md:text-left lg:text-2xl">
+                <span class="font-bold text-surface-900">{{ fullName }}</span>
+                <span v-if="employeeIdNumber" class="mt-0.5 text-xs font-semibold text-primary-600 sm:text-sm">
+                  ID No: {{ employeeIdNumber }}
+                </span>
+                <span class="mt-1 text-xs text-surface-500 sm:text-sm">{{ fullAddress }}</span>
+              </div>
+            </div>
+
+            <div class="mt-4 md:mt-0">
+              <Button
+                type="button"
+                icon="pi pi-qrcode"
+                label="My QR Code"
+                outlined
+                class="bg-surface-500 px-5 text-sm font-semibold"
+                @click="showQrModal = true"
+              />
             </div>
           </div>
         </div>
       </template>
       <template #footer> </template>
     </Card>
+
     <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
       <Card class="mt-6">
         <template #content>
@@ -90,6 +207,112 @@ const fullAddress = computed(() => {
           </transition>
         </template>
       </Card>
+    </div>
+
+    <Dialog
+      v-model:visible="showQrModal"
+      modal
+      header="Employee ID Card"
+      :style="{ width: '450px' }"
+      class="qr-dialog"
+      @show="generateQrOnDemand"
+    >
+      <div
+        v-if="payload.individual"
+        class="mx-auto flex w-full max-w-sm flex-col items-center bg-surface-0 p-6 text-center sm:max-w-md"
+      >
+        <div class="mb-4 flex w-full flex-col items-center">
+          <img src="@/assets/image/dswd-logo.png" alt="DSWD Logo" class="object-contain" />
+        </div>
+
+        <div class="mb-1 w-full">
+          <p class="text-lg font-extrabold uppercase leading-tight text-surface-900 sm:text-xl">
+            {{ payload.individual.last_name }}, {{ payload.individual.first_name }}
+            {{ payload.individual.middle_name ? payload.individual.middle_name + ' ' : '' }}
+            {{ payload.individual.ext_name ? payload.individual.ext_name : '' }}
+          </p>
+        </div>
+
+        <div class="mb-1 w-full" v-if="employeeIdNumber">
+          <p class="text-sm font-bold uppercase tracking-wider text-primary-600">ID: {{ employeeIdNumber }}</p>
+        </div>
+
+        <div class="mb-4 w-full">
+          <p class="mt-1 text-xs font-medium uppercase text-surface-600 sm:text-sm">
+            {{ payload.employee?.item?.position?.title || '' }}
+          </p>
+        </div>
+
+        <div
+          ref="qrContainerRef"
+          :class="['h-[350px] w-[350px] justify-center bg-white', qrCodeIsLoading ? 'hidden' : 'flex']"
+        ></div>
+
+        <div class="my-6 flex justify-center" v-if="qrCodeIsLoading">
+          <i class="pi pi-spinner animate-spin text-2xl text-surface-400" />
+        </div>
+
+        <Button
+          v-if="canDownload && !qrCodeIsLoading"
+          @click="downloadQrCode"
+          severity="primary"
+          type="button"
+          size="large"
+          outlined
+          :disabled="!canDownload"
+          class="mt-2 w-full border-none font-semibold text-primary-500 ring-2 ring-primary-500 transition-colors hover:bg-primary-50"
+          label="Download QR Code"
+          icon="pi pi-download"
+        />
+      </div>
+    </Dialog>
+
+    <div
+      v-if="payload.individual"
+      ref="hiddenQrCardRef"
+      class="absolute left-[-9999px] box-border flex h-[950px] w-[650px] flex-col items-center !border-0 !border-none bg-surface-0 p-10 text-center !shadow-none !outline-none !ring-0"
+    >
+      <div class="mb-8 flex w-full justify-center !border-0 !border-none !shadow-none !outline-none !ring-0">
+        <img
+          src="@/assets/image/dswd-logo.png"
+          alt="DSWD Logo"
+          class="h-auto w-[412.5px] !border-0 !border-none object-contain !shadow-none !outline-none !ring-0"
+        />
+      </div>
+
+      <div class="mb-2 w-full !border-0 !border-none !shadow-none !outline-none !ring-0">
+        <div class="!border-0 !border-none bg-surface-0 p-[5px_20px] !shadow-none !outline-none !ring-0">
+          <p class="!border-0 !border-none text-3xl font-black uppercase leading-[1.2] text-surface-900 !shadow-none">
+            {{ payload.individual.last_name }}, {{ payload.individual.first_name }}
+            {{ payload.individual.middle_name ? payload.individual.middle_name + ' ' : '' }}
+            {{ payload.individual.ext_name ? payload.individual.ext_name : '' }}
+          </p>
+        </div>
+      </div>
+
+      <div v-if="employeeIdNumber" class="mb-5 w-full !border-0 !border-none !shadow-none !outline-none !ring-0">
+        <div class="!border-0 !border-none bg-surface-0 p-[2px_20px] !shadow-none !outline-none !ring-0">
+          <p class="!border-0 !border-none text-xl font-bold uppercase tracking-wide text-primary-600 !shadow-none">
+            ID: {{ employeeIdNumber }}
+          </p>
+        </div>
+      </div>
+
+      <div class="mb-2 w-full !border-0 !border-none !shadow-none !outline-none !ring-0">
+        <div class="!border-0 !border-none bg-surface-0 p-[5px_20px] !shadow-none !outline-none !ring-0">
+          <p class="!border-0 !border-none text-xl font-medium uppercase leading-[1.2] text-surface-600 !shadow-none">
+            {{ payload.employee?.item?.position?.title || '' }}
+          </p>
+        </div>
+      </div>
+
+      <div
+        ref="hiddenQrContainerRef"
+        :class="[
+          qrCodeIsLoading ? 'hidden' : 'flex',
+          'h-[500px] w-[500px] justify-center !border-0 !border-none bg-white !shadow-none !outline-none !ring-0',
+        ]"
+      ></div>
     </div>
   </div>
 </template>

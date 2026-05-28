@@ -107,36 +107,37 @@ export const resolveDTRSlots = (entries: TimeLogResponse[] = []): DTRSlots => {
     return nearest
   }
 
-  // IN1 → earliest log between 6–12
+  // 1. IN1 → earliest log between 6–12
   slots.in1 = sorted.find((e) => isBetweenHours(e, 6, 12)) ?? null
-  // OUT1 → first log between 12–13 if IN1 exists
+
+  // 2. OUT1 → ONLY processed if IN1 exists (Lunch break out)
   if (slots.in1) {
     const noonCandidates = sorted.filter((e) => isBetweenHours(e, 12, 13))
     if (noonCandidates.length) {
       slots.out1 = noonCandidates[0]
     }
   }
-  // OUT1 → first log >= 12:00, between 12–13, pick earliest among them
-  const noonCandidates = sorted.filter((e) => isBetweenHours(e, 12, 13))
-  if (noonCandidates.length) {
-    // Pick the **earliest log in the candidates**, not absolute difference
-    slots.out1 = noonCandidates[0]
-  }
 
-  // IN2 → first log after OUT1 in 12–13:59
+  // 3. IN2 → Afternoon login
   if (slots.out1) {
+    // If they clocked out for lunch, find the next log in the afternoon window
     const out1Time = toTime(slots.out1).getTime()
     const in2Candidates = sorted.filter((e) => toTime(e).getTime() > out1Time && isBetweenHours(e, 12, 14))
     slots.in2 = in2Candidates[0] ?? null
   } else if (!slots.in1) {
-    // No morning log → first log in 12–14 becomes IN2
+    // FIX: No morning log -> The absolute first log available between 12-14 becomes IN2
     const in2Candidates = sorted.filter((e) => isBetweenHours(e, 12, 14))
     slots.in2 = in2Candidates[0] ?? null
   }
 
-  // OUT2 → first log between 14–24, nearest to 12 AM (23:59)
-  const out2Candidates = sorted.filter((e) => isBetweenHours(e, 14, 24))
-  slots.out2 = findNearestToHour(out2Candidates, 24) // internally, setHours(24) → JS treats as next day 00:00, so we use it safely
+  // 4. OUT2 → final log of the day (between 14–24)
+  // Ensure we don't accidentally reuse the log that was already consumed by IN2
+  const remainingForOut2 = sorted.filter((e) => {
+    if (slots.in2 && toTime(e).getTime() === toTime(slots.in2).getTime()) return false
+    return isBetweenHours(e, 14, 24)
+  })
+
+  slots.out2 = findNearestToHour(remainingForOut2, 24)
 
   return slots
 }
@@ -241,6 +242,37 @@ export const computeUT = (worked: number, weekend = false): number => {
 export const computeOT = (worked: number, weekend = false): number => {
   if (weekend) return parseFloat(worked.toFixed(2))
   return worked > 8 ? parseFloat((worked - 8).toFixed(2)) : 0
+}
+
+/**
+ * Computes OT and UT for Monday based on worked hours.
+ */
+export const computeUTOTFlex = (inTime: string, outTime: string): { ut: number; ot: number } => {
+  const start = new Date(inTime)
+  const end = new Date(outTime)
+
+  const refStart = new Date(start)
+  refStart.setHours(8, 0, 0, 0)
+
+  let ut = 0
+  let ot = 0
+
+  if (start > refStart) {
+    ut = (start.getTime() - refStart.getTime()) / 36e5
+  }
+
+  const total = (end.getTime() - start.getTime()) / 36e5
+
+  const effectiveHours = total - 1
+
+  if (effectiveHours > 8) {
+    ot = effectiveHours - 8
+  }
+
+  return {
+    ut: +ut.toFixed(2),
+    ot: +ot.toFixed(2),
+  }
 }
 
 /**************************************
@@ -519,3 +551,16 @@ export const parseMonth = (q: string): number | null => {
   const num = q.match(/(?:^|\D)(0?[1-9]|1[0-2])(?:\D|$)/)
   return num ? +num[1] - 1 : null
 }
+
+/**
+ * Simple record type for DTR slot string values.
+ *
+ * Example:
+ * {
+ *   in1: '08:00:00',
+ *   out1: '12:00:00',
+ *   in2: '13:00:00',
+ *   out2: '17:00:00'
+ * }
+ */
+export type DTRSlotValues = Record<'in1' | 'out1' | 'in2' | 'out2', string>

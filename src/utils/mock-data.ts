@@ -253,8 +253,8 @@ const item_id = [
       updated_at: '2020-01-01',
     },
 
-    salary_id: 1,
-    salary: mockSalaryGrade,
+    salary_grade_id: 1,
+    salary_grade: mockSalaryGrade,
 
     position_id: 1,
     position: {
@@ -269,6 +269,10 @@ const item_id = [
     item_classification: 'Regular',
     number: 'ITEM-501',
     date_of_creation: '2020-01-01',
+
+    designation: 'N/A',
+    date_of_designation: '2020-01-01',
+    special_order_number: 'N/A',
 
     status: 'Unfilled' as const,
     mode_of_accession: '',
@@ -339,8 +343,8 @@ const item_id = [
       updated_at: '2020-01-01',
     },
 
-    salary_id: 1,
-    salary: mockSalaryGrade,
+    salary_grade_id: 1,
+    salary_grade: mockSalaryGrade,
 
     position_id: 1,
     position: {
@@ -354,6 +358,10 @@ const item_id = [
     item_classification: 'Regular',
     number: 'ITEM-501',
     date_of_creation: '2020-01-01',
+
+    designation: 'N/A',
+    date_of_designation: '2020-01-01',
+    special_order_number: 'N/A',
 
     status: 'Unfilled' as const,
     mode_of_accession: '',
@@ -377,7 +385,8 @@ const employee_data = [
     individual_basic_detail_id: individual_basic_details[0],
     id_number: 'EMP-2025-001',
     item_id: 1,
-    salary_grade_id: mockSalaryGrade,
+    salary_grade_id: 1,
+    salary_grade: mockSalaryGrade,
     fund_source: {
       id: 1,
       name: 'General Fund',
@@ -415,7 +424,8 @@ const employee_data = [
     individual_basic_detail_id: individual_basic_details[1],
     id_number: 'EMP-2025-002',
     item_id: 2,
-    salary_grade_id: mockSalaryGrade,
+    salary_grade_id: 1,
+    salary_grade: mockSalaryGrade,
     fund_source: {
       id: 2,
       name: 'Special Education Fund',
@@ -453,7 +463,8 @@ const employee_data = [
     individual_basic_detail_id: individual_basic_details[2],
     id_number: 'EMP-2025-003',
     item_id: 1,
-    salary_grade_id: mockSalaryGrade,
+    salary_grade_id: 1,
+    salary_grade: mockSalaryGrade,
     fund_source: {
       id: 1,
       name: 'General Fund',
@@ -491,7 +502,8 @@ const employee_data = [
     individual_basic_detail_id: individual_basic_details[3],
     id_number: 'EMP-2025-004',
     item_id: 1,
-    salary_grade_id: mockSalaryGrade,
+    salary_grade_id: 1,
+    salary_grade: mockSalaryGrade,
     fund_source: {
       id: 3,
       name: 'Trust Fund',
@@ -529,7 +541,8 @@ const employee_data = [
     individual_basic_detail_id: individual_basic_details[4],
     id_number: 'EMP-2025-005',
     item_id: 1,
-    salary_grade_id: mockSalaryGrade,
+    salary_grade_id: 1,
+    salary_grade: mockSalaryGrade,
     fund_source: {
       id: 1,
       name: 'General Fund',

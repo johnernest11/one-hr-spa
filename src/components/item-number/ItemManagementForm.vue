@@ -152,7 +152,7 @@ const formRules = {
       helpers.withMessage(
         'This Item Number already exists.',
         uniqueItemNumberRuleLocal(
-          itemNumberStore.itemNumbers.map((el) => el.number ?? ''),
+          itemNumberStore.itemNumbers.filter((el) => el.id !== Number(route.params.id)).map((el) => el.number ?? ''),
           payload.number ?? ''
         )
       )
@@ -189,6 +189,31 @@ const formRules = {
   },
   office_id: {
     required: helpers.withMessage('Office is Required', required),
+  },
+
+  designation: {
+    maxLength: globalStringMaxLengthRule,
+  },
+  special_order_number: {
+    maxLength: globalStringMaxLengthRule,
+  },
+  former_incumbent: {
+    maxLength: globalStringMaxLengthRule,
+  },
+  history_of_position: {
+    maxLength: globalStringMaxLengthRule,
+  },
+
+  mode_of_separation: {
+    maxLength: globalStringMaxLengthRule,
+  },
+
+  status_of_vacant_position: {
+    maxLength: globalStringMaxLengthRule,
+  },
+
+  direct_contact_exposure_with_client: {
+    maxLength: globalStringMaxLengthRule,
   },
 }
 
@@ -229,27 +254,72 @@ onMounted(async () => {
 /** --- HELPER FUNCTIONS --- **/
 const updatePayloadFromReport = (itemNumber: ItemNumberResponse | null) => {
   if (!itemNumber) return
+  // Reusable helper to safely parse IDs to number or null
+  const extractId = (
+    relation: { id?: string | number | null } | null | undefined,
+    fallbackId: number | null | undefined
+  ): number | null => {
+    const id = relation?.id ?? fallbackId
+    return id ? Number(id) : null
+  }
+  // Organization Data
+  payload.division_id = extractId(itemNumber.division, itemNumber.division_id)
+  payload.section_or_unit_id = extractId(itemNumber.section_or_unit, itemNumber.section_or_unit_id)
+  payload.program_id = extractId(itemNumber.program, itemNumber.program_id)
+  payload.office_id = extractId(itemNumber.office, itemNumber.office_id)
 
-  payload.number = itemNumber.number ?? null
-  payload.date_of_creation = itemNumber.date_of_creation ?? ''
-  payload.date_filled_up = itemNumber.date_filled_up ?? ''
+  // Since psipop_id points to division_id, we look at the division relation
+  payload.psipop_id = extractId(itemNumber.psipop, itemNumber.psipop_id)
+
+  // Compensation, Position, & Employment Details
   payload.employment_status = itemNumber.employment_status ?? ''
+  payload.fund_source_id = extractId(itemNumber.fund_source, itemNumber.fund_source_id)
+  payload.salary_grade_id = extractId(itemNumber.salary_grade, itemNumber.salary_grade_id)
+  payload.position_id = extractId(itemNumber.position, itemNumber.position_id)
+  payload.item_classification = itemNumber.item_classification ?? null
+  payload.number = itemNumber.number ?? ''
+  payload.date_of_creation = itemNumber.date_of_creation ?? ''
 
-  payload.fund_source_id = itemNumber.fund_source?.id ? Number(itemNumber.fund_source.id) : null
+  payload.designation = itemNumber.designation ?? ''
+  payload.date_of_designation = itemNumber.date_of_designation ?? ''
+  payload.special_order_number = itemNumber.special_order_number ?? ''
 
-  payload.position_id =
-    itemNumber.position?.id ?? itemNumber.position_id ? Number(itemNumber.position?.id ?? itemNumber.position_id) : null
+  // Position History and Vacancy Tracking
+  payload.status = itemNumber.status ?? 'Unfilled'
+  payload.mode_of_accession = itemNumber.mode_of_accession ?? null
+  payload.date_filled_up = itemNumber.date_filled_up ?? ''
+  payload.history_of_position = itemNumber.history_of_position ?? null
+  payload.former_incumbent = itemNumber.former_incumbent ?? null
+  payload.mode_of_separation = itemNumber.mode_of_separation ?? null
+  payload.date_of_vacant = itemNumber.date_of_vacant ?? null
+  payload.remarks_of_vacancy = itemNumber.remarks_of_vacancy ?? null
+  payload.status_of_vacant_position = itemNumber.status_of_vacant_position ?? null
+  payload.direct_contact_exposure_with_client = itemNumber.direct_contact_exposure_with_client ?? null
+  payload.remarks = itemNumber.remarks ?? null
 
+  // Front-end UI State & Metric Displays
   displayParenthetical.value = String(itemNumber.position?.parenthetical_title ?? 'N/A')
   displayPositionLevel.value = String(itemNumber.position?.level ?? 'N/A')
+  displayTranche.value = String(itemNumber.salary_grade?.tranche ?? 'N/A')
+  displayStep.value = String(itemNumber.salary_grade?.step ?? 'N/A')
+  displayAmount.value = String(itemNumber.salary_grade?.amount ?? 'N/A')
 
-  payload.status = itemNumber.status ?? 'Unfilled'
-
+  // Standard Dropdown Select Objects
   selectedFundSource.value = itemNumber.fund_source
     ? { label: itemNumber.fund_source.name, value: itemNumber.fund_source.id }
     : null
 
   selectedPosition.value = itemNumber.position ? { label: itemNumber.position.title, value: itemNumber.position.id } : null
+
+  selectedSalaryGrade.value = itemNumber.salary_grade
+    ? {
+      // Force convert the numeric salary grade into a string representation
+      label: itemNumber.salary_grade.salary_grade?.toString() ?? 'N/A',
+      value: itemNumber.salary_grade.id,
+    }
+    : null
+
+  selectedProgram.value = itemNumber.program ? { label: itemNumber.program.name, value: itemNumber.program.id } : null
 }
 
 const generateItemClassification = (employment_status: string): string => {
@@ -336,11 +406,12 @@ const syncFromLibrary = <K extends LibraryStoreKeys>(
   )
 }
 
-syncFromLibrary(() => payload.office_id, selectedOffice, 'officeOptions')
 syncFromLibrary(() => payload.division_id, selectedDivision, 'divisionOptions')
 syncFromLibrary(() => payload.section_or_unit_id, selectedSectionUnit, 'sectionUnitOptions')
+
 syncFromLibrary(() => payload.program_id, selectedProgram, 'programOptions')
-syncFromLibrary(() => payload.psipop_id, selectedPSIPOP, 'psipopOptions')
+syncFromLibrary(() => payload.office_id, selectedOffice, 'officeOptions')
+syncFromLibrary(() => payload.psipop_id, selectedPSIPOP, 'divisionOptions')
 
 /** Watch for Props change **/
 watch(
@@ -452,7 +523,6 @@ const saveButtonSubmission = async () => {
     })
     return
   }
-
   formIsSubmitting.value = true
   const response = await itemNumberStore.createItemNumber(payload)
   if (!response.success) {
@@ -674,8 +744,8 @@ const updateButtonSubmission = async () => {
               <WbAutoComplete
                 :useApiFilter="true"
                 :apiEndpoint="'/libraries/divisions/search'"
-                :suggestions="libraryStore.psipopOptions"
-                :loading="libraryStore.psipopOptionsLoading"
+                :suggestions="libraryStore.divisionOptions"
+                :loading="libraryStore.divisionOptionsLoading"
                 apiOptionLabel="name"
                 label="Office/Bureau/Service/Program (Plantilla Assignment based on PSIPOP)"
                 placeholder="Type the Office/Bureau/Service/Program"
@@ -753,17 +823,19 @@ const updateButtonSubmission = async () => {
           <div class="ml-6 mr-6 flex flex-col gap-4 pb-6 md:flex-row">
             <div class="flex w-full flex-col">
               <WbAutoComplete
+                :useApiFilter="true"
+                :apiEndpoint="'/libraries/salary-grades/search'"
                 v-model="selectedSalaryGrade"
-                :key="JSON.stringify(salaryGradesStore.salaryGradesOptions)"
                 :suggestions="salaryGradesStore.salaryGradesOptions"
                 :loading="salaryGradesStore.salaryGradesOptionsLoading"
-                @complete="salaryGradesStore.searchSalaryGrade($event.query)"
+                apiOptionLabel="salary_grade"
                 label="Salary Grade"
                 placeholder="Type the Salary Grade with its tranche here"
                 optionLabel="label"
                 optionValue="value"
                 :auto-filter="false"
                 required
+                @complete="(event: any) => salaryGradesStore.searchSalaryGrade(event.query)"
                 @on-true-value-computed="handleSalaryGradeSelection"
                 :id="getId('input-salary-grade')"
                 :invalid="validator.salary_grade_id.$invalid"
@@ -884,7 +956,14 @@ const updateButtonSubmission = async () => {
           </span>
           <div class="ml-6 mr-6 flex flex-col gap-4 pb-6 md:flex-row">
             <div class="flex w-full flex-col">
-              <WbInputText v-model="payload.designation" label="Designation" label-class="text-sm text-surface-600" />
+              <WbInputText
+                v-model="payload.designation"
+                label="Designation"
+                label-class="text-sm text-surface-600"
+                :invalid="validator.designation.$invalid"
+                :invalid-text="validator.designation.$errors[0]?.$message"
+                @blur="validator.designation.$touch"
+              />
             </div>
             <div class="flex w-full flex-col">
               <WbCalendar
@@ -901,6 +980,9 @@ const updateButtonSubmission = async () => {
                 v-model="payload.special_order_number"
                 label="Special Order Number (if applicable)"
                 label-class="text-sm text-surface-600"
+                :invalid="validator.special_order_number.$invalid"
+                :invalid-text="validator.special_order_number.$errors[0]?.$message"
+                @blur="validator.special_order_number.$touch"
               />
             </div>
           </div>
@@ -941,6 +1023,9 @@ const updateButtonSubmission = async () => {
                 v-model="payload.history_of_position"
                 label="History of Position"
                 label-class="text-sm text-surface-600"
+                :invalid="validator.history_of_position.$invalid"
+                :invalid-text="validator.history_of_position.$errors[0]?.$message"
+                @blur="validator.history_of_position.$touch"
               >
               </WbInputText>
             </div>
@@ -951,6 +1036,9 @@ const updateButtonSubmission = async () => {
                 v-model="payload.former_incumbent"
                 label="Former Incumbent (if applicable)"
                 label-class="text-sm text-surface-600"
+                :invalid="validator.former_incumbent.$invalid"
+                :invalid-text="validator.former_incumbent.$errors[0]?.$message"
+                @blur="validator.former_incumbent.$touch"
               >
               </WbInputText>
             </div>
@@ -959,6 +1047,9 @@ const updateButtonSubmission = async () => {
                 v-model="payload.mode_of_separation"
                 label="Mode of Separation (if applicable)"
                 label-class="text-sm text-surface-600"
+                :invalid="validator.mode_of_separation.$invalid"
+                :invalid-text="validator.mode_of_separation.$errors[0]?.$message"
+                @blur="validator.mode_of_separation.$touch"
               >
               </WbInputText>
             </div>
@@ -989,6 +1080,9 @@ const updateButtonSubmission = async () => {
                 v-model="payload.status_of_vacant_position"
                 label="Status of Vacant Position (if applicable)"
                 label-class="text-sm text-surface-600"
+                :invalid="validator.status_of_vacant_position.$invalid"
+                :invalid-text="validator.status_of_vacant_position.$errors[0]?.$message"
+                @blur="validator.status_of_vacant_position.$touch"
               >
               </WbInputText>
             </div>
@@ -997,6 +1091,9 @@ const updateButtonSubmission = async () => {
                 v-model="payload.direct_contact_exposure_with_client"
                 label="Personnel is Direct Contact/Exposure with Client"
                 label-class="text-sm text-surface-600"
+                :invalid="validator.direct_contact_exposure_with_client.$invalid"
+                :invalid-text="validator.direct_contact_exposure_with_client.$errors[0]?.$message"
+                @blur="validator.direct_contact_exposure_with_client.$touch"
               >
               </WbInputText>
             </div>

@@ -209,7 +209,7 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
       showScannedEmployeeModal(scannedEmployee, messageToDisplay)
       currentScannedEmployee.value = scannedEmployee
     } else {
-      let messageToDisplay: string = responseBody?.message?.trim() ?? 'Duplicate scan.'
+      let messageToDisplay: string = responseBody?.error_message?.trim() ?? 'Duplicate scan.'
 
       if (responseBody?.error_code === ApiErrorCode.VALIDATION_ERROR) {
         const apiErrors = responseBody.errors

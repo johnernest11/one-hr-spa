@@ -97,7 +97,8 @@ export const usePayRollStore = defineStore('pay-roll', () => {
         },
         id_number: null,
         item_id: 0,
-        salary_grade_id: {
+        salary_grade_id: 1,
+        salary_grade: {
           id: 1,
           nbc_no: 123,
           effective_date: '2024-07-01',
@@ -187,8 +188,8 @@ export const usePayRollStore = defineStore('pay-roll', () => {
             updated_at: '2020-01-01',
           },
 
-          salary_id: 1,
-          salary: { id: '', nbc_no: null, effective_date: null, tranche: null, salary_grade: null, step: null, amount: 0 },
+          salary_grade_id: 1,
+          salary_grade: { id: '', nbc_no: null, effective_date: null, tranche: null, salary_grade: null, step: null, amount: 0 },
 
           position_id: 1,
           position: {
@@ -203,6 +204,10 @@ export const usePayRollStore = defineStore('pay-roll', () => {
           item_classification: 'Regular',
           number: 'ITEM-501',
           date_of_creation: '2020-01-01',
+
+          designation: 'N/A',
+          date_of_designation: '2020-01-01',
+          special_order_number: 'N/A',
 
           status: 'Unfilled',
           mode_of_accession: '',
