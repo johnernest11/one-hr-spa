@@ -878,17 +878,6 @@ const downloadQrCode = async () => {
           </div>
         </div>
 
-        <div
-          v-if="batchActiveEmployee.employee?.id"
-          class="mb-5 w-full !border-0 !border-none !shadow-none !outline-none !ring-0"
-        >
-          <div class="!border-0 !border-none !bg-white p-[2px_20px] !shadow-none !outline-none !ring-0">
-            <p class="!border-0 !border-none text-xl font-bold uppercase tracking-wide text-primary-600 !shadow-none">
-              ID: {{ batchActiveEmployee.employee.agency_employee_no }}
-            </p>
-          </div>
-        </div>
-
         <div class="mb-2 w-full !border-0 !border-none !shadow-none !outline-none !ring-0">
           <div class="!border-0 !border-none !bg-white p-[5px_20px] !shadow-none !outline-none !ring-0">
             <p class="!border-0 !border-none text-xl font-medium uppercase leading-[1.2] text-[#4b5563] !shadow-none">
