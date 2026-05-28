@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { useStorage } from '@vueuse/core'
+import { useStorage, StorageSerializers } from '@vueuse/core'
 import { useApiCall } from '@/composables/network.ts'
 import { useAuthStore } from '@/stores/auth.store'
 import { ApiErrorCode } from '@/typings/http-resources.types.ts'
@@ -50,6 +50,7 @@ interface DailyLogDisplayEntry {
   employee_id: string
   employee_name: string
   office_id: number
+  browser_uid?: string | null
   position: string
   scanned_time: string
   is_in: boolean
@@ -64,6 +65,10 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
   const timelogOfficeId = useStorage<string | null>('timelogOfficeId', null)
   const recentLogs = useStorage<CustomScannedEmployeeResponse[]>('recentLogs', [])
   const dailyLogs = useStorage<DailyLogEntry[]>('dailyLogs', [])
+
+  const browserUid = useStorage<string>('browser-uid', null, localStorage, {
+    serializer: StorageSerializers.string,
+  })
 
   const currentScannedEmployee = ref<CustomScannedEmployeeResponse | null>(null)
   const lastLogMessage = ref<string | null>(null)
@@ -232,7 +237,8 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
   const fetchDailyLogs = async (date: string) => {
     try {
       let url = `/employees/daily-time-records/time-logs?date=${date}&`
-      if (timelogOfficeId) url += `office=${timelogOfficeId.value}`
+      if (timelogOfficeId) url += `office=${timelogOfficeId.value}&`
+      if (browserUid) url += `browser-uid=${browserUid.value}`
       const { data } = await useApiCall(url, authStore.authenticationToken).get().json()
       const responseBody: ApiResponseBody = data.value
 
@@ -249,6 +255,7 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
             captured_image_path: log.captured_image_path || '',
             captured_image_url: log.captured_image_url || '',
             office_id: log.office_id,
+            browser_uid: log.browser_uid,
           }
         })
 
@@ -281,8 +288,15 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     return responseBody
   }
 
+  const checkBrowserUid = () => {
+    if (!browserUid.value) {
+      browserUid.value = `BROWSER-${Math.random().toString(36).slice(2, 9).toUpperCase()}`
+    }
+  }
+
   return {
     timelogOfficeId,
+    browserUid,
     recentLogs,
     dailyLogs,
     currentScannedEmployee,
@@ -306,5 +320,6 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     clearRecentLogs,
     setOffice,
     clearOffice,
+    checkBrowserUid,
   }
 })

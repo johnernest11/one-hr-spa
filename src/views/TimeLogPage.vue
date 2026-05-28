@@ -10,6 +10,7 @@ import dswdLogoMark from '@/assets/image/DSWD logo_Mark.png'
 import WbAutoComplete from '@/components/webkit/WbAutoComplete.vue'
 import { WbAutoCompleteOption } from '@/components/webkit/WbAutoComplete.vue'
 import { getEcho } from '@/utils/echo'
+import AppFullScreenLoader from '@/components/layout/AppFullScreenLoader.vue'
 
 interface Log {
   id: string
@@ -29,6 +30,7 @@ const meridiem = ref('')
 const seconds = ref('')
 const showModal = ref(false)
 const showOfficeSelectionModal = ref(true)
+const showFullScreenLoader = ref(false)
 const dailyLogsStore = useDailyLogsStore()
 const librariesStore = useLibrariesStore()
 const todayISO = ref('')
@@ -139,6 +141,8 @@ const updateDateTime = () => {
 }
 
 onMounted(async () => {
+  showFullScreenLoader.value = true
+  await dailyLogsStore.checkBrowserUid()
   await librariesStore.fetchOffices()
 
   if (dailyLogsStore.timelogOfficeId) {
@@ -160,6 +164,8 @@ onMounted(async () => {
     dailyLogsStore.fetchWarmBodyPerStation(),
     updateDailyLogsState(today),
   ])
+
+  showFullScreenLoader.value = false
 })
 
 onUnmounted(() => {
@@ -228,6 +234,10 @@ const onDecode = async (result: string) => {
     }
 
     formData.append('office_id', officeId.toString())
+
+    if (dailyLogsStore.browserUid) {
+      formData.append('browser_uid', dailyLogsStore.browserUid)
+    }
 
     const response = await dailyLogsStore.logEmployeeTime(formData, captured?.previewUrl)
 
@@ -316,8 +326,9 @@ onUnmounted(() => {
 
 <template>
   <div>
+    <AppFullScreenLoader :is-open="showFullScreenLoader" />
     <Dialog
-      v-if="showOfficeSelectionModal"
+      v-if="showOfficeSelectionModal && !showFullScreenLoader"
       v-model:visible="showOfficeSelectionModal"
       :modal="true"
       :closable="false"
@@ -367,12 +378,16 @@ onUnmounted(() => {
       </div>
     </Dialog>
 
-    <div v-if="!showOfficeSelectionModal" class="flex h-screen w-screen flex-col-reverse overflow-hidden md:flex-row">
+    <div
+      v-if="!showOfficeSelectionModal && !showFullScreenLoader"
+      class="flex h-screen w-screen flex-col-reverse overflow-hidden md:flex-row"
+    >
       <div class="flex w-full flex-col overflow-hidden bg-primary-500 p-4 text-white md:w-1/4">
         <div class="mb-8 flex items-center space-x-2">
           <img src="@/assets/image/fo-bp.png" alt="DSWD Logo" class="h-16" />
         </div>
         <h2 class="mb-4 text-center text-2xl font-semibold md:text-3xl">ATTENDANCE TRACKER</h2>
+        <h3 class="text-l mb-4 text-center font-semibold md:text-xl">{{ selectedOffice?.label }}</h3>
         <div class="mb-4 grid grid-cols-2 gap-4 text-center text-lg md:text-2xl">
           <div>
             <p>IN</p>
