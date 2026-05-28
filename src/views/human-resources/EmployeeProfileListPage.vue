@@ -809,13 +809,11 @@ const downloadQrCode = async () => {
             </p>
           </div>
 
-          <div
-            class="flex items-start space-x-3 rounded-md border border-amber-200 bg-amber-50 p-3 dark:border-amber-900/50 dark:bg-amber-950/30"
-          >
-            <i class="pi pi-exclamation-triangle text-md mt-0.5 text-amber-600 dark:text-amber-400" />
+          <div class="flex items-start space-x-3 rounded-md border border-warn-200 bg-warn-50 p-3 dark:border-warn-900/50">
+            <i class="pi pi-exclamation-triangle text-md mt-0.5 text-warn-600" />
             <div class="flex-1">
-              <h4 class="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-400">System Notice</h4>
-              <p class="mt-0.5 text-xs font-medium leading-normal text-amber-700 dark:text-amber-300/90">
+              <h4 class="text-xs font-bold uppercase tracking-wider text-warn-800">System Notice</h4>
+              <p class="mt-0.5 text-xs font-medium leading-normal text-warn-700">
                 Please wait for the process to complete, do not refresh or close this window/tab.
               </p>
             </div>
