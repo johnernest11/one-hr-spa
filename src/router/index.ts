@@ -47,6 +47,7 @@ const routes = [
     name: 'profile',
     component: () => import('@/views/ProfilePage.vue'),
     meta: <RouteMeta>{
+      label: 'Profile',
       isSidebarMenu: false,
       authType: AuthType.AUTHENTICATED,
       roles: [

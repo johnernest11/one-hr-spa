@@ -50,7 +50,6 @@ watch(
       authStore.clearAuthTokenOnStorage()
       await router.replace({
         name: 'login',
-        query: { from: route.name as string },
       })
     }
   }
