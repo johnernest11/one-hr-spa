@@ -44,7 +44,7 @@ const router = useRouter()
 const getId = usePrependOrAppendOnce('employee-filter')
 
 const navigateToCreate = () => {
-  router.push({ name: 'employee-profile-create' })
+  router.push({ name: 'create-personnel' })
 }
 
 const employeeListIsLoading = ref(false)
@@ -59,6 +59,7 @@ const pagination = ref<ApiResponsePagination | null>(null)
 
 const selectedDivision = ref<WbAutoCompleteOption[] | null>(null)
 const selectedSectionUnit = ref<WbAutoCompleteOption[] | null>(null)
+const selectedStation = ref<WbAutoCompleteOption[] | null>(null)
 
 const selectedDivisionLabel = ref<string | null>(null)
 const selectedSectionLabel = ref<string | null>(null)
@@ -260,6 +261,7 @@ const navigateToDetails = (personnelPds: PersonnelResponse) => {
 const payload = reactive<FilterEmployeePayload>({
   division: null,
   section: null,
+  station: null,
 })
 
 onBeforeMount(async () => {
@@ -291,7 +293,8 @@ const handlePaginationPageChange = async (event: PageState) => {
       payload.division ?? undefined,
       payload.section ?? undefined,
       pagination.value?.per_page ?? 5,
-      pageSelected
+      pageSelected,
+      payload.station ?? undefined
     )
   } else {
     response = await personnelStore.fetchEmployees(pagination.value?.per_page ?? 5, pageSelected)
@@ -323,7 +326,9 @@ const handleFilterEmployee = async () => {
   const response = await personnelStore.filterEmployees(
     payload.division ?? undefined,
     payload.section ?? undefined,
-    pagination.value?.per_page ?? 5
+    pagination.value?.per_page ?? 5,
+    null,
+    payload.station ?? undefined
   )
 
   if (response.success && response.pagination) {
@@ -878,17 +883,6 @@ const downloadQrCode = async () => {
           </div>
         </div>
 
-        <div
-          v-if="batchActiveEmployee.employee?.id"
-          class="mb-5 w-full !border-0 !border-none !shadow-none !outline-none !ring-0"
-        >
-          <div class="!border-0 !border-none !bg-white p-[2px_20px] !shadow-none !outline-none !ring-0">
-            <p class="!border-0 !border-none text-xl font-bold uppercase tracking-wide text-primary-600 !shadow-none">
-              ID: {{ batchActiveEmployee.employee.agency_employee_no }}
-            </p>
-          </div>
-        </div>
-
         <div class="mb-2 w-full !border-0 !border-none !shadow-none !outline-none !ring-0">
           <div class="!border-0 !border-none !bg-white p-[5px_20px] !shadow-none !outline-none !ring-0">
             <p class="!border-0 !border-none text-xl font-medium uppercase leading-[1.2] text-[#4b5563] !shadow-none">
@@ -932,6 +926,27 @@ const downloadQrCode = async () => {
       <div class="flex-1 px-4 pb-24">
         <h2 class="mb-2 mt-4 text-lg font-semibold text-surface-500 dark:text-primary-100">Filters</h2>
         <div class="mb-4">
+          <WbAutoComplete
+            :useApiFilter="true"
+            :apiEndpoint="'/libraries/offices/search'"
+            :suggestions="libraryStore.itemsOptions"
+            :loading="libraryStore.itemsOptionsLoading || false"
+            apiOptionLabel="name"
+            label="Station"
+            placeholder="Type the Station"
+            v-model="selectedStation"
+            :id="getId('input-station')"
+            optionLabel="label"
+            optionValue="value"
+            @on-true-value-computed="
+              (value: WbAutoCompleteOptionTrueValue | WbAutoCompleteOptionTrueValue[]) =>
+                useWbAutoCompleteHandleTrueValue(value, toRef(payload, 'station'))
+            "
+            label-class="mt-4 text-md text-surface-600 dark:lg:text-surface-200"
+            class="lg:text-md lg:placeholder:text-md relative w-full max-w-[600px] text-sm placeholder:text-sm"
+            validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
+          >
+          </WbAutoComplete>
           <WbAutoComplete
             :useApiFilter="true"
             :apiEndpoint="'/libraries/divisions/search'"
