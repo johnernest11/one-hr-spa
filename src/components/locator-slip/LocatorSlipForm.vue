@@ -14,9 +14,10 @@ import { useLocatorSlipStore, LocatorSlipPayload } from '@/stores/locator-slip.s
 import { useDailyTimeRecordsStore } from '@/stores/daily-time-record.store'
 import { formatDateSafe, isSameOrAfterDate, formatDateLong } from '@/utils/helpers.ts'
 import WbInputText from '@/components/webkit/WbInputText.vue'
-import WbDropdown from '../webkit/WbDropdown.vue'
 import WbCalendar from '../webkit/WbCalendar.vue'
 import { LSLoggerResponse, TimeLogResponse } from '@/typings/models.types'
+import { LocatorPurposeNodeService } from './LocatorPurposeNodeService.ts'
+import TreeSelect from 'primevue/treeselect'
 
 const locatorSlipStore = useLocatorSlipStore()
 const warmBodiesStore = useDailyTimeRecordsStore()
@@ -39,10 +40,74 @@ const defaultApproval = ref('personal_time')
 const purposePlaceholder = ref('e.g. Wellness Activity')
 const destinationPlaceholder = ref('e.g. Robinsons, San Fernando, La Union')
 
-const officialTimePurposeOptions = ref([
-  { label: 'Wellness Activity', value: 'Wellness Activity' },
-  { label: 'Auxiliary Wellness', value: 'Auxiliary Wellness' },
-])
+const nodes = ref()
+
+onMounted(() => {
+  LocatorPurposeNodeService.getTreeNodes().then((data) => (nodes.value = data))
+})
+
+// Converts TreeSelect object key {"0-0-1": true} -> String "Category > Sub > Leaf"
+const getHierarchyPath = (tree: any[], targetKey: string, currentPath: string[] = []): string[] | null => {
+  for (const node of tree) {
+    const path = [...currentPath, node.label];
+    if (node.key === targetKey) return path;
+    if (node.children) {
+      const foundPath = getHierarchyPath(node.children, targetKey, path);
+      if (foundPath) return foundPath;
+    }
+  }
+  return null;
+};
+
+// Converts String "Category > Sub > Leaf" -> TreeSelect object key {"0-0-1": true}
+const getSelectionObjectFromPath = (tree: any[], pathString: string): Record<string, boolean> | null => {
+  if (!pathString || typeof pathString !== 'string') return null;
+  const targetLabels = pathString.split(' > ');
+  
+  const findKeyByLabels = (nodesArray: any[], level: number): string | null => {
+    const currentTargetLabel = targetLabels[level];
+    for (const node of nodesArray) {
+      if (node.label === currentTargetLabel) {
+        if (level === targetLabels.length - 1) return node.key;
+        if (node.children) {
+          const foundKey = findKeyByLabels(node.children, level + 1);
+          if (foundKey) return foundKey;
+        }
+      }
+    }
+    return null;
+  };
+
+  const matchedKey = findKeyByLabels(tree, 0);
+  return matchedKey ? { [matchedKey]: true } : null;
+};
+
+const bindPurpose = (row: any) => {
+  return computed({
+    get() {
+      // If backend data exists as a string, find its matching node key mapping object
+      if (typeof row.purpose === 'string') {
+        return getSelectionObjectFromPath(nodes.value, row.purpose) || {};
+      }
+      return row.purpose || {};
+    },
+    // Set new data when the user edits and selects a new node
+    set(newValue) {
+      if (newValue && typeof newValue === 'object') {
+        const activeKey = Object.keys(newValue)[0];
+        if (activeKey) {
+          const pathArray = getHierarchyPath(nodes.value, activeKey);
+          if (pathArray) {
+            // Overwrite the real purpose row immediately with the new concatenated string
+            row.purpose = pathArray.join(' > ');
+            return;
+          }
+        }
+      }
+      row.purpose = '';
+    }
+  });
+};
 
 const auxRemaining = ref(0)
 const auxUsed = ref(0)
@@ -526,17 +591,16 @@ const saveButtonSubmission = async () => {
             </div>
             <div v-else class="w-full">
               <p class="text-xs font-semibold text-surface-500 md:hidden">Purpose</p>
-              <WbDropdown
-                v-model="row.purpose"
-                label=""
-                :options="officialTimePurposeOptions"
-                optionLabel="label"
-                optionValue="value"
-                placeholder="Purpose"
-                :disabled="!validateDateNow(row.date) || isHumanResourceActive || row.time_out || row.time_in"
+              <TreeSelect
+                v-model="bindPurpose(row).value" 
+                :options="nodes" 
+                selectionMode="single"
+                placeholder="Purpose" 
+                :disabled="!validateDateNow(row.date) || isHumanResourceActive || !!row.time_out || !!row.time_in"
                 :invalidText="validator.locator_slip_logger?.[index]?.purpose?.$errors[0]?.$message"
                 :invalid="validator.locator_slip_logger?.[index]?.purpose?.$error"
                 @blur="validator.locator_slip_logger?.[index]?.purpose?.$touch()"
+                class="md:w-20rem w-full" 
               />
               <p class="text-base text-surface-600"></p>
             </div>
