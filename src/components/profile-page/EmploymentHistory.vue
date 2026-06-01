@@ -1,150 +1,98 @@
 <script setup lang="ts">
-import { reactive, ref, onBeforeMount, computed } from 'vue'
-import { useAddressStore } from '@/stores/address.store.ts'
-import { usePdsStore, PersonalDataSheetPayload } from '@/stores/pds.store.ts'
+import { usePdsStore } from '@/stores/pds.store'
+import { watch, ref, onMounted } from 'vue'
+import { useItemNumberStore } from '@/stores/item-number.store.ts'
+
+import { formatDate } from '@/utils/helpers.js'
 const pdsStore = usePdsStore()
-/** Payload */
-const payload = reactive<PersonalDataSheetPayload>({
-  ...pdsStore.pdsInfo,
-})
+const itemStore = useItemNumberStore()
 
-/** Initialize Address Options List */
-const publicStore = useAddressStore()
-const addressesAreLoading = ref(false)
-onBeforeMount(async () => {
-  addressesAreLoading.value = true
-  await Promise.allSettled([
-    publicStore.fetchRegions(),
-    publicStore.fetchProvinces(),
-    publicStore.fetchCities(),
-    publicStore.fetchBarangays(),
-  ])
-  addressesAreLoading.value = false
-})
+const payload = pdsStore.pdsInfo
 
-/************************************************************
- * Compute total service tenure combining:
- * 1. Current agency tenure (first work experience entry)
- * 2. All Permanent + Government Service
- ************************************************************/
-const computeTotalServiceTenure = (experiences: typeof payload.individual_work_experience) => {
-  if (!experiences || experiences.length === 0) return '-'
+const isItemLoading = ref(false)
 
-  // Include first entry (current agency)
-  const firstExp = experiences[0] ? [experiences[0]] : []
+/**
+ * Fetch item and attach to employee
+ */
+const fetchItem = async () => {
+  const itemId = payload?.employee?.item_id
+  if (!itemId) return
 
-  // Filter permanent + government service
-  const permanentGov = experiences.filter(
-    (exp) => exp.is_gov_service === true && exp.status_of_appointment?.toLowerCase() === 'permanent'
-  )
+  isItemLoading.value = true
 
-  // Combine and remove duplicates (if firstExp is also in permanentGov)
-  const combined = Array.from(new Set([...firstExp, ...permanentGov]))
+  const res = await itemStore.fetchItemNumberById(itemId)
 
-  if (combined.length === 0) return '-'
+  payload.employee.item = res?.success && res.data ? (Array.isArray(res.data) ? res.data[0] : res.data) : null
 
-  let totalYears = 0
-  let totalMonths = 0
-  let totalDays = 0
-
-  combined.forEach((exp) => {
-    if (!exp.inclusive_date_from) return
-
-    const start = new Date(exp.inclusive_date_from)
-    const end = exp.is_current_work
-      ? new Date() // today
-      : exp.inclusive_date_to
-        ? new Date(exp.inclusive_date_to)
-        : new Date()
-
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) return
-
-    let years = end.getFullYear() - start.getFullYear()
-    let months = end.getMonth() - start.getMonth()
-    let days = end.getDate() - start.getDate()
-
-    if (days < 0) {
-      months -= 1
-      days += new Date(end.getFullYear(), end.getMonth(), 0).getDate()
-    }
-
-    if (months < 0) {
-      years -= 1
-      months += 12
-    }
-
-    totalYears += years
-    totalMonths += months
-    totalDays += days
-  })
-
-  // Normalize totals
-  if (totalDays >= 30) {
-    totalMonths += Math.floor(totalDays / 30)
-    totalDays = totalDays % 30
-  }
-  if (totalMonths >= 12) {
-    totalYears += Math.floor(totalMonths / 12)
-    totalMonths = totalMonths % 12
-  }
-
-  const parts = []
-  if (totalYears > 0) parts.push(`${totalYears} yr${totalYears > 1 ? 's' : ''}`)
-  if (totalMonths > 0) parts.push(`${totalMonths} mo${totalMonths > 1 ? 's' : ''}`)
-  if (totalDays > 0) parts.push(`${totalDays} day${totalDays > 1 ? 's' : ''}`)
-
-  if (!parts.length) return '0 days'
-
-  if (parts.length > 1) {
-    const last = parts.pop()
-    return `${parts.join(', ')} and ${last}`
-  }
-
-  return parts[0]
+  isItemLoading.value = false
 }
 
-const allpermanentGovTenure = computed(() => computeTotalServiceTenure(payload.individual_work_experience))
-const currentGovTenure = computed(() =>
-  computeTotalServiceTenure(payload.individual_work_experience[0] ? [payload.individual_work_experience[0]] : [])
+/**
+ * Run on mount
+ */
+onMounted(() => {
+  fetchItem()
+})
+
+/**
+ * Also watch item_id (important if data loads later)
+ */
+watch(
+  () => payload.employee?.item_id,
+  (newVal) => {
+    if (newVal) {
+      fetchItem()
+    }
+  }
 )
 </script>
-
 <template>
   <section class="bg-surface-0 p-4">
-    <h2 class="mb-4 text-xl font-bold text-primary-800">Employment History</h2>
+    <h2 class="mb-4 text-xl font-bold text-primary-800">Employement Details</h2>
 
     <form autocomplete="off">
       <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <!-- Current Agency -->
+        <!-- Position Title  -->
         <div class="flex items-center gap-2">
-          <span class="w-40 text-sm font-medium text-surface-600">Current Agency:</span>
-          <p class="text-lg text-surface-900">
-            {{ payload.individual_work_experience[0]?.department_agency_office_company || '-' }}
+          <span class="w-32 text-sm font-medium text-surface-600">Position Title: </span>
+          <p class="text-md text-surface-900">
+            {{ payload.employee?.item?.position?.title || '-' }}
           </p>
         </div>
 
-        <!-- Position -->
+        <!-- Date of Original Appointment -->
         <div class="flex items-center gap-2">
-          <span class="w-32 text-sm font-medium text-surface-600">Position:</span>
-          <p class="text-lg text-surface-900">{{ payload.individual_work_experience[0]?.position_title || '-' }}</p>
-        </div>
-
-        <!-- Employement Status -->
-        <div class="flex items-center gap-2">
-          <span class="w-32 text-sm font-medium text-surface-600">Employement Status:</span>
-          <p class="text-lg text-surface-900">{{ payload.individual_work_experience[0]?.status_of_appointment || '-' }}</p>
-        </div>
-
-        <!-- Length of Service (Current Agency) -->
-        <div class="flex items-center gap-2">
-          <span class="w-32 text-sm font-medium text-surface-600">Length of Service (Current Agency):</span>
-          <p class="text-lg text-surface-900">{{ currentGovTenure }}</p>
-        </div>
-        <!-- Permanent Gov Service Tenure: -->
-        <div class="flex items-center gap-2">
-          <span class="w-32 text-sm font-medium text-surface-600"> Permanent Gov Service Tenure: </span>
+          <span class="w-40 text-sm font-medium text-surface-600">Date of Original Appointment:</span>
           <p class="text-lg text-surface-900">
-            {{ allpermanentGovTenure }}
+            {{ formatDate(payload.individual_work_experience?.[0]?.inclusive_date_from) || '-' }}
+          </p>
+        </div>
+
+        <!-- Employment Type  -->
+        <div class="flex items-center gap-2">
+          <span class="w-32 text-sm font-medium text-surface-600">Employment Type: </span>
+          <p class="text-lg text-surface-900">{{ payload.employee?.item?.employment_status || '-' }}</p>
+        </div>
+
+        <!-- Date of Last Promotion -->
+        <div class="flex items-center gap-2">
+          <span class="w-40 text-sm font-medium text-surface-600">Date of Last Promotion:</span>
+          <p class="text-lg text-surface-900">
+            {{ formatDate(payload.individual_work_experience?.[0]?.position_title) || '-' }}
+          </p>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <span class="w-32 text-sm font-medium text-surface-600">Monthly Salary:</span>
+          SG {{ payload.employee?.item?.salary_grade?.salary_grade || '-' }} -
+          {{ payload.employee?.item?.salary_grade?.amount?.toLocaleString() || '-' }}
+        </div>
+
+        <!-- Entry Date (First Day in Service) -->
+        <div class="flex items-center gap-2">
+          <span class="w-40 text-sm font-medium text-surface-600">Entry Date (First Day in Service):</span>
+          <p class="text-lg text-surface-900">
+            {{ formatDate(payload.individual_work_experience?.[0]?.inclusive_date_to) || '-' }}
           </p>
         </div>
       </div>
