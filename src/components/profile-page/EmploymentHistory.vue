@@ -3,6 +3,7 @@ import { usePdsStore } from '@/stores/pds.store'
 import { watch, ref, onMounted } from 'vue'
 import { useItemNumberStore } from '@/stores/item-number.store.ts'
 
+import { formatDate } from '@/utils/helpers.js'
 const pdsStore = usePdsStore()
 const itemStore = useItemNumberStore()
 
@@ -63,7 +64,7 @@ watch(
         <div class="flex items-center gap-2">
           <span class="w-40 text-sm font-medium text-surface-600">Date of Original Appointment:</span>
           <p class="text-lg text-surface-900">
-            {{ payload.individual_work_experience[0]?.inclusive_date_from || '-' }}
+            {{ formatDate(payload.individual_work_experience?.[0]?.inclusive_date_from) || '-' }}
           </p>
         </div>
 
@@ -77,7 +78,7 @@ watch(
         <div class="flex items-center gap-2">
           <span class="w-40 text-sm font-medium text-surface-600">Date of Last Promotion:</span>
           <p class="text-lg text-surface-900">
-            {{ payload.individual_work_experience[0]?.position_title || '-' }}
+            {{ formatDate(payload.individual_work_experience?.[0]?.position_title) || '-' }}
           </p>
         </div>
 
@@ -91,7 +92,7 @@ watch(
         <div class="flex items-center gap-2">
           <span class="w-40 text-sm font-medium text-surface-600">Entry Date (First Day in Service):</span>
           <p class="text-lg text-surface-900">
-            {{ payload.individual_work_experience[0]?.inclusive_date_to || '-' }}
+            {{ formatDate(payload.individual_work_experience?.[0]?.inclusive_date_to) || '-' }}
           </p>
         </div>
       </div>
