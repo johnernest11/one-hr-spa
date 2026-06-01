@@ -117,7 +117,6 @@ const handleBatchDownload = async () => {
     e.preventDefault()
     const eventRef = e as BeforeUnloadEvent & { returnValue: string }
     eventRef.returnValue = ''
-
     return ''
   }
   window.addEventListener('beforeunload', preventWindowClose)
@@ -126,17 +125,20 @@ const handleBatchDownload = async () => {
   batchProgressText.value = 'Fetching data for employees...'
 
   const zip = new JSZip()
-  const response = await personnelStore.filterEmployees(parsedDivisionId, undefined, 500)
-  const responseData = response.data as PersonnelResponse[] | undefined
-  const employeeSourceArray = responseData || personnelStore.employees
 
-  if (!response.success || !employeeSourceArray || !employeeSourceArray.length) {
+  const savedOriginalTableState = [...personnelStore.employees]
+  const response = await personnelStore.filterEmployees(parsedDivisionId, undefined, 500)
+  const employeeSourceArray = (response.data as PersonnelResponse[]) || []
+  personnelStore.employees = savedOriginalTableState
+
+  if (!employeeSourceArray || !employeeSourceArray.length) {
     toast.add({
       severity: 'error',
       summary: 'No employees found',
       detail: 'Could not find any personnel records associated with this division.',
       life: 4000,
     })
+    window.removeEventListener('beforeunload', preventWindowClose)
     batchProcessing.value = false
     return
   }
@@ -150,6 +152,7 @@ const handleBatchDownload = async () => {
       detail: 'No employees found in this Division.',
       life: 4000,
     })
+    window.removeEventListener('beforeunload', preventWindowClose)
     batchProcessing.value = false
     return
   }
@@ -169,9 +172,8 @@ const handleBatchDownload = async () => {
       if (!qrResp.success || !qrData?.qr_code_value) return successCount
 
       batchActiveEmployee.value = employeeRecord
-      await nextTick() // Let Vue render the HTML template block with new text fields
+      await nextTick()
 
-      // 2. Clear out the previous canvas and append the new QR code styling canvas
       if (batchQrContainerRef.value) {
         batchQrContainerRef.value.innerHTML = ''
         const qrCanvas = new QRCodeStyling({
@@ -188,17 +190,14 @@ const handleBatchDownload = async () => {
           cornersDotOptions: { type: 'square', color: '#000000' },
         })
         qrCanvas.append(batchQrContainerRef.value)
-
-        // Wait a small beat for the image asset to render into the canvas context
         await new Promise((resolve) => setTimeout(resolve, 250))
       }
 
-      // 3. Take a strict cropped screenshot of only the target container element
       if (batchCardRef.value) {
         const urlStr = await domToImage.toPng(batchCardRef.value, {
-          width: 650, // Force hard crop width to match your style rules
-          height: 950, // Force hard crop height to match your style rules
-          quality: 1, // Keeps vector details ultra-crisp
+          width: 650,
+          height: 950,
+          quality: 1,
           bgcolor: '#FFFFFF',
           style: {
             transform: 'none',
@@ -237,12 +236,22 @@ const handleBatchDownload = async () => {
     })
   }
 
+  window.removeEventListener('beforeunload', preventWindowClose)
   batchActiveEmployee.value = null
   batchProcessing.value = false
   showBatchQrModal.value = false
   selectedBatchDivision.value = null
   payload.division = null
-  router.push({ name: 'employment-recruitment' })
+
+  employeeListIsLoading.value = true
+  const finalCleanUpResponse = await personnelStore.fetchEmployees(
+    pagination.value?.per_page ?? paginationLimit,
+    pagination.value?.current_page ?? 1
+  )
+  if (finalCleanUpResponse.success && finalCleanUpResponse.pagination) {
+    pagination.value = finalCleanUpResponse.pagination
+  }
+  employeeListIsLoading.value = false
 }
 
 const navigateToDetails = (personnelPds: PersonnelResponse) => {
