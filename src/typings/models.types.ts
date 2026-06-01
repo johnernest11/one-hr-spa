@@ -88,6 +88,18 @@ export type ProgramResponse = {
   name: string
 } & ApiResponseData
 
+export type LocatorActivityResponse = {
+    id: number
+    key: string
+    label: string
+    data: string
+    selectable: boolean
+    parent_id: number | null
+    created_at: string
+    updated_at: string
+    children?: LocatorActivityResponse[]
+} 
+
 export type ItemNumberResponse = {
   id: number
   division_id: number | null

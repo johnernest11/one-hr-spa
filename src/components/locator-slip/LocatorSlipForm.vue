@@ -12,15 +12,16 @@ import MeterGroup from 'primevue/metergroup'
 import { useToast } from 'primevue/usetoast'
 import { useLocatorSlipStore, LocatorSlipPayload } from '@/stores/locator-slip.store'
 import { useDailyTimeRecordsStore } from '@/stores/daily-time-record.store'
+import { useLibrariesStore } from '@/stores/libraries.store.ts'
 import { formatDateSafe, isSameOrAfterDate, formatDateLong } from '@/utils/helpers.ts'
 import WbInputText from '@/components/webkit/WbInputText.vue'
 import WbCalendar from '../webkit/WbCalendar.vue'
 import { LSLoggerResponse, TimeLogResponse } from '@/typings/models.types'
-import { LocatorPurposeNodeService } from './LocatorPurposeNodeService.ts'
 import TreeSelect from 'primevue/treeselect'
 
 const locatorSlipStore = useLocatorSlipStore()
 const warmBodiesStore = useDailyTimeRecordsStore()
+const librariesStore = useLibrariesStore()
 const route = useRoute()
 const toast = useToast()
 
@@ -40,34 +41,21 @@ const defaultApproval = ref('personal_time')
 const purposePlaceholder = ref('e.g. Wellness Activity')
 const destinationPlaceholder = ref('e.g. Robinsons, San Fernando, La Union')
 
-const nodes = ref()
-
-onMounted(() => {
-  LocatorPurposeNodeService.getTreeNodes().then((data) => (nodes.value = data))
+onMounted(async () => {
+  await librariesStore.fetchListLocatorActivities()
 })
-
-// Converts TreeSelect object key {"0-0-1": true} -> String "Category > Sub > Leaf"
-const getHierarchyPath = (tree: any[], targetKey: string, currentPath: string[] = []): string[] | null => {
-  for (const node of tree) {
-    const path = [...currentPath, node.label];
-    if (node.key === targetKey) return path;
-    if (node.children) {
-      const foundPath = getHierarchyPath(node.children, targetKey, path);
-      if (foundPath) return foundPath;
-    }
-  }
-  return null;
-};
 
 // Converts String "Category > Sub > Leaf" -> TreeSelect object key {"0-0-1": true}
 const getSelectionObjectFromPath = (tree: any[], pathString: string): Record<string, boolean> | null => {
   if (!pathString || typeof pathString !== 'string') return null;
-  const targetLabels = pathString.split(' > ');
+  
+  const targetLabels = pathString.split('>').map(label => label.trim());
   
   const findKeyByLabels = (nodesArray: any[], level: number): string | null => {
     const currentTargetLabel = targetLabels[level];
+    
     for (const node of nodesArray) {
-      if (node.label === currentTargetLabel) {
+      if (node.label.trim() === currentTargetLabel) {
         if (level === targetLabels.length - 1) return node.key;
         if (node.children) {
           const foundKey = findKeyByLabels(node.children, level + 1);
@@ -82,23 +70,33 @@ const getSelectionObjectFromPath = (tree: any[], pathString: string): Record<str
   return matchedKey ? { [matchedKey]: true } : null;
 };
 
+// Converts TreeSelect object key {"0-0-1": true} -> String "Category > Sub > Leaf"
+const getHierarchyPath = (tree: any[], targetKey: string, currentPath: string[] = []): string[] | null => {
+  for (const node of tree) {
+    const path = [...currentPath, node.label.trim()];
+    if (node.key === targetKey) return path;
+    if (node.children) {
+      const foundPath = getHierarchyPath(node.children, targetKey, path);
+      if (foundPath) return foundPath;
+    }
+  }
+  return null;
+};
+
 const bindPurpose = (row: any) => {
   return computed({
     get() {
-      // If backend data exists as a string, find its matching node key mapping object
       if (typeof row.purpose === 'string') {
-        return getSelectionObjectFromPath(nodes.value, row.purpose) || {};
+        return getSelectionObjectFromPath(librariesStore.locatorActivities, row.purpose) || {};
       }
       return row.purpose || {};
     },
-    // Set new data when the user edits and selects a new node
     set(newValue) {
       if (newValue && typeof newValue === 'object') {
         const activeKey = Object.keys(newValue)[0];
         if (activeKey) {
-          const pathArray = getHierarchyPath(nodes.value, activeKey);
+          const pathArray = getHierarchyPath(librariesStore.locatorActivities, activeKey);
           if (pathArray) {
-            // Overwrite the real purpose row immediately with the new concatenated string
             row.purpose = pathArray.join(' > ');
             return;
           }
@@ -593,7 +591,7 @@ const saveButtonSubmission = async () => {
               <p class="text-xs font-semibold text-surface-500 md:hidden">Purpose</p>
               <TreeSelect
                 v-model="bindPurpose(row).value" 
-                :options="nodes" 
+                :options="librariesStore.locatorActivities" 
                 selectionMode="single"
                 placeholder="Purpose" 
                 :disabled="!validateDateNow(row.date) || isHumanResourceActive || !!row.time_out || !!row.time_in"
