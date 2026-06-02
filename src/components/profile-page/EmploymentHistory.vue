@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { usePdsStore } from '@/stores/pds.store'
-import { watch, ref, onMounted, onBeforeMount } from 'vue'
+import { watch, ref, onBeforeMount } from 'vue'
 import { useItemNumberStore } from '@/stores/item-number.store.ts'
 import { useSalaryGradesStore } from '@/stores/salary-grades.store.ts'
 import { formatDate } from '@/utils/helpers.js'
@@ -19,6 +19,7 @@ onBeforeMount(async () => {
   await Promise.allSettled([itemStore.fetchItemNumber(), sgStore.fetchSalaryGrade()])
 
   isItemLoading.value = false
+  isSalaryGradeLoading.value = false
 })
 
 /**
@@ -37,23 +38,14 @@ const fetchItem = async () => {
   isItemLoading.value = false
 }
 
-/**
- * Run on mount
- */
-onMounted(() => {
-  fetchItem()
-})
-
-/**
- * Also watch item_id (important if data loads later)
- */
 watch(
-  () => payload.employee?.item_id,
-  (newVal) => {
-    if (newVal) {
-      fetchItem()
+  () => itemStore.itemNumbers,
+  async (items) => {
+    if (items?.length && payload.employee?.item_id) {
+      await fetchItem()
     }
-  }
+  },
+  { immediate: true }
 )
 </script>
 <template>
