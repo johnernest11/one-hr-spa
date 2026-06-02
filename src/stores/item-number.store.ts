@@ -61,7 +61,7 @@ export const useItemNumberStore = defineStore('item-number', () => {
     Casual: 0,
   })
 
-  const fetchItemNumber = async (limit: number = 10, page: number | null = null) => {
+  const fetchItemNumber = async (limit: number = 1000, page: number | null = null) => {
     let uri = `/items?limit=${limit}&sort=asc&`
     if (page) uri += `page=${page}`
     const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
