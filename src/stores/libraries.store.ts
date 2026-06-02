@@ -8,6 +8,7 @@ import {
   SectionorUnitResponse,
   ProgramResponse,
   CountriesResponse,
+  LocatorActivityResponse,
 } from '@/typings/models.types'
 import { ApiResponseBody } from '@/typings/http-resources.types'
 import { useApiCall } from '@/composables/network'
@@ -36,6 +37,7 @@ export const useLibrariesStore = defineStore('libraries', () => {
   const divisions = ref<DivisionResponse[]>([])
   const sectionsorunits = ref<SectionorUnitResponse[]>([])
   const programs = ref<ProgramResponse[]>([])
+  const locatorActivities = ref<LocatorActivityResponse[]>([])
 
   const authStore = useAuthStore()
   const sexOptions = ref([
@@ -381,6 +383,19 @@ export const useLibrariesStore = defineStore('libraries', () => {
     return responseBody
   }
 
+  const fetchListLocatorActivities = async () => {
+    let uri = `/libraries/locator-activities`
+
+    const { data } = await useApiCall(uri, authStore.authenticationToken).get().json()
+    const responseBody: ApiResponseBody = data.value
+
+    if (responseBody && responseBody.success) {
+      locatorActivities.value = responseBody.data as LocatorActivityResponse[]
+    } 
+
+    return responseBody
+  }
+
   /** Actions */
   return {
     fetchItems,
@@ -417,6 +432,8 @@ export const useLibrariesStore = defineStore('libraries', () => {
     createPrograms,
     fetchListPrograms,
     searchListPrograms,
+    locatorActivities,
+    fetchListLocatorActivities,
     fundingSourcesOptions,
     fundingSourcesOptionsLoading,
     positionsOptions,
