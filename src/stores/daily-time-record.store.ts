@@ -106,7 +106,7 @@ export const useDailyTimeRecordsStore = defineStore('daily-time-records', () => 
 
   const fetchDailyTimeRecordsByEmployee = async (employeeId: string | number) => {
     if (!employeeId) throw new Error('Employee ID is required.')
-    const uri = `/employees/${employeeId}/daily-time-records/view-dtr?start_date=1900-01-01&end_date=2100-12-31&sort=asc`
+    const uri = `/employees/${employeeId}/daily-time-records/view-dtr?start_date=1900-01-01&end_date=2100-12-31&sort=asc&limit=1000`
     const { data } = await useApiCall(uri, auth.authenticationToken).get().json()
     const responseBody: ApiResponseBody = data.value
 
