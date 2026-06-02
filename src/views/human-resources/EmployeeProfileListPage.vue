@@ -59,12 +59,12 @@ const pagination = ref<ApiResponsePagination | null>(null)
 
 const selectedDivision = ref<WbAutoCompleteOption[] | null>(null)
 const selectedSectionUnit = ref<WbAutoCompleteOption[] | null>(null)
-const selectedStation = ref<any[]>([])
+const selectedStation = ref<WbAutoCompleteOption[]>([])
 const selectedStationLabel = ref<string | null>(null)
 
 const selectedDivisionLabel = ref<string | null>(null)
 const selectedSectionLabel = ref<string | null>(null)
-  
+
 const paginationLimit = 5
 const toast = useToast()
 
@@ -878,7 +878,7 @@ const downloadQrCode = async () => {
     <div v-if="batchActiveEmployee" class="absolute left-[-9999px]">
       <div
         ref="batchCardRef"
-        class="m-0 flex h-[950px] w-[650px] flex-col items-center justify-start border-none bg-white p-12 text-center outline-none ring-0"
+        class="m-0 flex h-[950px] w-[650px] flex-col items-center justify-start border-none bg-white p-12 text-center outline-none ring-0 [-webkit-print-color-adjust:exact] [-webkit-text-size-adjust:100%] [print-color-adjust:exact]"
       >
         <div class="mt-4 flex w-full justify-center border-none outline-none ring-0">
           <img
@@ -888,9 +888,9 @@ const downloadQrCode = async () => {
           />
         </div>
 
-        <div class="mt-16 flex w-full flex-col justify-center border-none px-4 outline-none ring-0">
+        <div class="mt-16 flex w-full flex-col justify-center border-none px-4 outline-none ring-0 [-webkit-box-orient:vertical]">
           <h2
-            class="m-0 line-clamp-2 border-none p-0 text-3xl font-black uppercase leading-snug tracking-tight text-[#1f2937] outline-none ring-0"
+            class="display-[-webkit-box] m-0 overflow-hidden border-none p-0 text-3xl font-black uppercase leading-snug tracking-tight text-[#1f2937] outline-none ring-0 [-webkit-box-orient:vertical] [-webkit-line-clamp:2]"
           >
             {{ batchActiveEmployee.last_name }}, {{ batchActiveEmployee.first_name }}
             {{ batchActiveEmployee.middle_name ? batchActiveEmployee.middle_name + ' ' : '' }}
@@ -898,13 +898,13 @@ const downloadQrCode = async () => {
           </h2>
 
           <p
-            class="m-0 mt-3 line-clamp-2 border-none p-0 text-xl font-bold uppercase leading-normal tracking-wide text-[#4b5563] outline-none ring-0"
+            class="display-[-webkit-box] m-0 mt-3 overflow-hidden border-none p-0 text-xl font-bold uppercase leading-normal tracking-wide text-[#4b5563] outline-none ring-0 [-webkit-box-orient:vertical] [-webkit-line-clamp:2]"
           >
             {{ batchActiveEmployee.employee?.item?.position?.title || '' }}
           </p>
         </div>
 
-        <div class="mt-12 flex w-full justify-center border-none outline-none ring-0">
+        <div class="mt-12 flex w-full justify-center border-none outline-none ring-0 [-webkit-transform:translateZ(0)]">
           <div
             ref="batchQrContainerRef"
             class="flex h-[500px] w-[500px] items-center justify-center border-none bg-white outline-none ring-0"
