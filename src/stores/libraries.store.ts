@@ -384,14 +384,14 @@ export const useLibrariesStore = defineStore('libraries', () => {
   }
 
   const fetchListLocatorActivities = async () => {
-    let uri = `/libraries/locator-activities`
+    const uri = '/libraries/locator-activities'
 
     const { data } = await useApiCall(uri, authStore.authenticationToken).get().json()
     const responseBody: ApiResponseBody = data.value
 
     if (responseBody && responseBody.success) {
       locatorActivities.value = responseBody.data as LocatorActivityResponse[]
-    } 
+    }
 
     return responseBody
   }
