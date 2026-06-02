@@ -117,7 +117,6 @@ const handleBatchDownload = async () => {
     e.preventDefault()
     const eventRef = e as BeforeUnloadEvent & { returnValue: string }
     eventRef.returnValue = ''
-
     return ''
   }
   window.addEventListener('beforeunload', preventWindowClose)
@@ -126,17 +125,20 @@ const handleBatchDownload = async () => {
   batchProgressText.value = 'Fetching data for employees...'
 
   const zip = new JSZip()
-  const response = await personnelStore.filterEmployees(parsedDivisionId, undefined, 500)
-  const responseData = response.data as PersonnelResponse[] | undefined
-  const employeeSourceArray = responseData || personnelStore.employees
 
-  if (!response.success || !employeeSourceArray || !employeeSourceArray.length) {
+  const savedOriginalTableState = [...personnelStore.employees]
+  const response = await personnelStore.filterEmployees(parsedDivisionId, undefined, 500)
+  const employeeSourceArray = (response.data as PersonnelResponse[]) || []
+  personnelStore.employees = savedOriginalTableState
+
+  if (!employeeSourceArray || !employeeSourceArray.length) {
     toast.add({
       severity: 'error',
       summary: 'No employees found',
       detail: 'Could not find any personnel records associated with this division.',
       life: 4000,
     })
+    window.removeEventListener('beforeunload', preventWindowClose)
     batchProcessing.value = false
     return
   }
@@ -150,6 +152,7 @@ const handleBatchDownload = async () => {
       detail: 'No employees found in this Division.',
       life: 4000,
     })
+    window.removeEventListener('beforeunload', preventWindowClose)
     batchProcessing.value = false
     return
   }
@@ -169,9 +172,8 @@ const handleBatchDownload = async () => {
       if (!qrResp.success || !qrData?.qr_code_value) return successCount
 
       batchActiveEmployee.value = employeeRecord
-      await nextTick() // Let Vue render the HTML template block with new text fields
+      await nextTick()
 
-      // 2. Clear out the previous canvas and append the new QR code styling canvas
       if (batchQrContainerRef.value) {
         batchQrContainerRef.value.innerHTML = ''
         const qrCanvas = new QRCodeStyling({
@@ -188,17 +190,14 @@ const handleBatchDownload = async () => {
           cornersDotOptions: { type: 'square', color: '#000000' },
         })
         qrCanvas.append(batchQrContainerRef.value)
-
-        // Wait a small beat for the image asset to render into the canvas context
-        await new Promise((resolve) => setTimeout(resolve, 250))
+        await new Promise((resolve) => setTimeout(resolve, 450))
       }
 
-      // 3. Take a strict cropped screenshot of only the target container element
       if (batchCardRef.value) {
         const urlStr = await domToImage.toPng(batchCardRef.value, {
-          width: 650, // Force hard crop width to match your style rules
-          height: 950, // Force hard crop height to match your style rules
-          quality: 1, // Keeps vector details ultra-crisp
+          width: 650,
+          height: 950,
+          quality: 1,
           bgcolor: '#FFFFFF',
           style: {
             transform: 'none',
@@ -237,12 +236,22 @@ const handleBatchDownload = async () => {
     })
   }
 
+  window.removeEventListener('beforeunload', preventWindowClose)
   batchActiveEmployee.value = null
   batchProcessing.value = false
   showBatchQrModal.value = false
   selectedBatchDivision.value = null
   payload.division = null
-  router.push({ name: 'employment-recruitment' })
+
+  employeeListIsLoading.value = true
+  const finalCleanUpResponse = await personnelStore.fetchEmployees(
+    pagination.value?.per_page ?? paginationLimit,
+    pagination.value?.current_page ?? 1
+  )
+  if (finalCleanUpResponse.success && finalCleanUpResponse.pagination) {
+    pagination.value = finalCleanUpResponse.pagination
+  }
+  employeeListIsLoading.value = false
 }
 
 const navigateToDetails = (personnelPds: PersonnelResponse) => {
@@ -315,7 +324,8 @@ const handleFilterEmployee = async () => {
   selectedDivisionLabel.value = selectedDivision.value?.[0]?.label ?? null
   selectedSectionLabel.value = selectedSectionUnit.value?.[0]?.label ?? null
 
-  if (!selectedDivision.value && !selectedSectionUnit.value) {
+  // FIX: Added !selectedStation.value so filtering by station alone is not ignored
+  if (!selectedDivision.value && !selectedSectionUnit.value && !selectedStation.value) {
     const response = await personnelStore.fetchEmployees(paginationLimit)
     if (response.success && response.pagination) {
       pagination.value = response.pagination
@@ -323,6 +333,7 @@ const handleFilterEmployee = async () => {
     employeeListIsLoading.value = false
     return
   }
+
   const response = await personnelStore.filterEmployees(
     payload.division ?? undefined,
     payload.section ?? undefined,
@@ -759,6 +770,10 @@ const downloadQrCode = async () => {
         root: {
           class: 'h-full flex flex-col bg-surface-0 shadow-lg dark:bg-surface-900 relative',
         },
+        // We safely hide PrimeVue's empty default layout footer slot here
+        footer: {
+          class: 'hidden',
+        },
       }"
     >
       <template #header>
@@ -826,75 +841,61 @@ const downloadQrCode = async () => {
         </div>
       </div>
 
-      <template #footer>
-        <div
-          class="absolute bottom-0 left-0 right-0 w-full border-t border-surface-300 bg-surface-0 px-4 py-3 dark:border-surface-700 dark:bg-surface-900"
-        >
-          <div class="flex items-center justify-center gap-3 sm:flex-row">
-            <Button
-              :disabled="batchProcessing"
-              class="flex h-12 flex-1 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-surface-700 transition-colors hover:bg-surface-50"
-              @click="showBatchQrModal = false"
-              text
-            >
-              <div class="flex items-center justify-center">
-                <i class="pi pi-ban mr-2 text-base"></i>
-                <span>Cancel</span>
-              </div>
-            </Button>
+      <div class="absolute bottom-0 left-0 right-0 z-10 w-full bg-surface-0 px-4 py-4 dark:bg-surface-900">
+        <div class="flex items-center justify-center gap-3 sm:flex-row">
+          <Button
+            :disabled="batchProcessing"
+            class="flex h-12 flex-1 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-surface-700 transition-colors hover:bg-surface-50"
+            @click="showBatchQrModal = false"
+            text
+          >
+            <div class="flex items-center justify-center">
+              <i class="pi pi-ban mr-2 text-base"></i>
+              <span>Cancel</span>
+            </div>
+          </Button>
 
-            <Button
-              :label="batchProcessing ? 'Downloading QR Codes...' : 'Download QR Codes'"
-              :loading="batchProcessing"
-              :disabled="batchProcessing || !selectedBatchDivision"
-              class="flex h-12 flex-1 items-center justify-center whitespace-nowrap rounded-lg border border-primary-500 bg-primary-500 px-4 text-sm font-semibold text-white transition-colors hover:bg-primary-600 dark:border-surface-700"
-              @click="handleBatchDownload"
-            >
-              <template #icon>
-                <i v-if="batchProcessing" class="pi pi-spinner mr-2 animate-spin text-base" />
-                <FontAwesomeIcon v-else icon="fa-solid fa-download" class="mr-2" />
-              </template>
-            </Button>
-          </div>
+          <Button
+            :label="batchProcessing ? 'Downloading QR Codes...' : 'Download QR Codes'"
+            :loading="batchProcessing"
+            :disabled="batchProcessing || !selectedBatchDivision"
+            class="flex h-12 flex-1 items-center justify-center whitespace-nowrap rounded-lg border border-primary-500 bg-primary-500 px-4 text-sm font-semibold text-white transition-colors hover:bg-primary-600 dark:border-surface-700"
+            @click="handleBatchDownload"
+          >
+            <template #icon>
+              <i v-if="batchProcessing" class="pi pi-spinner mr-2 animate-spin text-base" />
+              <FontAwesomeIcon v-else icon="fa-solid fa-download" class="mr-2" />
+            </template>
+          </Button>
         </div>
-      </template>
+      </div>
     </Dialog>
 
     <div v-if="batchActiveEmployee" class="absolute left-[-9999px]">
       <div
         ref="batchCardRef"
-        class="box-border flex h-[950px] max-h-[950px] min-h-[950px] w-[650px] min-w-[650px] max-w-[650px] flex-col items-center overflow-hidden !border-0 !border-none !bg-white p-10 text-center !shadow-none !outline-none !ring-0"
+        class="box-border flex h-[950px] w-[650px] flex-col items-center justify-between bg-white p-12 text-center"
+        style="contain: layout size; image-rendering: auto"
       >
-        <div class="mb-8 flex w-full justify-center !border-0 !border-none !shadow-none !outline-none !ring-0">
-          <img
-            src="@/assets/image/dswd-logo.png"
-            alt="DSWD Logo"
-            class="h-auto w-[412.5px] !border-0 !border-none object-contain !shadow-none !outline-none !ring-0"
-          />
+        <div class="flex w-full justify-center">
+          <img src="@/assets/image/dswd-logo.png" alt="DSWD Logo" class="h-auto w-[420px] object-contain" />
         </div>
 
-        <div class="mb-2 w-full !border-0 !border-none !shadow-none !outline-none !ring-0">
-          <div class="!border-0 !border-none !bg-white p-[5px_20px] !shadow-none !outline-none !ring-0">
-            <p class="!border-0 !border-none text-3xl font-black uppercase leading-[1.2] text-[#1f2937] !shadow-none">
-              {{ batchActiveEmployee.last_name }}, {{ batchActiveEmployee.first_name }}
-              {{ batchActiveEmployee.middle_name ? batchActiveEmployee.middle_name + ' ' : '' }}
-              {{ batchActiveEmployee.ext_name ? batchActiveEmployee.ext_name : '' }}
-            </p>
-          </div>
+        <div class="flex w-full flex-1 flex-col justify-center px-4 py-2">
+          <h2 class="m-0 line-clamp-2 text-3xl font-black uppercase tracking-tight text-[#1f2937]" style="line-height: 1.25">
+            {{ batchActiveEmployee.last_name }}, {{ batchActiveEmployee.first_name }}
+            {{ batchActiveEmployee.middle_name ? batchActiveEmployee.middle_name + ' ' : '' }}
+            {{ batchActiveEmployee.ext_name ? batchActiveEmployee.ext_name : '' }}
+          </h2>
+
+          <p class="m-0 mt-3 line-clamp-2 text-xl font-bold uppercase tracking-wide text-[#4b5563]" style="line-height: 1.3">
+            {{ batchActiveEmployee.employee?.item?.position?.title || '' }}
+          </p>
         </div>
 
-        <div class="mb-2 w-full !border-0 !border-none !shadow-none !outline-none !ring-0">
-          <div class="!border-0 !border-none !bg-white p-[5px_20px] !shadow-none !outline-none !ring-0">
-            <p class="!border-0 !border-none text-xl font-medium uppercase leading-[1.2] text-[#4b5563] !shadow-none">
-              {{ batchActiveEmployee.employee?.item?.position?.title || '' }}
-            </p>
-          </div>
+        <div class="flex w-full justify-center pb-4">
+          <div ref="batchQrContainerRef" class="flex h-[500px] w-[500px] items-center justify-center bg-white"></div>
         </div>
-
-        <div
-          ref="batchQrContainerRef"
-          class="mt-8 flex h-[500px] w-[500px] justify-center !border-0 !border-none !bg-white !shadow-none !outline-none !ring-0"
-        ></div>
       </div>
     </div>
 
