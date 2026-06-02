@@ -598,7 +598,7 @@ const saveButtonSubmission = async () => {
                 :invalidText="validator.locator_slip_logger?.[index]?.purpose?.$errors[0]?.$message"
                 :invalid="validator.locator_slip_logger?.[index]?.purpose?.$error"
                 @blur="validator.locator_slip_logger?.[index]?.purpose?.$touch()"
-                class="md:w-20rem w-full" 
+                class="md:w-20rem w-full h-12 flex items-center mt-2" 
               />
               <p class="text-base text-surface-600"></p>
             </div>
@@ -625,7 +625,7 @@ const saveButtonSubmission = async () => {
                   inputId="official_time"
                   value="official_time"
                   class="scale-150 transform"
-                  :disabled="!validateDateNow(row.date) || isHumanResourceActive"
+                  :disabled="!validateDateNow(row.date) || isHumanResourceActive || !!row.time_out || !!row.time_in"
                 />
               </div>
               <div class="flex items-center">
@@ -636,7 +636,7 @@ const saveButtonSubmission = async () => {
                   inputId="personal_time"
                   value="personal_time"
                   class="scale-150 transform"
-                  :disabled="!validateDateNow(row.date) || isHumanResourceActive"
+                  :disabled="!validateDateNow(row.date) || isHumanResourceActive || !!row.time_out || !!row.time_in"
                 />
               </div>
             </template>
