@@ -625,7 +625,7 @@ const saveButtonSubmission = async () => {
                   inputId="official_time"
                   value="official_time"
                   class="scale-150 transform"
-                  :disabled="!validateDateNow(row.date) || isHumanResourceActive"
+                  :disabled="!validateDateNow(row.date) || isHumanResourceActive || !!row.time_out || !!row.time_in"
                 />
               </div>
               <div class="flex items-center">
@@ -636,7 +636,7 @@ const saveButtonSubmission = async () => {
                   inputId="personal_time"
                   value="personal_time"
                   class="scale-150 transform"
-                  :disabled="!validateDateNow(row.date) || isHumanResourceActive"
+                  :disabled="!validateDateNow(row.date) || isHumanResourceActive || !!row.time_out || !!row.time_in"
                 />
               </div>
             </template>
