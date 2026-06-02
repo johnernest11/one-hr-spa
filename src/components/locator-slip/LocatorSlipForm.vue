@@ -45,67 +45,72 @@ onMounted(async () => {
   await librariesStore.fetchListLocatorActivities()
 })
 
-// Converts String "Category > Sub > Leaf" -> TreeSelect object key {"0-0-1": true}
-const getSelectionObjectFromPath = (tree: any[], pathString: string): Record<string, boolean> | null => {
-  if (!pathString || typeof pathString !== 'string') return null;
-  
-  const targetLabels = pathString.split('>').map(label => label.trim());
-  
-  const findKeyByLabels = (nodesArray: any[], level: number): string | null => {
-    const currentTargetLabel = targetLabels[level];
-    
+// Define a clear, recursive interface for your tree nodes
+interface TreeNode {
+  label: string
+  key: string
+  children?: TreeNode[]
+}
+
+const getSelectionObjectFromPath = (tree: TreeNode[], pathString: string): Record<string, boolean> | null => {
+  if (!pathString || typeof pathString !== 'string') return null
+
+  const targetLabels = pathString.split('>').map((label) => label.trim())
+
+  const findKeyByLabels = (nodesArray: TreeNode[], level: number): string | null => {
+    const currentTargetLabel = targetLabels[level]
+
     for (const node of nodesArray) {
       if (node.label.trim() === currentTargetLabel) {
-        if (level === targetLabels.length - 1) return node.key;
+        if (level === targetLabels.length - 1) return node.key
         if (node.children) {
-          const foundKey = findKeyByLabels(node.children, level + 1);
-          if (foundKey) return foundKey;
+          const foundKey = findKeyByLabels(node.children, level + 1)
+          if (foundKey) return foundKey
         }
       }
     }
-    return null;
-  };
+    return null
+  }
 
-  const matchedKey = findKeyByLabels(tree, 0);
-  return matchedKey ? { [matchedKey]: true } : null;
-};
+  const matchedKey = findKeyByLabels(tree, 0)
+  return matchedKey ? { [matchedKey]: true } : null
+}
 
-// Converts TreeSelect object key {"0-0-1": true} -> String "Category > Sub > Leaf"
 const getHierarchyPath = (tree: any[], targetKey: string, currentPath: string[] = []): string[] | null => {
   for (const node of tree) {
-    const path = [...currentPath, node.label.trim()];
-    if (node.key === targetKey) return path;
+    const path = [...currentPath, node.label.trim()]
+    if (node.key === targetKey) return path
     if (node.children) {
-      const foundPath = getHierarchyPath(node.children, targetKey, path);
-      if (foundPath) return foundPath;
+      const foundPath = getHierarchyPath(node.children, targetKey, path)
+      if (foundPath) return foundPath
     }
   }
-  return null;
-};
+  return null
+}
 
 const bindPurpose = (row: any) => {
   return computed({
     get() {
       if (typeof row.purpose === 'string') {
-        return getSelectionObjectFromPath(librariesStore.locatorActivities, row.purpose) || {};
+        return getSelectionObjectFromPath(librariesStore.locatorActivities, row.purpose) || {}
       }
-      return row.purpose || {};
+      return row.purpose || {}
     },
     set(newValue) {
       if (newValue && typeof newValue === 'object') {
-        const activeKey = Object.keys(newValue)[0];
+        const activeKey = Object.keys(newValue)[0]
         if (activeKey) {
-          const pathArray = getHierarchyPath(librariesStore.locatorActivities, activeKey);
+          const pathArray = getHierarchyPath(librariesStore.locatorActivities, activeKey)
           if (pathArray) {
-            row.purpose = pathArray.join(' > ');
-            return;
+            row.purpose = pathArray.join(' > ')
+            return
           }
         }
       }
-      row.purpose = '';
-    }
-  });
-};
+      row.purpose = ''
+    },
+  })
+}
 
 const auxRemaining = ref(0)
 const auxUsed = ref(0)
@@ -590,10 +595,10 @@ const saveButtonSubmission = async () => {
             <div v-else class="w-full">
               <p class="text-xs font-semibold text-surface-500 md:hidden">Purpose</p>
               <TreeSelect
-                v-model="bindPurpose(row).value" 
-                :options="librariesStore.locatorActivities" 
+                v-model="bindPurpose(row).value"
+                :options="librariesStore.locatorActivities"
                 selectionMode="single"
-                placeholder="Purpose" 
+                placeholder="Purpose"
                 :disabled="!validateDateNow(row.date) || isHumanResourceActive || !!row.time_out || !!row.time_in"
                 :invalidText="validator.locator_slip_logger?.[index]?.purpose?.$errors[0]?.$message"
                 :invalid="validator.locator_slip_logger?.[index]?.purpose?.$error"

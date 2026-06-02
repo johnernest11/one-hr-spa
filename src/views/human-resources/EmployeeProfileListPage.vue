@@ -59,10 +59,12 @@ const pagination = ref<ApiResponsePagination | null>(null)
 
 const selectedDivision = ref<WbAutoCompleteOption[] | null>(null)
 const selectedSectionUnit = ref<WbAutoCompleteOption[] | null>(null)
-const selectedStation = ref<WbAutoCompleteOption[] | null>(null)
+const selectedStation = ref<WbAutoCompleteOption[]>([])
+const selectedStationLabel = ref<string | null>(null)
 
 const selectedDivisionLabel = ref<string | null>(null)
 const selectedSectionLabel = ref<string | null>(null)
+
 const paginationLimit = 5
 const toast = useToast()
 
@@ -190,7 +192,7 @@ const handleBatchDownload = async () => {
           cornersDotOptions: { type: 'square', color: '#000000' },
         })
         qrCanvas.append(batchQrContainerRef.value)
-        await new Promise((resolve) => setTimeout(resolve, 450))
+        await new Promise((resolve) => setTimeout(resolve, 600))
       }
 
       if (batchCardRef.value) {
@@ -321,10 +323,12 @@ const handleFilterEmployee = async () => {
   employeeListIsLoading.value = true
   searchSubmitted.value = true
 
+  // Map labels for the UI
   selectedDivisionLabel.value = selectedDivision.value?.[0]?.label ?? null
   selectedSectionLabel.value = selectedSectionUnit.value?.[0]?.label ?? null
+  selectedStationLabel.value = selectedStation.value?.[0]?.label ?? null
 
-  // FIX: Added !selectedStation.value so filtering by station alone is not ignored
+  // Logical gate: Clear filters if everything is empty
   if (!selectedDivision.value && !selectedSectionUnit.value && !selectedStation.value) {
     const response = await personnelStore.fetchEmployees(paginationLimit)
     if (response.success && response.pagination) {
@@ -334,12 +338,13 @@ const handleFilterEmployee = async () => {
     return
   }
 
+  // Fire the filter request using the NEW order: STATION, DIVISION, SECTION
   const response = await personnelStore.filterEmployees(
-    payload.division ?? undefined,
-    payload.section ?? undefined,
-    pagination.value?.per_page ?? 5,
-    null,
-    payload.station ?? undefined
+    payload.station ?? undefined, // 1st position: stationId
+    payload.division ?? undefined, // 2nd position: divisionId
+    payload.section ?? undefined, // 3rd position: sectionOrUnitId
+    pagination.value?.per_page ?? 5, // 4th position: limit
+    null // 5th position: page
   )
 
   if (response.success && response.pagination) {
@@ -770,7 +775,6 @@ const downloadQrCode = async () => {
         root: {
           class: 'h-full flex flex-col bg-surface-0 shadow-lg dark:bg-surface-900 relative',
         },
-        // We safely hide PrimeVue's empty default layout footer slot here
         footer: {
           class: 'hidden',
         },
@@ -874,28 +878,38 @@ const downloadQrCode = async () => {
     <div v-if="batchActiveEmployee" class="absolute left-[-9999px]">
       <div
         ref="batchCardRef"
-        class="box-border flex h-[950px] w-[650px] flex-col items-center justify-between bg-white p-12 text-center"
-        style="contain: layout size; image-rendering: auto"
+        class="print:color-adjust-exact box-border flex h-[950px] w-[650px] flex-col items-center !border-0 !border-none p-10 text-center !shadow-none !outline-none !ring-0"
       >
-        <div class="flex w-full justify-center">
-          <img src="@/assets/image/dswd-logo.png" alt="DSWD Logo" class="h-auto w-[420px] object-contain" />
+        <div class="mb-8 flex w-full justify-center !border-0 !border-none pt-10 !shadow-none !outline-none !ring-0">
+          <img
+            src="@/assets/image/dswd-logo.png"
+            alt="DSWD Logo"
+            class="h-auto w-[412.5px] !border-0 !border-none object-contain !shadow-none !outline-none !ring-0"
+          />
         </div>
 
-        <div class="flex w-full flex-1 flex-col justify-center px-4 py-2">
-          <h2 class="m-0 line-clamp-2 text-3xl font-black uppercase tracking-tight text-[#1f2937]" style="line-height: 1.25">
-            {{ batchActiveEmployee.last_name }}, {{ batchActiveEmployee.first_name }}
-            {{ batchActiveEmployee.middle_name ? batchActiveEmployee.middle_name + ' ' : '' }}
-            {{ batchActiveEmployee.ext_name ? batchActiveEmployee.ext_name : '' }}
-          </h2>
-
-          <p class="m-0 mt-3 line-clamp-2 text-xl font-bold uppercase tracking-wide text-[#4b5563]" style="line-height: 1.3">
-            {{ batchActiveEmployee.employee?.item?.position?.title || '' }}
-          </p>
+        <div class="mb-2 w-full !border-0 !border-none !shadow-none !outline-none !ring-0">
+          <div class="!border-0 !border-none p-[5px_20px] !shadow-none !outline-none !ring-0">
+            <h2 class="!border-0 !border-none text-3xl font-extrabold uppercase leading-[1.2] !shadow-none">
+              {{ batchActiveEmployee.last_name }}, {{ batchActiveEmployee.first_name }}
+              {{ batchActiveEmployee.middle_name ? batchActiveEmployee.middle_name + ' ' : '' }}
+              {{ batchActiveEmployee.ext_name ? batchActiveEmployee.ext_name : '' }}
+            </h2>
+          </div>
         </div>
 
-        <div class="flex w-full justify-center pb-4">
-          <div ref="batchQrContainerRef" class="flex h-[500px] w-[500px] items-center justify-center bg-white"></div>
+        <div class="mb-2 w-full !border-0 !border-none !shadow-none !outline-none !ring-0">
+          <div class="!border-0 !border-none p-[5px_20px] !shadow-none !outline-none !ring-0">
+            <p class="!border-0 !border-none font-bold font-medium uppercase !shadow-none">
+              {{ batchActiveEmployee.employee?.item?.position?.title || '' }}
+            </p>
+          </div>
         </div>
+
+        <div
+          ref="batchQrContainerRef"
+          class="flex h-[500px] w-[500px] justify-center !border-0 !border-none !shadow-none !outline-none !ring-0"
+        ></div>
       </div>
     </div>
 
