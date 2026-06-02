@@ -506,17 +506,36 @@ watchEffect(() => {
   }
 })
 
-const getNameFontSize = (employee: any): string => {
+interface EmployeeRecord {
+  last_name?: string | null
+  first_name?: string | null
+  middle_name?: string | null
+  ext_name?: string | null
+  employee?: {
+    item?: {
+      position?: {
+        title?: string | null
+      } | null
+    } | null
+  } | null
+}
+
+const getNameFontSize = (employee: EmployeeRecord | null | undefined): string => {
   if (!employee) return 'text-3xl'
-  
-  const fullName = `${employee.last_name || ''} ${employee.first_name || ''} ${employee.middle_name || ''} ${employee.ext_name || ''}`
+
+  const last = employee.last_name ?? ''
+  const first = employee.first_name ?? ''
+  const middle = employee.middle_name ? `${employee.middle_name} ` : ''
+  const ext = employee.ext_name ?? ''
+
+  const fullName = `${last} ${first} ${middle}${ext}`.trim()
   const length = fullName.length
 
   if (length > 50) return 'text-lg'
   if (length > 35) return 'text-xl'
   if (length > 22) return 'text-2xl'
-  
-  return 'text-3xl' // Standard typography base size
+
+  return 'text-3xl'
 }
 
 const downloadQrCode = async () => {
@@ -891,9 +910,9 @@ const downloadQrCode = async () => {
     <div v-if="batchActiveEmployee" class="absolute left-[-9999px]">
       <div
         ref="batchCardRef"
-        class="box-border flex h-[950px] w-[650px] flex-col items-center justify-start p-12 text-center !border-0 !border-none !shadow-none !outline-none !ring-0 print:color-adjust-exact"
+        class="print:color-adjust-exact box-border flex h-[950px] w-[650px] flex-col items-center justify-start !border-0 !border-none p-12 text-center !shadow-none !outline-none !ring-0"
       >
-        <div class="flex w-full justify-center pt-6 mb-10 !border-0 !border-none !shadow-none !outline-none !ring-0">
+        <div class="mb-10 flex w-full justify-center !border-0 !border-none pt-6 !shadow-none !outline-none !ring-0">
           <img
             src="@/assets/image/dswd-logo.png"
             alt="DSWD Logo"
@@ -901,11 +920,14 @@ const downloadQrCode = async () => {
           />
         </div>
 
-        <div class="flex w-full flex-col justify-center items-center mb-6 !border-0 !border-none !shadow-none !outline-none !ring-0">
-          
-          <div class="flex w-full justify-center text-center px-6 mb-2 !border-0 !border-none bg-white !shadow-none !outline-none !ring-0">
-            <h2 
-              class="w-full text-center font-extrabold uppercase leading-[1.2] !border-0 !border-none !shadow-none break-all tracking-tight"
+        <div
+          class="mb-6 flex w-full flex-col items-center justify-center !border-0 !border-none !shadow-none !outline-none !ring-0"
+        >
+          <div
+            class="mb-2 flex w-full justify-center !border-0 !border-none bg-white px-6 text-center !shadow-none !outline-none !ring-0"
+          >
+            <h2
+              class="w-full break-all !border-0 !border-none text-center font-extrabold uppercase leading-[1.2] tracking-tight !shadow-none"
               :class="getNameFontSize(batchActiveEmployee)"
             >
               {{ batchActiveEmployee.last_name }}, {{ batchActiveEmployee.first_name }}
@@ -914,18 +936,19 @@ const downloadQrCode = async () => {
             </h2>
           </div>
 
-          <div class="flex w-full justify-center text-center px-6 !border-0 !border-none !shadow-none !outline-none !ring-0">
-            <p class="w-full text-center text-medium font-bold uppercase leading-tight tracking-wide !border-0 !border-none !shadow-none break-words">
+          <div class="flex w-full justify-center !border-0 !border-none px-6 text-center !shadow-none !outline-none !ring-0">
+            <p
+              class="text-medium w-full break-words !border-0 !border-none text-center font-bold uppercase leading-tight tracking-wide !shadow-none"
+            >
               {{ batchActiveEmployee.employee?.item?.position?.title || '' }}
             </p>
           </div>
-
         </div>
 
         <div class="flex w-full justify-center !border-0 !border-none !shadow-none !outline-none !ring-0">
           <div
             ref="batchQrContainerRef"
-            class="flex h-[460px] w-[460px] justify-center items-center !border-0 !border-none !shadow-none !outline-none !ring-0"
+            class="flex h-[460px] w-[460px] items-center justify-center !border-0 !border-none !shadow-none !outline-none !ring-0"
           ></div>
         </div>
       </div>
