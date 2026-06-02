@@ -192,7 +192,7 @@ const handleBatchDownload = async () => {
           cornersDotOptions: { type: 'square', color: '#000000' },
         })
         qrCanvas.append(batchQrContainerRef.value)
-        await new Promise((resolve) => setTimeout(resolve, 450))
+        await new Promise((resolve) => setTimeout(resolve, 600))
       }
 
       if (batchCardRef.value) {
@@ -214,6 +214,7 @@ const handleBatchDownload = async () => {
         const base64Data = urlStr.split(',')[1]
         zip.file(`${employeeRecord.last_name}_${employeeRecord.first_name}_QRCode.png`, base64Data, { base64: true })
         return successCount + 1
+        
       }
     } catch (err) {
       console.error('Error processing badge render layer', err)
@@ -878,40 +879,41 @@ const downloadQrCode = async () => {
     <div v-if="batchActiveEmployee" class="absolute left-[-9999px]">
       <div
         ref="batchCardRef"
-        class="m-0 flex h-[950px] w-[650px] flex-col items-center justify-start border-none bg-white p-12 text-center outline-none ring-0 [-webkit-print-color-adjust:exact] [-webkit-text-size-adjust:100%] [print-color-adjust:exact]"
+        class="box-border flex h-[950px] w-[650px] flex-col items-center !border-0 !border-none bg-white p-10 text-center !shadow-none !outline-none !ring-0 print:color-adjust-exact"
       >
-        <div class="mt-4 flex w-full justify-center border-none outline-none ring-0">
+        <div class="mb-8 pt-10 flex w-full justify-center !border-0 !border-none !shadow-none !outline-none !ring-0">
           <img
             src="@/assets/image/dswd-logo.png"
             alt="DSWD Logo"
-            class="h-auto w-[420px] border-none object-contain outline-none ring-0"
+            class="h-auto w-[412.5px] !border-0 !border-none object-contain !shadow-none !outline-none !ring-0"
           />
         </div>
 
-        <div class="mt-16 flex w-full flex-col justify-center border-none px-4 outline-none ring-0 [-webkit-box-orient:vertical]">
-          <h2
-            class="display-[-webkit-box] m-0 overflow-hidden border-none p-0 text-3xl font-black uppercase leading-snug tracking-tight text-[#1f2937] outline-none ring-0 [-webkit-box-orient:vertical] [-webkit-line-clamp:2]"
-          >
-            {{ batchActiveEmployee.last_name }}, {{ batchActiveEmployee.first_name }}
-            {{ batchActiveEmployee.middle_name ? batchActiveEmployee.middle_name + ' ' : '' }}
-            {{ batchActiveEmployee.ext_name ? batchActiveEmployee.ext_name : '' }}
-          </h2>
-
-          <p
-            class="display-[-webkit-box] m-0 mt-3 overflow-hidden border-none p-0 text-xl font-bold uppercase leading-normal tracking-wide text-[#4b5563] outline-none ring-0 [-webkit-box-orient:vertical] [-webkit-line-clamp:2]"
-          >
-            {{ batchActiveEmployee.employee?.item?.position?.title || '' }}
-          </p>
+        <div class="mb-2 w-full !border-0 !border-none !shadow-none !outline-none !ring-0">
+          <div class="!border-0 !border-none bg-white p-[5px_20px] !shadow-none !outline-none !ring-0">
+            <h2 class="!border-0 !border-none text-3xl font-black uppercase leading-[1.2] text-[#1f2937] !shadow-none">
+              {{ batchActiveEmployee.last_name }}, {{ batchActiveEmployee.first_name }}
+              {{ batchActiveEmployee.middle_name ? batchActiveEmployee.middle_name + ' ' : '' }}
+              {{ batchActiveEmployee.ext_name ? batchActiveEmployee.ext_name : '' }}
+            </h2>
+          </div>
         </div>
 
-        <div class="mt-12 flex w-full justify-center border-none outline-none ring-0 [-webkit-transform:translateZ(0)]">
-          <div
-            ref="batchQrContainerRef"
-            class="flex h-[500px] w-[500px] items-center justify-center border-none bg-white outline-none ring-0"
-          ></div>
+        <div class="mb-2 w-full !border-0 !border-none !shadow-none !outline-none !ring-0">
+          <div class="!border-0 !border-none bg-white p-[5px_20px] !shadow-none !outline-none !ring-0">
+            <p class="!border-0 !border-none text-xl font-bold uppercase leading-normal tracking-wide text-[#4b5563] !shadow-none">
+              {{ batchActiveEmployee.employee?.item?.position?.title || '' }}
+            </p>
+          </div>
         </div>
+
+        <div
+          ref="batchQrContainerRef"
+          class="flex h-[500px] w-[500px] justify-center !border-0 !border-none bg-white !shadow-none !outline-none !ring-0"
+        ></div>
       </div>
     </div>
+
     <!-- Modal of Filter -->
     <Dialog
       v-model:visible="showModal"

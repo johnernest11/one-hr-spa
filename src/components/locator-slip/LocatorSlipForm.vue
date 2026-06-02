@@ -45,13 +45,22 @@ onMounted(async () => {
   await librariesStore.fetchListLocatorActivities()
 })
 
-// Converts String "Category > Sub > Leaf" -> TreeSelect object key {"0-0-1": true}
-const getSelectionObjectFromPath = (tree: any[], pathString: string): Record<string, boolean> | null => {
+// Define a clear, recursive interface for your tree nodes
+interface TreeNode {
+  label: string;
+  key: string;
+  children?: TreeNode[];
+}
+
+const getSelectionObjectFromPath = (
+  tree: TreeNode[], 
+  pathString: string
+): Record<string, boolean> | null => {
   if (!pathString || typeof pathString !== 'string') return null
 
   const targetLabels = pathString.split('>').map((label) => label.trim())
 
-  const findKeyByLabels = (nodesArray: any[], level: number): string | null => {
+  const findKeyByLabels = (nodesArray: TreeNode[], level: number): string | null => {
     const currentTargetLabel = targetLabels[level]
 
     for (const node of nodesArray) {
@@ -70,7 +79,6 @@ const getSelectionObjectFromPath = (tree: any[], pathString: string): Record<str
   return matchedKey ? { [matchedKey]: true } : null
 }
 
-// Converts TreeSelect object key {"0-0-1": true} -> String "Category > Sub > Leaf"
 const getHierarchyPath = (tree: any[], targetKey: string, currentPath: string[] = []): string[] | null => {
   for (const node of tree) {
     const path = [...currentPath, node.label.trim()]
