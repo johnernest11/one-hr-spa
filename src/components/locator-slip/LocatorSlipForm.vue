@@ -47,15 +47,12 @@ onMounted(async () => {
 
 // Define a clear, recursive interface for your tree nodes
 interface TreeNode {
-  label: string;
-  key: string;
-  children?: TreeNode[];
+  label: string
+  key: string
+  children?: TreeNode[]
 }
 
-const getSelectionObjectFromPath = (
-  tree: TreeNode[], 
-  pathString: string
-): Record<string, boolean> | null => {
+const getSelectionObjectFromPath = (tree: TreeNode[], pathString: string): Record<string, boolean> | null => {
   if (!pathString || typeof pathString !== 'string') return null
 
   const targetLabels = pathString.split('>').map((label) => label.trim())

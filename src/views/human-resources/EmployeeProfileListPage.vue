@@ -214,7 +214,6 @@ const handleBatchDownload = async () => {
         const base64Data = urlStr.split(',')[1]
         zip.file(`${employeeRecord.last_name}_${employeeRecord.first_name}_QRCode.png`, base64Data, { base64: true })
         return successCount + 1
-        
       }
     } catch (err) {
       console.error('Error processing badge render layer', err)
@@ -879,9 +878,9 @@ const downloadQrCode = async () => {
     <div v-if="batchActiveEmployee" class="absolute left-[-9999px]">
       <div
         ref="batchCardRef"
-        class="box-border flex h-[950px] w-[650px] flex-col items-center !border-0 !border-none bg-white p-10 text-center !shadow-none !outline-none !ring-0 print:color-adjust-exact"
+        class="print:color-adjust-exact box-border flex h-[950px] w-[650px] flex-col items-center !border-0 !border-none bg-white p-10 text-center !shadow-none !outline-none !ring-0"
       >
-        <div class="mb-8 pt-10 flex w-full justify-center !border-0 !border-none !shadow-none !outline-none !ring-0">
+        <div class="mb-8 flex w-full justify-center !border-0 !border-none pt-10 !shadow-none !outline-none !ring-0">
           <img
             src="@/assets/image/dswd-logo.png"
             alt="DSWD Logo"
@@ -890,8 +889,8 @@ const downloadQrCode = async () => {
         </div>
 
         <div class="mb-2 w-full !border-0 !border-none !shadow-none !outline-none !ring-0">
-          <div class="!border-0 !border-none bg-white p-[5px_20px] !shadow-none !outline-none !ring-0">
-            <h2 class="!border-0 !border-none text-3xl font-black uppercase leading-[1.2] text-[#1f2937] !shadow-none">
+          <div class="!border-0 !border-none p-[5px_20px] !shadow-none !outline-none !ring-0">
+            <h2 class="!border-0 !border-none font-extrabold text-3xl uppercase leading-[1.2] text-[#1f2937] !shadow-none">
               {{ batchActiveEmployee.last_name }}, {{ batchActiveEmployee.first_name }}
               {{ batchActiveEmployee.middle_name ? batchActiveEmployee.middle_name + ' ' : '' }}
               {{ batchActiveEmployee.ext_name ? batchActiveEmployee.ext_name : '' }}
@@ -900,8 +899,10 @@ const downloadQrCode = async () => {
         </div>
 
         <div class="mb-2 w-full !border-0 !border-none !shadow-none !outline-none !ring-0">
-          <div class="!border-0 !border-none bg-white p-[5px_20px] !shadow-none !outline-none !ring-0">
-            <p class="!border-0 !border-none text-xl font-bold uppercase leading-normal tracking-wide text-[#4b5563] !shadow-none">
+          <div class="!border-0 !border-none p-[5px_20px] !shadow-none !outline-none !ring-0">
+            <p
+              class="!border-0 !border-none font-medium font-bold uppercase !shadow-none"
+            >
               {{ batchActiveEmployee.employee?.item?.position?.title || '' }}
             </p>
           </div>
@@ -909,7 +910,7 @@ const downloadQrCode = async () => {
 
         <div
           ref="batchQrContainerRef"
-          class="flex h-[500px] w-[500px] justify-center !border-0 !border-none bg-white !shadow-none !outline-none !ring-0"
+          class="flex h-[500px] w-[500px] justify-center !border-0 !border-none !shadow-none !outline-none !ring-0"
         ></div>
       </div>
     </div>
