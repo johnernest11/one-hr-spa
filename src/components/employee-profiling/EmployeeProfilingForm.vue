@@ -707,18 +707,15 @@ watch(
  */
 watch(
   () => payload.individual.citizenship,
-  (newValue) => {
+  (newValue, oldValue) => {
+    if (oldValue === undefined || oldValue === null) return
+
     if (newValue === 'Filipino') {
       payload.individual.citizenship_acquisition = ''
       payload.individual.country_id = null
       selectedCountry.value = null
-      payload.individual.citizenship_acquisition = ''
-    } else if (newValue === 'Dual Citizenship') {
-      payload.individual.citizenship_acquisition = ''
-      selectedCountry.value = null
     }
-  },
-  { immediate: true }
+  }
 )
 
 /**
@@ -1228,20 +1225,39 @@ const updateProfilingForm = async () => {
     payload.employee.section_or_unit_id ||= 1
   }
 
+  // --- CONCISE SANITIZATION BLOCK ---
+  // Normalize Questionnaire (Defaults to false/empty strings)
+  const q = payload.individual_question?.[0]
+  if (q) {
+    // 1. Ensure Boolean values (prevents null on radio buttons)
+    q.q34_a = q.q34_a ?? false
+    q.q35_a = q.q35_a ?? false
+    q.q36 = q.q36 ?? false
+    q.q37 = q.q37 ?? false
+
+    // 2. Ensure detail strings are not null if the answer is Yes
+    if (q.q34_a) q.q34_details = q.q34_details?.trim() || 'N/A'
+    if (q.q35_a) q.q35_a_details = q.q35_a_details?.trim() || 'N/A'
+    if (q.q36) q.q36_details ??= '' // Match your v-model
+    if (q.q37) q.q37_details ??= '' // Match your v-model
+  }
+
   const requestPayload = {
     ...payload,
     individual_contact_info: [{ ...payload.contact_info }],
     individual_address: [{ ...payload.individual_address_init }],
+    individual_question: payload.individual_question ? [{ ...payload.individual_question[0] }] : [],
   }
 
   // Execute dual update in parallel
-  const [resC1, resC2] = await Promise.all([
+  const [resC1, resC2, resC4] = await Promise.all([
     profilingStore.updateProfiling(requestPayload, id, 'C1'),
     profilingStore.updateProfiling(requestPayload, id, 'C2'),
+    profilingStore.updateProfiling(requestPayload, id, 'C4'),
   ])
 
   // Process Results
-  const success = resC1.success && resC2.success
+  const success = resC1.success && resC2.success && resC4.success
 
   if (success) {
     toast.add({
@@ -1251,7 +1267,7 @@ const updateProfilingForm = async () => {
       life: 2000,
     })
   } else {
-    const result = parseApiResponseError(!resC1.success ? resC1 : resC2)
+    const result = parseApiResponseError(!resC1.success ? resC1 : !resC2.success ? resC2 : resC4)
     showErrorAlert.value = true
     errorMessage.value = result?.message || 'Failed to update profile.'
   }

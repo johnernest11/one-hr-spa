@@ -551,6 +551,19 @@ export const useProfilingStore = defineStore('profiling', () => {
 
     if (payload.individual_work_experience) {
       formatDateFields(payload.individual_work_experience, ['inclusive_date_from', 'inclusive_date_to', 'position_title'])
+
+      payload.individual_work_experience.forEach((item) => {
+        // 1. Cast the row instance to an untracked record object just for the loop
+        const record = item as Record<string, unknown>
+        const keys = ['inclusive_date_from', 'inclusive_date_to', 'position_title']
+
+        keys.forEach((key) => {
+          const val = String(record[key])
+          if (!record[key] || val.includes('Invalid') || val.includes('1970-01-01') || val.includes('NaN')) {
+            record[key] = null // Cleans the value perfectly without compiler errors
+          }
+        })
+      })
     }
     const { data } = await useApiCall(`/individual-basic-details/${id}`, authStore.authenticationToken)
       .put({ ...payload, form_type: formType })

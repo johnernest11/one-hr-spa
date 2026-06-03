@@ -54,6 +54,24 @@ watch(
     }
   }
 )
+/** Added a Fallback interval to check token expiry in Local Storage */
+onMounted(() => {
+  setInterval(async () => {
+    const expiry = localStorage.getItem('auth-token-expiration')
+
+    if (!expiry || expiry === 'null') return
+
+    const expiryDate = new Date(expiry)
+
+    if (!isNaN(expiryDate.getTime()) && expiryDate.getTime() <= Date.now()) {
+      authStore.clearAuthTokenOnStorage()
+
+      await router.replace({
+        name: 'login',
+      })
+    }
+  }, 30000)
+})
 
 /** Handle for Rate Limit */
 const toast = useToast()
