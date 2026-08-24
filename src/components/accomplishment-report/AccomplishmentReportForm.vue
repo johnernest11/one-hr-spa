@@ -70,7 +70,7 @@ const payload = reactive<PersonnelAccomplishmentReportPayload>({
       dates_in_week: '',
       specific_activity: null,
       highlights: null,
-      _delete: null,
+      _delete: false,
     },
   ],
 })
@@ -82,6 +82,7 @@ const weekOptions = ref([
   { label: 'Week 3', value: 'Week 3' },
   { label: 'Week 4', value: 'Week 4' },
   { label: 'Week 5', value: 'Week 5' },
+  { label: 'Week 6', value: 'Week 6' },
 ])
 
 /** Function to add a new accomplishment entry */
@@ -100,7 +101,15 @@ const addAccomplishment = (newFields = {}) => {
 
 /** Function to remove an accomplishment entry */
 const removeAccomplishment = (index: number) => {
-  if (index >= 0 && index < payload.rows.length) {
+  const row = payload.rows[index]
+
+  if (!row) return
+
+  // If record exists in backend DB, flag it for soft deletion on payload
+  if (row.id) {
+    row._delete = true
+  } else {
+    // If it's a newly added local row not saved in DB yet, permanently remove it
     payload.rows.splice(index, 1)
   }
 }
@@ -360,6 +369,18 @@ const exportToFile = async (accomplishmentReport: PersonnelAccomplishmentReportR
 
 /** Handle updating the accomplishment report */
 const handleUpdated = async () => {
+  // Prevent submission if all rows are marked for deletion
+  const visibleRowsCount = payload.rows.filter((row) => !row._delete).length
+  if (visibleRowsCount === 0) {
+    toast.add({
+      severity: 'error',
+      summary: 'Update Accomplishment Report',
+      detail: 'An accomplishment report must contain at least one active row.',
+      life: 5000,
+    })
+    return
+  }
+
   IsBeingUpdated.value = true
 
   const id = route.params.id as string
@@ -385,45 +406,45 @@ const handleUpdated = async () => {
     return
   }
 
-  // Call update API
-  const response = await accomplishmentReportStore.updateAccomplishment(payload, id)
+  try {
+    // Call update API (includes all original rows with _delete flags)
+    const response = await accomplishmentReportStore.updateAccomplishment(payload, id)
 
-  // Handle unsuccessful API response
-  if (!response.success) {
-    const result = parseApiResponseError(response)
-    if (!result) {
-      IsBeingUpdated.value = false
-      formIsSubmitting.value = false
+    // Handle unsuccessful API response
+    if (!response.success) {
+      const result = parseApiResponseError(response)
+      if (!result) {
+        return
+      }
+
+      showErrorAlert.value = true
+      errorMessage.value = result.message
+      errorDetails.value = result.errors
+
+      document.querySelector('.update-ar-creds-section')?.scrollIntoView({ behavior: 'smooth' })
       return
     }
 
-    showErrorAlert.value = true
-    errorMessage.value = result.message
-    errorDetails.value = result.errors
+    // Show success toast
+    toast.add({
+      severity: 'success',
+      summary: 'Accomplishment Report Updated',
+      detail: `Accomplishment Report ${id} was successfully updated.`,
+      life: 3000,
+    })
 
+    // Reload page if needed
+    if (shouldReloadPageAfterUpdate()) {
+      setTimeout(() => {
+        window.location.reload()
+      }, 2000)
+    }
+
+    emit('ar-updated', true)
+  } finally {
     IsBeingUpdated.value = false
-
-    document.querySelector('.update-ar-creds-section')?.scrollIntoView({ behavior: 'smooth' })
-    return
-  }
-
-  // Show success toast
-  toast.add({
-    severity: 'success',
-    summary: 'Accomplishment Report Updated',
-    detail: `Accomplishment Report ${id} was successfully updated.`,
-    life: 3000,
-  })
-
-  // Reload page if needed
-  if (shouldReloadPageAfterUpdate()) {
-    setTimeout(() => {
-      window.location.reload()
-    }, 2000)
-  }
-
-  emit('ar-updated', true)
-  IsBeingUpdated.value = false
+    formIsSubmitting.value = false
+  } 
 }
 
 /** Handle marking the accomplishment report as done */
@@ -549,89 +570,94 @@ const handleMarkDone = async () => {
 
           <div
             v-for="(row, accomplishmentReportIndex) in payload.rows"
-            :key="accomplishmentReportIndex"
-            class="mb-4 flex flex-col md:flex-row"
+            :key="row.id || accomplishmentReportIndex"
           >
-            <!-- Week Dropdown and Dates Input -->
-            <div class="mb-4 ml-0 flex w-full flex-col items-start justify-center gap-2 py-2 pt-8 md:ml-12 md:w-2/12">
-              <div class="flex w-full flex-col">
-                <WbDropdown
-                  :id="'week-' + accomplishmentReportIndex"
-                  v-model="row.week_num"
-                  v-tooltip.top="'Choose a Week'"
-                  :options="weekOptions"
-                  optionLabel="label"
-                  optionValue="value"
-                  @change="handleWeekChange()"
-                  class="mb-4 w-full"
-                  label-class="text-sm text-surface-600"
-                  label="Week"
-                  placeholder="Choose a week"
-                  :invalidText="validator.rows[accomplishmentReportIndex].week_num.$errors[0]?.$message"
-                  :invalid="validator.rows[accomplishmentReportIndex].week_num.$error"
-                  @blur="validator.rows[accomplishmentReportIndex].week_num.$touch()"
+            <div
+              v-show="!row._delete"
+              class="mb-4 flex flex-col md:flex-row"
+            >
+              <!-- Week Dropdown and Dates Input -->
+              <div class="mb-4 ml-0 flex w-full flex-col items-start justify-center gap-2 py-2 pt-8 md:ml-12 md:w-2/12">
+                <div class="flex w-full flex-col">
+                  <WbDropdown
+                    :id="'week-' + accomplishmentReportIndex"
+                    v-model="row.week_num"
+                    v-tooltip.top="'Choose a Week'"
+                    :options="weekOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                    @change="handleWeekChange()"
+                    class="mb-4 w-full"
+                    label-class="text-sm text-surface-600"
+                    label="Week"
+                    placeholder="Choose a week"
+                    :invalidText="validator.rows[accomplishmentReportIndex].week_num.$errors[0]?.$message"
+                    :invalid="validator.rows[accomplishmentReportIndex].week_num.$error"
+                    @blur="validator.rows[accomplishmentReportIndex].week_num.$touch()"
+                  />
+                  <WbInputText
+                    v-model="row.dates_in_week"
+                    label="Date/s or Coverage"
+                    label-class="text-sm text-surface-600"
+                    placeholder="e.g. 16-17 January 2025 or 1, 3, 4 & 5 January 2025"
+                    class="w-full"
+                    :invalidText="validator.rows[accomplishmentReportIndex].dates_in_week.$errors[0]?.$message"
+                    :invalid="validator.rows[accomplishmentReportIndex].dates_in_week.$error"
+                    @blur="validator.rows[accomplishmentReportIndex].dates_in_week.$touch()"
+                  />
+                </div>
+              </div>
+
+              <Divider layout="vertical" class="hidden md:block"></Divider>
+
+              <!-- Specific Activity -->
+              <div v-if="showTextAreaActivity" class="flex w-full flex-col items-start justify-center gap-3 py-2 md:w-5/12">
+                <textarea
+                  v-model="row.specific_activity"
+                  class="w-full border-b-2 border-surface-300 outline-none focus:outline-none focus:ring-primary-500"
+                  placeholder="Enter your Specific Activity..."
+                  rows="10"
+                  @blur="validator.rows[accomplishmentReportIndex].specific_activity.$touch()"
+                  required
                 />
-                <WbInputText
-                  v-model="row.dates_in_week"
-                  label="Date/s or Coverage"
-                  label-class="text-sm text-surface-600"
-                  placeholder="e.g. 16-17 January 2025 or 1, 3, 4 & 5 January 2025"
-                  class="w-full"
-                  :invalidText="validator.rows[accomplishmentReportIndex].dates_in_week.$errors[0]?.$message"
-                  :invalid="validator.rows[accomplishmentReportIndex].dates_in_week.$error"
-                  @blur="validator.rows[accomplishmentReportIndex].dates_in_week.$touch()"
+                <p v-if="validator.rows[accomplishmentReportIndex].specific_activity.$error" class="text-sm text-red-500">
+                  {{ validator.rows[accomplishmentReportIndex].specific_activity.$errors[0]?.$message }}
+                </p>
+              </div>
+
+              <Divider layout="vertical" class="hidden md:block"></Divider>
+
+              <!-- Highlights -->
+              <div v-if="showTextAreaHighlights" class="flex w-full flex-col items-start justify-center gap-3 py-2 md:w-5/12">
+                <textarea
+                  v-model="row.highlights"
+                  class="w-full border-b-2 border-surface-300 outline-none focus:outline-none focus:ring-primary-500"
+                  placeholder="Enter your Highlights of Accomplishment..."
+                  rows="10"
+                  @blur="validator.rows[accomplishmentReportIndex].highlights.$touch()"
+                  required
+                />
+                <p v-if="validator.rows[accomplishmentReportIndex].highlights.$error" class="text-sm text-red-500">
+                  {{ validator.rows[accomplishmentReportIndex].highlights.$errors[0]?.$message }}
+                </p>
+              </div>
+
+              <!-- Delete Button -->
+              <div class="mt-2 flex justify-center pt-16 md:ml-8 md:mt-0 md:block">
+                <Button
+                  icon="pi pi-trash"
+                  severity="danger"
+                  rounded
+                  @click="removeAccomplishment(accomplishmentReportIndex)"
+                  v-if="payload.status !== 'done' && payload.rows.length > 1"
+                  class="mt-2"
                 />
               </div>
+
+              <!-- Divider for mobile view -->
+              <Divider layout="horizontal" class="mt-4 md:hidden" v-if="accomplishmentReportIndex < payload.rows.length - 1" />
             </div>
 
-            <Divider layout="vertical" class="hidden md:block"></Divider>
-
-            <!-- Specific Activity -->
-            <div v-if="showTextAreaActivity" class="flex w-full flex-col items-start justify-center gap-3 py-2 md:w-5/12">
-              <textarea
-                v-model="row.specific_activity"
-                class="w-full border-b-2 border-surface-300 outline-none focus:outline-none focus:ring-primary-500"
-                placeholder="Enter your Specific Activity..."
-                rows="10"
-                @blur="validator.rows[accomplishmentReportIndex].specific_activity.$touch()"
-                required
-              />
-              <p v-if="validator.rows[accomplishmentReportIndex].specific_activity.$error" class="text-sm text-red-500">
-                {{ validator.rows[accomplishmentReportIndex].specific_activity.$errors[0]?.$message }}
-              </p>
-            </div>
-
-            <Divider layout="vertical" class="hidden md:block"></Divider>
-
-            <!-- Highlights -->
-            <div v-if="showTextAreaHighlights" class="flex w-full flex-col items-start justify-center gap-3 py-2 md:w-5/12">
-              <textarea
-                v-model="row.highlights"
-                class="w-full border-b-2 border-surface-300 outline-none focus:outline-none focus:ring-primary-500"
-                placeholder="Enter your Highlights of Accomplishment..."
-                rows="10"
-                @blur="validator.rows[accomplishmentReportIndex].highlights.$touch()"
-                required
-              />
-              <p v-if="validator.rows[accomplishmentReportIndex].highlights.$error" class="text-sm text-red-500">
-                {{ validator.rows[accomplishmentReportIndex].highlights.$errors[0]?.$message }}
-              </p>
-            </div>
-
-            <!-- Delete Button -->
-            <div class="mt-2 flex justify-center pt-16 md:ml-8 md:mt-0 md:block">
-              <Button
-                icon="pi pi-trash"
-                severity="danger"
-                rounded
-                @click="removeAccomplishment(accomplishmentReportIndex)"
-                v-if="payload.status !== 'done' && payload.rows.length > 1"
-                class="mt-2"
-              />
-            </div>
-
-            <!-- Divider for mobile view -->
-            <Divider layout="horizontal" class="mt-4 md:hidden" v-if="accomplishmentReportIndex < payload.rows.length - 1" />
           </div>
 
           <Divider layout="horizontal" class="mb-14 hidden md:block"></Divider>
