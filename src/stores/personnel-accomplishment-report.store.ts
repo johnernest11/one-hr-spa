@@ -11,6 +11,7 @@ export type PersonnelAccomplishmentReportPayload = {
   supervisor_notes: string
   status: string
   rows: {
+    id?: number | string
     week_num: string
     dates_in_week: string
     specific_activity: string | null

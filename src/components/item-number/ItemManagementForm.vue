@@ -785,6 +785,7 @@ const updateButtonSubmission = async () => {
                 :invalid-text="validator.employment_status.$errors[0]?.$message"
                 @blur="validator.employment_status.$touch"
                 label-class="text-sm text-surface-600"
+                :disabled="!!$route.params.id"
                 required
               >
               </WbDropdown>
@@ -816,6 +817,7 @@ const updateButtonSubmission = async () => {
                 :invalid-text="validator.fund_source_id.$errors[0]?.$message"
                 @blur="validator.fund_source_id.$touch"
                 @focusin="validator.fund_source_id.$dirty = false"
+                :disabled="!!$route.params.id"
               >
               </WbAutoComplete>
             </div>
@@ -845,6 +847,7 @@ const updateButtonSubmission = async () => {
                 @focusin="validator.salary_grade_id.$dirty = false"
                 label-class="text-sm text-surface-600 dark:lg:text-surface-200"
                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                :disabled="!!$route.params.id"
               />
             </div>
             <div class="flex w-full flex-col">
@@ -887,6 +890,7 @@ const updateButtonSubmission = async () => {
                 @focusin="validator.position_id.$dirty = false"
                 label-class="text-sm text-surface-600 dark:lg:text-surface-200"
                 class="lg:text-md lg:placeholder:text-md w-full text-sm placeholder:text-sm"
+                :disabled="!!$route.params.id"
               />
             </div>
             <div class="flex w-full flex-col">
@@ -927,6 +931,7 @@ const updateButtonSubmission = async () => {
                 label="Item Number"
                 :disabled="!!$route.params.id"
                 label-class="text-sm text-surface-600"
+                :disabled="!!$route.params.id"
                 :invalid="validator.number.$invalid || manualInvalidFields.number"
                 :invalid-text="validator.number.$errors[0]?.$message"
                 @blur="validator.number.$touch"
