@@ -99,7 +99,7 @@ const handleViewQr = async (employeeId: number): Promise<QrCodeResponse> => {
   canDownload.value = false
 
   let response = await personnelStore.fetchQrCode(employeeId)
-  
+
   if (!employeeHasIdNumber(response)) {
     personnelStore.isEmployeesLoading = false
     qrCodeIsLoading.value = false
@@ -246,7 +246,6 @@ const closeQrModal = () => {
   qrCodeDisplay = null
   qrCodeDownload = null
 }
-
 </script>
 
 <template>
@@ -461,6 +460,5 @@ const closeQrModal = () => {
         ></div>
       </div>
     </template>
-
   </div>
 </template>
