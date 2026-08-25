@@ -444,7 +444,7 @@ const handleUpdated = async () => {
   } finally {
     IsBeingUpdated.value = false
     formIsSubmitting.value = false
-  } 
+  }
 }
 
 /** Handle marking the accomplishment report as done */
@@ -568,14 +568,8 @@ const handleMarkDone = async () => {
           </div>
           <p class="create-ar-creds-section text-xs font-medium uppercase"></p>
 
-          <div
-            v-for="(row, accomplishmentReportIndex) in payload.rows"
-            :key="row.id || accomplishmentReportIndex"
-          >
-            <div
-              v-show="!row._delete"
-              class="mb-4 flex flex-col md:flex-row"
-            >
+          <div v-for="(row, accomplishmentReportIndex) in payload.rows" :key="row.id || accomplishmentReportIndex">
+            <div v-show="!row._delete" class="mb-4 flex flex-col md:flex-row">
               <!-- Week Dropdown and Dates Input -->
               <div class="mb-4 ml-0 flex w-full flex-col items-start justify-center gap-2 py-2 pt-8 md:ml-12 md:w-2/12">
                 <div class="flex w-full flex-col">
@@ -657,7 +651,6 @@ const handleMarkDone = async () => {
               <!-- Divider for mobile view -->
               <Divider layout="horizontal" class="mt-4 md:hidden" v-if="accomplishmentReportIndex < payload.rows.length - 1" />
             </div>
-
           </div>
 
           <Divider layout="horizontal" class="mb-14 hidden md:block"></Divider>
