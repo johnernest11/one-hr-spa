@@ -10,7 +10,7 @@ import { useAuthStore } from '@/stores/auth.store.ts'
 import { useAddressStore } from '@/stores/address.store.ts'
 import { useLibrariesStore } from '@/stores/libraries.store.ts'
 import { useItemNumberStore } from '@/stores/item-number.store.ts'
-import { usePersonnelStore} from '@/stores/personnel.store'
+import { usePersonnelStore } from '@/stores/personnel.store'
 /** VALIDATION  */
 import useVuelidate from '@vuelidate/core'
 import { helpers, required, maxLength, email } from '@vuelidate/validators'
@@ -196,9 +196,7 @@ const formRules = computed(() => ({
       maxLength: helpers.withMessage(() => generateMessage('birthday').maxLength, globalStringMaxLengthRule),
       isNotTooOld: helpers.withMessage('Birthdate cannot be more than 130 years ago', isNotMoreThanYearsAgo(130)),
       notInFuture: helpers.withMessage('Birthdate must not be in the future.', notInFuture),
-    uniqueEmployee: helpers.withMessage(
-      'An employee with the same first name, last name, and birthday already exists.',
-      () => {
+      uniqueEmployee: helpers.withMessage('An employee with the same first name, last name, and birthday already exists.', () => {
         const firstName = payload.individual.first_name
         const lastName = payload.individual.last_name
         const birthday = payload.individual.birthday
@@ -207,16 +205,9 @@ const formRules = computed(() => ({
         if (!firstName || !lastName || !birthday) {
           return true
         }
-        
-        return isUniqueEmployeeRule(
-          employees.value,
-          firstName,
-          lastName,
-          birthday,
-          currentId
-        )
-      }
-    ),
+
+        return isUniqueEmployeeRule(employees.value, firstName, lastName, birthday, currentId)
+      }),
     },
     sex: {
       in: helpers.withMessage('Select a valid sex option: male or female', required),

@@ -139,41 +139,24 @@ export const isUniqueEmployeeRule = (
   const normalizedFirstName = firstName.trim().toLowerCase()
   const normalizedLastName = lastName.trim().toLowerCase()
 
-  const normalizedBirthday = useDateFormat(
-    birthday,
-    'YYYY-MM-DD'
-  ).value.toString()
+  const normalizedBirthday = useDateFormat(birthday, 'YYYY-MM-DD').value.toString()
 
   return !employees.some((emp) => {
     // Exclude current employee when updating
-    if (
-      currentId !== null &&
-      Number(emp.id) === Number(currentId)
-    ) {
+    if (currentId !== null && Number(emp.id) === Number(currentId)) {
       return false
     }
 
-    const empFirstName = (
-      emp.first_name ?? ''
-    ).trim().toLowerCase()
+    const empFirstName = (emp.first_name ?? '').trim().toLowerCase()
 
-    const empLastName = (
-      emp.last_name ?? ''
-    ).trim().toLowerCase()
+    const empLastName = (emp.last_name ?? '').trim().toLowerCase()
 
     const empBirthday = emp.birthday ?? ''
 
-    const normalizedEmpBirthday = empBirthday
-      ? useDateFormat(
-          empBirthday,
-          'YYYY-MM-DD'
-        ).value.toString()
-      : ''
+    const normalizedEmpBirthday = empBirthday ? useDateFormat(empBirthday, 'YYYY-MM-DD').value.toString() : ''
 
     return (
-      empFirstName === normalizedFirstName &&
-      empLastName === normalizedLastName &&
-      normalizedEmpBirthday === normalizedBirthday
+      empFirstName === normalizedFirstName && empLastName === normalizedLastName && normalizedEmpBirthday === normalizedBirthday
     )
   })
 }

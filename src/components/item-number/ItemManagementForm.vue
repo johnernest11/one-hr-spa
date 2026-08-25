@@ -336,7 +336,9 @@ const generateItemClassification = (employment_status: string): string => {
 }
 
 const generateItemNumber = (employment_status: string, position: string | number | null | undefined): string => {
-  const pos = position ? String(position).toUpperCase() : 'UNKNOWN'
+  const pos = position
+  ? String(position).toUpperCase().replace(/\(/g, '-').replace(/\)/g, '')
+  : 'UNKNOWN'
 
   return employment_status === 'Contract of Service'
     ? `FO1-COS-${pos}-`
@@ -780,7 +782,7 @@ const updateButtonSubmission = async () => {
                 optionLabel="label"
                 optionValue="value"
                 label=" Employment Type "
-                 :disabled="!!$route.params.id"
+                :disabled="!!$route.params.id"
                 :invalid="validator.employment_status.$invalid"
                 :invalid-text="validator.employment_status.$errors[0]?.$message"
                 @blur="validator.employment_status.$touch"
@@ -799,7 +801,7 @@ const updateButtonSubmission = async () => {
                 label="Fund Source"
                 placeholder="Type the Fund Source"
                 v-model="selectedFundSource"
-                 :disabled="!!$route.params.id"
+                :disabled="!!$route.params.id"
                 :id="getId('input-funding-sources')"
                 optionLabel="label"
                 optionValue="value"
@@ -837,7 +839,7 @@ const updateButtonSubmission = async () => {
                 required
                 @complete="(event: any) => salaryGradesStore.searchSalaryGrade(event.query)"
                 @on-true-value-computed="handleSalaryGradeSelection"
-                 :disabled="!!$route.params.id"
+                :disabled="!!$route.params.id"
                 :id="getId('input-salary-grade')"
                 :invalid="validator.salary_grade_id.$invalid"
                 :invalid-text="validator.salary_grade_id.$errors[0]?.$message"
@@ -879,7 +881,7 @@ const updateButtonSubmission = async () => {
                 :forceSelection="true"
                 required
                 @on-true-value-computed="handlePositionSelection"
-                 :disabled="!!$route.params.id"
+                :disabled="!!$route.params.id"
                 :id="getId('input-positions')"
                 :invalid="validator.position_id.$invalid"
                 :invalid-text="validator.position_id.$errors[0]?.$message"
@@ -922,7 +924,7 @@ const updateButtonSubmission = async () => {
 
           <div class="ml-6 mr-6 flex flex-col gap-4 pb-6 md:flex-row">
             <div class="flex w-full flex-col">
-              <WbInputText  
+              <WbInputText
                 v-model="payload.number"
                 label="Item Number"
                 :disabled="!!$route.params.id"
