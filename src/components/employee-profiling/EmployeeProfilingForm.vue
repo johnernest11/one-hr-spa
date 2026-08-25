@@ -10,11 +10,11 @@ import { useAuthStore } from '@/stores/auth.store.ts'
 import { useAddressStore } from '@/stores/address.store.ts'
 import { useLibrariesStore } from '@/stores/libraries.store.ts'
 import { useItemNumberStore } from '@/stores/item-number.store.ts'
-
+import { usePersonnelStore} from '@/stores/personnel.store'
 /** VALIDATION  */
 import useVuelidate from '@vuelidate/core'
 import { helpers, required, maxLength, email } from '@vuelidate/validators'
-import { digitCountRule, mobilePhoneRule, uniqueUserIdentifierRule } from '@/utils/custom-validations'
+import { digitCountRule, mobilePhoneRule, uniqueUserIdentifierRule, isUniqueEmployeeRule } from '@/utils/custom-validations'
 import { lcFirst } from '@/utils/helpers.ts'
 
 /** COMPOSABLES / UTILITIES */
@@ -58,7 +58,8 @@ const libraryStore = useLibrariesStore()
 const profilingStore = useProfilingStore()
 const authStore = useAuthStore()
 const itemStore = useItemNumberStore()
-
+const personnelStore = usePersonnelStore()
+const { employees } = storeToRefs(personnelStore)
 const toast = useToast()
 const router = useRouter()
 const route = useRoute()
@@ -195,6 +196,27 @@ const formRules = computed(() => ({
       maxLength: helpers.withMessage(() => generateMessage('birthday').maxLength, globalStringMaxLengthRule),
       isNotTooOld: helpers.withMessage('Birthdate cannot be more than 130 years ago', isNotMoreThanYearsAgo(130)),
       notInFuture: helpers.withMessage('Birthdate must not be in the future.', notInFuture),
+    uniqueEmployee: helpers.withMessage(
+      'An employee with the same first name, last name, and birthday already exists.',
+      () => {
+        const firstName = payload.individual.first_name
+        const lastName = payload.individual.last_name
+        const birthday = payload.individual.birthday
+        const currentId = payload.employee.id
+
+        if (!firstName || !lastName || !birthday) {
+          return true
+        }
+        
+        return isUniqueEmployeeRule(
+          employees.value,
+          firstName,
+          lastName,
+          birthday,
+          currentId
+        )
+      }
+    ),
     },
     sex: {
       in: helpers.withMessage('Select a valid sex option: male or female', required),

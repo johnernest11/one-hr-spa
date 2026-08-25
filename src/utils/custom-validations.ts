@@ -12,7 +12,8 @@ import { email, helpers } from '@vuelidate/validators'
 import { parsePhoneNumber } from 'libphonenumber-js/max'
 import { useAvailabilitiesStore } from '@/stores/availability.store.ts'
 import useVuelidate from '@vuelidate/core'
-
+import { PersonnelResponse } from '@/typings/models.types'
+import { useDateFormat } from '@vueuse/core'
 /**
  * @description Must have one lowercase & uppercase letter, one number
  */
@@ -112,4 +113,67 @@ export const mimeTypeRule = (mimeTypes: string[]) => (value: File) => {
 /** @description The file size must not exceed the specified size in MB*/
 export const maxFileSizeRule = (maxMb: number) => (value: File) => {
   return value.size <= maxMb * 1024 * 1024
+}
+
+/**
+ * @description Client-side rule to check for duplicate Employee.
+ *
+ * Duplicate criteria:
+ * - First name
+ * - Last name
+ * - Birthday
+ *
+ * The current employee is excluded when Creating / updating.
+ */
+export const isUniqueEmployeeRule = (
+  employees: PersonnelResponse[],
+  firstName: string | null | undefined,
+  lastName: string | null | undefined,
+  birthday: string | null | undefined,
+  currentId: number | string | null = null
+): boolean => {
+  if (!firstName || !lastName || !birthday) {
+    return true
+  }
+
+  const normalizedFirstName = firstName.trim().toLowerCase()
+  const normalizedLastName = lastName.trim().toLowerCase()
+
+  const normalizedBirthday = useDateFormat(
+    birthday,
+    'YYYY-MM-DD'
+  ).value.toString()
+
+  return !employees.some((emp) => {
+    // Exclude current employee when updating
+    if (
+      currentId !== null &&
+      Number(emp.id) === Number(currentId)
+    ) {
+      return false
+    }
+
+    const empFirstName = (
+      emp.first_name ?? ''
+    ).trim().toLowerCase()
+
+    const empLastName = (
+      emp.last_name ?? ''
+    ).trim().toLowerCase()
+
+    const empBirthday = emp.birthday ?? ''
+
+    const normalizedEmpBirthday = empBirthday
+      ? useDateFormat(
+          empBirthday,
+          'YYYY-MM-DD'
+        ).value.toString()
+      : ''
+
+    return (
+      empFirstName === normalizedFirstName &&
+      empLastName === normalizedLastName &&
+      normalizedEmpBirthday === normalizedBirthday
+    )
+  })
 }
