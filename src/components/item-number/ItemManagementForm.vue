@@ -336,9 +336,7 @@ const generateItemClassification = (employment_status: string): string => {
 }
 
 const generateItemNumber = (employment_status: string, position: string | number | null | undefined): string => {
-  const pos = position
-  ? String(position).toUpperCase().replace(/\(/g, '-').replace(/\)/g, '')
-  : 'UNKNOWN'
+  const pos = position ? String(position).toUpperCase().replace(/\(/g, '-').replace(/\)/g, '') : 'UNKNOWN'
 
   return employment_status === 'Contract of Service'
     ? `FO1-COS-${pos}-`
@@ -430,7 +428,7 @@ watch(
   { immediate: true }
 )
 
-/** Watch Status & Position to trigger Item Number generation **/
+/** Watch Status & Position to trigger Item Number generation */
 watch(
   [() => payload.employment_status, () => selectedPosition.value],
   async ([newStatus, newPosition], [oldStatus, oldPosition]) => {
@@ -438,9 +436,16 @@ watch(
       initialized.value = true
       return
     }
+
     payload.item_classification = generateItemClassification(newStatus)
 
-    if (isEditorMode.value && newStatus === oldStatus && newPosition?.value === oldPosition?.value) return
+    if (
+      isEditorMode.value &&
+      newStatus === oldStatus &&
+      newPosition === oldPosition
+    ) {
+      return
+    }
 
     if (newStatus === 'Permanent') {
       payload.number = null
@@ -449,17 +454,23 @@ watch(
       return
     }
 
-    if (!newStatus || !newPosition?.value) {
+    if (!newStatus || !newPosition) {
       payload.number = null
       isItemNumberManual.value = false
       return
     }
 
     isGeneratingNumber.value = true
+
     try {
       await itemNumberStore.fetchLastNumber(newStatus)
+
       isItemNumberManual.value = false
-      payload.number = generateItemNumber(newStatus, positionCode.value)
+
+      payload.number = generateItemNumber(
+        newStatus,
+        positionCode.value
+      )
     } finally {
       isGeneratingNumber.value = false
     }
