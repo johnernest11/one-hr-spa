@@ -288,6 +288,10 @@ const canCreateNewEmployee = computed(() => {
   return authStore.authHasRequiredRole(['hr_ppms_admin', 'admin', 'super_user'])
 })
 
+const canGenerateQR = computed(() => {
+  return authStore.authHasRequiredRole(['hr_pas_admin', 'hr_ppms_admin', 'admin', 'super_user'])
+})
+
 /**************************************
         Handle Pagination Function
 *************************************** */
@@ -719,7 +723,7 @@ const downloadQrCode = async () => {
                         @click="navigateToDetails(props.data)"
                       />
                       <Button
-                        v-if="canCreateNewEmployee"
+                        v-if="canGenerateQR"
                         icon="pi pi-qrcode"
                         v-tooltip.top="'Generate QR Code'"
                         severity="info"
