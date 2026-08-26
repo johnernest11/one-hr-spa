@@ -220,15 +220,11 @@ const capturePhoto = async (): Promise<{ file: File; previewUrl: string } | null
 const onDecode = async (result: string) => {
   dailyLogsStore.clearScannedEmployee()
   const captured = await capturePhoto()
-  console.log("AWS_ISSUE_CHECK: capturePhoto raw output => ", captured)
-  console.log("AWS_ISSUE_CHECK: captured.file instance => ", captured?.file instanceof File, captured?.file)
 
   try {
     const formData = new FormData()
     formData.append('scanned_qr', result)
     if (captured?.file) formData.append('captured_image', captured.file)
-    console.log("AWS_ISSUE_CHECK: Captured file => ", formData.get('captured_image'))
-    console.log("AWS_ISSUE_CHECK: Captured previewUrl => ", captured?.previewUrl)
 
     const officeId = dailyLogsStore.timelogOfficeId
     if (!officeId) {
@@ -244,7 +240,6 @@ const onDecode = async (result: string) => {
     }
 
     const response = await dailyLogsStore.logEmployeeTime(formData, captured?.previewUrl)
-    console.log('AWS_ISSUE_CHECK: logEmployeeTime Response => ', response)
 
     if (response?.success) {
       const today = getManilaTodayISO()

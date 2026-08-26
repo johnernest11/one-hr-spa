@@ -176,8 +176,6 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
     payload: FormData | { scanned_qr: string; captured_image: string | null },
     localCapturedImageUrl: string | null = null
   ) => {
-    console.log("AWS_ISSUE_CHECK: payload => ", payload)
-    console.log("AWS_ISSUE_CHECK: localCapturedImageUrl => ", localCapturedImageUrl)
     const { data } = await useApiCall('employees/log-time', authStore.authenticationToken).post(payload).json()
     const responseBody: ApiResponseBody = data.value
 
@@ -188,10 +186,6 @@ export const useDailyLogsStore = defineStore('dailyLogs', () => {
       const messageToDisplay = responseBody.message || 'Time log successful!'
 
       const capturedImageUrl = localCapturedImageUrl || getCapturedPhotoUrl(warmBodyLog?.captured_image_url, dswdLogoMark)
-      console.log("AWS_ISSUE_CHECK: Raw warmBodyLog from API => ", warmBodyLog)
-      console.log("AWS_ISSUE_CHECK: Raw warmBodyLog.captured_image_url => ", warmBodyLog?.captured_image_url)
-      console.log("AWS_ISSUE_CHECK: capturedImageUrl => ", capturedImageUrl)
-      console.log("AWS_ISSUE_CHECK: Resolved getCapturedPhotoUrl() => ", getCapturedPhotoUrl(warmBodyLog?.captured_image_url, dswdLogoMark))
       const employeeIdString = emp?.id_number ?? warmBodyLog.daily_time_record?.employee_id ?? 'N/A'
 
       const scannedEmployee: CustomScannedEmployeeResponse = {
