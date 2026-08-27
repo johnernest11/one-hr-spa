@@ -402,24 +402,32 @@ onUnmounted(() => {
           <template v-if="latestWarmBodyLogs.length">
             <table class="w-3/4 text-center">
               <tbody>
-                <tr v-for="entry in latestWarmBodyLogs" :key="entry.id">
-                  <td class="p-2">
-                    <img :src="entry.captured_image ?? ''" alt="Captured Photo" class="aspect-[2270/2479] border object-cover" />
-                  </td>
+                <template v-for="entry in latestWarmBodyLogs" :key="entry.id">
+                  <tr class="hidden md:table-row xl:hidden">
+                    <td colspan="2" class="p-2">
+                      <img :src="entry.captured_image ?? ''" alt="Captured Photo" class="mx-auto aspect-[2270/2479] border object-cover" />
+                    </td>
+                  </tr>
 
-                  <td class="p-2">
-                    <p class="text-xl">{{ entry.employee_id }} - {{ formatTime(entry.timestamp) }}</p>
-                  </td>
+                  <tr>
+                    <td class="p-2 md:hidden xl:table-cell">
+                      <img :src="entry.captured_image ?? ''" alt="Captured Photo" class="aspect-[2270/2479] border object-cover" />
+                    </td>
 
-                  <td class="p-2">
-                    <span
-                      class="rounded-full px-3 py-1 text-xl font-bold"
-                      :class="entry.is_in ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'"
-                    >
-                      {{ entry.is_in ? 'IN' : 'OUT' }}
-                    </span>
-                  </td>
-                </tr>
+                    <td class="p-2">
+                      <p class="text-xl">{{ entry.employee_id }} - {{ formatTime(entry.timestamp) }}</p>
+                    </td>
+
+                    <td class="p-2">
+                      <span
+                        class="rounded-full px-3 py-1 text-xl font-bold"
+                        :class="entry.is_in ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'"
+                      >
+                        {{ entry.is_in ? 'IN' : 'OUT' }}
+                      </span>
+                    </td>
+                  </tr>
+                </template>
               </tbody>
             </table>
           </template>
