@@ -197,18 +197,8 @@ const handleBatchDownload = async () => {
 
       if (batchCardRef.value) {
         const urlStr = await domToImage.toPng(batchCardRef.value, {
-          width: 650,
-          height: 950,
-          quality: 1,
-          bgcolor: '#FFFFFF',
-          style: {
-            transform: 'none',
-            left: '0',
-            top: '0',
-            position: 'static',
-            margin: '0',
-            padding: '0',
-          },
+          quality: 0.95,
+          bgcolor: 'white',
         })
 
         const base64Data = urlStr.split(',')[1]
@@ -509,38 +499,6 @@ watchEffect(() => {
     }
   }
 })
-
-interface EmployeeRecord {
-  last_name?: string | null
-  first_name?: string | null
-  middle_name?: string | null
-  ext_name?: string | null
-  employee?: {
-    item?: {
-      position?: {
-        title?: string | null
-      } | null
-    } | null
-  } | null
-}
-
-const getNameFontSize = (employee: EmployeeRecord | null | undefined): string => {
-  if (!employee) return 'text-3xl'
-
-  const last = employee.last_name ?? ''
-  const first = employee.first_name ?? ''
-  const middle = employee.middle_name ? `${employee.middle_name} ` : ''
-  const ext = employee.ext_name ?? ''
-
-  const fullName = `${last} ${first} ${middle}${ext}`.trim()
-  const length = fullName.length
-
-  if (length > 50) return 'text-lg'
-  if (length > 35) return 'text-xl'
-  if (length > 22) return 'text-2xl'
-
-  return 'text-3xl'
-}
 
 const downloadQrCode = async () => {
   const node = hiddenQrCardRef.value
@@ -911,51 +869,84 @@ const downloadQrCode = async () => {
       </div>
     </Dialog>
 
-    <div v-if="batchActiveEmployee" class="absolute left-[-9999px]">
+    <div
+      v-if="batchActiveEmployee"
+      ref="batchCardRef"
+      style="
+        position: absolute;
+        left: -9999px;
+        width: 650px;
+        height: 900px;
+        background-color: white;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 40px;
+        box-sizing: border-box;
+        border: 0 !important;
+        box-shadow: none !important;
+        outline: none !important;
+      "
+    >
       <div
-        ref="batchCardRef"
-        class="print:color-adjust-exact box-border flex h-[950px] w-[650px] flex-col items-center justify-start !border-0 !border-none p-12 text-center !shadow-none !outline-none !ring-0"
+        style="
+          margin-bottom: 30px;
+          width: 100%;
+          display: flex;
+          justify-content: center;
+          border: 0 !important;
+          box-shadow: none !important;
+          outline: none !important;
+        "
       >
-        <div class="mb-10 flex w-full justify-center !border-0 !border-none pt-6 !shadow-none !outline-none !ring-0">
-          <img
-            src="@/assets/image/dswd-logo.png"
-            alt="DSWD Logo"
-            class="h-auto w-[412.5px] !border-0 !border-none object-contain !shadow-none !outline-none !ring-0"
-          />
-        </div>
+        <img
+          src="@/assets/image/dswd-logo.png"
+          alt="DSWD Logo"
+          style="width: 412.5px; height: auto; object-fit: contain; border: 0 !important; box-shadow: none !important"
+        />
+      </div>
 
-        <div
-          class="mb-6 flex w-full flex-col items-center justify-center !border-0 !border-none !shadow-none !outline-none !ring-0"
-        >
-          <div
-            class="mb-2 flex w-full justify-center !border-0 !border-none bg-white px-6 text-center !shadow-none !outline-none !ring-0"
+      <div style="margin-bottom: 5px; width: 100%; border: 0 !important; box-shadow: none !important; outline: none !important">
+        <div style="background-color: white !important; padding: 5px 20px; border: 0 !important">
+          <p
+            style="
+              font-size: 32px;
+              font-weight: 900;
+              text-transform: uppercase;
+              color: #1f2937;
+              line-height: 1.2;
+              border: 0 !important;
+            "
           >
-            <h2
-              class="w-full break-all !border-0 !border-none text-center font-extrabold uppercase leading-[1.2] tracking-tight !shadow-none"
-              :class="getNameFontSize(batchActiveEmployee)"
-            >
-              {{ batchActiveEmployee.last_name }}, {{ batchActiveEmployee.first_name }}
-              {{ batchActiveEmployee.middle_name ? batchActiveEmployee.middle_name + ' ' : '' }}
-              {{ batchActiveEmployee.ext_name ? batchActiveEmployee.ext_name : '' }}
-            </h2>
-          </div>
-
-          <div class="flex w-full justify-center !border-0 !border-none px-6 text-center !shadow-none !outline-none !ring-0">
-            <p
-              class="text-medium w-full break-words !border-0 !border-none text-center font-bold uppercase leading-tight tracking-wide !shadow-none"
-            >
-              {{ batchActiveEmployee.employee?.item?.position?.title || '' }}
-            </p>
-          </div>
-        </div>
-
-        <div class="flex w-full justify-center !border-0 !border-none !shadow-none !outline-none !ring-0">
-          <div
-            ref="batchQrContainerRef"
-            class="flex h-[460px] w-[460px] items-center justify-center !border-0 !border-none !shadow-none !outline-none !ring-0"
-          ></div>
+            {{ batchActiveEmployee.last_name }}, {{ batchActiveEmployee.first_name }}
+            {{ batchActiveEmployee.middle_name ? batchActiveEmployee.middle_name + ' ' : '' }}
+            {{ batchActiveEmployee.ext_name ? batchActiveEmployee.ext_name : '' }}
+          </p>
         </div>
       </div>
+
+      <div style="margin-bottom: 30px; width: 100%; border: 0 !important; box-shadow: none !important; outline: none !important">
+        <div style="background-color: white !important; padding: 5px 20px; border: 0 !important">
+          <p
+            style="
+              font-size: 22px;
+              font-weight: 500;
+              text-transform: uppercase;
+              color: #1f2937;
+              line-height: 1.2;
+              border: 0 !important;
+            "
+          >
+            {{ batchActiveEmployee.employee?.item?.position?.title || '' }}
+          </p>
+        </div>
+      </div>
+
+      <div
+        ref="batchQrContainerRef"
+        style="display: flex; justify-content: center; background-color: white; width: 500px; height: 500px; border: 0 !important"
+      ></div>
     </div>
 
     <!-- Modal of Filter -->
