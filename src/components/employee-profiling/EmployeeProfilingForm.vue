@@ -216,11 +216,11 @@ const formRules = computed(() => ({
       in: helpers.withMessage('Select a valid civil status from the list', required),
     },
     tin: {
-      required: helpers.withMessage(() => generateMessage('tin').required, required),
       maxLength: helpers.withMessage(() => generateMessage('tin_no').maxLength, globalStringMaxLengthRule),
     },
     citizenship: {
       maxLength: helpers.withMessage(() => generateMessage('citizenship').maxLength, globalStringMaxLengthRule),
+       required: helpers.withMessage(() => generateMessage('citizenship').required, required),
     },
     citizenship_acquisition: {
       required: helpers.withMessage(
@@ -1569,7 +1569,10 @@ const handleSaveProfilingForm = async () => {
                 <WbCalendar
                   v-model="payload.individual.birthday"
                   required
-                  :readonly="profilingStore.isMyProfile"
+                  :disabled="profilingStore.isMyProfile"
+                   :manual-input="true"
+                   date-format="yy-mm-dd"
+                   placeholder="yyyy-mm-dd"
                   :class="[
                     'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
                     profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
@@ -1624,7 +1627,14 @@ const handleSaveProfilingForm = async () => {
                     <h3 class="text-md text-surface-600 dark:lg:text-surface-200">Citizenship</h3>
                     <span class="text-red-500">*</span>
                   </div>
-                  <div class="flex flex-row items-center justify-center gap-12 p-4 md:justify-start md:p-2">
+                  <div
+    :class="[
+      'flex flex-row items-center justify-center gap-12 rounded-md p-4 md:justify-start md:p-2',
+      validator.individual.citizenship.$error
+        ? 'border border-red-500 bg-red-50 dark:bg-red-950/20'
+        : '',
+    ]"
+  >
                     <div class="flex items-center">
                       <RadioButton
                         v-model="payload.individual.citizenship"
@@ -1632,6 +1642,7 @@ const handleSaveProfilingForm = async () => {
                         name="citizenship"
                         value="Filipino"
                         :disabled="profilingStore.isMyProfile"
+                         @change="validator.individual.citizenship.$touch()"
                       />
                       <label :for="getId('input-citizenship-fil')" class="ml-2 cursor-pointer">Filipino</label>
                     </div>
@@ -1642,10 +1653,19 @@ const handleSaveProfilingForm = async () => {
                         name="citizenship"
                         value="Dual Citizenship"
                         :disabled="profilingStore.isMyProfile"
+                         @change="validator.individual.citizenship.$touch()"
                       />
                       <label :for="getId('input-citizenship-dual')" class="ml-2 cursor-pointer">Dual Citizen</label>
                     </div>
                   </div>
+
+
+  <small
+    v-if="validator.individual.citizenship.$error"
+    class="text-xs text-error-500"
+  >
+    {{ validator.individual.citizenship.$errors[0]?.$message }}
+  </small>
                 </div>
 
                 <WbDropdown
@@ -1731,18 +1751,13 @@ const handleSaveProfilingForm = async () => {
 
                 <WbInputText
                   v-model="payload.individual.tin"
-                  required
                   label="TIN"
                   label-class="text-md text-surface-600 dark:lg:text-surface-200"
-                  validation-error-message-class="text-xs text-error-500 font-bold lg:font-normal dark:lg:text-error-300"
                   :readonly="profilingStore.isMyProfile"
                   :class="[
                     'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
                     profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
                   ]"
-                  :invalid="validator.individual.tin.$invalid"
-                  :invalid-text="validator.individual.tin.$errors[0]?.$message"
-                  @blur="validator.individual.tin.$touch"
                 >
                 </WbInputText>
                 <WbInputText
@@ -2582,7 +2597,9 @@ const handleSaveProfilingForm = async () => {
                     <div :class="['col-span-12', 'md:col-span-4']">
                       <WbCalendar
                         v-model="payload.individual_work_experience[0].inclusive_date_from"
-                        :readonly="profilingStore.isMyProfile"
+                        :manual-input="true"
+                          date-format="yy-mm-dd"
+                          placeholder="yyyy-mm-dd"
                         :class="[
                           'lg:text-md lg:placeholder:text-md w-full bg-transparent text-sm text-surface-900 placeholder:text-sm dark:text-surface-200',
                           profilingStore.isMyProfile ? 'pointer-events-none cursor-default select-text' : '',
