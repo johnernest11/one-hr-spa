@@ -22,6 +22,8 @@ type WbCalendarProps = {
   validationErrorMessageClass?: string
   validationSuccessMessageClass?: string
   required?: boolean
+  manualInput?: boolean
+  dateFormat?: string
 }
 
 const props = withDefaults(defineProps<WbCalendarProps>(), {
@@ -34,6 +36,8 @@ const props = withDefaults(defineProps<WbCalendarProps>(), {
   validationErrorMessageClass: '',
   validationSuccessMessageClass: '',
   required: false,
+  manualInput: true,
+  dateFormat: 'yy-mm-dd',
 })
 </script>
 
@@ -58,6 +62,8 @@ const props = withDefaults(defineProps<WbCalendarProps>(), {
       <!-- Start Calendar -->
       <Calendar
         v-bind="$attrs"
+        :manual-input="props.manualInput"
+         :date-format="dateFormat"
         :aria-describedby="`${$.uid.toString()}-help`"
         :class="`h-12 w-full ${$attrs.class}`"
         :input-class="`h-12 w-full ${$slots['prepend-icon'] ? 'pl-10' : ''} ${
